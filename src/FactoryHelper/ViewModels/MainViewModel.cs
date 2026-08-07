@@ -46,6 +46,9 @@ public partial class MainViewModel : INotifyPropertyChanged
     /// <summary>命令分类列表</summary>
     public ObservableCollection<string> Categories { get; } = [];
 
+    /// <summary>命令组分类列表</summary>
+    public ObservableCollection<string> GroupCategories { get; } = [];
+
     /// <summary>当前选中命令的参数输入项（空表示无需输入）</summary>
     public ObservableCollection<CommandInputItem> InputItems { get; } = [];
 
@@ -104,6 +107,13 @@ public partial class MainViewModel : INotifyPropertyChanged
         set { _selectedCategory = value; OnPropertyChanged(); FilterCommands(); }
     }
 
+    private string _selectedGroupCategory = "全部";
+    public string SelectedGroupCategory
+    {
+        get => _selectedGroupCategory;
+        set { _selectedGroupCategory = value; OnPropertyChanged(); RebuildGroups(); }
+    }
+
     private bool _adTabCommands = true;
     public bool AdTabCommands
     {
@@ -156,9 +166,8 @@ public partial class MainViewModel : INotifyPropertyChanged
 
         // 加载命令组
         _allGroups = await _config.LoadCommandGroupsAsync();
-        CommandGroups.Clear();
-        foreach (var g in _allGroups)
-            CommandGroups.Add(g);
+        RebuildGroups();
+        RefreshGroupCategories();
 
         // 提取分类
         Categories.Clear();
@@ -429,9 +438,8 @@ public partial class MainViewModel : INotifyPropertyChanged
         if (window.SavedGroups.Count > 0)
         {
             _allGroups = window.SavedGroups;
-            CommandGroups.Clear();
-            foreach (var g in _allGroups)
-                CommandGroups.Add(g);
+            RebuildGroups();
+            RefreshGroupCategories();
         }
     }
 
@@ -468,6 +476,34 @@ public partial class MainViewModel : INotifyPropertyChanged
     private void FilterCommands()
     {
         RebuildCommands();
+    }
+
+    /// <summary>
+    /// 按分类重建命令组列表
+    /// </summary>
+    private void RebuildGroups()
+    {
+        CommandGroups.Clear();
+        var filtered = SelectedGroupCategory == "全部"
+            ? _allGroups
+            : _allGroups.Where(g => g.Category == SelectedGroupCategory);
+        foreach (var g in filtered)
+            CommandGroups.Add(g);
+    }
+
+    /// <summary>
+    /// 重建命令组分类列表
+    /// </summary>
+    private void RefreshGroupCategories()
+    {
+        var current = SelectedGroupCategory;
+        GroupCategories.Clear();
+        GroupCategories.Add("全部");
+        foreach (var cat in _allGroups.Select(g => g.Category).Where(c => c != null).Distinct())
+            GroupCategories.Add(cat!);
+
+        SelectedGroupCategory = GroupCategories.Contains(current) ? current : "全部";
+        RebuildGroups();
     }
 
     private void AppendLog(string message)

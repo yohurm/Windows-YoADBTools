@@ -140,6 +140,7 @@ public class ConfigService
             new CommandGroup
             {
                 Name = "设备信息采集",
+                Category = "通用",
                 Description = "获取设备的完整系统信息",
                 Steps =
                 [
@@ -153,6 +154,7 @@ public class ConfigService
             new CommandGroup
             {
                 Name = "重启并等待恢复",
+                Category = "通用",
                 Description = "重启设备后等待设备重新上线",
                 Steps =
                 [
@@ -164,6 +166,7 @@ public class ConfigService
             new CommandGroup
             {
                 Name = "写入SN",
+                Category = "Nori产测",
                 Description = "Nori 产测流程: 检查设备 → 进入产测模式 → 写入SN → 查询SN",
                 Steps =
                 [

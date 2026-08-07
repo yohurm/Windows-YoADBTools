@@ -11,6 +11,9 @@ public class CommandGroup
     /// <summary>命令组名称（如"音频测试"）</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>命令组分组标签（如"通用"、"Nori产测"）</summary>
+    public string? Category { get; set; }
+
     /// <summary>描述</summary>
     public string? Description { get; set; }
 

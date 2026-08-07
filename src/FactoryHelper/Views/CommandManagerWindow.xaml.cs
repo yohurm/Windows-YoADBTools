@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using FactoryHelper.Models;
 using FactoryHelper.Services;
 
@@ -13,6 +15,7 @@ public partial class CommandManagerWindow : Window
     private readonly ConfigService _config;
     private readonly ObservableCollection<AdbCommandEditable> _editableCommands = [];
     private readonly ObservableCollection<CommandGroupEditable> _editableGroups = [];
+    private readonly List<string> _allTags = [];
 
     /// <summary>保存后的命令列表（主界面刷新用）</summary>
     public List<AdbCommand> SavedCommands { get; private set; } = [];
@@ -20,32 +23,24 @@ public partial class CommandManagerWindow : Window
     /// <summary>保存后的命令组列表（主界面刷新用）</summary>
     public List<CommandGroup> SavedGroups { get; private set; } = [];
 
-    // ==================== 单条命令 ====================
-
-    private AdbCommandEditable? _selectedCommand;
-    public AdbCommandEditable? SelectedCommand
-    {
-        get => _selectedCommand;
-        set { _selectedCommand = value; DataContext = value; }
-    }
-
-    // ==================== 命令组 ====================
-
-    private CommandGroupEditable? _selectedGroup;
-    public CommandGroupEditable? SelectedGroup
-    {
-        get => _selectedGroup;
-        set
-        {
-            _selectedGroup = value;
-            RefreshGroupEditor();
-        }
-    }
+    /// <summary>是否有未保存的修改</summary>
+    private bool _isDirty;
 
     public CommandManagerWindow(List<AdbCommand> commands, List<CommandGroup> groups)
     {
         InitializeComponent();
         _config = new ConfigService();
+
+        // 收集所有已有标签（命令分类 + 命令组分类 + 默认标签）
+        _allTags = commands.Select(c => c.Category)
+            .Concat(groups.Select(g => g.Category))
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Cast<string>()
+            .Distinct()
+            .OrderBy(t => t)
+            .ToList();
+        if (!_allTags.Contains("通用")) _allTags.Insert(0, "通用");
+        if (!_allTags.Contains("Nori产测")) _allTags.Add("Nori产测");
 
         foreach (var cmd in commands)
             _editableCommands.Add(AdbCommandEditable.From(cmd));
@@ -55,9 +50,50 @@ public partial class CommandManagerWindow : Window
 
         CmdListBox.ItemsSource = _editableCommands;
         GroupListBox.ItemsSource = _editableGroups;
+
+        DataContext = null; // 初始无选中项
     }
 
-    // ==================== 单条命令操作 ====================
+    // ==================== 脏检查 ====================
+
+    private void MarkDirty()
+    {
+        _isDirty = true;
+    }
+
+    private void OnEditChanged(object sender, TextChangedEventArgs e)
+    {
+        MarkDirty();
+    }
+
+    private void OnStepsGridCellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        MarkDirty();
+    }
+
+    private void OnWindowClosing(object? sender, CancelEventArgs e)
+    {
+        if (_isDirty)
+        {
+            var result = MessageBox.Show(this,
+                "有未保存的修改，确定要关闭吗？\n（未保存的更改将丢失）",
+                "未保存修改",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes)
+                e.Cancel = true;
+        }
+    }
+
+    // ==================== 单条命令 ====================
+
+    private AdbCommandEditable? SelectedCommand { get; set; }
+
+    private void OnCommandSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        SelectedCommand = CmdListBox.SelectedItem as AdbCommandEditable;
+        DataContext = SelectedCommand;
+    }
 
     private void OnNewCommandClick(object sender, RoutedEventArgs e)
     {
@@ -69,6 +105,7 @@ public partial class CommandManagerWindow : Window
         });
         _editableCommands.Add(item);
         CmdListBox.SelectedItem = item;
+        MarkDirty();
     }
 
     private void OnDeleteCommandClick(object sender, RoutedEventArgs e)
@@ -81,6 +118,15 @@ public partial class CommandManagerWindow : Window
 
         _editableCommands.Remove(SelectedCommand);
         CmdListBox.SelectedItem = null;
+        MarkDirty();
+    }
+
+    private void OnPickCommandCategoryClick(object sender, RoutedEventArgs e)
+    {
+        if (SelectedCommand == null) return;
+        var tag = PickTag(SelectedCommand.Category);
+        if (tag != null)
+            SelectedCommand.Category = tag;
     }
 
     private async void OnSaveCommandsClick(object sender, RoutedEventArgs e)
@@ -91,15 +137,19 @@ public partial class CommandManagerWindow : Window
         SavedCommands = _editableCommands.Select(x => x.Source).ToList();
         await _config.SaveCommandsAsync(SavedCommands);
 
+        _isDirty = false;
         MessageBox.Show(this, $"已保存 {SavedCommands.Count} 条命令", "保存成功",
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
-    // ==================== 命令组操作 ====================
+    // ==================== 命令组 ====================
 
-    private void OnGroupSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    private CommandGroupEditable? SelectedGroup { get; set; }
+
+    private void OnGroupSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         SelectedGroup = GroupListBox.SelectedItem as CommandGroupEditable;
+        RefreshGroupEditor();
     }
 
     /// <summary>
@@ -107,23 +157,23 @@ public partial class CommandManagerWindow : Window
     /// </summary>
     private void RefreshGroupEditor()
     {
-        if (_selectedGroup == null)
+        if (SelectedGroup == null)
         {
             GroupNameBox.Text = string.Empty;
+            GroupCategoryBox.Text = string.Empty;
             GroupDescBox.Text = string.Empty;
             StepsGrid.ItemsSource = null;
             return;
         }
 
-        // 同步组名称/描述（DataContext 绑定由 Grid 负责）
-        GroupNameBox.DataContext = _selectedGroup;
-        GroupDescBox.DataContext = _selectedGroup;
+        GroupNameBox.Text = SelectedGroup.Name;
+        GroupCategoryBox.Text = SelectedGroup.Category ?? string.Empty;
+        GroupDescBox.Text = SelectedGroup.Description ?? string.Empty;
 
-        // 刷新步骤序号
-        for (var i = 0; i < _selectedGroup.Steps.Count; i++)
-            _selectedGroup.Steps[i].Index = i + 1;
+        for (var i = 0; i < SelectedGroup.Steps.Count; i++)
+            SelectedGroup.Steps[i].Index = i + 1;
 
-        StepsGrid.ItemsSource = _selectedGroup.Steps;
+        StepsGrid.ItemsSource = SelectedGroup.Steps;
     }
 
     private void OnNewGroupClick(object sender, RoutedEventArgs e)
@@ -131,10 +181,12 @@ public partial class CommandManagerWindow : Window
         var item = CommandGroupEditable.From(new CommandGroup
         {
             Name = "新命令组",
+            Category = SelectedGroup?.Category ?? "通用",
             Description = ""
         });
         _editableGroups.Add(item);
         GroupListBox.SelectedItem = item;
+        MarkDirty();
     }
 
     private void OnDeleteGroupClick(object sender, RoutedEventArgs e)
@@ -147,6 +199,18 @@ public partial class CommandManagerWindow : Window
 
         _editableGroups.Remove(SelectedGroup);
         GroupListBox.SelectedItem = null;
+        MarkDirty();
+    }
+
+    private void OnPickGroupCategoryClick(object sender, RoutedEventArgs e)
+    {
+        if (SelectedGroup == null) return;
+        var tag = PickTag(SelectedGroup.Category);
+        if (tag != null)
+        {
+            SelectedGroup.Category = tag;
+            RefreshGroupEditor();
+        }
     }
 
     private void OnAddStepClick(object sender, RoutedEventArgs e)
@@ -161,9 +225,9 @@ public partial class CommandManagerWindow : Window
         }));
 
         RefreshGroupEditor();
-        // 选中新步骤
         if (StepsGrid.Items.Count > 0)
             StepsGrid.SelectedIndex = StepsGrid.Items.Count - 1;
+        MarkDirty();
     }
 
     private void OnDeleteStepClick(object sender, RoutedEventArgs e)
@@ -172,6 +236,7 @@ public partial class CommandManagerWindow : Window
 
         SelectedGroup.Steps.Remove(step);
         RefreshGroupEditor();
+        MarkDirty();
     }
 
     private void OnMoveUpClick(object sender, RoutedEventArgs e)
@@ -184,6 +249,7 @@ public partial class CommandManagerWindow : Window
         SelectedGroup.Steps.Move(index, index - 1);
         RefreshGroupEditor();
         StepsGrid.SelectedIndex = index - 1;
+        MarkDirty();
     }
 
     private void OnMoveDownClick(object sender, RoutedEventArgs e)
@@ -196,6 +262,7 @@ public partial class CommandManagerWindow : Window
         SelectedGroup.Steps.Move(index, index + 1);
         RefreshGroupEditor();
         StepsGrid.SelectedIndex = index + 1;
+        MarkDirty();
     }
 
     private async void OnSaveGroupsClick(object sender, RoutedEventArgs e)
@@ -212,12 +279,48 @@ public partial class CommandManagerWindow : Window
         }
 
         foreach (var group in _editableGroups)
+        {
+            group.Category = GroupCategoryBox.Text.Trim();
             group.ApplyToSource();
+        }
 
         SavedGroups = _editableGroups.Select(g => g.Source).ToList();
         await _config.SaveCommandGroupsAsync(SavedGroups);
 
+        _isDirty = false;
         MessageBox.Show(this, $"已保存 {SavedGroups.Count} 个命令组", "保存成功",
             MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    // ==================== 标签管理 ====================
+
+    /// <summary>
+    /// 弹出标签选择器，返回选中的标签（null 表示取消）
+    /// </summary>
+    private string? PickTag(string? current)
+    {
+        var dialog = new TagPickerDialog(_allTags, current)
+        {
+            Owner = this
+        };
+        if (dialog.ShowDialog() == true)
+            return dialog.SelectedTag;
+        return null;
+    }
+
+    /// <summary>
+    /// 打开标签管理（增删改标签）
+    /// </summary>
+    private void OnTagManagerClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new TagManagerDialog(_allTags)
+        {
+            Owner = this
+        };
+        dialog.ShowDialog();
+
+        // 同步标签列表
+        _allTags.Clear();
+        _allTags.AddRange(dialog.Tags);
     }
 }

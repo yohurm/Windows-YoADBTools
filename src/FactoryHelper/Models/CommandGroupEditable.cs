@@ -10,6 +10,7 @@ namespace FactoryHelper.Models;
 public class CommandGroupEditable : INotifyPropertyChanged
 {
     private string _name = string.Empty;
+    private string? _category;
     private string? _description;
 
     /// <summary>原始命令组（保存时写回）</summary>
@@ -19,6 +20,13 @@ public class CommandGroupEditable : INotifyPropertyChanged
     {
         get => _name;
         set { _name = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>分组标签（如"通用"、"Nori产测"）</summary>
+    public string? Category
+    {
+        get => _category;
+        set { _category = value; OnPropertyChanged(); }
     }
 
     public string? Description
@@ -39,6 +47,7 @@ public class CommandGroupEditable : INotifyPropertyChanged
         {
             Source = group,
             Name = group.Name,
+            Category = group.Category,
             Description = group.Description
         };
         foreach (var step in group.Steps)
@@ -49,6 +58,7 @@ public class CommandGroupEditable : INotifyPropertyChanged
     public void ApplyToSource()
     {
         Source.Name = Name;
+        Source.Category = Category;
         Source.Description = Description;
         Source.Steps = Steps.Select(s => s.Source).ToList();
     }

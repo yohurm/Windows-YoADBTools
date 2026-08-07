@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FactoryHelper"
-        xmlns:vm="clr-namespace:FactoryHelper.ViewModels"
+        xmlns:conv="clr-namespace:FactoryHelper.Converters"
         mc:Ignorable="d"
         Title="产测助手 — Yovo ADB Tools" Height="650" Width="1050"
         MinHeight="500" MinWidth="800"
@@ -13,6 +13,7 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <conv:NullToCollapsedConverter x:Key="NullToCollapsed"/>
     </Window.Resources>
 
     <Grid>
@@ -140,20 +141,40 @@
                     </TabItem>
 
                     <TabItem Header="命令组">
-                        <ListBox ItemsSource="{Binding CommandGroups}"
-                                 SelectedItem="{Binding SelectedGroup}"
-                                 Margin="8,8,8,8"
-                                 BorderBrush="#ccc" BorderThickness="1">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="2">
-                                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding Description}" FontSize="11"
-                                                   Foreground="#666" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 分组筛选 -->
+                            <ComboBox Grid.Row="0" ItemsSource="{Binding GroupCategories}"
+                                      SelectedItem="{Binding SelectedGroupCategory}"
+                                      Margin="8,6,8,4" Height="26"/>
+
+                            <ListBox Grid.Row="1" ItemsSource="{Binding CommandGroups}"
+                                     SelectedItem="{Binding SelectedGroup}"
+                                     Margin="8,0,8,8"
+                                     BorderBrush="#ccc" BorderThickness="1">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="2">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Category}" FontSize="10"
+                                                           Foreground="#8a5a00" FontWeight="Bold"
+                                                           Margin="0,0,6,0"
+                                                           Visibility="{Binding Category, Converter={StaticResource NullToCollapsed}}"/>
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Description}" FontSize="11"
+                                                       Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Steps.Count, StringFormat={}{0} 步}" FontSize="10"
+                                                       Foreground="#888"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
                     </TabItem>
                 </TabControl>
             </Grid>
