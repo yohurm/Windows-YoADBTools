@@ -160,6 +160,18 @@ public class ConfigService
                     new GroupStep { Command = "wait-for-device", Description = "等待设备上线", TimeoutMs = 120000, DelayAfterMs = 5000 },
                     new GroupStep { Command = "shell getprop sys.boot_completed", Description = "检查启动完成" },
                 ]
+            },
+            new CommandGroup
+            {
+                Name = "写入SN",
+                Description = "Nori 产测流程: 检查设备 → 进入产测模式 → 写入SN → 查询SN",
+                Steps =
+                [
+                    new GroupStep { Command = "get-state", Description = "1.检查设备", TimeoutMs = 10000 },
+                    new GroupStep { Command = "shell bdft write -testmode B", Description = "2.进入产测模式", TimeoutMs = 60000, DelayAfterMs = 1000 },
+                    new GroupStep { Command = "shell bdft write -sn {0}", Description = "3.写入SN", TimeoutMs = 60000, InputPrompts = ["请输入 SN"] },
+                    new GroupStep { Command = "shell bdft read -sn", Description = "4.查询SN", TimeoutMs = 30000 },
+                ]
             }
         ];
     }

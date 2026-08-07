@@ -114,6 +114,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     // ==================== 字段 ====================
 
     private List<AdbCommand> _allCommands = [];
+    private List<CommandGroup> _allGroups = [];
 
     /// <summary>
     /// 选中命令变化时，重建参数输入项
@@ -154,9 +155,9 @@ public partial class MainViewModel : INotifyPropertyChanged
         RebuildCommands();
 
         // 加载命令组
-        var groups = await _config.LoadCommandGroupsAsync();
+        _allGroups = await _config.LoadCommandGroupsAsync();
         CommandGroups.Clear();
-        foreach (var g in groups)
+        foreach (var g in _allGroups)
             CommandGroups.Add(g);
 
         // 提取分类
@@ -303,10 +304,45 @@ public partial class MainViewModel : INotifyPropertyChanged
     {
         if (!CanExecute || SelectedGroup == null) return;
 
-        IsBusy = true;
         var group = SelectedGroup;
         var devices = SelectedDevices.ToList();
 
+        // 1. 预收集命令组中所有需要输入的步骤参数
+        var inputSteps = group.Steps
+            .Select((step, idx) => (StepNo: idx + 1, step))
+            .Where(x => x.step.RequiresInput)
+            .ToList();
+
+        List<string> inputValues = [];
+        if (inputSteps.Count > 0)
+        {
+            var dialog = new Views.MultiStepInputDialog(group.Name,
+                inputSteps.Select(x => (x.StepNo,
+                    Desc: x.step.Description ?? x.step.Command,
+                    x.step.Command,
+                    x.step.InputPrompts)).ToList())
+            {
+                Owner = Application.Current.MainWindow
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                AppendLog($"[取消] 已取消执行命令组: {group.Name}");
+                return;
+            }
+            inputValues = dialog.Values;
+        }
+
+        // 2. 将输入值按顺序写入各步骤（占位符替换）
+        var valueQueue = new Queue<string>(inputValues);
+        foreach (var step in group.Steps.Where(s => s.RequiresInput))
+        {
+            var values = step.InputPrompts.Select(_ => valueQueue.Dequeue()).ToArray();
+            step.Command = string.Format(step.Command, values.Select(v => (object)v).ToArray());
+        }
+        AppendLog($"[输入] {string.Join(" / ", inputValues)}");
+
+        IsBusy = true;
         AppendLog($"=== 执行命令组: {group.Name} ===");
         StatusText = $"正在执行: {group.Name}";
 
@@ -321,21 +357,31 @@ public partial class MainViewModel : INotifyPropertyChanged
 
             var allResults = await Task.WhenAll(tasks);
 
-            foreach (var (device, results) in allResults)
+            foreach (var (device, execResult) in allResults)
             {
                 AppendLog($"--- [{device.DisplayName}] ---");
                 var allPassed = true;
-                foreach (var r in results)
+
+                for (var i = 0; i < execResult.Results.Count; i++)
                 {
+                    var r = execResult.Results[i];
                     var status = r.Success ? "OK" : "FAIL";
-                    AppendLog($"[{status}] {r.Command} ({r.ElapsedMs}ms)");
+                    AppendLog($"[{status}] 步骤{i + 1}: {r.Command} ({r.ElapsedMs}ms)");
                     if (!string.IsNullOrEmpty(r.Output))
                         AppendLog($"  {r.Output.Trim()}");
                     if (!string.IsNullOrEmpty(r.Error))
                         AppendLog($"  错误: {r.Error.Trim()}");
                     if (!r.Success) allPassed = false;
                 }
-                AppendLog(allPassed ? "结果: 全部通过" : "结果: 存在失败项");
+
+                if (execResult.Aborted)
+                {
+                    AppendLog($"结果: 在第 {execResult.AbortedStepIndex} 步失败，已中断");
+                }
+                else
+                {
+                    AppendLog(allPassed ? "结果: 全部通过" : "结果: 存在失败项");
+                }
 
                 await _mes.ReportResultAsync(device.SerialNumber, group.Name, allPassed);
             }
@@ -366,18 +412,26 @@ public partial class MainViewModel : INotifyPropertyChanged
     [RelayCommand]
     private void OpenCommandManager()
     {
-        var window = new Views.CommandManagerWindow(_allCommands)
+        var window = new Views.CommandManagerWindow(_allCommands, _allGroups)
         {
             Owner = Application.Current.MainWindow
         };
         window.ShowDialog();
 
-        // 保存后刷新命令列表和分类
+        // 保存后刷新命令列表、分类和命令组
         if (window.SavedCommands.Count > 0)
         {
             _allCommands = window.SavedCommands;
             RebuildCommands();
             RefreshCategories();
+        }
+
+        if (window.SavedGroups.Count > 0)
+        {
+            _allGroups = window.SavedGroups;
+            CommandGroups.Clear();
+            foreach (var g in _allGroups)
+                CommandGroups.Add(g);
         }
     }
 

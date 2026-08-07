@@ -1,0 +1,29 @@
+<Window x:Class="FactoryHelper.Views.MultiStepInputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="命令组参数输入" SizeToContent="WidthAndHeight"
+        Width="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        FontFamily="Microsoft YaHei"
+        ShowInTaskbar="False">
+
+    <StackPanel Margin="16">
+        <TextBlock Name="TxtTitle" FontSize="14" FontWeight="Bold"
+                   Margin="0,0,0,4"/>
+        <TextBlock Name="TxtHint" FontSize="11" Foreground="#666"
+                   Margin="0,0,0,12" TextWrapping="Wrap"
+                   Text="以下步骤需要输入参数，请填写后执行："/>
+
+        <StackPanel Name="InputPanel"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+            <Button Content="确定" Width="72" Height="30" IsDefault="True"
+                    Click="OnOkClick" Margin="0,0,8,0"
+                    Background="#0078d4" Foreground="White" BorderThickness="0"/>
+            <Button Content="取消" Width="72" Height="30" IsCancel="True"
+                    Click="OnCancelClick"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

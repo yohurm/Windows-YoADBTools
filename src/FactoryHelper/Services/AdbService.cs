@@ -149,26 +149,31 @@ public class AdbService
     }
 
     /// <summary>
-    /// 执行命令组
+    /// 执行命令组（支持每步延时与失败中断策略）
     /// </summary>
-    public async Task<List<CommandResult>> ExecuteGroupAsync(
+    public async Task<GroupExecutionResult> ExecuteGroupAsync(
         string serial, CommandGroup group, CancellationToken ct = default)
     {
-        var results = new List<CommandResult>();
+        var result = new GroupExecutionResult();
+        var stepIndex = 0;
 
         foreach (var step in group.Steps)
         {
             ct.ThrowIfCancellationRequested();
+            stepIndex++;
 
-            var result = await ExecuteCommandAsync(serial, step.Command, step.TimeoutMs, ct);
-            results.Add(result);
+            var stepResult = await ExecuteCommandAsync(serial, step.Command, step.TimeoutMs, ct);
+            result.Results.Add(stepResult);
 
-            if (!result.Success)
+            // 失败中断策略
+            if (!stepResult.Success && step.StopOnFail)
             {
-                // 命令组中某一步失败，可以选择停止或继续
-                // 这里选择继续执行，但标记失败
+                result.Aborted = true;
+                result.AbortedStepIndex = stepIndex;
+                return result; // 中断，不再执行后续步骤
             }
 
+            // 本步延时
             if (step.DelayAfterMs > 0)
             {
                 try
@@ -182,7 +187,7 @@ public class AdbService
             }
         }
 
-        return results;
+        return result;
     }
 
     /// <summary>
