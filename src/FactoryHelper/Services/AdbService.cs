@@ -150,10 +150,13 @@ public class AdbService
     }
 
     /// <summary>
-    /// 执行命令组（支持每步延时与失败中断策略）
+    /// 执行命令组（支持每步延时、失败中断策略、步骤级进度回调）
     /// </summary>
+    /// <param name="onStepCompleted">每步完成时回调（步骤序号、步骤、结果、是否将中断）</param>
     public async Task<GroupExecutionResult> ExecuteGroupAsync(
-        string serial, CommandGroup group, CancellationToken ct = default)
+        string serial, CommandGroup group,
+        Action<int, GroupStep, CommandResult, bool>? onStepCompleted = null,
+        CancellationToken ct = default)
     {
         var result = new GroupExecutionResult();
         var stepIndex = 0;
@@ -166,8 +169,12 @@ public class AdbService
             var stepResult = await ExecuteCommandAsync(serial, step.Command, step.TimeoutMs, step.SuccessRegex, step.FailureRegex, ct);
             result.Results.Add(stepResult);
 
+            // 是否将因失败策略中断
+            var willAbort = !stepResult.Success && step.StopOnFail;
+            onStepCompleted?.Invoke(stepIndex, step, stepResult, willAbort);
+
             // 失败中断策略
-            if (!stepResult.Success && step.StopOnFail)
+            if (willAbort)
             {
                 result.Aborted = true;
                 result.AbortedStepIndex = stepIndex;

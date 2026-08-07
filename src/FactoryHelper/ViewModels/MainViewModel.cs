@@ -379,36 +379,26 @@ public partial class MainViewModel : INotifyPropertyChanged
             var tasks = devices.Select(device =>
                 Task.Run(async () =>
                 {
-                    var results = await _adb.ExecuteGroupAsync(device.SerialNumber, group);
+                    var results = await _adb.ExecuteGroupAsync(
+                        device.SerialNumber, group,
+                        (stepIndex, step, stepResult, willAbort) =>
+                            OnGroupStepCompleted(device, stepIndex, step, stepResult, willAbort));
                     return (device, results);
                 }));
 
             var allResults = await Task.WhenAll(tasks);
 
+            // 汇总每台设备的最终结果
             foreach (var (device, execResult) in allResults)
             {
-                AppendLog($"--- [{device.DisplayName}] ---");
-                var allPassed = true;
-
-                for (var i = 0; i < execResult.Results.Count; i++)
-                {
-                    var r = execResult.Results[i];
-                    var status = r.Success ? "OK" : "FAIL";
-                    AppendLog($"[{status}] 步骤{i + 1}: {r.Command} ({r.ElapsedMs}ms)");
-                    if (!string.IsNullOrEmpty(r.Output))
-                        AppendLog($"  {r.Output.Trim()}");
-                    if (!string.IsNullOrEmpty(r.Error))
-                        AppendLog($"  错误: {r.Error.Trim()}");
-                    if (!r.Success) allPassed = false;
-                }
-
+                var allPassed = execResult.Results.All(r => r.Success);
                 if (execResult.Aborted)
                 {
-                    AppendLog($"结果: 在第 {execResult.AbortedStepIndex} 步失败，已中断");
+                    AppendLog($"[{device.DisplayName}] 结果: 在第 {execResult.AbortedStepIndex} 步失败，已中断");
                 }
                 else
                 {
-                    AppendLog(allPassed ? "结果: 全部通过" : "结果: 存在失败项");
+                    AppendLog($"[{device.DisplayName}] 结果: {(allPassed ? "全部通过" : "存在失败项")}");
                 }
 
                 await _mes.ReportResultAsync(device.SerialNumber, group.Name, allPassed);
@@ -423,6 +413,20 @@ public partial class MainViewModel : INotifyPropertyChanged
             StatusText = "就绪";
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// 命令组单步完成回调 — 实时输出该步骤日志（由后台线程调用，AppendLog 内部切回 UI 线程）
+    /// </summary>
+    private void OnGroupStepCompleted(
+        AdbDevice device, int stepIndex, Models.GroupStep step, Models.CommandResult stepResult, bool willAbort)
+    {
+        var status = stepResult.Success ? "OK" : "FAIL";
+        AppendLog($"[{device.DisplayName}] [{status}] 步骤{stepIndex}: {step.Command} ({stepResult.ElapsedMs}ms)");
+        if (!string.IsNullOrEmpty(stepResult.Output))
+            AppendLog($"  {stepResult.Output.Trim()}");
+        if (!string.IsNullOrEmpty(stepResult.Error))
+            AppendLog($"  错误: {stepResult.Error.Trim()}");
     }
 
     /// <summary>
