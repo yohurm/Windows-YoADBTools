@@ -360,12 +360,15 @@ public partial class MainViewModel : INotifyPropertyChanged
             }
         }
 
-        // 2. 将输入值按顺序写入各步骤（占位符替换）
+        // 2. 深拷贝命令组（仅本次执行使用），将输入值替换占位符。
+        //    绝不修改命令库源数据 — 否则 {0} 会被真实值永久覆盖，下次执行失效
+        var executionGroup = CloneGroup(group);
         var valueQueue = new Queue<string>(inputValues);
-        foreach (var step in group.Steps.Where(s => s.RequiresInput))
+        foreach (var step in executionGroup.Steps.Where(s => s.RequiresInput))
         {
             var values = step.InputPrompts.Select(_ => valueQueue.Dequeue()).ToArray();
             step.Command = string.Format(step.Command, values.Select(v => (object)v).ToArray());
+            step.InputPrompts = []; // 已解析，标记无需再输入
         }
         if (inputValues.Count > 0)
             AppendLog($"[输入] {string.Join(" / ", inputValues)}");
@@ -380,7 +383,7 @@ public partial class MainViewModel : INotifyPropertyChanged
                 Task.Run(async () =>
                 {
                     var results = await _adb.ExecuteGroupAsync(
-                        device.SerialNumber, group,
+                        device.SerialNumber, executionGroup,
                         (stepIndex, step, stepResult, willAbort) =>
                             OnGroupStepCompleted(device, stepIndex, step, stepResult, willAbort));
                     return (device, results);
@@ -413,6 +416,31 @@ public partial class MainViewModel : INotifyPropertyChanged
             StatusText = "就绪";
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// 深拷贝命令组（步骤级克隆），用于执行前占位符替换，避免污染命令库源数据
+    /// </summary>
+    private static CommandGroup CloneGroup(CommandGroup group)
+    {
+        return new CommandGroup
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Category = group.Category,
+            Description = group.Description,
+            Steps = group.Steps.Select(s => new Models.GroupStep
+            {
+                Command = s.Command,
+                Description = s.Description,
+                DelayAfterMs = s.DelayAfterMs,
+                TimeoutMs = s.TimeoutMs,
+                StopOnFail = s.StopOnFail,
+                InputPrompts = [.. s.InputPrompts],
+                SuccessRegex = s.SuccessRegex,
+                FailureRegex = s.FailureRegex
+            }).ToList()
+        };
     }
 
     /// <summary>
