@@ -122,6 +122,11 @@ public class ConfigService
             new AdbCommand { Name = "读软件 HWver", Category = "Nori产测", Command = "shell bdft read -hwver" },
             new AdbCommand { Name = "写其他信息", Category = "Nori产测", Command = "shell bdft write -extra {0} {1}", InputPrompts = ["请输入 key", "请输入 value"], TimeoutMs = 60000 },
             new AdbCommand { Name = "读取其他信息", Category = "Nori产测", Command = "shell bdft read -extra {0}", InputPrompts = ["请输入 key"] },
+            new AdbCommand { Name = "WiFi MAC 读取", Category = "Nori产测", Command = "shell bdft read -wfmac" },
+            new AdbCommand { Name = "BT MAC 读取", Category = "Nori产测", Command = "shell bdft read -btmac" },
+            new AdbCommand { Name = "基础信息校验 Nand", Category = "Nori产测", Command = "shell bdft get -emmc" },
+            new AdbCommand { Name = "基础信息校验 DDR", Category = "Nori产测", Command = "shell bdft get -ddr" },
+            new AdbCommand { Name = "软件版本号读取(Check ROM Version)", Category = "Nori产测", Command = "shell bdft get -swv" },
         ];
     }
 

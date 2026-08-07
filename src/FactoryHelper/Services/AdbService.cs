@@ -20,31 +20,61 @@ public class AdbService
     }
 
     /// <summary>
-    /// 解析 ADB 路径：优先使用内置 ADB，其次系统 PATH
+    /// 解析 ADB 路径（完全自包含，不依赖外部环境）：
+    /// 1. 优先使用应用目录下的 Tools/adb.exe（开发调试用）
+    /// 2. 否则从嵌入资源解压到 %LOCALAPPDATA%\FactoryHelper\adb 使用
     /// </summary>
     private static string ResolveAdbPath()
     {
-        // 1. 先检查内置 ADB（应用程序同目录下的 Tools 文件夹）
+        // 1. 应用同目录 Tools 下已有 adb.exe（开发模式 / 手动部署）
         var appDir = AppDomain.CurrentDomain.BaseDirectory;
-        var builtin = Path.Combine(appDir, "Tools", "adb.exe");
-        if (File.Exists(builtin))
-            return builtin;
+        var localTools = Path.Combine(appDir, "Tools", "adb.exe");
+        if (File.Exists(localTools))
+            return localTools;
 
-        // 2. 检查系统 PATH 中的 adb
-        var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? [];
-        foreach (var dir in pathDirs)
+        // 2. 从嵌入资源解压到本地用户目录（无需管理员权限，单 exe 分发场景）
+        var adbDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "FactoryHelper", "adb");
+        var extracted = Path.Combine(adbDir, "adb.exe");
+        if (!File.Exists(extracted))
+            ExtractEmbeddedAdb(adbDir);
+
+        return File.Exists(extracted) ? extracted : localTools; // 提取失败则回退报错
+    }
+
+    /// <summary>
+    /// 从嵌入资源解压 adb.exe 及依赖 DLL
+    /// </summary>
+    private static void ExtractEmbeddedAdb(string targetDir)
+    {
+        try
         {
-            var candidate = Path.Combine(dir, "adb.exe");
-            if (File.Exists(candidate))
-                return candidate;
+            Directory.CreateDirectory(targetDir);
+
+            var assembly = typeof(AdbService).Assembly;
+            var files = new[] { "adb.exe", "AdbWinApi.dll", "AdbWinUsbApi.dll" };
+
+            foreach (var file in files)
+            {
+                var resourceName = $"FactoryHelper.Tools.{file}";
+                var targetPath = Path.Combine(targetDir, file);
+
+                // 已存在则跳过（避免每次启动都覆盖）
+                if (File.Exists(targetPath))
+                    continue;
+
+                using var stream = assembly.GetManifestResourceStream(resourceName)
+                    ?? throw new InvalidOperationException($"缺少嵌入资源: {resourceName}");
+                using var fs = new FileStream(targetPath, FileMode.Create, FileAccess.Write);
+                stream.CopyTo(fs);
+            }
         }
-
-        // 3. 回退到内置路径（运行时可能复制到输出目录）
-        var fallback = Path.Combine(appDir, "adb.exe");
-        if (File.Exists(fallback))
-            return fallback;
-
-        return builtin; // 即使不存在也返回，让调用方报错
+        catch (Exception ex)
+        {
+            // 解压失败不抛异常，由调用方检查 IsAvailable()
+            System.Diagnostics.Debug.WriteLine($"ADB 解压失败: {ex.Message}");
+        }
     }
 
     /// <summary>

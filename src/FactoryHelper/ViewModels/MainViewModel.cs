@@ -46,12 +46,24 @@ public partial class MainViewModel : INotifyPropertyChanged
     /// <summary>命令分类列表</summary>
     public ObservableCollection<string> Categories { get; } = [];
 
+    /// <summary>当前选中命令的参数输入项（空表示无需输入）</summary>
+    public ObservableCollection<CommandInputItem> InputItems { get; } = [];
+
     private AdbCommand? _selectedCommand;
     public AdbCommand? SelectedCommand
     {
         get => _selectedCommand;
-        set { _selectedCommand = value; OnPropertyChanged(); OnCanExecuteChanged(); }
+        set
+        {
+            _selectedCommand = value;
+            OnPropertyChanged();
+            RebuildInputItems();
+            OnCanExecuteChanged();
+        }
     }
+
+    /// <summary>是否需要显示参数输入区</summary>
+    public bool HasInputPanel => InputItems.Count > 0;
 
     private CommandGroup? _selectedGroup;
     public CommandGroup? SelectedGroup
@@ -102,6 +114,20 @@ public partial class MainViewModel : INotifyPropertyChanged
     // ==================== 字段 ====================
 
     private List<AdbCommand> _allCommands = [];
+
+    /// <summary>
+    /// 选中命令变化时，重建参数输入项
+    /// </summary>
+    private void RebuildInputItems()
+    {
+        InputItems.Clear();
+        if (_selectedCommand?.RequiresInput == true)
+        {
+            foreach (var prompt in _selectedCommand.InputPrompts)
+                InputItems.Add(new CommandInputItem { Label = prompt });
+        }
+        OnPropertyChanged(nameof(HasInputPanel));
+    }
 
     // ==================== 初始化 ====================
 
@@ -200,25 +226,25 @@ public partial class MainViewModel : INotifyPropertyChanged
         var command = SelectedCommand;
         var devices = SelectedDevices.ToList();
 
-        // 需要输入参数的命令：先弹出输入对话框
+        // 需要输入参数的命令：从输入面板读取并校验
         string resolvedCommand = command.Command;
         if (command.RequiresInput)
         {
-            var dialog = new Views.InputDialog(
-                command.Name, command.Command, command.InputPrompts)
+            // 校验输入项非空
+            foreach (var item in InputItems)
             {
-                Owner = Application.Current.MainWindow
-            };
-            if (dialog.ShowDialog() != true)
-            {
-                AppendLog($"[取消] 已取消执行: {command.Name}");
-                return; // 用户取消
+                if (string.IsNullOrWhiteSpace(item.Value))
+                {
+                    AppendLog($"[提示] 请填写: {item.Label}");
+                    StatusText = $"请填写: {item.Label}";
+                    return;
+                }
             }
 
             // 用输入值替换 {0} {1}... 占位符
             resolvedCommand = string.Format(command.Command,
-                dialog.Values.Select(v => (object)v).ToArray());
-            AppendLog($"[输入] {string.Join(" / ", dialog.Values)}");
+                InputItems.Select(i => (object)i.Value).ToArray());
+            AppendLog($"[输入] {string.Join(" / ", InputItems.Select(i => i.Value))}");
         }
 
         IsBusy = true;
@@ -332,6 +358,42 @@ public partial class MainViewModel : INotifyPropertyChanged
     private void ClearLog()
     {
         LogOutput = string.Empty;
+    }
+
+    /// <summary>
+    /// 打开命令库管理窗口
+    /// </summary>
+    [RelayCommand]
+    private void OpenCommandManager()
+    {
+        var window = new Views.CommandManagerWindow(_allCommands)
+        {
+            Owner = Application.Current.MainWindow
+        };
+        window.ShowDialog();
+
+        // 保存后刷新命令列表和分类
+        if (window.SavedCommands.Count > 0)
+        {
+            _allCommands = window.SavedCommands;
+            RebuildCommands();
+            RefreshCategories();
+        }
+    }
+
+    /// <summary>
+    /// 重建分类列表
+    /// </summary>
+    private void RefreshCategories()
+    {
+        var current = SelectedCategory;
+        Categories.Clear();
+        Categories.Add("全部");
+        foreach (var cat in _allCommands.Select(c => c.Category).Where(c => c != null).Distinct())
+            Categories.Add(cat!);
+
+        SelectedCategory = Categories.Contains(current) ? current : "全部";
+        RebuildCommands();
     }
 
     // ==================== 内部方法 ====================

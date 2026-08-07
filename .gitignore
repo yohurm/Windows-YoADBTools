@@ -17,9 +17,8 @@ Config/
 publish/
 publish_*/
 
-# 内置工具（adb 二进制较大且版本敏感，建议单独管理）
-tools/adb.exe
-tools/*.dll
+# 仓库根目录下的备用工具目录（仅忽略根目录，src/FactoryHelper/Tools/ 内的内嵌 ADB 必须提交）
+/tools/
 
 # 日志
 *.log

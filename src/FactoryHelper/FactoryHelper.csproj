@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -6,11 +6,34 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <AssemblyName>FactoryHelper</AssemblyName>
+    <RootNamespace>FactoryHelper</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>产测助手</Product>
+    <Description>GGEC-Nori 产测助手 — 通过 ADB 实现工厂产测的轻量化桌面工具</Description>
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
   </ItemGroup>
+
+  <!-- 内置 ADB 二进制（打包进 exe，运行时解压） -->
+  <ItemGroup>
+    <EmbeddedResource Include="Tools\adb.exe" LogicalName="FactoryHelper.Tools.adb.exe" />
+    <EmbeddedResource Include="Tools\AdbWinApi.dll" LogicalName="FactoryHelper.Tools.AdbWinApi.dll" />
+    <EmbeddedResource Include="Tools\AdbWinUsbApi.dll" LogicalName="FactoryHelper.Tools.AdbWinUsbApi.dll" />
+  </ItemGroup>
+
+  <!-- 发布配置：单文件自包含 -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
 
 </Project>
