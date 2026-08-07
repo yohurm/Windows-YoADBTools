@@ -54,6 +54,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="280"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="280"/>
             </Grid.ColumnDefinitions>
 
             <!-- ===== 左侧面板：设备列表 + 命令/命令组 ===== -->
@@ -83,7 +84,6 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- 分类筛选 -->
@@ -113,30 +113,6 @@
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
-
-                            <!-- 参数输入区：选中需要输入的命令时显示 -->
-                            <Border Grid.Row="2" Background="#fff8ec"
-                                    BorderBrush="#e0c98a" BorderThickness="1"
-                                    Margin="8,0,8,8" Padding="8"
-                                    Visibility="{Binding HasInputPanel, Converter={StaticResource BoolToVisibility}}">
-                                <StackPanel>
-                                    <TextBlock Text="参数输入" FontSize="12" FontWeight="Bold"
-                                               Foreground="#8a5a00" Margin="0,0,0,6"/>
-                                    <ItemsControl ItemsSource="{Binding InputItems}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Margin="0,0,0,6">
-                                                    <TextBlock Text="{Binding Label}" FontSize="11"
-                                                               Foreground="#666" Margin="0,0,0,2"/>
-                                                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                                             FontSize="13" Padding="4,2" MinHeight="26"
-                                                             BorderBrush="#ccc" BorderThickness="1"/>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
                         </Grid>
                     </TabItem>
 
@@ -223,6 +199,36 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
+
+            <!-- ===== 右侧列：统一参数输入区 ===== -->
+            <Border Grid.Column="2" Background="#fff8ec"
+                    BorderBrush="#e0c98a" BorderThickness="1"
+                    Margin="10,8,10,8" Padding="10"
+                    Visibility="{Binding HasInputPanel, Converter={StaticResource BoolToVisibility}}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="参数输入" FontSize="14" FontWeight="Bold"
+                               Foreground="#8a5a00" Margin="0,0,0,8"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding ActiveInputs}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,10">
+                                        <!-- 命令组步骤标题 -->
+                                        <TextBlock Text="{Binding GroupLabel}" FontSize="11" FontWeight="Bold"
+                                                   Foreground="#8a5a00" Margin="0,0,0,2"
+                                                   Visibility="{Binding HasGroupLabel, Converter={StaticResource BoolToVisibility}}"/>
+                                        <TextBlock Text="{Binding Label}" FontSize="11"
+                                                   Foreground="#666" Margin="0,0,0,3"/>
+                                        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                                 FontSize="13" Padding="4,2" MinHeight="28"
+                                                 BorderBrush="#ccc" BorderThickness="1"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
         </Grid>
 
         <!-- ======== 底部状态栏 ======== -->

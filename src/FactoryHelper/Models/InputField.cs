@@ -4,11 +4,14 @@ using System.Runtime.CompilerServices;
 namespace FactoryHelper.Models;
 
 /// <summary>
-/// 命令参数输入项 — 对应命令模板中的一个占位符 {0} {1}...
+/// 统一参数输入项 — 单条命令与命令组共用的输入框模型
 /// </summary>
-public class CommandInputItem : INotifyPropertyChanged
+public class InputField : INotifyPropertyChanged
 {
     private string _value = string.Empty;
+
+    /// <summary>所属分组标题（命令组时显示如"步骤3: 写入SN"，单条命令为空）</summary>
+    public string? GroupLabel { get; set; }
 
     /// <summary>输入框标签（提示）</summary>
     public string Label { get; set; } = string.Empty;
@@ -23,6 +26,10 @@ public class CommandInputItem : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+
+    /// <summary>是否显示分组标题</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool HasGroupLabel => !string.IsNullOrEmpty(GroupLabel);
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

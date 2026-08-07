@@ -49,8 +49,14 @@ public partial class MainViewModel : INotifyPropertyChanged
     /// <summary>命令组分类列表</summary>
     public ObservableCollection<string> GroupCategories { get; } = [];
 
-    /// <summary>当前选中命令的参数输入项（空表示无需输入）</summary>
-    public ObservableCollection<CommandInputItem> InputItems { get; } = [];
+    /// <summary>
+    /// 统一参数输入项 — 选中单条命令时列出该命令的输入框；
+    /// 选中命令组时列出组内所有写入命令的输入框（带步骤标题）
+    /// </summary>
+    public ObservableCollection<InputField> ActiveInputs { get; } = [];
+
+    /// <summary>是否需要显示参数输入区</summary>
+    public bool HasInputPanel => ActiveInputs.Count > 0;
 
     private AdbCommand? _selectedCommand;
     public AdbCommand? SelectedCommand
@@ -60,19 +66,22 @@ public partial class MainViewModel : INotifyPropertyChanged
         {
             _selectedCommand = value;
             OnPropertyChanged();
-            RebuildInputItems();
+            RebuildActiveInputs();
             OnCanExecuteChanged();
         }
     }
-
-    /// <summary>是否需要显示参数输入区</summary>
-    public bool HasInputPanel => InputItems.Count > 0;
 
     private CommandGroup? _selectedGroup;
     public CommandGroup? SelectedGroup
     {
         get => _selectedGroup;
-        set { _selectedGroup = value; OnPropertyChanged(); OnCanExecuteChanged(); }
+        set
+        {
+            _selectedGroup = value;
+            OnPropertyChanged();
+            RebuildActiveInputs();
+            OnCanExecuteChanged();
+        }
     }
 
     private string _statusText = "就绪";
@@ -127,16 +136,34 @@ public partial class MainViewModel : INotifyPropertyChanged
     private List<CommandGroup> _allGroups = [];
 
     /// <summary>
-    /// 选中命令变化时，重建参数输入项
+    /// 重建统一参数输入区：
+    /// - 选中单条命令：列出该命令的输入框
+    /// - 选中命令组：列出组内所有需要输入步骤的输入框（带步骤标题）
     /// </summary>
-    private void RebuildInputItems()
+    private void RebuildActiveInputs()
     {
-        InputItems.Clear();
+        ActiveInputs.Clear();
+
         if (_selectedCommand?.RequiresInput == true)
         {
             foreach (var prompt in _selectedCommand.InputPrompts)
-                InputItems.Add(new CommandInputItem { Label = prompt });
+                ActiveInputs.Add(new InputField { Label = prompt });
         }
+        else if (_selectedGroup != null)
+        {
+            // 命令组：收集所有需要输入的步骤（写入命令）
+            var stepIndex = 0;
+            foreach (var step in _selectedGroup.Steps)
+            {
+                stepIndex++;
+                if (!step.RequiresInput) continue;
+
+                var header = $"步骤{stepIndex}: {step.Description ?? step.Command}";
+                foreach (var prompt in step.InputPrompts)
+                    ActiveInputs.Add(new InputField { GroupLabel = header, Label = prompt });
+            }
+        }
+
         OnPropertyChanged(nameof(HasInputPanel));
     }
 
@@ -236,12 +263,12 @@ public partial class MainViewModel : INotifyPropertyChanged
         var command = SelectedCommand;
         var devices = SelectedDevices.ToList();
 
-        // 需要输入参数的命令：从输入面板读取并校验
+        // 需要输入参数的命令：从右侧统一输入区读取并校验
         string resolvedCommand = command.Command;
         if (command.RequiresInput)
         {
             // 校验输入项非空
-            foreach (var item in InputItems)
+            foreach (var item in ActiveInputs)
             {
                 if (string.IsNullOrWhiteSpace(item.Value))
                 {
@@ -253,8 +280,8 @@ public partial class MainViewModel : INotifyPropertyChanged
 
             // 用输入值替换 {0} {1}... 占位符
             resolvedCommand = string.Format(command.Command,
-                InputItems.Select(i => (object)i.Value).ToArray());
-            AppendLog($"[输入] {string.Join(" / ", InputItems.Select(i => i.Value))}");
+                ActiveInputs.Select(i => (object)i.Value).ToArray());
+            AppendLog($"[输入] {string.Join(" / ", ActiveInputs.Select(i => i.Value))}");
         }
 
         IsBusy = true;
@@ -316,30 +343,20 @@ public partial class MainViewModel : INotifyPropertyChanged
         var group = SelectedGroup;
         var devices = SelectedDevices.ToList();
 
-        // 1. 预收集命令组中所有需要输入的步骤参数
-        var inputSteps = group.Steps
-            .Select((step, idx) => (StepNo: idx + 1, step))
-            .Where(x => x.step.RequiresInput)
-            .ToList();
-
-        List<string> inputValues = [];
-        if (inputSteps.Count > 0)
+        // 1. 从右侧统一输入区读取命令组中所有需要输入的步骤参数
+        var inputValues = ActiveInputs.Select(i => i.Value).ToList();
+        if (group.Steps.Any(s => s.RequiresInput))
         {
-            var dialog = new Views.MultiStepInputDialog(group.Name,
-                inputSteps.Select(x => (x.StepNo,
-                    Desc: x.step.Description ?? x.step.Command,
-                    x.step.Command,
-                    x.step.InputPrompts)).ToList())
+            // 校验输入项非空
+            foreach (var item in ActiveInputs)
             {
-                Owner = Application.Current.MainWindow
-            };
-
-            if (dialog.ShowDialog() != true)
-            {
-                AppendLog($"[取消] 已取消执行命令组: {group.Name}");
-                return;
+                if (string.IsNullOrWhiteSpace(item.Value))
+                {
+                    AppendLog($"[提示] 请填写: {item.Label}");
+                    StatusText = $"请填写: {item.Label}";
+                    return;
+                }
             }
-            inputValues = dialog.Values;
         }
 
         // 2. 将输入值按顺序写入各步骤（占位符替换）
@@ -349,7 +366,8 @@ public partial class MainViewModel : INotifyPropertyChanged
             var values = step.InputPrompts.Select(_ => valueQueue.Dequeue()).ToArray();
             step.Command = string.Format(step.Command, values.Select(v => (object)v).ToArray());
         }
-        AppendLog($"[输入] {string.Join(" / ", inputValues)}");
+        if (inputValues.Count > 0)
+            AppendLog($"[输入] {string.Join(" / ", inputValues)}");
 
         IsBusy = true;
         AppendLog($"=== 执行命令组: {group.Name} ===");
