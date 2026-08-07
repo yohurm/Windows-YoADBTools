@@ -16,6 +16,7 @@ Config/
 # 发布输出
 publish/
 publish_*/
+dist/
 
 # 仓库根目录下的备用工具目录（仅忽略根目录，src/FactoryHelper/Tools/ 内的内嵌 ADB 必须提交）
 /tools/
