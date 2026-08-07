@@ -140,13 +140,13 @@ public class AdbService
     /// </summary>
     public async Task<CommandResult> ExecuteCommandAsync(
         string serial, string command, int timeoutMs = 30000,
-        string? successRegex = null, CancellationToken ct = default)
+        string? successRegex = null, string? failureRegex = null, CancellationToken ct = default)
     {
         var fullCommand = string.IsNullOrEmpty(serial)
             ? command
             : $"-s {serial} {command}";
 
-        return await RunAdbAsync(fullCommand, timeoutMs, successRegex, ct);
+        return await RunAdbAsync(fullCommand, timeoutMs, successRegex, failureRegex, ct);
     }
 
     /// <summary>
@@ -163,7 +163,7 @@ public class AdbService
             ct.ThrowIfCancellationRequested();
             stepIndex++;
 
-            var stepResult = await ExecuteCommandAsync(serial, step.Command, step.TimeoutMs, step.SuccessRegex, ct);
+            var stepResult = await ExecuteCommandAsync(serial, step.Command, step.TimeoutMs, step.SuccessRegex, step.FailureRegex, ct);
             result.Results.Add(stepResult);
 
             // 失败中断策略
@@ -195,7 +195,8 @@ public class AdbService
     /// 底层 ADB 进程调用
     /// </summary>
     private async Task<CommandResult> RunAdbAsync(
-        string arguments, int timeoutMs = 30000, string? successRegex = null, CancellationToken ct = default)
+        string arguments, int timeoutMs = 30000,
+        string? successRegex = null, string? failureRegex = null, CancellationToken ct = default)
     {
         var result = new CommandResult
         {
@@ -238,9 +239,13 @@ public class AdbService
             result.Output = NormalizeOutput(outputTask.Result);
             result.Error = NormalizeOutput(errorTask.Result);
 
-            // 成功判定：退出码为 0；或配置了 SuccessRegex 且输出匹配
-            result.Success = process.ExitCode == 0 ||
-                             IsSuccessByRegex(result.Output, successRegex);
+            // 成功判定（优先级从高到低）:
+            // 1. 输出匹配 FailureRegex → 失败（厂商工具"参数错误返回 0 但输出错误"）
+            // 2. 输出匹配 SuccessRegex → 成功（厂商工具"成功返回 255 但输出正常"）
+            // 3. 退出码为 0 → 成功
+            result.Success = !IsRegexMatch(result.Output, failureRegex) &&
+                             (IsRegexMatch(result.Output, successRegex) ||
+                              process.ExitCode == 0);
         }
         catch (OperationCanceledException)
         {
@@ -262,16 +267,17 @@ public class AdbService
     }
 
     /// <summary>
-    /// 用 SuccessRegex 判定成功（输出匹配即视为成功，适用于固定返回非 0 退出码的厂商工具）
+    /// 正则匹配判定（忽略大小写，无效正则视为不匹配）
     /// </summary>
-    private static bool IsSuccessByRegex(string output, string? successRegex)
+    private static bool IsRegexMatch(string output, string? regex)
     {
-        if (string.IsNullOrEmpty(successRegex))
+        if (string.IsNullOrEmpty(regex))
             return false;
 
         try
         {
-            return System.Text.RegularExpressions.Regex.IsMatch(output, successRegex);
+            return System.Text.RegularExpressions.Regex.IsMatch(
+                output, regex, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         }
         catch
         {

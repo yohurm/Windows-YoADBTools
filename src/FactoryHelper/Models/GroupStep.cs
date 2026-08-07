@@ -28,6 +28,11 @@ public class GroupStep
     /// </summary>
     public string? SuccessRegex { get; set; }
 
+    /// <summary>
+    /// 失败匹配正则 — 输出匹配该正则时即使退出码为 0 也视为失败（优先级最高）
+    /// </summary>
+    public string? FailureRegex { get; set; }
+
     /// <summary>是否需要输入参数</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool RequiresInput => InputPrompts.Count > 0;

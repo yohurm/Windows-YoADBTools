@@ -15,6 +15,7 @@ public class GroupStepEditable : INotifyPropertyChanged
     private bool _stopOnFail = true;
     private string _inputPromptsText = string.Empty;
     private string? _successRegex;
+    private string? _failureRegex;
 
     /// <summary>原始步骤（保存时写回）</summary>
     public GroupStep Source { get; set; } = new();
@@ -66,6 +67,13 @@ public class GroupStepEditable : INotifyPropertyChanged
         set { _successRegex = value; OnPropertyChanged(); }
     }
 
+    /// <summary>失败匹配正则（输出匹配即视为失败，优先级最高，适用于参数错误返回 0 的工具）</summary>
+    public string? FailureRegex
+    {
+        get => _failureRegex;
+        set { _failureRegex = value; OnPropertyChanged(); }
+    }
+
     public static GroupStepEditable From(GroupStep step)
     {
         return new GroupStepEditable
@@ -77,7 +85,8 @@ public class GroupStepEditable : INotifyPropertyChanged
             TimeoutMs = step.TimeoutMs,
             StopOnFail = step.StopOnFail,
             InputPromptsText = string.Join(", ", step.InputPrompts),
-            SuccessRegex = step.SuccessRegex
+            SuccessRegex = step.SuccessRegex,
+            FailureRegex = step.FailureRegex
         };
     }
 
@@ -89,6 +98,7 @@ public class GroupStepEditable : INotifyPropertyChanged
         Source.TimeoutMs = TimeoutMs;
         Source.StopOnFail = StopOnFail;
         Source.SuccessRegex = string.IsNullOrWhiteSpace(SuccessRegex) ? null : SuccessRegex;
+        Source.FailureRegex = string.IsNullOrWhiteSpace(FailureRegex) ? null : FailureRegex;
         Source.InputPrompts = InputPromptsText
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(p => p.Length > 0)

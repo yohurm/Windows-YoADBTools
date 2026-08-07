@@ -51,6 +51,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
@@ -86,7 +87,12 @@
                                  Margin="0,2" Padding="4,2" TextChanged="OnEditChanged"
                                  ToolTip="输出匹配该正则即视为成功(用于 bdft 等固定返回非0的工具), 留空则仅按退出码判断"/>
 
-                        <TextBlock Grid.Row="6" Grid.Column="0" Text="描述:" VerticalAlignment="Top" Margin="0,2"/>
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="失败正则:" VerticalAlignment="Center" Margin="0,2"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding FailureRegex}"
+                                 Margin="0,2" Padding="4,2" TextChanged="OnEditChanged"
+                                 ToolTip="输出匹配该正则即视为失败, 优先级最高(用于参数错误返回0但输出错误信息的工具), 留空跳过"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="描述:" VerticalAlignment="Top" Margin="0,2"/>
                         <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Description}"
                                  Margin="0,2" Padding="4,2" TextWrapping="Wrap"
                                  VerticalScrollBarVisibility="Auto" TextChanged="OnEditChanged"/>
@@ -157,8 +163,9 @@
                                     <DataGridTextColumn Header="延时(ms)" Binding="{Binding DelayAfterMs}" Width="80"/>
                                     <DataGridTextColumn Header="超时(ms)" Binding="{Binding TimeoutMs}" Width="80"/>
                                     <DataGridCheckBoxColumn Header="失败中断" Binding="{Binding StopOnFail}" Width="60"/>
-                                    <DataGridTextColumn Header="输入提示" Binding="{Binding InputPromptsText}" Width="100"/>
-                                    <DataGridTextColumn Header="成功正则" Binding="{Binding SuccessRegex}" Width="110"/>
+                                    <DataGridTextColumn Header="输入提示" Binding="{Binding InputPromptsText}" Width="90"/>
+                                    <DataGridTextColumn Header="成功正则" Binding="{Binding SuccessRegex}" Width="100"/>
+                                    <DataGridTextColumn Header="失败正则" Binding="{Binding FailureRegex}" Width="100"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>

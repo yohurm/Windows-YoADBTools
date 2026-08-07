@@ -33,6 +33,12 @@ public class AdbCommand
     /// </summary>
     public string? SuccessRegex { get; set; }
 
+    /// <summary>
+    /// 失败匹配正则 — 输出匹配该正则时即使退出码为 0 也视为失败（优先级最高）。
+    /// 适用于厂商工具"参数错误时返回 0 但输出错误信息"的异常行为
+    /// </summary>
+    public string? FailureRegex { get; set; }
+
     /// <summary>是否需要输入参数</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool RequiresInput => InputPrompts.Count > 0;

@@ -295,7 +295,8 @@ public partial class MainViewModel : INotifyPropertyChanged
                 Task.Run(async () =>
                 {
                     var result = await _adb.ExecuteCommandAsync(
-                        device.SerialNumber, resolvedCommand, command.TimeoutMs, command.SuccessRegex);
+                        device.SerialNumber, resolvedCommand, command.TimeoutMs,
+                        command.SuccessRegex, command.FailureRegex);
                     return (device, result);
                 }));
 

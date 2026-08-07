@@ -14,6 +14,7 @@ public class AdbCommandEditable : INotifyPropertyChanged
     private int _timeoutMs = 30000;
     private string _inputPromptsText = string.Empty;
     private string? _successRegex;
+    private string? _failureRegex;
     private string? _description;
 
     /// <summary>原始命令（保存时写回）</summary>
@@ -57,6 +58,13 @@ public class AdbCommandEditable : INotifyPropertyChanged
         set { _successRegex = value; OnPropertyChanged(); }
     }
 
+    /// <summary>失败匹配正则（输出匹配即视为失败，优先级最高，适用于参数错误返回 0 的工具）</summary>
+    public string? FailureRegex
+    {
+        get => _failureRegex;
+        set { _failureRegex = value; OnPropertyChanged(); }
+    }
+
     public string? Description
     {
         get => _description;
@@ -77,6 +85,7 @@ public class AdbCommandEditable : INotifyPropertyChanged
             TimeoutMs = cmd.TimeoutMs,
             InputPromptsText = string.Join(", ", cmd.InputPrompts),
             SuccessRegex = cmd.SuccessRegex,
+            FailureRegex = cmd.FailureRegex,
             Description = cmd.Description
         };
     }
@@ -91,6 +100,7 @@ public class AdbCommandEditable : INotifyPropertyChanged
         Source.Command = Command;
         Source.TimeoutMs = TimeoutMs;
         Source.SuccessRegex = string.IsNullOrWhiteSpace(SuccessRegex) ? null : SuccessRegex;
+        Source.FailureRegex = string.IsNullOrWhiteSpace(FailureRegex) ? null : FailureRegex;
         Source.Description = Description;
 
         Source.InputPrompts = InputPromptsText
