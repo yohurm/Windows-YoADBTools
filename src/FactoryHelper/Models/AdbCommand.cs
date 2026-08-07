@@ -27,6 +27,12 @@ public class AdbCommand
     /// <summary>超时时间（毫秒），默认 30 秒</summary>
     public int TimeoutMs { get; set; } = 30000;
 
+    /// <summary>
+    /// 成功匹配正则 — 输出匹配该正则时即使退出码非 0 也视为成功。
+    /// 适用于 bdft 等厂商工具（输出正常但固定返回 255）
+    /// </summary>
+    public string? SuccessRegex { get; set; }
+
     /// <summary>是否需要输入参数</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool RequiresInput => InputPrompts.Count > 0;

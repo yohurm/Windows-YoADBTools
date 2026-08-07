@@ -23,6 +23,11 @@ public class GroupStep
     /// <summary>输入参数提示列表（按顺序对应 {0} {1}...），为空表示无需输入</summary>
     public List<string> InputPrompts { get; set; } = [];
 
+    /// <summary>
+    /// 成功匹配正则 — 输出匹配该正则时即使退出码非 0 也视为成功
+    /// </summary>
+    public string? SuccessRegex { get; set; }
+
     /// <summary>是否需要输入参数</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool RequiresInput => InputPrompts.Count > 0;

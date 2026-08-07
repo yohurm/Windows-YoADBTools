@@ -139,13 +139,14 @@ public class AdbService
     /// 执行单条 ADB 命令
     /// </summary>
     public async Task<CommandResult> ExecuteCommandAsync(
-        string serial, string command, int timeoutMs = 30000, CancellationToken ct = default)
+        string serial, string command, int timeoutMs = 30000,
+        string? successRegex = null, CancellationToken ct = default)
     {
         var fullCommand = string.IsNullOrEmpty(serial)
             ? command
             : $"-s {serial} {command}";
 
-        return await RunAdbAsync(fullCommand, timeoutMs, ct);
+        return await RunAdbAsync(fullCommand, timeoutMs, successRegex, ct);
     }
 
     /// <summary>
@@ -162,7 +163,7 @@ public class AdbService
             ct.ThrowIfCancellationRequested();
             stepIndex++;
 
-            var stepResult = await ExecuteCommandAsync(serial, step.Command, step.TimeoutMs, ct);
+            var stepResult = await ExecuteCommandAsync(serial, step.Command, step.TimeoutMs, step.SuccessRegex, ct);
             result.Results.Add(stepResult);
 
             // 失败中断策略
@@ -194,7 +195,7 @@ public class AdbService
     /// 底层 ADB 进程调用
     /// </summary>
     private async Task<CommandResult> RunAdbAsync(
-        string arguments, int timeoutMs = 30000, CancellationToken ct = default)
+        string arguments, int timeoutMs = 30000, string? successRegex = null, CancellationToken ct = default)
     {
         var result = new CommandResult
         {
@@ -236,7 +237,10 @@ public class AdbService
             // adb 输出为 CRLF，统一转成 \n 便于界面显示
             result.Output = NormalizeOutput(outputTask.Result);
             result.Error = NormalizeOutput(errorTask.Result);
-            result.Success = process.ExitCode == 0;
+
+            // 成功判定：退出码为 0；或配置了 SuccessRegex 且输出匹配
+            result.Success = process.ExitCode == 0 ||
+                             IsSuccessByRegex(result.Output, successRegex);
         }
         catch (OperationCanceledException)
         {
@@ -255,6 +259,24 @@ public class AdbService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// 用 SuccessRegex 判定成功（输出匹配即视为成功，适用于固定返回非 0 退出码的厂商工具）
+    /// </summary>
+    private static bool IsSuccessByRegex(string output, string? successRegex)
+    {
+        if (string.IsNullOrEmpty(successRegex))
+            return false;
+
+        try
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch(output, successRegex);
+        }
+        catch
+        {
+            return false; // 正则无效时视为不匹配
+        }
     }
 
     /// <summary>

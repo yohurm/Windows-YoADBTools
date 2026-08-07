@@ -50,6 +50,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
@@ -76,11 +77,16 @@
 
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="输入提示:" VerticalAlignment="Top" Margin="0,2"/>
                         <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding InputPromptsText}"
-                                 Margin="0,2" Padding="4,2" TextWrapping="Wrap" Height="52"
+                                 Margin="0,2" Padding="4,2" TextWrapping="Wrap" Height="44"
                                  TextChanged="OnEditChanged"
                                  ToolTip="多个提示用逗号分隔，如: 请输入PCBID, 请输入SN"/>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="描述:" VerticalAlignment="Top" Margin="0,2"/>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="成功正则:" VerticalAlignment="Center" Margin="0,2"/>
+                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SuccessRegex}"
+                                 Margin="0,2" Padding="4,2" TextChanged="OnEditChanged"
+                                 ToolTip="输出匹配该正则即视为成功(用于 bdft 等固定返回非0的工具), 留空则仅按退出码判断"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="描述:" VerticalAlignment="Top" Margin="0,2"/>
                         <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Description}"
                                  Margin="0,2" Padding="4,2" TextWrapping="Wrap"
                                  VerticalScrollBarVisibility="Auto" TextChanged="OnEditChanged"/>
@@ -151,7 +157,8 @@
                                     <DataGridTextColumn Header="延时(ms)" Binding="{Binding DelayAfterMs}" Width="80"/>
                                     <DataGridTextColumn Header="超时(ms)" Binding="{Binding TimeoutMs}" Width="80"/>
                                     <DataGridCheckBoxColumn Header="失败中断" Binding="{Binding StopOnFail}" Width="60"/>
-                                    <DataGridTextColumn Header="输入提示" Binding="{Binding InputPromptsText}" Width="110"/>
+                                    <DataGridTextColumn Header="输入提示" Binding="{Binding InputPromptsText}" Width="100"/>
+                                    <DataGridTextColumn Header="成功正则" Binding="{Binding SuccessRegex}" Width="110"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>

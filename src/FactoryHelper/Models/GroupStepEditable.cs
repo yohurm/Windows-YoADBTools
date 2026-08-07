@@ -14,6 +14,7 @@ public class GroupStepEditable : INotifyPropertyChanged
     private int _timeoutMs = 30000;
     private bool _stopOnFail = true;
     private string _inputPromptsText = string.Empty;
+    private string? _successRegex;
 
     /// <summary>原始步骤（保存时写回）</summary>
     public GroupStep Source { get; set; } = new();
@@ -58,6 +59,13 @@ public class GroupStepEditable : INotifyPropertyChanged
         set { _inputPromptsText = value; OnPropertyChanged(); }
     }
 
+    /// <summary>成功匹配正则（输出匹配即视为成功，适用于 bdft 等固定返回非 0 的工具）</summary>
+    public string? SuccessRegex
+    {
+        get => _successRegex;
+        set { _successRegex = value; OnPropertyChanged(); }
+    }
+
     public static GroupStepEditable From(GroupStep step)
     {
         return new GroupStepEditable
@@ -68,7 +76,8 @@ public class GroupStepEditable : INotifyPropertyChanged
             DelayAfterMs = step.DelayAfterMs,
             TimeoutMs = step.TimeoutMs,
             StopOnFail = step.StopOnFail,
-            InputPromptsText = string.Join(", ", step.InputPrompts)
+            InputPromptsText = string.Join(", ", step.InputPrompts),
+            SuccessRegex = step.SuccessRegex
         };
     }
 
@@ -79,6 +88,7 @@ public class GroupStepEditable : INotifyPropertyChanged
         Source.DelayAfterMs = DelayAfterMs;
         Source.TimeoutMs = TimeoutMs;
         Source.StopOnFail = StopOnFail;
+        Source.SuccessRegex = string.IsNullOrWhiteSpace(SuccessRegex) ? null : SuccessRegex;
         Source.InputPrompts = InputPromptsText
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(p => p.Length > 0)

@@ -13,6 +13,7 @@ public class AdbCommandEditable : INotifyPropertyChanged
     private string _command = string.Empty;
     private int _timeoutMs = 30000;
     private string _inputPromptsText = string.Empty;
+    private string? _successRegex;
     private string? _description;
 
     /// <summary>原始命令（保存时写回）</summary>
@@ -49,6 +50,13 @@ public class AdbCommandEditable : INotifyPropertyChanged
         set { _inputPromptsText = value; OnPropertyChanged(); }
     }
 
+    /// <summary>成功匹配正则（输出匹配即视为成功，适用于 bdft 等固定返回非 0 的工具）</summary>
+    public string? SuccessRegex
+    {
+        get => _successRegex;
+        set { _successRegex = value; OnPropertyChanged(); }
+    }
+
     public string? Description
     {
         get => _description;
@@ -68,6 +76,7 @@ public class AdbCommandEditable : INotifyPropertyChanged
             Command = cmd.Command,
             TimeoutMs = cmd.TimeoutMs,
             InputPromptsText = string.Join(", ", cmd.InputPrompts),
+            SuccessRegex = cmd.SuccessRegex,
             Description = cmd.Description
         };
     }
@@ -81,6 +90,7 @@ public class AdbCommandEditable : INotifyPropertyChanged
         Source.Category = Category;
         Source.Command = Command;
         Source.TimeoutMs = TimeoutMs;
+        Source.SuccessRegex = string.IsNullOrWhiteSpace(SuccessRegex) ? null : SuccessRegex;
         Source.Description = Description;
 
         Source.InputPrompts = InputPromptsText

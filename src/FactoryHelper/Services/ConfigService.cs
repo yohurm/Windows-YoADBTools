@@ -110,23 +110,24 @@ public class ConfigService
             new AdbCommand { Name = "查看日志(最近100行)", Category = "通用", Command = "logcat -t 100" },
 
             // ===== Nori 产测专用命令 =====
-            new AdbCommand { Name = "恢复出厂设置(重启)", Category = "Nori产测", Command = "shell bdft set -recovery", TimeoutMs = 120000, Description = "进入 recovery 恢复出厂设置，设备会重启，请谨慎操作" },
-            new AdbCommand { Name = "进入产测模式 TestMode", Category = "Nori产测", Command = "shell bdft write -testmode B", TimeoutMs = 60000 },
-            new AdbCommand { Name = "进入 USER 模式", Category = "Nori产测", Command = "shell bdft write -testmode N", TimeoutMs = 60000 },
+            // 注意: bdft 工具即使执行成功也固定返回退出码 255, 必须配置 SuccessRegex 匹配 "[key] = [value]" 输出格式
+            new AdbCommand { Name = "恢复出厂设置(重启)", Category = "Nori产测", Command = "shell bdft set -recovery", TimeoutMs = 120000, Description = "进入 recovery 恢复出厂设置，设备会重启，请谨慎操作", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "进入产测模式 TestMode", Category = "Nori产测", Command = "shell bdft write -testmode B", TimeoutMs = 60000, SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "进入 USER 模式", Category = "Nori产测", Command = "shell bdft write -testmode N", TimeoutMs = 60000, SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
             new AdbCommand { Name = "重启", Category = "Nori产测", Command = "reboot", TimeoutMs = 60000 },
-            new AdbCommand { Name = "检测当前模式", Category = "Nori产测", Command = "shell bdft read -testmode" },
-            new AdbCommand { Name = "写号[PCBID]", Category = "Nori产测", Command = "shell bdft write -pcbasn {0}", InputPrompts = ["请输入 PCBID"], TimeoutMs = 60000 },
-            new AdbCommand { Name = "读号[PCBID]", Category = "Nori产测", Command = "shell bdft read -pcbasn" },
-            new AdbCommand { Name = "写号[SN]", Category = "Nori产测", Command = "shell bdft write -sn {0}", InputPrompts = ["请输入 SN"], TimeoutMs = 60000 },
-            new AdbCommand { Name = "读号[SN]", Category = "Nori产测", Command = "shell bdft read -sn" },
-            new AdbCommand { Name = "读软件 HWver", Category = "Nori产测", Command = "shell bdft read -hwver" },
-            new AdbCommand { Name = "写其他信息", Category = "Nori产测", Command = "shell bdft write -extra {0} {1}", InputPrompts = ["请输入 key", "请输入 value"], TimeoutMs = 60000 },
-            new AdbCommand { Name = "读取其他信息", Category = "Nori产测", Command = "shell bdft read -extra {0}", InputPrompts = ["请输入 key"] },
-            new AdbCommand { Name = "WiFi MAC 读取", Category = "Nori产测", Command = "shell bdft read -wfmac" },
-            new AdbCommand { Name = "BT MAC 读取", Category = "Nori产测", Command = "shell bdft read -btmac" },
-            new AdbCommand { Name = "基础信息校验 Nand", Category = "Nori产测", Command = "shell bdft get -emmc" },
-            new AdbCommand { Name = "基础信息校验 DDR", Category = "Nori产测", Command = "shell bdft get -ddr" },
-            new AdbCommand { Name = "软件版本号读取(Check ROM Version)", Category = "Nori产测", Command = "shell bdft get -swv" },
+            new AdbCommand { Name = "检测当前模式", Category = "Nori产测", Command = "shell bdft read -testmode", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "写号[PCBID]", Category = "Nori产测", Command = "shell bdft write -pcbasn {0}", InputPrompts = ["请输入 PCBID"], TimeoutMs = 60000, SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "读号[PCBID]", Category = "Nori产测", Command = "shell bdft read -pcbasn", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "写号[SN]", Category = "Nori产测", Command = "shell bdft write -sn {0}", InputPrompts = ["请输入 SN"], TimeoutMs = 60000, SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "读号[SN]", Category = "Nori产测", Command = "shell bdft read -sn", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "读软件 HWver", Category = "Nori产测", Command = "shell bdft read -hwver", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "写其他信息", Category = "Nori产测", Command = "shell bdft write -extra {0} {1}", InputPrompts = ["请输入 key", "请输入 value"], TimeoutMs = 60000, SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "读取其他信息", Category = "Nori产测", Command = "shell bdft read -extra {0}", InputPrompts = ["请输入 key"], SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "WiFi MAC 读取", Category = "Nori产测", Command = "shell bdft read -wfmac", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "BT MAC 读取", Category = "Nori产测", Command = "shell bdft read -btmac", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "基础信息校验 Nand", Category = "Nori产测", Command = "shell bdft get -emmc", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "基础信息校验 DDR", Category = "Nori产测", Command = "shell bdft get -ddr", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+            new AdbCommand { Name = "软件版本号读取(Check ROM Version)", Category = "Nori产测", Command = "shell bdft get -swv", SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
         ];
     }
 
@@ -171,9 +172,9 @@ public class ConfigService
                 Steps =
                 [
                     new GroupStep { Command = "get-state", Description = "1.检查设备", TimeoutMs = 10000 },
-                    new GroupStep { Command = "shell bdft write -testmode B", Description = "2.进入产测模式", TimeoutMs = 60000, DelayAfterMs = 1000 },
-                    new GroupStep { Command = "shell bdft write -sn {0}", Description = "3.写入SN", TimeoutMs = 60000, InputPrompts = ["请输入 SN"] },
-                    new GroupStep { Command = "shell bdft read -sn", Description = "4.查询SN", TimeoutMs = 30000 },
+                    new GroupStep { Command = "shell bdft write -testmode B", Description = "2.进入产测模式", TimeoutMs = 60000, DelayAfterMs = 1000, SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+                    new GroupStep { Command = "shell bdft write -sn {0}", Description = "3.写入SN", TimeoutMs = 60000, InputPrompts = ["请输入 SN"], SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
+                    new GroupStep { Command = "shell bdft read -sn", Description = "4.查询SN", TimeoutMs = 30000, SuccessRegex = @"^\[[^\]]*\]\s*=\s*\[[^\]]*\]" },
                 ]
             }
         ];
