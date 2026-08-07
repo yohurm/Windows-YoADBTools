@@ -14,12 +14,20 @@ public class AdbCommand
     /// <summary>命令描述</summary>
     public string? Description { get; set; }
 
-    /// <summary>命令分类（如"系统信息"、"设备控制"）</summary>
+    /// <summary>命令分类（如"通用"、"Nori产测"）</summary>
     public string? Category { get; set; }
 
     /// <summary>ADB 命令内容（如 "shell getprop ro.product.model"）</summary>
+    /// <remarks>需要输入时使用 {0} {1} 占位符，如 "shell bdft write -pcbasn {0}"</remarks>
     public string Command { get; set; } = string.Empty;
+
+    /// <summary>输入参数提示列表（按顺序对应 {0} {1}...），为空表示无需输入</summary>
+    public List<string> InputPrompts { get; set; } = [];
 
     /// <summary>超时时间（毫秒），默认 30 秒</summary>
     public int TimeoutMs { get; set; } = 30000;
+
+    /// <summary>是否需要输入参数</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool RequiresInput => InputPrompts.Count > 0;
 }

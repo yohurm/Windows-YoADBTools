@@ -197,10 +197,31 @@ public partial class MainViewModel : INotifyPropertyChanged
     {
         if (!CanExecute || SelectedCommand == null) return;
 
-        IsBusy = true;
         var command = SelectedCommand;
         var devices = SelectedDevices.ToList();
 
+        // 需要输入参数的命令：先弹出输入对话框
+        string resolvedCommand = command.Command;
+        if (command.RequiresInput)
+        {
+            var dialog = new Views.InputDialog(
+                command.Name, command.Command, command.InputPrompts)
+            {
+                Owner = Application.Current.MainWindow
+            };
+            if (dialog.ShowDialog() != true)
+            {
+                AppendLog($"[取消] 已取消执行: {command.Name}");
+                return; // 用户取消
+            }
+
+            // 用输入值替换 {0} {1}... 占位符
+            resolvedCommand = string.Format(command.Command,
+                dialog.Values.Select(v => (object)v).ToArray());
+            AppendLog($"[输入] {string.Join(" / ", dialog.Values)}");
+        }
+
+        IsBusy = true;
         AppendLog($"=== 执行命令: {command.Name} ===");
         StatusText = $"正在执行: {command.Name}";
 
@@ -211,7 +232,7 @@ public partial class MainViewModel : INotifyPropertyChanged
                 Task.Run(async () =>
                 {
                     var result = await _adb.ExecuteCommandAsync(
-                        device.SerialNumber, command.Command, command.TimeoutMs);
+                        device.SerialNumber, resolvedCommand, command.TimeoutMs);
                     return (device, result);
                 }));
 
@@ -220,7 +241,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             foreach (var (device, result) in results)
             {
                 AppendLog($"--- [{device.DisplayName}] ---");
-                AppendLog($"> {command.Command}");
+                AppendLog($"> {resolvedCommand}");
                 if (result.Success)
                 {
                     AppendLog(string.IsNullOrEmpty(result.Output)

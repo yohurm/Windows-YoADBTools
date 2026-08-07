@@ -11,6 +11,10 @@
         WindowStartupLocation="CenterScreen"
         FontFamily="Microsoft YaHei">
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+    </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -90,10 +94,17 @@
                                      BorderBrush="#ccc" BorderThickness="1">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Margin="2">
-                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding Command}" FontSize="11"
-                                                       Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Margin="2" Orientation="Horizontal">
+                                            <!-- 需要输入的命令显示输入标记 -->
+                                            <TextBlock Text="[输入]" FontSize="10" FontWeight="Bold"
+                                                       Foreground="#c8511c" VerticalAlignment="Center"
+                                                       Visibility="{Binding RequiresInput, Converter={StaticResource BoolToVisibility}}"
+                                                       Margin="0,0,4,0"/>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Command}" FontSize="11"
+                                                           Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
