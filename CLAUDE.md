@@ -1,4 +1,4 @@
-# GGEC-nori-FactoryHelper 产测助手
+# Yovo-Windows-ADBTools 产测助手
 
 ## 项目定位
 通过 ADB 实现工厂产测功能的轻量化 Windows 桌面助手。

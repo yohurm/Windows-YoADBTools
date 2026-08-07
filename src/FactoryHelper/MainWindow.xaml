@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:FactoryHelper"
         xmlns:vm="clr-namespace:FactoryHelper.ViewModels"
         mc:Ignorable="d"
-        Title="产测助手 — GGEC-nori" Height="650" Width="1050"
+        Title="产测助手 — Yovo ADB Tools" Height="650" Width="1050"
         MinHeight="500" MinWidth="800"
         WindowStartupLocation="CenterScreen"
         FontFamily="Microsoft YaHei">
@@ -207,7 +207,7 @@
         <!-- ======== 底部状态栏 ======== -->
         <Border Grid.Row="2" Background="#f0f0f0" Padding="10,4" BorderBrush="#d0d0d0" BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="GGEC-nori 产测助手 v1.0" FontSize="11" Foreground="#888"/>
+                <TextBlock Text="Yovo ADB Tools 产测助手 v1.0" FontSize="11" Foreground="#888"/>
             </StackPanel>
         </Border>
     </Grid>
