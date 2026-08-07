@@ -1,0 +1,26 @@
+# .NET 构建产物
+bin/
+obj/
+*.user
+*.suo
+
+# IDE
+.vs/
+.idea/
+*.swp
+
+# 运行时配置（用户命令库，不提交，避免覆盖他人配置）
+src/FactoryHelper/bin/Debug/net8.0-windows/Config/
+Config/
+
+# 发布输出
+publish/
+publish_*/
+
+# 内置工具（adb 二进制较大且版本敏感，建议单独管理）
+tools/adb.exe
+tools/*.dll
+
+# 日志
+*.log
+Logs/
