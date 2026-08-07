@@ -239,7 +239,16 @@ public class AdbService
             var outputTask = process.StandardOutput.ReadToEndAsync();
             var errorTask = process.StandardError.ReadToEndAsync();
 
-            await process.WaitForExitAsync(cts.Token);
+            try
+            {
+                await process.WaitForExitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // 超时：强杀 adb 及衍生进程（adb shell 会衍生 shell 进程），避免残留
+                try { process.Kill(true); } catch { /* 已退出则忽略 */ }
+                throw;
+            }
             await Task.WhenAll(outputTask, errorTask);
 
             // adb 输出为 CRLF，统一转成 \n 便于界面显示

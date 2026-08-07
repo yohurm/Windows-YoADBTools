@@ -267,6 +267,15 @@ public partial class CommandManagerWindow : Window
 
     private async void OnSaveGroupsClick(object sender, RoutedEventArgs e)
     {
+        // 先把编辑区（名称/分类/描述）写回当前选中的命令组
+        if (SelectedGroup != null)
+        {
+            SelectedGroup.Name = GroupNameBox.Text.Trim();
+            SelectedGroup.Category = GroupCategoryBox.Text.Trim();
+            SelectedGroup.Description = GroupDescBox.Text.Trim();
+            GroupListBox.Items.Refresh();
+        }
+
         // 校验
         foreach (var group in _editableGroups)
         {
@@ -278,11 +287,9 @@ public partial class CommandManagerWindow : Window
             }
         }
 
+        // 仅保存各自的分组（不应用当前编辑框到所有组）
         foreach (var group in _editableGroups)
-        {
-            group.Category = GroupCategoryBox.Text.Trim();
             group.ApplyToSource();
-        }
 
         SavedGroups = _editableGroups.Select(g => g.Source).ToList();
         await _config.SaveCommandGroupsAsync(SavedGroups);

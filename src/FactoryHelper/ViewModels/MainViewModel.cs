@@ -123,13 +123,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         set { _selectedGroupCategory = value; OnPropertyChanged(); RebuildGroups(); }
     }
 
-    private bool _adTabCommands = true;
-    public bool AdTabCommands
-    {
-        get => _adTabCommands;
-        set { _adTabCommands = value; OnPropertyChanged(); }
-    }
-
     // ==================== 字段 ====================
 
     private List<AdbCommand> _allCommands = [];
@@ -278,9 +271,8 @@ public partial class MainViewModel : INotifyPropertyChanged
                 }
             }
 
-            // 用输入值替换 {0} {1}... 占位符
-            resolvedCommand = string.Format(command.Command,
-                ActiveInputs.Select(i => (object)i.Value).ToArray());
+            // 用输入值替换 {0} {1}... 占位符（安全替换，模板含非法花括号不崩溃）
+            resolvedCommand = ResolvePlaceholders(command.Command, ActiveInputs.Select(i => i.Value).ToArray());
             AppendLog($"[输入] {string.Join(" / ", ActiveInputs.Select(i => i.Value))}");
         }
 
@@ -367,7 +359,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         foreach (var step in executionGroup.Steps.Where(s => s.RequiresInput))
         {
             var values = step.InputPrompts.Select(_ => valueQueue.Dequeue()).ToArray();
-            step.Command = string.Format(step.Command, values.Select(v => (object)v).ToArray());
+            step.Command = ResolvePlaceholders(step.Command, values);
             step.InputPrompts = []; // 已解析，标记无需再输入
         }
         if (inputValues.Count > 0)
@@ -416,6 +408,19 @@ public partial class MainViewModel : INotifyPropertyChanged
             StatusText = "就绪";
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// 安全替换 {0} {1}... 占位符。
+    /// 不用 string.Format：模板含非法花括号（如 "{"）时 string.Format 会抛异常导致应用崩溃，
+    /// 这里仅精确替换 {n} 占位符，非法花括号原样保留
+    /// </summary>
+    private static string ResolvePlaceholders(string template, string[] values)
+    {
+        var result = template;
+        for (var i = 0; i < values.Length; i++)
+            result = result.Replace($"{{{i}}}", values[i]);
+        return result;
     }
 
     /// <summary>

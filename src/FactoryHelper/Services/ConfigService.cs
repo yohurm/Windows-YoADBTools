@@ -106,7 +106,7 @@ public class ConfigService
             new AdbCommand { Name = "重启到 Recovery", Category = "通用", Command = "reboot recovery", TimeoutMs = 60000 },
             new AdbCommand { Name = "重启到 Bootloader", Category = "通用", Command = "reboot bootloader", TimeoutMs = 60000 },
             new AdbCommand { Name = "屏幕截图", Category = "通用", Command = "shell \"screencap -p /sdcard/screenshot.png\"" },
-            new AdbCommand { Name = "获取当前 Activity", Category = "通用", Command = "shell dumpsys window | findstr mCurrentFocus" },
+            new AdbCommand { Name = "获取当前 Activity", Category = "通用", Command = "shell \"dumpsys window | grep mCurrentFocus\"" },
             new AdbCommand { Name = "查看日志(最近100行)", Category = "通用", Command = "logcat -t 100" },
 
             // ===== Nori 产测专用命令 =====
