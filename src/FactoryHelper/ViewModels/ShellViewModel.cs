@@ -4,8 +4,19 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.Input;
 using FactoryHelper.Core;
 using FactoryHelper.Services;
+using Wpf.Ui.Controls;
 
 namespace FactoryHelper.ViewModels;
+
+/// <summary>
+/// 导航模块项 — 包含模块与图标
+/// </summary>
+public class NavModuleItem
+{
+    public IModule Module { get; init; } = null!;
+    public string Title => Module.Title;
+    public SymbolRegular Icon { get; init; } = SymbolRegular.Box24;
+}
 
 /// <summary>
 /// Shell 导航 ViewModel — 管理模块列表与激活切换
@@ -14,8 +25,8 @@ public partial class ShellViewModel : INotifyPropertyChanged
 {
     private readonly ModuleRegistry _registry;
 
-    /// <summary>已注册模块（导航栏显示）</summary>
-    public ObservableCollection<IModule> Modules { get; } = [];
+    /// <summary>已注册模块（导航栏显示，含图标）</summary>
+    public ObservableCollection<NavModuleItem> Modules { get; } = [];
 
     private IModule? _activeModule;
     public IModule? ActiveModule
@@ -40,26 +51,31 @@ public partial class ShellViewModel : INotifyPropertyChanged
         set { _adbStatus = value; OnPropertyChanged(); }
     }
 
+    /// <summary>模块图标映射（按注册顺序分配，新增模块在此补充）</summary>
+    private static readonly SymbolRegular[] ModuleIcons =
+    [
+        SymbolRegular.DeveloperBoard24,   // ADB 命令终端
+        SymbolRegular.ProjectionScreen24, // 投屏显示（预留）
+        SymbolRegular.Folder24,           // 文件管理（预留）
+        SymbolRegular.DocumentText24,     // 日志分析（预留）
+        SymbolRegular.Box24               // 通用
+    ];
+
     public ShellViewModel(ModuleRegistry registry, IAdbService adb)
     {
         _registry = registry;
 
+        var index = 0;
         foreach (var module in _registry.Modules)
-            Modules.Add(module);
-
-        // 默认激活第一个模块
-        if (Modules.Count > 0)
-            ActiveModule = Modules[0];
+        {
+            Modules.Add(new NavModuleItem
+            {
+                Module = module,
+                Icon = ModuleIcons[Math.Min(index++, ModuleIcons.Length - 1)]
+            });
+        }
 
         AdbStatus = adb.IsAvailable() ? "已就绪" : "未找到 ADB";
-    }
-
-    /// <summary>切换到指定模块</summary>
-    [RelayCommand]
-    private void ActivateModule(IModule? module)
-    {
-        if (module != null)
-            ActiveModule = module;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

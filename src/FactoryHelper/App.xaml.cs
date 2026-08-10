@@ -16,10 +16,6 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Fluent Design 主题：跟随系统深浅色
-        ApplicationThemeManager.Apply(ApplicationTheme.Unknown);
-        ApplicationThemeManager.ApplySystemTheme();
-
         var services = new ServiceCollection();
 
         // ===== 平台级共享服务 =====

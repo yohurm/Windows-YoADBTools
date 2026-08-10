@@ -10,76 +10,83 @@
         <conv:NullToCollapsedConverter x:Key="NullToCollapsed"/>
         <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
 
-        <!-- 分区标题样式 -->
+        <!-- 面板样式：白底 + 可见灰边框（对比度量化达标: 边框 50 / 背景 45） -->
+        <Style x:Key="PanelStyle" TargetType="Border">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#C9D2DA"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="14,12"/>
+        </Style>
+
+        <!-- 分区标题 -->
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Foreground" Value="#1A1A1A"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
 
-        <!-- 拖拽分界线样式：默认淡灰细线，悬停高亮 -->
+        <!-- 拖拽分界线：始终可见灰线，悬停高亮 -->
         <Style x:Key="SplitterStyle" TargetType="GridSplitter">
-            <Setter Property="Width" Value="4"/>
+            <Setter Property="Width" Value="5"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
-            <Setter Property="Background" Value="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+            <Setter Property="Background" Value="#C9D2DA"/>
             <Setter Property="Cursor" Value="SizeWE"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource ControlStrokeColorPrimaryBrush}"/>
-                    <Setter Property="Width" Value="6"/>
+                    <Setter Property="Background" Value="#7A828A"/>
+                    <Setter Property="Width" Value="7"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="12,8,12,12">
+    <Grid Margin="14,10,14,14">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- ======== 工具栏 ======== -->
-        <Border Grid.Row="0" Padding="0,0,0,10">
-            <StackPanel Orientation="Horizontal">
-                <ui:Button Content="刷新设备" Command="{Binding RefreshDevicesCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentRefresh24"/>
-                <ui:Button Content="命令管理" Command="{Binding OpenCommandManagerCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSettings24"/>
-                <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"
-                           FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-            </StackPanel>
-        </Border>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+            <ui:Button Content="刷新设备" Command="{Binding RefreshDevicesCommand}"
+                       Appearance="Secondary" Margin="0,0,10,0" Icon="FluentRefresh24"/>
+            <ui:Button Content="命令管理" Command="{Binding OpenCommandManagerCommand}"
+                       Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSettings24"/>
+            <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"
+                       FontSize="13" Foreground="#5A5A5A"/>
+        </StackPanel>
 
         <!-- ======== 三栏主布局（可拖拽分栏） ======== -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300" MinWidth="240"/>
+                <ColumnDefinition Width="290" MinWidth="240"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*" MinWidth="340"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="280" MinWidth="220" MaxWidth="440"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ===== 左栏：设备 + 命令（卡片分组） ===== -->
-            <Grid Grid.Column="0" Margin="0,0,12,0">
+            <!-- ===== 左栏：设备 + 命令 ===== -->
+            <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- 设备卡片 -->
-                <ui:Card Grid.Row="0" Margin="0,0,0,10" Padding="14,12">
+                <!-- 设备面板 -->
+                <Border Grid.Row="0" Style="{StaticResource PanelStyle}" Margin="0,0,0,10">
                     <StackPanel>
                         <TextBlock Text="设备列表" Style="{StaticResource SectionTitleStyle}"/>
                         <ListBox Name="DeviceListBox" ItemsSource="{Binding Devices}"
-                                 SelectionMode="Extended" Height="100"
+                                 SelectionMode="Extended" Height="96"
                                  DisplayMemberPath="DisplayName"
-                                 BorderThickness="0"
-                                 Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                 BorderBrush="#D5DBE1" BorderThickness="1"
+                                 Background="#F7F9FA">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
                                     <Setter Property="Padding" Value="8,4"/>
@@ -88,12 +95,12 @@
                             </ListBox.ItemContainerStyle>
                         </ListBox>
                         <TextBlock Text="提示: 按住 Ctrl 多选设备" FontSize="11"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,6,0,0"/>
+                                   Foreground="#8A8A8A" Margin="0,6,0,0"/>
                     </StackPanel>
-                </ui:Card>
+                </Border>
 
-                <!-- 命令分类筛选 -->
-                <ui:Card Grid.Row="1" Margin="0,0,0,10" Padding="14,12">
+                <!-- 单条命令面板 -->
+                <Border Grid.Row="1" Style="{StaticResource PanelStyle}" Margin="0,0,0,10">
                     <StackPanel>
                         <TextBlock Text="单条命令" Style="{StaticResource SectionTitleStyle}"/>
                         <ComboBox ItemsSource="{Binding Categories}"
@@ -101,31 +108,30 @@
                                   Margin="0,0,0,8"/>
                         <ListBox ItemsSource="{Binding Commands}"
                                  SelectedItem="{Binding SelectedCommand}"
-                                 Height="150"
-                                 BorderThickness="0"
-                                 Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                 Height="140"
+                                 BorderBrush="#D5DBE1" BorderThickness="1"
+                                 Background="#F7F9FA">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="2,3">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="[输入]" FontSize="10" FontWeight="Bold"
-                                                       Foreground="#c8511c" VerticalAlignment="Center"
+                                                       Foreground="#C8511C" VerticalAlignment="Center"
                                                        Visibility="{Binding RequiresInput, Converter={StaticResource BoolToVisibility}}"
                                                        Margin="0,0,4,0"/>
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
                                         </StackPanel>
                                         <TextBlock Text="{Binding DisplayCommand}" FontSize="11"
-                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                   TextWrapping="Wrap"/>
+                                                   Foreground="#6A6A6A" TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </StackPanel>
-                </ui:Card>
+                </Border>
 
-                <!-- 命令组 -->
-                <ui:Card Grid.Row="2" Padding="14,12">
+                <!-- 命令组面板 -->
+                <Border Grid.Row="2" Style="{StaticResource PanelStyle}">
                     <StackPanel>
                         <TextBlock Text="命令组" Style="{StaticResource SectionTitleStyle}"/>
                         <ComboBox ItemsSource="{Binding GroupCategories}"
@@ -133,29 +139,28 @@
                                   Margin="0,0,0,8"/>
                         <ListBox ItemsSource="{Binding CommandGroups}"
                                  SelectedItem="{Binding SelectedGroup}"
-                                 BorderThickness="0"
-                                 Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                 BorderBrush="#D5DBE1" BorderThickness="1"
+                                 Background="#F7F9FA">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="2,3">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="{Binding Category}" FontSize="10"
-                                                       Foreground="#8a5a00" FontWeight="Bold"
+                                                       Foreground="#8A5A00" FontWeight="Bold"
                                                        Margin="0,0,6,0"
                                                        Visibility="{Binding Category, Converter={StaticResource NullToCollapsed}}"/>
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
                                         </StackPanel>
                                         <TextBlock Text="{Binding Description}" FontSize="11"
-                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                   TextWrapping="Wrap"/>
+                                                   Foreground="#6A6A6A" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding Steps.Count, StringFormat={}{0} 步}" FontSize="10"
-                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                   Foreground="#8A8A8A"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </StackPanel>
-                </ui:Card>
+                </Border>
             </Grid>
 
             <!-- 分隔条 1 -->
@@ -178,14 +183,12 @@
                                Appearance="Secondary" Icon="FluentDelete24"/>
                 </StackPanel>
 
-                <!-- 日志卡片 -->
-                <ui:Card Grid.Row="1" Padding="0">
+                <!-- 日志面板 -->
+                <Border Grid.Row="1" Style="{StaticResource PanelStyle}" Padding="0">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="执行日志" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                   Margin="14,12,14,8"/>
-                        <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                                BorderThickness="0,1,0,0">
+                                   Foreground="#1A1A1A" Margin="14,12,14,8"/>
+                        <Border BorderBrush="#D5DBE1" BorderThickness="0,1,0,0">
                             <ScrollViewer Name="LogScroll" VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Auto">
                                 <TextBox Name="LogTextBox" IsReadOnly="True" TextWrapping="Wrap"
@@ -195,7 +198,7 @@
                             </ScrollViewer>
                         </Border>
                     </DockPanel>
-                </ui:Card>
+                </Border>
 
                 <!-- 底部状态 -->
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
@@ -204,20 +207,18 @@
                                  Visibility="Collapsed"
                                  Margin="0,0,10,0"/>
                     <TextBlock Text="{Binding StatusText}" FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               VerticalAlignment="Center"/>
+                               Foreground="#5A5A5A" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
 
             <!-- 分隔条 2 -->
             <GridSplitter Grid.Column="3" Style="{StaticResource SplitterStyle}"/>
 
-            <!-- ===== 右栏：参数输入（常驻卡片） ===== -->
-            <ui:Card Grid.Column="4" Padding="14,12">
+            <!-- ===== 右栏：参数输入（常驻面板） ===== -->
+            <Border Grid.Column="4" Style="{StaticResource PanelStyle}">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Text="参数输入" FontSize="13" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,8"/>
+                               Foreground="#1A1A1A" Margin="0,0,0,8"/>
 
                     <!-- 有输入项：显示输入框 -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
@@ -227,10 +228,10 @@
                                 <DataTemplate>
                                     <StackPanel Margin="0,0,0,10">
                                         <TextBlock Text="{Binding GroupLabel}" FontSize="11" FontWeight="Bold"
-                                                   Foreground="#8a5a00" Margin="0,0,0,2"
+                                                   Foreground="#8A5A00" Margin="0,0,0,2"
                                                    Visibility="{Binding HasGroupLabel, Converter={StaticResource BoolToVisibility}}"/>
                                         <TextBlock Text="{Binding Label}" FontSize="11"
-                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,3"/>
+                                                   Foreground="#6A6A6A" Margin="0,0,0,3"/>
                                         <ui:TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
                                                     FontSize="13" MinHeight="30"/>
                                     </StackPanel>
@@ -243,14 +244,12 @@
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                 Visibility="{Binding HasInputPanel, Converter={StaticResource InverseBoolToVisibility}}">
                         <TextBlock Text="选择需要输入的命令" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   TextAlignment="Center" Margin="0,0,0,4"/>
+                                   Foreground="#8A8A8A" TextAlignment="Center" Margin="0,0,0,4"/>
                         <TextBlock Text="参数输入框将显示在此处" FontSize="11"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   TextAlignment="Center"/>
+                                   Foreground="#8A8A8A" TextAlignment="Center"/>
                     </StackPanel>
                 </DockPanel>
-            </ui:Card>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>
