@@ -13,6 +13,7 @@
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -21,18 +22,24 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- ======== 左侧：平台导航（固定展开，明显浅灰背景 vs 内容区近白） ======== -->
-        <Border Grid.Row="0" Grid.Column="0"
-                Background="#E9EDF1"
-                BorderBrush="#C9D2DA"
+        <!-- ======== 官方 TitleBar（最小化/最大化/关闭 + 拖动） ======== -->
+        <ui:TitleBar Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                     Title="Yovo ADB Tools"
+                     Icon="pack://application:,,,/app.ico"
+                     Padding="0"/>
+
+        <!-- ======== 左侧：平台导航 ======== -->
+        <Border Grid.Row="1" Grid.Column="0"
+                Background="{StaticResource Brush.NavBg}"
+                BorderBrush="{StaticResource Brush.PanelBorder}"
                 BorderThickness="0,0,1,0">
-            <DockPanel Margin="0,40,0,0">
+            <DockPanel Margin="0,8,0,0">
                 <!-- 平台标题 -->
                 <StackPanel DockPanel.Dock="Top" Margin="20,0,16,18">
                     <TextBlock Text="Yovo ADB Tools" FontSize="17" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                               Foreground="{StaticResource Brush.TextPrimary}"/>
                     <TextBlock Text="多模块工具平台" FontSize="11" Margin="0,2,0,0"
-                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                               Foreground="{StaticResource Brush.TextTertiary}"/>
                 </StackPanel>
 
                 <!-- 模块导航 -->
@@ -48,12 +55,12 @@
                             <Setter Property="FontSize" Value="13.5"/>
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
                             <Style.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#D6E4F7"/>
+                                    <Setter Property="Background" Value="{StaticResource Brush.AccentBg}"/>
                                     <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Foreground" Value="#0F3C74"/>
+                                    <Setter Property="Foreground" Value="{StaticResource Brush.Accent}"/>
                                 </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Background" Value="#E8EEF6"/>
@@ -65,7 +72,7 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
                                 <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="18"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                               Foreground="{StaticResource Brush.TextSecondary}"/>
                                 <TextBlock Text="{Binding Title}" Margin="10,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </DataTemplate>
@@ -75,21 +82,22 @@
         </Border>
 
         <!-- ======== 右侧：模块内容区 ======== -->
-        <Grid Grid.Row="0" Grid.Column="1" Background="#FBFCFD">
+        <Grid Grid.Row="1" Grid.Column="1"
+              Background="{StaticResource Brush.ContentBg}">
             <ContentControl x:Name="ModuleHost"/>
         </Grid>
 
         <!-- ======== 底部状态栏 ======== -->
-        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                 Padding="14,5" BorderThickness="0,1,0,0"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                Background="{DynamicResource LayerFillColorAltBrush}">
+                BorderBrush="{StaticResource Brush.PanelBorder}"
+                Background="{StaticResource Brush.NavBg}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Left" Text="Yovo ADB Tools v1.0"
-                           FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                           FontSize="11" Foreground="{StaticResource Brush.TextTertiary}"/>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <TextBlock Text="ADB: " FontSize="11" VerticalAlignment="Center"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                               Foreground="{StaticResource Brush.TextSecondary}"/>
                     <TextBlock Name="TxtAdbStatus" Text="{Binding AdbStatus}" FontSize="11"
                                FontWeight="SemiBold" Foreground="#2e7d32" VerticalAlignment="Center"/>
                 </StackPanel>

@@ -8,70 +8,45 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <conv:NullToCollapsedConverter x:Key="NullToCollapsed"/>
-        <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
-
-        <!-- 面板样式：白底 + 可见灰边框（对比度量化达标: 边框 50 / 背景 45） -->
-        <Style x:Key="PanelStyle" TargetType="Border">
-            <Setter Property="Background" Value="#FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#C9D2DA"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="14,12"/>
-        </Style>
-
-        <!-- 分区标题 -->
-        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#1A1A1A"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
-        </Style>
-
-        <!-- 拖拽分界线：始终可见灰线，悬停高亮 -->
-        <Style x:Key="SplitterStyle" TargetType="GridSplitter">
-            <Setter Property="Width" Value="5"/>
-            <Setter Property="VerticalAlignment" Value="Stretch"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
-            <Setter Property="Background" Value="#C9D2DA"/>
-            <Setter Property="Cursor" Value="SizeWE"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#7A828A"/>
-                    <Setter Property="Width" Value="7"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
     </UserControl.Resources>
 
-    <Grid Margin="14,10,14,14">
+    <!--
+      布局架构 v2 — 统一间距体系:
+      - 页面边距 14,10,14,14 (Padding.Page)
+      - 列间距: 分界线两侧内容统一 12px (ColumnLeft/Mid/Right)
+      - 面板间距: 垂直 10px (PanelGap)
+      - 输入面板列: 动态宽度 (有输入 280 / 无输入 0)，由 Code-behind 切换，
+        日志列 Star 自动填充回收空间
+    -->
+    <Grid Margin="{StaticResource Padding.Page}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- ======== 工具栏 ======== -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource Margin.Toolbar}">
             <ui:Button Content="刷新设备" Command="{Binding RefreshDevicesCommand}"
                        Appearance="Secondary" Margin="0,0,10,0" Icon="FluentRefresh24"/>
             <ui:Button Content="命令管理" Command="{Binding OpenCommandManagerCommand}"
                        Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSettings24"/>
             <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"
-                       FontSize="13" Foreground="#5A5A5A"/>
+                       FontSize="{StaticResource Font.Size.Md}"
+                       Foreground="{StaticResource Brush.TextSecondary}"/>
         </StackPanel>
 
-        <!-- ======== 三栏主布局（可拖拽分栏） ======== -->
+        <!-- ======== 三栏主布局 ======== -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="290" MinWidth="240"/>
+                <ColumnDefinition x:Name="ColLeft" Width="290" MinWidth="240"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*" MinWidth="340"/>
+                <ColumnDefinition x:Name="ColLog" Width="*" MinWidth="340"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="280" MinWidth="220" MaxWidth="440"/>
+                <ColumnDefinition x:Name="ColInput" Width="0"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ===== 左栏：设备 + 命令 ===== -->
-            <Grid Grid.Column="0">
+            <!-- ===== 左栏：设备 + 命令（距分界线 12px） ===== -->
+            <Grid Grid.Column="0" Margin="{StaticResource Margin.ColumnLeft}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -79,14 +54,14 @@
                 </Grid.RowDefinitions>
 
                 <!-- 设备面板 -->
-                <Border Grid.Row="0" Style="{StaticResource PanelStyle}" Margin="0,0,0,10">
+                <Border Grid.Row="0" Style="{StaticResource PanelBorderStyle}" Margin="{StaticResource Margin.PanelGap}">
                     <StackPanel>
                         <TextBlock Text="设备列表" Style="{StaticResource SectionTitleStyle}"/>
                         <ListBox Name="DeviceListBox" ItemsSource="{Binding Devices}"
                                  SelectionMode="Extended" Height="96"
                                  DisplayMemberPath="DisplayName"
-                                 BorderBrush="#D5DBE1" BorderThickness="1"
-                                 Background="#F7F9FA">
+                                 BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
+                                 Background="{StaticResource Brush.ListBg}">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
                                     <Setter Property="Padding" Value="8,4"/>
@@ -95,12 +70,12 @@
                             </ListBox.ItemContainerStyle>
                         </ListBox>
                         <TextBlock Text="提示: 按住 Ctrl 多选设备" FontSize="11"
-                                   Foreground="#8A8A8A" Margin="0,6,0,0"/>
+                                   Foreground="{StaticResource Brush.TextTertiary}" Margin="0,6,0,0"/>
                     </StackPanel>
                 </Border>
 
                 <!-- 单条命令面板 -->
-                <Border Grid.Row="1" Style="{StaticResource PanelStyle}" Margin="0,0,0,10">
+                <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Margin="{StaticResource Margin.PanelGap}">
                     <StackPanel>
                         <TextBlock Text="单条命令" Style="{StaticResource SectionTitleStyle}"/>
                         <ComboBox ItemsSource="{Binding Categories}"
@@ -109,20 +84,20 @@
                         <ListBox ItemsSource="{Binding Commands}"
                                  SelectedItem="{Binding SelectedCommand}"
                                  Height="140"
-                                 BorderBrush="#D5DBE1" BorderThickness="1"
-                                 Background="#F7F9FA">
+                                 BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
+                                 Background="{StaticResource Brush.ListBg}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="2,3">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="[输入]" FontSize="10" FontWeight="Bold"
-                                                       Foreground="#C8511C" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource Brush.Warning}" VerticalAlignment="Center"
                                                        Visibility="{Binding RequiresInput, Converter={StaticResource BoolToVisibility}}"
                                                        Margin="0,0,4,0"/>
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
                                         </StackPanel>
                                         <TextBlock Text="{Binding DisplayCommand}" FontSize="11"
-                                                   Foreground="#6A6A6A" TextWrapping="Wrap"/>
+                                                   Foreground="{StaticResource Brush.TextSecondary}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -131,7 +106,7 @@
                 </Border>
 
                 <!-- 命令组面板 -->
-                <Border Grid.Row="2" Style="{StaticResource PanelStyle}">
+                <Border Grid.Row="2" Style="{StaticResource PanelBorderStyle}">
                     <StackPanel>
                         <TextBlock Text="命令组" Style="{StaticResource SectionTitleStyle}"/>
                         <ComboBox ItemsSource="{Binding GroupCategories}"
@@ -139,22 +114,22 @@
                                   Margin="0,0,0,8"/>
                         <ListBox ItemsSource="{Binding CommandGroups}"
                                  SelectedItem="{Binding SelectedGroup}"
-                                 BorderBrush="#D5DBE1" BorderThickness="1"
-                                 Background="#F7F9FA">
+                                 BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
+                                 Background="{StaticResource Brush.ListBg}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="2,3">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="{Binding Category}" FontSize="10"
-                                                       Foreground="#8A5A00" FontWeight="Bold"
+                                                       Foreground="{StaticResource Brush.Tag}" FontWeight="Bold"
                                                        Margin="0,0,6,0"
                                                        Visibility="{Binding Category, Converter={StaticResource NullToCollapsed}}"/>
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
                                         </StackPanel>
                                         <TextBlock Text="{Binding Description}" FontSize="11"
-                                                   Foreground="#6A6A6A" TextWrapping="Wrap"/>
+                                                   Foreground="{StaticResource Brush.TextSecondary}" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding Steps.Count, StringFormat={}{0} 步}" FontSize="10"
-                                                   Foreground="#8A8A8A"/>
+                                                   Foreground="{StaticResource Brush.TextTertiary}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -166,8 +141,8 @@
             <!-- 分隔条 1 -->
             <GridSplitter Grid.Column="1" Style="{StaticResource SplitterStyle}"/>
 
-            <!-- ===== 中栏：执行 + 日志 ===== -->
-            <Grid Grid.Column="2" Margin="12,0,12,0">
+            <!-- ===== 中栏：执行 + 日志（两侧距分界线 12px） ===== -->
+            <Grid Grid.Column="2" Margin="{StaticResource Margin.ColumnMid}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -184,11 +159,11 @@
                 </StackPanel>
 
                 <!-- 日志面板 -->
-                <Border Grid.Row="1" Style="{StaticResource PanelStyle}" Padding="0">
+                <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Padding="0">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="执行日志" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="#1A1A1A" Margin="14,12,14,8"/>
-                        <Border BorderBrush="#D5DBE1" BorderThickness="0,1,0,0">
+                                   Foreground="{StaticResource Brush.TextPrimary}" Margin="14,12,14,8"/>
+                        <Border BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="0,1,0,0">
                             <ScrollViewer Name="LogScroll" VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Auto">
                                 <TextBox Name="LogTextBox" IsReadOnly="True" TextWrapping="Wrap"
@@ -207,49 +182,39 @@
                                  Visibility="Collapsed"
                                  Margin="0,0,10,0"/>
                     <TextBlock Text="{Binding StatusText}" FontSize="12"
-                               Foreground="#5A5A5A" VerticalAlignment="Center"/>
+                               Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
 
             <!-- 分隔条 2 -->
             <GridSplitter Grid.Column="3" Style="{StaticResource SplitterStyle}"/>
 
-            <!-- ===== 右栏：参数输入（常驻面板） ===== -->
-            <Border Grid.Column="4" Style="{StaticResource PanelStyle}">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="参数输入" FontSize="13" FontWeight="SemiBold"
-                               Foreground="#1A1A1A" Margin="0,0,0,8"/>
-
-                    <!-- 有输入项：显示输入框 -->
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                  Visibility="{Binding HasInputPanel, Converter={StaticResource BoolToVisibility}}">
-                        <ItemsControl ItemsSource="{Binding ActiveInputs}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="0,0,0,10">
-                                        <TextBlock Text="{Binding GroupLabel}" FontSize="11" FontWeight="Bold"
-                                                   Foreground="#8A5A00" Margin="0,0,0,2"
-                                                   Visibility="{Binding HasGroupLabel, Converter={StaticResource BoolToVisibility}}"/>
-                                        <TextBlock Text="{Binding Label}" FontSize="11"
-                                                   Foreground="#6A6A6A" Margin="0,0,0,3"/>
-                                        <ui:TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                                    FontSize="13" MinHeight="30"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-
-                    <!-- 无输入项：占位提示 -->
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                                Visibility="{Binding HasInputPanel, Converter={StaticResource InverseBoolToVisibility}}">
-                        <TextBlock Text="选择需要输入的命令" FontSize="13"
-                                   Foreground="#8A8A8A" TextAlignment="Center" Margin="0,0,0,4"/>
-                        <TextBlock Text="参数输入框将显示在此处" FontSize="11"
-                                   Foreground="#8A8A8A" TextAlignment="Center"/>
-                    </StackPanel>
-                </DockPanel>
-            </Border>
+            <!-- ===== 右栏：参数输入（动态列宽，距分界线 12px） ===== -->
+            <Grid Grid.Column="4" Margin="{StaticResource Margin.ColumnRight}">
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="参数输入" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource Brush.TextPrimary}" Margin="0,0,0,8"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ActiveInputs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,10">
+                                            <TextBlock Text="{Binding GroupLabel}" FontSize="11" FontWeight="Bold"
+                                                       Foreground="{StaticResource Brush.Tag}" Margin="0,0,0,2"
+                                                       Visibility="{Binding HasGroupLabel, Converter={StaticResource BoolToVisibility}}"/>
+                                            <TextBlock Text="{Binding Label}" FontSize="11"
+                                                       Foreground="{StaticResource Brush.TextSecondary}" Margin="0,0,0,3"/>
+                                            <ui:TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                                        FontSize="13" MinHeight="30"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

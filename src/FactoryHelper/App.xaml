@@ -8,6 +8,8 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
+        <!-- UI Token 统一管理（颜色/间距/圆角） -->
+        <ResourceDictionary Source="Resources/ThemeTokens.xaml"/>
         <!-- Fluent Design 浅色主题（产线工控机明亮环境适配） -->
         <ui:ThemesDictionary Theme="Light" />
         <!-- Fluent 控件默认样式 -->
