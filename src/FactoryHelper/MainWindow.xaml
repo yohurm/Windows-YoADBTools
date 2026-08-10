@@ -22,30 +22,34 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- ======== 官方 TitleBar ======== -->
+
+        <!-- ======== 官方 TitleBar（最小化/最大化/关闭 + 拖动） ======== -->
         <ui:TitleBar Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                      Title="Yovo ADB Tools"
                      Icon="pack://application:,,,/app.ico"
                      Padding="0"/>
 
-        <!-- ======== 左侧：平台公共区（设备面板 + 模块导航） ======== -->
+        <!-- ======== 左侧：平台公共区（固定 220px） ======== -->
         <Border Grid.Row="1" Grid.Column="0"
+                Width="220"
+                ClipToBounds="True"
                 Background="{StaticResource Brush.NavBg}"
                 BorderBrush="{StaticResource Brush.PanelBorder}"
                 BorderThickness="0,0,1,0">
-            <DockPanel Margin="0,8,0,0">
-
+            <DockPanel Margin="0,8,0,0" MaxWidth="220">
                 <!-- 平台标题 -->
-                <StackPanel DockPanel.Dock="Top" Margin="20,0,16,14">
+                <StackPanel DockPanel.Dock="Top" Margin="20,0,16,12">
                     <TextBlock Text="Yovo ADB Tools" FontSize="17" FontWeight="SemiBold"
-                               Foreground="{StaticResource Brush.TextPrimary}"/>
+                               Foreground="{StaticResource Brush.TextPrimary}"
+                               MaxWidth="184" TextTrimming="CharacterEllipsis"/>
                     <TextBlock Text="多模块工具平台" FontSize="11" Margin="0,2,0,0"
-                               Foreground="{StaticResource Brush.TextTertiary}"/>
+                               Foreground="{StaticResource Brush.TextTertiary}"
+                               MaxWidth="184" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
 
-                <!-- 平台设备面板（所有模块共享） -->
-                <DockPanel DockPanel.Dock="Top" Margin="10,0,10,14">
-                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                <!-- 设备面板 -->
+                <StackPanel DockPanel.Dock="Top" Margin="12,0,12,12">
+                    <DockPanel Margin="0,0,0,6">
                         <TextBlock Text="设备" FontWeight="SemiBold" FontSize="12.5"
                                    Foreground="{StaticResource Brush.TextPrimary}"
                                    VerticalAlignment="Center"/>
@@ -57,24 +61,26 @@
                                 Cursor="Hand"/>
                     </DockPanel>
                     <ListBox x:Name="DeviceListBox" ItemsSource="{Binding Devices}"
-                             SelectionMode="Extended" MaxHeight="150"
+                             SelectionMode="Extended" MaxHeight="140"
                              DisplayMemberPath="DisplayName"
                              BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
                              Background="{StaticResource Brush.ListBg}"
                              SelectionChanged="OnDeviceSelectionChanged">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="8,4"/>
+                                <Setter Property="Padding" Value="6,3"/>
                                 <Setter Property="Margin" Value="0,1"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             </Style>
                         </ListBox.ItemContainerStyle>
                     </ListBox>
-                </DockPanel>
+                </StackPanel>
 
                 <!-- 模块导航 -->
-                <TextBlock Text="模块" FontWeight="SemiBold" FontSize="12.5"
-                           Foreground="{StaticResource Brush.TextPrimary}"
-                           Margin="20,0,16,6"/>
+                <StackPanel DockPanel.Dock="Top" Margin="20,0,16,4">
+                    <TextBlock Text="模块" FontWeight="SemiBold" FontSize="12.5"
+                               Foreground="{StaticResource Brush.TextPrimary}"/>
+                </StackPanel>
                 <ListBox x:Name="ModuleNavList"
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -104,8 +110,10 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
                                 <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="18"
-                                               Foreground="{StaticResource Brush.TextSecondary}"/>
-                                <TextBlock Text="{Binding Title}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                               Foreground="{StaticResource Brush.TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Title}" Margin="10,0,0,0" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -116,7 +124,9 @@
         <!-- ======== 右侧：模块内容区 ======== -->
         <Grid Grid.Row="1" Grid.Column="1"
               Background="{StaticResource Brush.ContentBg}">
-            <ContentControl x:Name="ModuleHost"/>
+            <ContentControl x:Name="ModuleHost"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"/>
         </Grid>
 
         <!-- ======== 底部状态栏 ======== -->
