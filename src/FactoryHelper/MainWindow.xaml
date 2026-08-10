@@ -61,22 +61,25 @@
                                 Cursor="Hand"/>
                     </DockPanel>
                     <ListBox x:Name="DeviceListBox" ItemsSource="{Binding Devices}"
-                             SelectionMode="Extended" MaxHeight="140"
+                             SelectionMode="Extended" MaxHeight="160"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
                              Background="{StaticResource Brush.ListBg}"
                              SelectionChanged="OnDeviceSelectionChanged">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="6,3"/>
+                                <Setter Property="Padding" Value="8,5"/>
                                 <Setter Property="Margin" Value="0,1"/>
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             </Style>
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <!-- 设备状态指示点：在线绿 / 离线灰 -->
-                                    <Ellipse Width="8" Height="8" Margin="0,0,6,0"
+                                <!-- 设备行：DockPanel 布局，状态点固定左列垂直居中 -->
+                                <DockPanel>
+                                    <!-- 状态点：左对齐垂直居中 -->
+                                    <Ellipse Width="8" Height="8" Margin="0,0,8,0"
+                                             DockPanel.Dock="Left"
                                              VerticalAlignment="Center">
                                         <Ellipse.Style>
                                             <Style TargetType="Ellipse">
@@ -89,10 +92,18 @@
                                             </Style>
                                         </Ellipse.Style>
                                     </Ellipse>
-                                    <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
-                                               VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
+
+                                    <!-- 右侧：上下两行（名称 + 序列号） -->
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Model}" FontSize="12.5"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding SerialNumber}" FontSize="10.5"
+                                                   Foreground="{StaticResource Brush.TextTertiary}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -131,9 +142,10 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
-                                <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="18"
-                                               Foreground="{StaticResource Brush.TextSecondary}"
-                                               VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding IconChar}" FontSize="16"
+                                           Foreground="{StaticResource Brush.TextSecondary}"
+                                           VerticalAlignment="Center"
+                                           FontFamily="Segoe MDL2 Assets"/>
                                 <TextBlock Text="{Binding Title}" Margin="10,0,0,0" VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis"/>
                             </StackPanel>

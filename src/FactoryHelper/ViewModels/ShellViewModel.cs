@@ -16,7 +16,9 @@ public class NavModuleItem
 {
     public IModule Module { get; init; } = null!;
     public string Title => Module.Title;
-    public SymbolRegular Icon { get; init; } = SymbolRegular.Box24;
+
+    /// <summary>Segoe MDL2 Assets 图标字符（可靠渲染，不依赖 WPF-UI 字体）</summary>
+    public string IconChar { get; init; } = ""; // 默认: 方块
 }
 
 /// <summary>
@@ -50,14 +52,14 @@ public partial class ShellViewModel : INotifyPropertyChanged
         set { _isRefreshing = value; OnPropertyChanged(); }
     }
 
-    /// <summary>模块图标映射（按注册顺序分配，新增模块在此补充）</summary>
-    private static readonly SymbolRegular[] ModuleIcons =
+    /// <summary>模块图标映射（Segoe MDL2 Assets 字符，按注册顺序分配）</summary>
+    private static readonly string[] ModuleIcons =
     [
-        SymbolRegular.DeveloperBoard24,   // ADB 命令终端
-        SymbolRegular.ProjectionScreen24, // 投屏显示
-        SymbolRegular.Folder24,           // 文件管理
-        SymbolRegular.DocumentText24,     // 日志分析
-        SymbolRegular.Box24               // 通用
+        "", // 设备/终端: 开发者
+        "", // 投屏: 显示
+        "", // 文件: 文件夹
+        "", // 日志: 文档
+        ""  // 通用: 框
     ];
 
     public ShellViewModel(ModuleRegistry registry, IAdbService adb, IDevicePanelService devices)
@@ -71,7 +73,7 @@ public partial class ShellViewModel : INotifyPropertyChanged
             Modules.Add(new NavModuleItem
             {
                 Module = module,
-                Icon = ModuleIcons[Math.Min(index++, ModuleIcons.Length - 1)]
+                IconChar = ModuleIcons[Math.Min(index++, ModuleIcons.Length - 1)]
             });
         }
     }
