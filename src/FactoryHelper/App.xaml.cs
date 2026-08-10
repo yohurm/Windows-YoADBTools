@@ -4,6 +4,7 @@ using FactoryHelper.Core;
 using FactoryHelper.Modules.AdbTerminal;
 using FactoryHelper.Services;
 using FactoryHelper.ViewModels;
+using Wpf.Ui.Appearance;
 
 namespace FactoryHelper;
 
@@ -14,6 +15,10 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Fluent Design 主题：跟随系统深浅色
+        ApplicationThemeManager.Apply(ApplicationTheme.Unknown);
+        ApplicationThemeManager.ApplySystemTheme();
 
         var services = new ServiceCollection();
 

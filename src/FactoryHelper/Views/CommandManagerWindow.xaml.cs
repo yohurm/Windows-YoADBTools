@@ -4,13 +4,18 @@ using System.Windows;
 using System.Windows.Controls;
 using FactoryHelper.Models;
 using FactoryHelper.Services;
+using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxImage = System.Windows.MessageBoxImage;
+using MessageBoxResult = System.Windows.MessageBoxResult;
+using Wpf.Ui.Controls;
 
 namespace FactoryHelper.Views;
 
 /// <summary>
 /// 命令库管理窗口 — 直接操作 CommandLibraryService（单一数据源，实时同步主界面）
 /// </summary>
-public partial class CommandManagerWindow : Window
+public partial class CommandManagerWindow : FluentWindow
 {
     private readonly ICommandLibraryService _library;
     private readonly ObservableCollection<CommandDefinition> _editableCommands = [];
@@ -47,7 +52,7 @@ public partial class CommandManagerWindow : Window
     {
         if (_isDirty)
         {
-            var result = MessageBox.Show(this,
+            var result = System.Windows.MessageBox.Show(this,
                 "有未保存的修改，确定要关闭吗？\n（未保存的更改将丢失）",
                 "未保存修改",
                 MessageBoxButton.YesNo,
@@ -84,7 +89,7 @@ public partial class CommandManagerWindow : Window
     {
         if (SelectedCommand == null) return;
 
-        if (MessageBox.Show(this, $"确定删除命令 \"{SelectedCommand.Name}\"？", "删除确认",
+        if (System.Windows.MessageBox.Show(this, $"确定删除命令 \"{SelectedCommand.Name}\"？", "删除确认",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
             return;
 
@@ -118,7 +123,7 @@ public partial class CommandManagerWindow : Window
 
         await _library.SaveAsync();
         _isDirty = false;
-        MessageBox.Show(this, $"已保存 {_editableCommands.Count} 条命令", "保存成功",
+        System.Windows.MessageBox.Show(this, $"已保存 {_editableCommands.Count} 条命令", "保存成功",
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
@@ -167,7 +172,7 @@ public partial class CommandManagerWindow : Window
     {
         if (SelectedGroup == null) return;
 
-        if (MessageBox.Show(this, $"确定删除命令组 \"{SelectedGroup.Name}\"？", "删除确认",
+        if (System.Windows.MessageBox.Show(this, $"确定删除命令组 \"{SelectedGroup.Name}\"？", "删除确认",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
             return;
 
@@ -255,7 +260,7 @@ public partial class CommandManagerWindow : Window
         {
             if (string.IsNullOrWhiteSpace(group.Name))
             {
-                MessageBox.Show(this, "命令组名称不能为空", "校验失败",
+                System.Windows.MessageBox.Show(this, "命令组名称不能为空", "校验失败",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -276,7 +281,7 @@ public partial class CommandManagerWindow : Window
 
         await _library.SaveAsync();
         _isDirty = false;
-        MessageBox.Show(this, $"已保存 {_editableGroups.Count} 个命令组", "保存成功",
+        System.Windows.MessageBox.Show(this, $"已保存 {_editableGroups.Count} 个命令组", "保存成功",
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
 

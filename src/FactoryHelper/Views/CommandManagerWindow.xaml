@@ -1,11 +1,14 @@
-<Window x:Class="FactoryHelper.Views.CommandManagerWindow"
+<ui:FluentWindow x:Class="FactoryHelper.Views.CommandManagerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="命令库管理" Height="660" Width="920"
         WindowStartupLocation="CenterOwner"
         FontFamily="Microsoft YaHei"
         ShowInTaskbar="False"
-        Closing="OnWindowClosing">
+        Closing="OnWindowClosing"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
 
     <Grid Margin="12">
         <Grid.RowDefinitions>
@@ -16,7 +19,7 @@
 
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <TextBlock DockPanel.Dock="Left" Text="命令库管理 — 统一管理单条命令与命令组"
-                       FontSize="13" Foreground="#555" VerticalAlignment="Center"/>
+                       FontSize="13" Foreground="{DynamicResource TextFillColorSecondary}" VerticalAlignment="Center"/>
             <Button DockPanel.Dock="Right" Content="标签管理" Width="80" Height="26"
                     HorizontalAlignment="Right" Click="OnTagManagerClick"/>
         </DockPanel>
@@ -39,7 +42,7 @@
                         <TextBlock DockPanel.Dock="Top" Text="命令列表" FontWeight="Bold" Margin="0,0,0,4"/>
                         <ListBox Name="CmdListBox" DisplayMemberPath="Name"
                                  SelectionChanged="OnCommandSelectionChanged"
-                                 BorderBrush="#ccc" BorderThickness="1"/>
+                                 BorderBrush="{DynamicResource ControlStrokeColorDefault}" BorderThickness="1"/>
                     </DockPanel>
 
                     <!-- 右侧：命令详情 -->
@@ -93,7 +96,7 @@
                                  ToolTip="输出匹配该正则即视为失败, 优先级最高(用于参数错误返回0但输出错误信息的工具), 留空跳过"/>
 
                         <TextBlock Grid.Row="7" Grid.Column="0" Text="描述:" VerticalAlignment="Top" Margin="0,2"/>
-                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Description}"
+                        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Description}"
                                  Margin="0,2" Padding="4,2" TextWrapping="Wrap"
                                  VerticalScrollBarVisibility="Auto" TextChanged="OnEditChanged"/>
                     </Grid>
@@ -117,7 +120,7 @@
                         <TextBlock DockPanel.Dock="Top" Text="命令组列表" FontWeight="Bold" Margin="0,0,0,4"/>
                         <ListBox Name="GroupListBox" DisplayMemberPath="Name"
                                  SelectionChanged="OnGroupSelectionChanged"
-                                 BorderBrush="#ccc" BorderThickness="1"/>
+                                 BorderBrush="{DynamicResource ControlStrokeColorDefault}" BorderThickness="1"/>
                     </DockPanel>
 
                     <!-- 右侧：命令组详情 -->
@@ -153,7 +156,7 @@
                             <DataGrid Name="StepsGrid" AutoGenerateColumns="False"
                                       HeadersVisibility="Column"
                                       GridLinesVisibility="All"
-                                      BorderBrush="#ccc" BorderThickness="1"
+                                      BorderBrush="{DynamicResource ControlStrokeColorDefault}" BorderThickness="1"
                                       RowHeight="28" CanUserAddRows="False"
                                       CellEditEnding="OnStepsGridCellEditEnding">
                                 <DataGrid.Columns>
@@ -185,15 +188,13 @@
         <!-- 底部保存按钮 -->
         <DockPanel Grid.Row="2" Margin="0,10,0,0">
             <TextBlock DockPanel.Dock="Left" Text="提示: 输入提示用逗号分隔，命令中用 {0} {1} 占位"
-                       FontSize="11" Foreground="#888" VerticalAlignment="Center"/>
+                       FontSize="11" Foreground="{DynamicResource TextFillColorTertiary}" VerticalAlignment="Center"/>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="保存命令" Width="90" Height="30" Margin="0,0,8,0"
-                        Background="#0078d4" Foreground="White" BorderThickness="0"
-                        Click="OnSaveCommandsClick"/>
-                <Button Content="保存命令组" Width="100" Height="30"
-                        Background="#107c10" Foreground="White" BorderThickness="0"
-                        Click="OnSaveGroupsClick"/>
+                <ui:Button Content="保存命令" Width="90" Height="30" Margin="0,0,8,0"
+                        Appearance="Primary" Click="OnSaveCommandsClick"/>
+                <ui:Button Content="保存命令组" Width="100" Height="30"
+                        Appearance="Success" Click="OnSaveGroupsClick"/>
             </StackPanel>
         </DockPanel>
     </Grid>
-</Window>
+</ui:FluentWindow>
