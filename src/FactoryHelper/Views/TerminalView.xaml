@@ -26,8 +26,6 @@
 
         <!-- ======== 工具栏 ======== -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource Margin.Toolbar}">
-            <ui:Button Content="刷新设备" Command="{Binding RefreshDevicesCommand}"
-                       Appearance="Secondary" Margin="0,0,10,0" Icon="FluentRefresh24"/>
             <ui:Button Content="命令管理" Command="{Binding OpenCommandManagerCommand}"
                        Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSettings24"/>
             <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"
@@ -49,33 +47,11 @@
             <Grid Grid.Column="0" Margin="{StaticResource Margin.ColumnLeft}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- 设备面板 -->
-                <Border Grid.Row="0" Style="{StaticResource PanelBorderStyle}" Margin="{StaticResource Margin.PanelGap}">
-                    <StackPanel>
-                        <TextBlock Text="设备列表" Style="{StaticResource SectionTitleStyle}"/>
-                        <ListBox Name="DeviceListBox" ItemsSource="{Binding Devices}"
-                                 SelectionMode="Extended" Height="96"
-                                 DisplayMemberPath="DisplayName"
-                                 BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
-                                 Background="{StaticResource Brush.ListBg}">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Padding" Value="8,4"/>
-                                    <Setter Property="Margin" Value="0,1"/>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                        </ListBox>
-                        <TextBlock Text="提示: 按住 Ctrl 多选设备" FontSize="11"
-                                   Foreground="{StaticResource Brush.TextTertiary}" Margin="0,6,0,0"/>
-                    </StackPanel>
-                </Border>
-
                 <!-- 单条命令面板 -->
-                <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Margin="{StaticResource Margin.PanelGap}">
+                <Border Grid.Row="0" Style="{StaticResource PanelBorderStyle}" Margin="{StaticResource Margin.PanelGap}">
                     <StackPanel>
                         <TextBlock Text="单条命令" Style="{StaticResource SectionTitleStyle}"/>
                         <ComboBox ItemsSource="{Binding Categories}"
@@ -106,7 +82,7 @@
                 </Border>
 
                 <!-- 命令组面板 -->
-                <Border Grid.Row="2" Style="{StaticResource PanelBorderStyle}">
+                <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}">
                     <StackPanel>
                         <TextBlock Text="命令组" Style="{StaticResource SectionTitleStyle}"/>
                         <ComboBox ItemsSource="{Binding GroupCategories}"

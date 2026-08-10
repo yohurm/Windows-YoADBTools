@@ -23,6 +23,9 @@ public interface IModuleContext
 
     /// <summary>执行引擎</summary>
     IExecutionService Execution { get; }
+
+    /// <summary>平台设备面板（设备列表/选择状态，所有模块共享）</summary>
+    IDevicePanelService Devices { get; }
 }
 
 /// <summary>

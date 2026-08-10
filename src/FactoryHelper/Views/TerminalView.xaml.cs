@@ -30,8 +30,6 @@ public partial class TerminalView : UserControl
 
         DataContext = _viewModel;
 
-        DeviceListBox.SelectionChanged += OnDeviceSelectionChanged;
-
         _viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(TerminalViewModel.IsBusy))
@@ -86,13 +84,4 @@ public partial class TerminalView : UserControl
         }));
     }
 
-    private void OnDeviceSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        _viewModel.SelectedDevices.Clear();
-        foreach (var item in DeviceListBox.SelectedItems)
-        {
-            if (item is AdbDevice device)
-                _viewModel.SelectedDevices.Add(device);
-        }
-    }
 }

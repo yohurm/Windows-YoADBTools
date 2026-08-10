@@ -4,7 +4,6 @@ using FactoryHelper.Core;
 using FactoryHelper.Modules.AdbTerminal;
 using FactoryHelper.Services;
 using FactoryHelper.ViewModels;
-using Wpf.Ui.Appearance;
 
 namespace FactoryHelper;
 
@@ -22,6 +21,7 @@ public partial class App : Application
         services.AddSingleton<IAdbService, AdbService>();
         services.AddSingleton<ILogService, LogService>();
         services.AddSingleton<ISettingsService, SettingsService>();
+        services.AddSingleton<IDevicePanelService, DevicePanelService>();
 
         // ===== 终端模块服务 =====
         services.AddSingleton<ICommandLibraryService, CommandLibraryService>();
@@ -39,16 +39,23 @@ public partial class App : Application
             ServiceProvider.GetRequiredService<ILogService>(),
             ServiceProvider.GetRequiredService<ISettingsService>(),
             ServiceProvider.GetRequiredService<ICommandLibraryService>(),
-            ServiceProvider.GetRequiredService<IExecutionService>());
+            ServiceProvider.GetRequiredService<IExecutionService>(),
+            ServiceProvider.GetRequiredService<IDevicePanelService>());
 
         registry.Register(new AdbTerminalModule());
-        // registry.Register(new ScreenMirrorModule()); // 预留：投屏模块
+        // ===== 预留功能模块（开发中占位） =====
+        registry.Register(new PlaceholderModule("screen-mirror", "投屏显示"));
+        registry.Register(new PlaceholderModule("file-manager", "文件管理"));
+        registry.Register(new PlaceholderModule("log-analyzer", "日志分析"));
 
         foreach (var module in registry.Modules)
             module.Initialize(context);
 
         var mainWindow = new MainWindow(
-            new ShellViewModel(registry, ServiceProvider.GetRequiredService<IAdbService>()));
+            new ShellViewModel(registry,
+                ServiceProvider.GetRequiredService<IAdbService>(),
+                ServiceProvider.GetRequiredService<IDevicePanelService>()),
+            ServiceProvider.GetRequiredService<IDevicePanelService>());
         mainWindow.Show();
     }
 }
@@ -59,11 +66,13 @@ internal class ModuleContext(
     ILogService log,
     ISettingsService settings,
     ICommandLibraryService commandLibrary,
-    IExecutionService execution) : IModuleContext
+    IExecutionService execution,
+    IDevicePanelService devices) : IModuleContext
 {
     public IAdbService Adb { get; } = adb;
     public ILogService Log { get; } = log;
     public ISettingsService Settings { get; } = settings;
     public ICommandLibraryService CommandLibrary { get; } = commandLibrary;
     public IExecutionService Execution { get; } = execution;
+    public IDevicePanelService Devices { get; } = devices;
 }

@@ -14,7 +14,7 @@ namespace FactoryHelper.ViewModels;
 /// </summary>
 public partial class TerminalViewModel : INotifyPropertyChanged
 {
-    private readonly IAdbService _adb;
+    private readonly IDevicePanelService _devices;
     private readonly ICommandLibraryService _library;
     private readonly IExecutionService _execution;
     private readonly ILogService _log;
@@ -22,13 +22,14 @@ public partial class TerminalViewModel : INotifyPropertyChanged
 
     public TerminalViewModel(IModuleContext context)
     {
-        _adb = context.Adb;
+        _devices = context.Devices;
         _log = context.Log;
         _library = context.CommandLibrary;
         _execution = context.Execution;
         _moduleId = "adb-terminal";
 
-        SelectedDevices.CollectionChanged += (_, _) => OnCanExecuteChanged();
+        // 设备选择变化时刷新命令可用性（平台共享，Shell 面板驱动）
+        _devices.SelectionChanged += OnCanExecuteChanged;
 
         // 命令库变更时自动刷新（单一数据源，界面订阅）
         _library.LibraryChanged += OnLibraryChanged;
@@ -36,8 +37,9 @@ public partial class TerminalViewModel : INotifyPropertyChanged
 
     // ==================== 属性 ====================
 
-    public ObservableCollection<AdbDevice> Devices { get; } = [];
-    public ObservableCollection<AdbDevice> SelectedDevices { get; } = [];
+    /// <summary>平台设备面板（Shell 左侧公共区，共享）</summary>
+    public ObservableCollection<AdbDevice> Devices => _devices.Devices;
+    public ObservableCollection<AdbDevice> SelectedDevices => _devices.SelectedDevices;
     public ObservableCollection<CommandDefinition> Commands { get; } = [];
     public ObservableCollection<CommandGroup> CommandGroups { get; } = [];
     public ObservableCollection<string> Categories { get; } = [];
@@ -119,13 +121,7 @@ public partial class TerminalViewModel : INotifyPropertyChanged
     {
         StatusText = "正在初始化...";
 
-        if (_adb.IsAvailable())
-            _log.Info($"ADB 路径: {_adb.AdbPath}", _moduleId);
-        else
-            _log.Error("ADB 工具未找到！", _moduleId);
-
         await _library.InitializeAsync(); // 触发 LibraryChanged → 刷新命令/分组
-        await RefreshDevicesAsync();
         StatusText = "就绪";
     }
 
@@ -140,39 +136,6 @@ public partial class TerminalViewModel : INotifyPropertyChanged
     }
 
     // ==================== 设备 ====================
-
-    [RelayCommand]
-    private async Task RefreshDevicesAsync()
-    {
-        if (IsBusy) return;
-
-        IsBusy = true;
-        StatusText = "正在扫描设备...";
-
-        try
-        {
-            var devices = await _adb.GetDevicesAsync();
-            Devices.Clear();
-            SelectedDevices.Clear();
-
-            await Task.WhenAll(devices.Select(d => _adb.GetDeviceDetailAsync(d)));
-
-            foreach (var device in devices)
-                Devices.Add(device);
-
-            _log.Info(devices.Count > 0 ? $"发现 {devices.Count} 台设备" : "未发现已连接的设备", _moduleId);
-            StatusText = devices.Count > 0 ? $"已连接 {devices.Count} 台设备" : "未发现设备";
-        }
-        catch (Exception ex)
-        {
-            _log.Error($"扫描设备失败: {ex.Message}", _moduleId);
-            StatusText = "扫描设备失败";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
 
     // ==================== 执行 ====================
 

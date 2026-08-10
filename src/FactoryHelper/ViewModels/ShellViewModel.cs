@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.Input;
 using FactoryHelper.Core;
+using FactoryHelper.Models;
 using FactoryHelper.Services;
 using Wpf.Ui.Controls;
 
@@ -19,51 +20,50 @@ public class NavModuleItem
 }
 
 /// <summary>
-/// Shell 导航 ViewModel — 管理模块列表与激活切换
+/// Shell 导航 ViewModel — 模块列表 + 平台设备面板
 /// </summary>
 public partial class ShellViewModel : INotifyPropertyChanged
 {
     private readonly ModuleRegistry _registry;
+    private readonly IDevicePanelService _devices;
 
     /// <summary>已注册模块（导航栏显示，含图标）</summary>
     public ObservableCollection<NavModuleItem> Modules { get; } = [];
 
-    private IModule? _activeModule;
-    public IModule? ActiveModule
+    /// <summary>平台设备列表（所有模块共享，UI 在 Shell 左侧）</summary>
+    public ObservableCollection<AdbDevice> Devices => _devices.Devices;
+
+    /// <summary>选中的设备</summary>
+    public ObservableCollection<AdbDevice> SelectedDevices => _devices.SelectedDevices;
+
+    private string _statusText = "就绪";
+    public string StatusText
     {
-        get => _activeModule;
-        set
-        {
-            if (_activeModule == value) return;
-            _activeModule = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(ActiveView));
-        }
+        get => _statusText;
+        set { _statusText = value; OnPropertyChanged(); }
     }
 
-    /// <summary>当前激活模块的视图</summary>
-    public System.Windows.Controls.UserControl? ActiveView => _activeModule?.CreateView();
-
-    private string _adbStatus = "检查中...";
-    public string AdbStatus
+    private bool _isRefreshing;
+    public bool IsRefreshing
     {
-        get => _adbStatus;
-        set { _adbStatus = value; OnPropertyChanged(); }
+        get => _isRefreshing;
+        set { _isRefreshing = value; OnPropertyChanged(); }
     }
 
     /// <summary>模块图标映射（按注册顺序分配，新增模块在此补充）</summary>
     private static readonly SymbolRegular[] ModuleIcons =
     [
         SymbolRegular.DeveloperBoard24,   // ADB 命令终端
-        SymbolRegular.ProjectionScreen24, // 投屏显示（预留）
-        SymbolRegular.Folder24,           // 文件管理（预留）
-        SymbolRegular.DocumentText24,     // 日志分析（预留）
+        SymbolRegular.ProjectionScreen24, // 投屏显示
+        SymbolRegular.Folder24,           // 文件管理
+        SymbolRegular.DocumentText24,     // 日志分析
         SymbolRegular.Box24               // 通用
     ];
 
-    public ShellViewModel(ModuleRegistry registry, IAdbService adb)
+    public ShellViewModel(ModuleRegistry registry, IAdbService adb, IDevicePanelService devices)
     {
         _registry = registry;
+        _devices = devices;
 
         var index = 0;
         foreach (var module in _registry.Modules)
@@ -74,8 +74,31 @@ public partial class ShellViewModel : INotifyPropertyChanged
                 Icon = ModuleIcons[Math.Min(index++, ModuleIcons.Length - 1)]
             });
         }
+    }
 
-        AdbStatus = adb.IsAvailable() ? "已就绪" : "未找到 ADB";
+    /// <summary>刷新设备列表（Shell 启动 + 手动刷新）</summary>
+    [RelayCommand]
+    private async Task RefreshDevicesAsync()
+    {
+        if (IsRefreshing) return;
+
+        IsRefreshing = true;
+        StatusText = "正在扫描设备...";
+        try
+        {
+            await _devices.RefreshAsync();
+            StatusText = Devices.Count > 0
+                ? $"已连接 {Devices.Count} 台设备"
+                : "未发现设备";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"扫描失败: {ex.Message}";
+        }
+        finally
+        {
+            IsRefreshing = false;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

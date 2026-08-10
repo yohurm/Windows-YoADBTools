@@ -22,27 +22,59 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- ======== 官方 TitleBar（最小化/最大化/关闭 + 拖动） ======== -->
+        <!-- ======== 官方 TitleBar ======== -->
         <ui:TitleBar Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                      Title="Yovo ADB Tools"
                      Icon="pack://application:,,,/app.ico"
                      Padding="0"/>
 
-        <!-- ======== 左侧：平台导航 ======== -->
+        <!-- ======== 左侧：平台公共区（设备面板 + 模块导航） ======== -->
         <Border Grid.Row="1" Grid.Column="0"
                 Background="{StaticResource Brush.NavBg}"
                 BorderBrush="{StaticResource Brush.PanelBorder}"
                 BorderThickness="0,0,1,0">
             <DockPanel Margin="0,8,0,0">
+
                 <!-- 平台标题 -->
-                <StackPanel DockPanel.Dock="Top" Margin="20,0,16,18">
+                <StackPanel DockPanel.Dock="Top" Margin="20,0,16,14">
                     <TextBlock Text="Yovo ADB Tools" FontSize="17" FontWeight="SemiBold"
                                Foreground="{StaticResource Brush.TextPrimary}"/>
                     <TextBlock Text="多模块工具平台" FontSize="11" Margin="0,2,0,0"
                                Foreground="{StaticResource Brush.TextTertiary}"/>
                 </StackPanel>
 
+                <!-- 平台设备面板（所有模块共享） -->
+                <DockPanel DockPanel.Dock="Top" Margin="10,0,10,14">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <TextBlock Text="设备" FontWeight="SemiBold" FontSize="12.5"
+                                   Foreground="{StaticResource Brush.TextPrimary}"
+                                   VerticalAlignment="Center"/>
+                        <Button DockPanel.Dock="Right" Content="刷新" FontSize="11"
+                                Command="{Binding RefreshDevicesCommand}"
+                                Padding="8,2" Background="Transparent"
+                                BorderBrush="{StaticResource Brush.PanelBorder}"
+                                Foreground="{StaticResource Brush.TextSecondary}"
+                                Cursor="Hand"/>
+                    </DockPanel>
+                    <ListBox x:Name="DeviceListBox" ItemsSource="{Binding Devices}"
+                             SelectionMode="Extended" MaxHeight="150"
+                             DisplayMemberPath="DisplayName"
+                             BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
+                             Background="{StaticResource Brush.ListBg}"
+                             SelectionChanged="OnDeviceSelectionChanged">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="8,4"/>
+                                <Setter Property="Margin" Value="0,1"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </DockPanel>
+
                 <!-- 模块导航 -->
+                <TextBlock Text="模块" FontWeight="SemiBold" FontSize="12.5"
+                           Foreground="{StaticResource Brush.TextPrimary}"
+                           Margin="20,0,16,6"/>
                 <ListBox x:Name="ModuleNavList"
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
