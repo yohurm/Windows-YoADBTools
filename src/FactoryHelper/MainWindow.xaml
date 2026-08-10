@@ -62,7 +62,6 @@
                     </DockPanel>
                     <ListBox x:Name="DeviceListBox" ItemsSource="{Binding Devices}"
                              SelectionMode="Extended" MaxHeight="140"
-                             DisplayMemberPath="DisplayName"
                              BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
                              Background="{StaticResource Brush.ListBg}"
                              SelectionChanged="OnDeviceSelectionChanged">
@@ -73,6 +72,29 @@
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             </Style>
                         </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- 设备状态指示点：在线绿 / 离线灰 -->
+                                    <Ellipse Width="8" Height="8" Margin="0,0,6,0"
+                                             VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="#9E9E9E"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsOnline}" Value="True">
+                                                        <Setter Property="Fill" Value="#2E7D32"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
                     </ListBox>
                 </StackPanel>
 
