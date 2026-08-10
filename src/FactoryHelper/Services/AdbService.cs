@@ -5,9 +5,9 @@ using FactoryHelper.Models;
 namespace FactoryHelper.Services;
 
 /// <summary>
-/// ADB 服务 — 负责 ADB 进程管理、设备扫描、命令执行
+/// ADB 服务 — 平台级设备连接与命令进程调用
 /// </summary>
-public class AdbService
+public class AdbService : IAdbService
 {
     private readonly string _adbPath;
 
@@ -147,55 +147,6 @@ public class AdbService
             : $"-s {serial} {command}";
 
         return await RunAdbAsync(fullCommand, timeoutMs, successRegex, failureRegex, ct);
-    }
-
-    /// <summary>
-    /// 执行命令组（支持每步延时、失败中断策略、步骤级进度回调）
-    /// </summary>
-    /// <param name="onStepCompleted">每步完成时回调（步骤序号、步骤、结果、是否将中断）</param>
-    public async Task<GroupExecutionResult> ExecuteGroupAsync(
-        string serial, CommandGroup group,
-        Action<int, GroupStep, CommandResult, bool>? onStepCompleted = null,
-        CancellationToken ct = default)
-    {
-        var result = new GroupExecutionResult();
-        var stepIndex = 0;
-
-        foreach (var step in group.Steps)
-        {
-            ct.ThrowIfCancellationRequested();
-            stepIndex++;
-
-            var stepResult = await ExecuteCommandAsync(serial, step.Command, step.TimeoutMs, step.SuccessRegex, step.FailureRegex, ct);
-            result.Results.Add(stepResult);
-
-            // 是否将因失败策略中断
-            var willAbort = !stepResult.Success && step.StopOnFail;
-            onStepCompleted?.Invoke(stepIndex, step, stepResult, willAbort);
-
-            // 失败中断策略
-            if (willAbort)
-            {
-                result.Aborted = true;
-                result.AbortedStepIndex = stepIndex;
-                return result; // 中断，不再执行后续步骤
-            }
-
-            // 本步延时
-            if (step.DelayAfterMs > 0)
-            {
-                try
-                {
-                    await Task.Delay(step.DelayAfterMs, ct);
-                }
-                catch (TaskCanceledException)
-                {
-                    break;
-                }
-            }
-        }
-
-        return result;
     }
 
     /// <summary>

@@ -157,15 +157,14 @@
                                       RowHeight="28" CanUserAddRows="False"
                                       CellEditEnding="OnStepsGridCellEditEnding">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="30" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="描述" Binding="{Binding Description}" Width="110"/>
+                                    <DataGridTextColumn Header="步骤名" Binding="{Binding Name}" Width="110"/>
                                     <DataGridTextColumn Header="命令" Binding="{Binding Command}" Width="*"/>
-                                    <DataGridTextColumn Header="延时(ms)" Binding="{Binding DelayAfterMs}" Width="80"/>
-                                    <DataGridTextColumn Header="超时(ms)" Binding="{Binding TimeoutMs}" Width="80"/>
+                                    <DataGridTextColumn Header="延时(ms)" Binding="{Binding DelayAfterMs}" Width="70"/>
+                                    <DataGridTextColumn Header="超时(ms)" Binding="{Binding TimeoutMs}" Width="70"/>
                                     <DataGridCheckBoxColumn Header="失败中断" Binding="{Binding StopOnFail}" Width="60"/>
                                     <DataGridTextColumn Header="输入提示" Binding="{Binding InputPromptsText}" Width="90"/>
-                                    <DataGridTextColumn Header="成功正则" Binding="{Binding SuccessRegex}" Width="100"/>
-                                    <DataGridTextColumn Header="失败正则" Binding="{Binding FailureRegex}" Width="100"/>
+                                    <DataGridTextColumn Header="成功正则" Binding="{Binding SuccessRegex}" Width="95"/>
+                                    <DataGridTextColumn Header="失败正则" Binding="{Binding FailureRegex}" Width="95"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>

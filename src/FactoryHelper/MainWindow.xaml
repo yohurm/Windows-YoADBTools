@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:FactoryHelper"
         xmlns:conv="clr-namespace:FactoryHelper.Converters"
         mc:Ignorable="d"
         Title="Yovo ADB Tools" Height="650" Width="1050"
@@ -12,7 +11,6 @@
         FontFamily="Microsoft YaHei">
 
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <conv:NullToCollapsedConverter x:Key="NullToCollapsed"/>
     </Window.Resources>
 
@@ -23,219 +21,59 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ======== 顶部工具栏 ======== -->
-        <Border Grid.Row="0" Background="#f0f0f0" Padding="10,8" BorderBrush="#d0d0d0" BorderThickness="0,0,0,1">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Content="刷新设备" Command="{Binding RefreshDevicesCommand}"
-                            Width="80" Margin="0,0,10,0" Height="28"/>
-                    <Button Content="命令管理" Command="{Binding OpenCommandManagerCommand}"
-                            Width="80" Margin="0,0,10,0" Height="28"/>
-                    <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"
-                               Foreground="#555" FontSize="13"/>
+        <!-- ======== 顶部平台栏 ======== -->
+        <Border Grid.Row="0" Background="#1e1e1e" Padding="10,6"
+                BorderBrush="#333" BorderThickness="0,0,0,1">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="Yovo ADB Tools" FontSize="14" FontWeight="Bold"
+                           Foreground="White" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="ADB: " FontSize="12" Foreground="#aaa" VerticalAlignment="Center"/>
+                    <TextBlock Name="TxtAdbStatus" Text="{Binding AdbStatus}" FontSize="12"
+                               FontWeight="Bold" Foreground="#4caf50" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <TextBlock Text="ADB 状态: " VerticalAlignment="Center" FontSize="12"/>
-                    <TextBlock Name="TxtAdbStatus" Text="检查中..." VerticalAlignment="Center"
-                               FontSize="12" FontWeight="Bold"/>
-                </StackPanel>
-            </Grid>
+                <!-- 模块导航 -->
+                <ListBox ItemsSource="{Binding Modules}"
+                         SelectedItem="{Binding ActiveModule}"
+                         Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Margin" Value="0,0,4,0"/>
+                            <Setter Property="Padding" Value="12,4"/>
+                            <Setter Property="Foreground" Value="#ddd"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#0078d4"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Title}"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
         </Border>
 
-        <!-- ======== 主内容区 ======== -->
-        <Grid Grid.Row="1" Margin="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="280"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- ===== 左侧面板：设备列表 + 命令/命令组 ===== -->
-            <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <!-- 设备列表 -->
-                <Border Grid.Row="0" BorderBrush="#d0d0d0" BorderThickness="0,0,0,1" Padding="10,8">
-                    <StackPanel>
-                        <TextBlock Text="设备列表" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
-                        <ListBox Name="DeviceListBox" ItemsSource="{Binding Devices}"
-                                 SelectionMode="Extended" Height="120"
-                                 DisplayMemberPath="DisplayName"
-                                 BorderBrush="#ccc" BorderThickness="1"/>
-                        <TextBlock Text="提示: 按住 Ctrl 多选设备" FontSize="11"
-                                   Foreground="#888" Margin="0,4,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- 命令/命令组标签页 -->
-                <TabControl Grid.Row="1" Margin="0,0,0,0" Padding="0">
-                    <TabItem Header="单条命令">
-                        <Grid Margin="0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <!-- 分类筛选 -->
-                            <ComboBox Grid.Row="0" ItemsSource="{Binding Categories}"
-                                      SelectedItem="{Binding SelectedCategory}"
-                                      Margin="8,6,8,4" Height="26"/>
-
-                            <!-- 命令列表 -->
-                            <ListBox Grid.Row="1" ItemsSource="{Binding Commands}"
-                                     SelectedItem="{Binding SelectedCommand}"
-                                     Margin="8,0,8,8"
-                                     BorderBrush="#ccc" BorderThickness="1">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Margin="2" Orientation="Horizontal">
-                                            <!-- 需要输入的命令显示输入标记 -->
-                                            <TextBlock Text="[输入]" FontSize="10" FontWeight="Bold"
-                                                       Foreground="#c8511c" VerticalAlignment="Center"
-                                                       Visibility="{Binding RequiresInput, Converter={StaticResource BoolToVisibility}}"
-                                                       Margin="0,0,4,0"/>
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding DisplayCommand}" FontSize="11"
-                                                           Foreground="#666" TextWrapping="Wrap"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </Grid>
-                    </TabItem>
-
-                    <TabItem Header="命令组">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <!-- 分组筛选 -->
-                            <ComboBox Grid.Row="0" ItemsSource="{Binding GroupCategories}"
-                                      SelectedItem="{Binding SelectedGroupCategory}"
-                                      Margin="8,6,8,4" Height="26"/>
-
-                            <ListBox Grid.Row="1" ItemsSource="{Binding CommandGroups}"
-                                     SelectedItem="{Binding SelectedGroup}"
-                                     Margin="8,0,8,8"
-                                     BorderBrush="#ccc" BorderThickness="1">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Margin="2">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Category}" FontSize="10"
-                                                           Foreground="#8a5a00" FontWeight="Bold"
-                                                           Margin="0,0,6,0"
-                                                           Visibility="{Binding Category, Converter={StaticResource NullToCollapsed}}"/>
-                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding Description}" FontSize="11"
-                                                       Foreground="#666" TextWrapping="Wrap"/>
-                                            <TextBlock Text="{Binding Steps.Count, StringFormat={}{0} 步}" FontSize="10"
-                                                       Foreground="#888"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </Grid>
-                    </TabItem>
-                </TabControl>
-            </Grid>
-
-            <!-- ===== 右侧面板：日志 + 执行按钮 ===== -->
-            <Grid Grid.Column="1" Margin="10,8,10,8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <!-- 执行按钮 -->
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                    <Button Content="执行命令" Command="{Binding ExecuteCommandCommand}"
-                            Width="90" Height="32" Margin="0,0,10,0"
-                            Background="#0078d4" Foreground="White"
-                            FontWeight="Bold" BorderThickness="0"/>
-                    <Button Content="执行命令组" Command="{Binding ExecuteGroupCommand}"
-                            Width="100" Height="32" Margin="0,0,10,0"
-                            Background="#107c10" Foreground="White"
-                            FontWeight="Bold" BorderThickness="0"/>
-                    <Button Content="清空日志" Command="{Binding ClearLogCommand}"
-                            Width="80" Height="32"/>
-                </StackPanel>
-
-                <!-- 日志输出 -->
-                <Border Grid.Row="1" BorderBrush="#ccc" BorderThickness="1">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Auto">
-                        <TextBox Name="LogTextBox" Text="{Binding LogOutput, Mode=OneWay}"
-                                 IsReadOnly="True" TextWrapping="Wrap"
-                                 BorderThickness="0" Padding="8,6"
-                                 FontFamily="Consolas" FontSize="12"
-                                 Background="White" VerticalScrollBarVisibility="Auto"/>
-                    </ScrollViewer>
-                </Border>
-
-                <!-- 底部状态 -->
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4,0,0">
-                    <ProgressBar Name="BusyProgressBar" Width="100" Height="6"
-                                 IsIndeterminate="{Binding IsBusy}"
-                                 Visibility="Collapsed"
-                                 Margin="0,0,10,0"/>
-                    <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#555"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
-
-            <!-- ===== 右侧列：统一参数输入区 ===== -->
-            <Border Grid.Column="2" Background="#fff8ec"
-                    BorderBrush="#e0c98a" BorderThickness="1"
-                    Margin="10,8,10,8" Padding="10"
-                    Visibility="{Binding HasInputPanel, Converter={StaticResource BoolToVisibility}}">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="参数输入" FontSize="14" FontWeight="Bold"
-                               Foreground="#8a5a00" Margin="0,0,0,8"/>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding ActiveInputs}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="0,0,0,10">
-                                        <!-- 命令组步骤标题 -->
-                                        <TextBlock Text="{Binding GroupLabel}" FontSize="11" FontWeight="Bold"
-                                                   Foreground="#8a5a00" Margin="0,0,0,2"
-                                                   Visibility="{Binding HasGroupLabel, Converter={StaticResource BoolToVisibility}}"/>
-                                        <TextBlock Text="{Binding Label}" FontSize="11"
-                                                   Foreground="#666" Margin="0,0,0,3"/>
-                                        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                                 FontSize="13" Padding="4,2" MinHeight="28"
-                                                 BorderBrush="#ccc" BorderThickness="1"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </DockPanel>
-            </Border>
-        </Grid>
+        <!-- ======== 模块内容区 ======== -->
+        <ContentControl Grid.Row="1" Content="{Binding ActiveView}"/>
 
         <!-- ======== 底部状态栏 ======== -->
         <Border Grid.Row="2" Background="#f0f0f0" Padding="10,4" BorderBrush="#d0d0d0" BorderThickness="0,1,0,0">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Yovo ADB Tools v1.0" FontSize="11" Foreground="#888"/>
-            </StackPanel>
+            <TextBlock Text="Yovo ADB Tools v1.0" FontSize="11" Foreground="#888"/>
         </Border>
     </Grid>
 </Window>

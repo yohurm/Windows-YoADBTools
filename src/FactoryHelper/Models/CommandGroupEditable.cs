@@ -5,7 +5,8 @@ using System.Runtime.CompilerServices;
 namespace FactoryHelper.Models;
 
 /// <summary>
-/// 命令组编辑模型 — 用于命令组管理界面
+/// 命令组编辑包装 — 提供 INotifyPropertyChanged 供管理界面绑定，
+/// 步骤直接使用统一命令模型 CommandDefinition
 /// </summary>
 public class CommandGroupEditable : INotifyPropertyChanged
 {
@@ -13,7 +14,7 @@ public class CommandGroupEditable : INotifyPropertyChanged
     private string? _category;
     private string? _description;
 
-    /// <summary>原始命令组（保存时写回）</summary>
+    /// <summary>对应命令库中的源对象（同一引用，保存时同步）</summary>
     public CommandGroup Source { get; set; } = new();
 
     public string Name
@@ -35,11 +36,8 @@ public class CommandGroupEditable : INotifyPropertyChanged
         set { _description = value; OnPropertyChanged(); }
     }
 
-    /// <summary>步骤列表（可编辑）</summary>
-    public ObservableCollection<GroupStepEditable> Steps { get; } = [];
-
-    /// <summary>步骤数量（界面显示用）</summary>
-    public string StepCount => $"{Steps.Count} 步";
+    /// <summary>步骤列表（统一命令模型）</summary>
+    public ObservableCollection<CommandDefinition> Steps { get; } = [];
 
     public static CommandGroupEditable From(CommandGroup group)
     {
@@ -51,16 +49,17 @@ public class CommandGroupEditable : INotifyPropertyChanged
             Description = group.Description
         };
         foreach (var step in group.Steps)
-            editable.Steps.Add(GroupStepEditable.From(step));
+            editable.Steps.Add(step);
         return editable;
     }
 
+    /// <summary>将编辑值同步回源对象</summary>
     public void ApplyToSource()
     {
         Source.Name = Name;
         Source.Category = Category;
         Source.Description = Description;
-        Source.Steps = Steps.Select(s => s.Source).ToList();
+        Source.Steps = Steps.ToList();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
