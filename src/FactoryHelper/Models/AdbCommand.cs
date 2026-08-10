@@ -42,4 +42,8 @@ public class AdbCommand
     /// <summary>是否需要输入参数</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool RequiresInput => InputPrompts.Count > 0;
+
+    /// <summary>完整显示命令（带 adb 前缀，界面展示用）</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string DisplayCommand => $"adb {Command}";
 }

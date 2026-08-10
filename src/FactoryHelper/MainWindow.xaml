@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:FactoryHelper"
         xmlns:conv="clr-namespace:FactoryHelper.Converters"
         mc:Ignorable="d"
-        Title="产测助手 — Yovo ADB Tools" Height="650" Width="1050"
+        Title="Yovo ADB Tools" Height="650" Width="1050"
         MinHeight="500" MinWidth="800"
         WindowStartupLocation="CenterScreen"
         FontFamily="Microsoft YaHei">
@@ -106,8 +106,8 @@
                                                        Margin="0,0,4,0"/>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding Command}" FontSize="11"
-                                                           Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding DisplayCommand}" FontSize="11"
+                                                           Foreground="#666" TextWrapping="Wrap"/>
                                             </StackPanel>
                                         </StackPanel>
                                     </DataTemplate>
@@ -143,7 +143,7 @@
                                                 <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
                                             </StackPanel>
                                             <TextBlock Text="{Binding Description}" FontSize="11"
-                                                       Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                                       Foreground="#666" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding Steps.Count, StringFormat={}{0} 步}" FontSize="10"
                                                        Foreground="#888"/>
                                         </StackPanel>
@@ -234,7 +234,7 @@
         <!-- ======== 底部状态栏 ======== -->
         <Border Grid.Row="2" Background="#f0f0f0" Padding="10,4" BorderBrush="#d0d0d0" BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Yovo ADB Tools 产测助手 v1.0" FontSize="11" Foreground="#888"/>
+                <TextBlock Text="Yovo ADB Tools v1.0" FontSize="11" Foreground="#888"/>
             </StackPanel>
         </Border>
     </Grid>

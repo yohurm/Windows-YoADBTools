@@ -1,7 +1,7 @@
-# Yovo-Windows-ADBTools 产测助手
+# Yovo-Windows-ADBTools
 
 ## 项目定位
-通过 ADB 实现工厂产测功能的轻量化 Windows 桌面助手。
+多模块 Windows 桌面工具平台（Yovo ADB Tools），基于 ADB 提供设备调试与产测工具集。ADB 命令终端为当前首个模块，后续可扩展投屏显示等模块（见 `docs/architecture/架构设计-v3.md`）。
 
 ## 技术栈
 - 语言/框架：C# + WPF (.NET 8)
