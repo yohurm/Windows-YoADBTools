@@ -120,8 +120,10 @@ public partial class TerminalViewModel : INotifyPropertyChanged
     public async Task InitializeAsync()
     {
         StatusText = "正在初始化...";
+        _log.Info("ADB 命令终端模块初始化", _moduleId);
 
         await _library.InitializeAsync(); // 触发 LibraryChanged → 刷新命令/分组
+        _log.Info($"命令库加载完成: {_library.Commands.Count} 条命令, {_library.Groups.Count} 个命令组", _moduleId);
         StatusText = "就绪";
     }
 

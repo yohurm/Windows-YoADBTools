@@ -1,3 +1,4 @@
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -11,7 +12,8 @@ namespace FactoryHelper.Views;
 
 /// <summary>
 /// ADB 命令终端视图 — 订阅 LogService 事件驱动刷新日志面板；
-/// 输入面板列宽动态切换（有输入 280px / 无输入 0px，日志列自动填充）
+/// 输入面板列宽动态切换（有输入 280px / 无输入 0px，日志列自动填充）。
+/// 日志 UI 批量追加 + 限流，防止大输出量（logcat 等）卡死界面。
 /// </summary>
 public partial class TerminalView : UserControl
 {
@@ -20,6 +22,11 @@ public partial class TerminalView : UserControl
 
     private readonly TerminalViewModel _viewModel;
     private readonly ILogService _log;
+
+    // 日志批量追加缓冲
+    private readonly StringBuilder _logBuffer = new();
+    private bool _logFlushScheduled;
+    private bool _isLoaded;
 
     public TerminalView(IModuleContext context)
     {
@@ -41,17 +48,20 @@ public partial class TerminalView : UserControl
                 UpdateInputColumnWidth();
         };
 
-        // 日志事件订阅（LogService 线程安全，这里切回 UI 线程）
+        // 日志事件订阅（LogService 线程安全，这里切回 UI 线程批量追加）
         _log.LogAdded += OnLogAdded;
         _log.LogCleared += OnLogCleared;
 
         Loaded += async (_, _) =>
         {
+            _isLoaded = true;
             UpdateInputColumnWidth(); // 初始状态
+            FlushLogBuffer();         // 清空启动前积累的日志
             await _viewModel.InitializeAsync();
         };
         Unloaded += (_, _) =>
         {
+            _isLoaded = false;
             _log.LogAdded -= OnLogAdded;
             _log.LogCleared -= OnLogCleared;
         };
@@ -69,19 +79,50 @@ public partial class TerminalView : UserControl
 
     private void OnLogAdded(LogEntry entry)
     {
-        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        // 后台线程：写入缓冲，调度一次性 UI 刷新（批量追加防卡死）
+        lock (_logBuffer)
         {
-            LogTextBox.AppendText($"[{entry.Timestamp:HH:mm:ss}] {entry.Message}\n");
-            LogScroll.ScrollToEnd();
-        }));
+            _logBuffer.Append('[').Append(entry.Timestamp.ToString("HH:mm:ss"))
+                .Append("] ").Append(entry.Message).Append('\n');
+        }
+
+        if (_isLoaded && !_logFlushScheduled)
+        {
+            _logFlushScheduled = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(FlushLogBuffer));
+        }
     }
 
     private void OnLogCleared()
     {
         Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
+            lock (_logBuffer)
+            {
+                _logBuffer.Clear();
+            }
             LogTextBox.Clear();
         }));
     }
 
+    /// <summary>批量追加缓冲日志到 UI（一次性，减少 TextBox 重排）</summary>
+    private void FlushLogBuffer()
+    {
+        _logFlushScheduled = false;
+
+        string batch;
+        lock (_logBuffer)
+        {
+            if (_logBuffer.Length == 0) return;
+            batch = _logBuffer.ToString();
+            _logBuffer.Clear();
+        }
+
+        // 日志上限保护：超过 2 万字符清空重建（TextBox 过大文本卡死）
+        if (LogTextBox.Text.Length > 20_000)
+            LogTextBox.Clear();
+
+        LogTextBox.AppendText(batch);
+        LogScroll.ScrollToEnd();
+    }
 }

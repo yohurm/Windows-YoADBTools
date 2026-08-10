@@ -21,7 +21,7 @@ public interface IDevicePanelService
     /// <summary>设备选择变化事件</summary>
     event Action? SelectionChanged;
 
-    /// <summary>刷新设备列表（后台执行）</summary>
+    /// <summary>刷新设备列表（后台执行，绝不阻塞 UI）</summary>
     Task RefreshAsync();
 
     /// <summary>同步用户选择（Shell UI 调用）</summary>
@@ -31,6 +31,7 @@ public interface IDevicePanelService
 public class DevicePanelService : IDevicePanelService
 {
     private readonly IAdbService _adb;
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
     public ObservableCollection<AdbDevice> Devices { get; } = [];
     public ObservableCollection<AdbDevice> SelectedDevices { get; } = [];
@@ -54,13 +55,26 @@ public class DevicePanelService : IDevicePanelService
 
     public async Task RefreshAsync()
     {
-        var devices = await _adb.GetDevicesAsync();
-        Devices.Clear();
-        SelectedDevices.Clear();
+        // 防重入：连续点击刷新时只执行一次，避免并发 adb 进程
+        if (!await _refreshLock.WaitAsync(0))
+            return;
 
-        await Task.WhenAll(devices.Select(d => _adb.GetDeviceDetailAsync(d)));
+        try
+        {
+            var devices = await _adb.GetDevicesAsync();
 
-        foreach (var device in devices)
-            Devices.Add(device);
+            // 并行获取设备详情，但每台设备详情获取内部已有超时保护
+            // 离线/异常设备不会阻塞整个刷新
+            await Task.WhenAll(devices.Select(d => _adb.GetDeviceDetailAsync(d)));
+
+            Devices.Clear();
+            SelectedDevices.Clear();
+            foreach (var device in devices)
+                Devices.Add(device);
+        }
+        finally
+        {
+            _refreshLock.Release();
+        }
     }
 }

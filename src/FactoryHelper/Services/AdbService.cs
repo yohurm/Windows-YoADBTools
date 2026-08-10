@@ -86,11 +86,11 @@ public class AdbService : IAdbService
     }
 
     /// <summary>
-    /// 扫描已连接的 ADB 设备
+    /// 扫描已连接的 ADB 设备（短超时 8s，adb server 首次启动可能较慢，但不允许拖死 UI）
     /// </summary>
     public async Task<List<AdbDevice>> GetDevicesAsync(CancellationToken ct = default)
     {
-        var result = await RunAdbAsync("devices -l", ct: ct);
+        var result = await RunAdbAsync("devices -l", timeoutMs: 8000, ct: ct);
         var devices = new List<AdbDevice>();
 
         if (!result.Success)
@@ -120,15 +120,21 @@ public class AdbService : IAdbService
     }
 
     /// <summary>
-    /// 获取设备详细信息（型号、Android 版本）
+    /// 获取设备详细信息（型号、Android 版本）。
+    /// 离线/异常设备跳过详情获取（避免每次 30s 超时拖慢刷新）
     /// </summary>
     public async Task<AdbDevice> GetDeviceDetailAsync(AdbDevice device, CancellationToken ct = default)
     {
-        var modelResult = await RunAdbAsync($"-s {device.SerialNumber} shell getprop ro.product.model", ct: ct);
+        if (!device.IsOnline)
+            return device;
+
+        var modelResult = await RunAdbAsync($"-s {device.SerialNumber} shell getprop ro.product.model",
+            timeoutMs: 5000, ct: ct);
         if (modelResult.Success)
             device.Model = modelResult.Output.Trim();
 
-        var versionResult = await RunAdbAsync($"-s {device.SerialNumber} shell getprop ro.build.version.release", ct: ct);
+        var versionResult = await RunAdbAsync($"-s {device.SerialNumber} shell getprop ro.build.version.release",
+            timeoutMs: 5000, ct: ct);
         if (versionResult.Success)
             device.AndroidVersion = versionResult.Output.Trim();
 
@@ -193,14 +199,15 @@ public class AdbService : IAdbService
             try
             {
                 await process.WaitForExitAsync(cts.Token);
+                await Task.WhenAll(outputTask, errorTask);
             }
             catch (OperationCanceledException)
             {
                 // 超时：强杀 adb 及衍生进程（adb shell 会衍生 shell 进程），避免残留
+                // 注意：输出任务可能因进程被杀而挂起，不能再 await，直接放弃
                 try { process.Kill(true); } catch { /* 已退出则忽略 */ }
                 throw;
             }
-            await Task.WhenAll(outputTask, errorTask);
 
             // adb 输出为 CRLF，统一转成 \n 便于界面显示
             result.Output = NormalizeOutput(outputTask.Result);
