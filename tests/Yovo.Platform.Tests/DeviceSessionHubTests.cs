@@ -73,6 +73,37 @@ public class DeviceSessionHubTests
     }
 
     [Fact]
+    public void ActiveDeviceLost_raises_action_and_bus_event()
+    {
+        // P1-2：掉线导致焦点清空时，Action 与总线成对触发（订阅任一侧均可靠）
+        var (hub, bus) = CreateHub([DeviceA]);
+        hub.SetActiveDevice(DeviceA.Serial);
+        var actionFired = 0;
+        var busEvents = 0;
+        hub.ActiveDeviceChanged += () => actionFired++;
+        using var sub = bus.Subscribe<ActiveDeviceChanged>(_ => busEvents++);
+
+        bus.Publish(new DevicesRefreshed([]));
+
+        Assert.Equal(1, actionFired);
+        Assert.Equal(1, busEvents);
+    }
+
+    [Fact]
+    public void DevicesRefreshed_without_focus_loss_does_not_broadcast()
+    {
+        // M2 回归：焦点未变化时刷新不产生多余事件
+        var (hub, bus) = CreateHub([DeviceA]);
+        hub.SetActiveDevice(DeviceA.Serial);
+        var actionFired = 0;
+        hub.ActiveDeviceChanged += () => actionFired++;
+
+        bus.Publish(new DevicesRefreshed([DeviceA])); // A 仍在
+
+        Assert.Equal(0, actionFired);
+    }
+
+    [Fact]
     public void SelectionChanged_emits_module_id()
     {
         var (hub, _) = CreateHub([DeviceA, DeviceB]);

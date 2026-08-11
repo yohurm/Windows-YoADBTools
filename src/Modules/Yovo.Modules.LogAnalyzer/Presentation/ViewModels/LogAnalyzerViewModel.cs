@@ -31,6 +31,9 @@ public partial class LogAnalyzerViewModel : ObservableObject
     private BackgroundTaskId? _taskId;
     private CancellationTokenSource? _captureCts;
 
+    /// <summary>正在采集的设备（P1-1：焦点切换为其他设备时停采）</summary>
+    private DeviceSerial? _captureSerial;
+
     public ObservableCollection<LogcatLine> VisibleLines { get; } = [];
 
     [ObservableProperty]
@@ -106,6 +109,7 @@ public partial class LogAnalyzerViewModel : ObservableObject
         try
         {
             await _capture.StartAsync(device.Serial, _captureCts.Token);
+            _captureSerial = device.Serial; // P1-1：记录采集目标
             IsCapturing = true;
             StatusText = $"正在采集 {device.DisplayName} 的 logcat";
             _taskId = _tasks.Register(new BackgroundTaskDescriptor(
@@ -223,10 +227,20 @@ public partial class LogAnalyzerViewModel : ObservableObject
         return true;
     }
 
+    /// <summary>
+    /// 焦点变化（P1-1）：焦点清空或切换为其他设备 → 停采当前设备。
+    /// （切到新设备重采属产品决策，本期仅停止并提示。）
+    /// </summary>
     private void StopIfDeviceGone()
     {
-        if (IsCapturing && _hub.ActiveDevice is null)
+        if (!IsCapturing)
+            return;
+        var active = _hub.ActiveDevice;
+        if (active is null || active.Serial != _captureSerial)
+        {
             StopCapture();
+            StatusText = active is null ? "设备已掉线，采集已停止" : $"设备已切换，采集已停止（当前: {active.DisplayName}）";
+        }
     }
 
     private void StopCapture()

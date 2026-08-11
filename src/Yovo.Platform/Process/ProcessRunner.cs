@@ -69,26 +69,23 @@ public class ProcessRunner : IProcessRunner
         var streaming = new StreamingProcess(process);
 
         // 契约「取消 = Kill」：取消令牌触发杀进程树（KillTreeOnCancel 默认 true）
+        // P2-2：注册挂到进程对象，进程退出/Dispose 时释放（取消前有效，长寿命 token 不累积）
         if (ct.CanBeCanceled)
-            ct.Register(() => streaming.Kill(spec.KillTreeOnCancel));
+            streaming.AttachCancelRegistration(ct, spec.KillTreeOnCancel);
 
         return Task.FromResult<IStreamingProcess>(streaming);
     }
 
-    public Task<ILongRunningProcess> StartLongRunningAsync(ProcessSpec spec, CancellationToken ct = default)
+    public Task<ILongRunningProcess> StartLongRunningAsync(ProcessSpec spec, CancellationToken _ = default)
     {
         if (spec.Timeout is not null)
             throw new ArgumentException("长驻进程不允许 Timeout（禁止默认超时）", nameof(spec));
 
+        // P2-5：长驻进程「取消不自动 Kill」— 对齐契约（调用方显式 Stop/Kill，投屏等长驻由调用方控制优雅退出）
         var process = CreateProcess(spec, redirectOutput: false);
         process.EnableRaisingEvents = true;
         process.Start();
-        var longRunning = new LongRunningProcess(process);
-
-        if (ct.CanBeCanceled)
-            ct.Register(() => longRunning.Kill(spec.KillTreeOnCancel));
-
-        return Task.FromResult<ILongRunningProcess>(longRunning);
+        return Task.FromResult<ILongRunningProcess>(new LongRunningProcess(process));
     }
 
     // ==================== 内部 ====================
@@ -163,6 +160,7 @@ internal sealed class StreamingProcess : IStreamingProcess
     private readonly Task _stdoutTask;
     private readonly Task _stderrTask;
     private readonly Task _readerCompletion;
+    private CancellationTokenRegistration _cancelRegistration;
 
     public StreamingProcess(Process process)
     {
@@ -175,6 +173,10 @@ internal sealed class StreamingProcess : IStreamingProcess
         _readerCompletion = Task.WhenAll(_stdoutTask, _stderrTask)
             .ContinueWith(_ => _channel.Writer.TryComplete(), TaskScheduler.Default);
     }
+
+    /// <summary>挂接取消注册（P2-2：随进程对象释放，取消前始终有效）</summary>
+    internal void AttachCancelRegistration(CancellationToken ct, bool killTree)
+        => _cancelRegistration = ct.Register(() => Kill(killTree));
 
     public IAsyncEnumerable<ProcessOutputChunk> Output => ReadOutputAsync();
 
@@ -241,6 +243,7 @@ internal sealed class StreamingProcess : IStreamingProcess
         {
             // 已释放/已退出则忽略
         }
+        _cancelRegistration.Dispose(); // 进程生命周期结束，取消注册不再需要（P2-2）
         _process.Dispose();
         return ValueTask.CompletedTask;
     }

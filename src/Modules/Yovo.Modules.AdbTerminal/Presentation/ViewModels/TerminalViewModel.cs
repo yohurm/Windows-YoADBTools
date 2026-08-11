@@ -27,6 +27,7 @@ public partial class TerminalViewModel : ObservableObject
     private readonly IAppLog _log;
     private readonly IWindowService _windows;
     private readonly IUiDispatcher _ui;
+    private readonly IAppLifecycle _lifecycle;
     private readonly IDisposable _logSubscription;
     private bool _initialized;
 
@@ -105,7 +106,8 @@ public partial class TerminalViewModel : ObservableObject
         IDeviceDirectory directory,
         IAppLog log,
         IWindowService windows,
-        IUiDispatcher ui)
+        IUiDispatcher ui,
+        IAppLifecycle lifecycle)
     {
         _repository = repository;
         _execution = execution;
@@ -114,6 +116,7 @@ public partial class TerminalViewModel : ObservableObject
         _log = log;
         _windows = windows;
         _ui = ui;
+        _lifecycle = lifecycle;
         _directoryDevicesCache = [.. directory.Devices];
 
         // 模块作用域选择变化 → 刷新执行可用性
@@ -169,7 +172,9 @@ public partial class TerminalViewModel : ObservableObject
         try
         {
             // 多设备并行（执行引擎内部纯异步，无需 Task.Run）
-            var results = await Task.WhenAll(devices.Select(d => _execution.ExecuteAsync(d.Serial, cmd, inputs)));
+            // P1-4：执行链入应用退出信号（关窗后长命令不残留）
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(_lifecycle.ShutdownToken);
+            var results = await Task.WhenAll(devices.Select(d => _execution.ExecuteAsync(d.Serial, cmd, inputs, linked.Token)));
             foreach (var r in results)
                 LogResult(r);
         }
@@ -204,9 +209,12 @@ public partial class TerminalViewModel : ObservableObject
         try
         {
             // 步骤级回调在后台线程（IAppLog 线程安全），日志编组在 OnLogAdded
+            // P1-4：命令组执行链入应用退出信号
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(_lifecycle.ShutdownToken);
             var results = await Task.WhenAll(devices.Select(d =>
                 _execution.ExecuteGroupAsync(d.Serial, group, inputs,
-                    onStep: (stepIndex, stepResult, willAbort) => LogStepResult(d.Serial, stepIndex, stepResult, willAbort))));
+                    onStep: (stepIndex, stepResult, willAbort) => LogStepResult(d.Serial, stepIndex, stepResult, willAbort),
+                    ct: linked.Token)));
 
             foreach (var (device, execResult) in results.Select((r, i) => (devices[i], r)))
             {

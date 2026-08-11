@@ -51,6 +51,9 @@ public partial class FileManagerViewModel : ObservableObject
     private RemotePath _currentPath = RemotePath.Root;
     private AdbDevice? _device;
 
+    /// <summary>加载世代（P1-3：快速导航时旧结果过期丢弃，不覆盖新目录）</summary>
+    private int _loadGeneration;
+
     public FileManagerViewModel(
         RemoteFileService files,
         TransferRunner transfer,
@@ -75,6 +78,7 @@ public partial class FileManagerViewModel : ObservableObject
     [RelayCommand]
     private async Task RefreshAsync()
     {
+        // IsBusy 门仅防手动重复点击（P1-3：加载世代已防串扰，此处不再吞导航刷新）
         if (IsBusy)
             return;
         IsBusy = true;
@@ -89,18 +93,23 @@ public partial class FileManagerViewModel : ObservableObject
     }
 
     /// <summary>
-    /// 目录加载核心（无 IsBusy 门 — 操作成功后的强制刷新走此路径，H1）。
-    /// 内部自身防重入（同一时间只允许一个加载）。
+    /// 目录加载核心（H1/P1-3）。
+    /// 世代机制：每次加载分配序号，完成时若已有更新的加载则丢弃结果（快速导航不串目录）。
+    /// 导航/操作/设备切换均走此路径，不受 IsBusy 门控。
     /// </summary>
     private async Task LoadDirectoryCoreAsync()
     {
         if (_device is not { } device)
             return;
 
+        var generation = ++_loadGeneration;
         StatusText = $"正在列出: {_currentPath.Value}";
         try
         {
             var entries = await _files.ListAsync(device.Serial, _currentPath);
+            if (generation != _loadGeneration)
+                return; // 过期结果丢弃（已有更新的加载）
+
             Entries.Clear();
             foreach (var entry in entries)
                 Entries.Add(entry);
@@ -108,6 +117,8 @@ public partial class FileManagerViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            if (generation != _loadGeneration)
+                return;
             _log.Error($"列出目录失败: {ex.Message}", FileManagerModule.ModuleId);
             StatusText = $"列出失败: {ex.Message}";
         }
@@ -131,12 +142,13 @@ public partial class FileManagerViewModel : ObservableObject
             await DownloadAsync(entry);
     }
 
-    /// <summary>双击目录进入 / 单击文件下载（ListView 交互在 View 层触发）</summary>
+    /// <summary>双击目录进入 / 单击文件下载（ListView 交互在 View 层触发）
+    /// 走核心加载（P1-3：不受 IsBusy 门控；世代保证连续导航不串目录）</summary>
     private void NavigateTo(RemotePath path)
     {
         _currentPath = path;
         CurrentPathText = path.Value;
-        _ = RefreshAsync();
+        _ = LoadDirectoryCoreAsync();
     }
 
     [RelayCommand]
@@ -263,6 +275,12 @@ public partial class FileManagerViewModel : ObservableObject
             StatusText = "目录名非法：不能包含 /、.. 或 . 段";
             return;
         }
+        // P2-1：新建目录同样限安全根（与删除一致，防止对 /system 等尝试）
+        if (!path.IsSafeForDestructiveOps)
+        {
+            StatusText = "仅允许在 /sdcard 与 /storage 内新建目录";
+            return;
+        }
 
         IsBusy = true;
         try
@@ -306,7 +324,7 @@ public partial class FileManagerViewModel : ObservableObject
         }
         else
         {
-            _ = RefreshAsync();
+            _ = LoadDirectoryCoreAsync(); // P1-3：设备切换加载走核心路径
         }
     }
 }

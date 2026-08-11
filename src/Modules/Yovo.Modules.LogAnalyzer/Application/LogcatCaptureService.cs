@@ -8,19 +8,30 @@ namespace Yovo.Modules.LogAnalyzer.Application;
 
 /// <summary>
 /// logcat 采集服务 — 流式逐行解析 + 环形缓冲（默认 50k）+ 行流订阅。
-/// 解析在读取循环内（后台线程）；UI 侧经 Channel 节流消费。
-/// 可停止后再次启动：每次 Start 替换行流 Channel（世代），消费端循环取当前世代。
+/// 世代状态机（复审 P0-1/P0-2/P2-3）：
+///   一次 Start 产生一个 CaptureGeneration（Channel + 进程 + CTS 绑定）；
+///   消费循环只操作本世代 Channel，finally 仅当仍是当前世代才清状态/触发 CaptureStopped；
+///   Start 失败回滚（完成世代通道 + 恢复空闲），Drain 可续接下一世代；
+///   锁内检查+设置防并发双进程。
 /// 严禁把 logcat 写入 IAppLog（ADR-006：应用日志与设备日志严格分离）。
 /// </summary>
 public class LogcatCaptureService(IAdbStreamingExecutor streaming, IAppLog log)
 {
     private const int BufferCapacity = 50_000;
 
+    /// <summary>一次采集的全量状态（世代绑定，防止旧循环污染新世代）</summary>
+    private sealed class CaptureGeneration
+    {
+        public required Channel<LogcatLine> Lines;
+        public required CancellationTokenSource Cts;
+        public required IStreamingProcess Process;
+    }
+
+    private static readonly Channel<LogcatLine> CompletedChannel = CreateCompletedChannel();
+
     private readonly object _lock = new();
     private readonly List<LogcatLine> _buffer = [];
-    private Channel<LogcatLine> _lines = Channel.CreateUnbounded<LogcatLine>();
-    private IStreamingProcess? _process;
-    private CancellationTokenSource? _cts;
+    private CaptureGeneration? _generation;
 
     /// <summary>是否正在采集</summary>
     public bool IsCapturing
@@ -28,56 +39,75 @@ public class LogcatCaptureService(IAdbStreamingExecutor streaming, IAppLog log)
         get
         {
             lock (_lock)
-                return _process is not null;
+                return _generation is not null;
         }
     }
 
-    /// <summary>当前世代行流（消费端节流读取；停止后该世代通道关闭，重新开始后取新世代）</summary>
+    /// <summary>当前世代行流（无世代返回已完成通道 — Drain 循环可立即续接下个世代）</summary>
     public ChannelReader<LogcatLine> Lines
     {
         get
         {
             lock (_lock)
-                return _lines.Reader;
+                return (_generation?.Lines ?? CompletedChannel).Reader;
         }
     }
 
-    /// <summary>采集进程退出（设备断开/被杀）</summary>
+    /// <summary>采集进程退出（当前世代停止 — 旧世代晚到不误伤，P0-1）</summary>
     public event Action? CaptureStopped;
 
-    /// <summary>开始采集（幂等：已在采集则忽略；可停止后再次启动）</summary>
+    /// <summary>开始采集（锁内检查+设置防并发双进程；Start 失败回滚世代，P0-2）</summary>
     public async Task StartAsync(DeviceSerial serial, CancellationToken ct = default)
     {
+        CaptureGeneration generation;
         lock (_lock)
         {
-            if (_process is not null)
-                return;
-            _lines = Channel.CreateUnbounded<LogcatLine>(); // 新世代：旧通道已关闭，消费端循环续接
+            if (_generation is not null)
+                return; // 已在采集：忽略（并发 Start 只允许一个进程，P2-3）
+            generation = new CaptureGeneration
+            {
+                Lines = Channel.CreateUnbounded<LogcatLine>(),
+                Cts = CancellationTokenSource.CreateLinkedTokenSource(ct),
+                Process = null! // await 成功后赋值
+            };
+            _generation = generation;
         }
 
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var process = await streaming.ExecuteStreamingAsync(serial, "logcat -v threadtime", ct);
-        lock (_lock)
-            _process = process;
-        _ = ConsumeLoopAsync(process, _cts.Token);
-        log.Info($"logcat 采集已开始: {serial}", LogAnalyzerModule.ModuleId);
+        try
+        {
+            generation.Process = await streaming.ExecuteStreamingAsync(serial, "logcat -v threadtime", generation.Cts.Token);
+            _ = ConsumeLoopAsync(generation);
+            log.Info($"logcat 采集已开始: {serial}", LogAnalyzerModule.ModuleId);
+        }
+        catch
+        {
+            // P0-2：启动失败回滚 — 完成世代通道（Drain 可续接下一世代）+ 恢复空闲
+            lock (_lock)
+            {
+                if (ReferenceEquals(_generation, generation))
+                    _generation = null;
+            }
+            generation.Lines.Writer.TryComplete();
+            generation.Cts.Dispose();
+            throw;
+        }
     }
 
     /// <summary>停止采集（Kill 进程 + 关闭当前世代通道；不清理缓冲）</summary>
     public void Stop()
     {
-        IStreamingProcess? process;
+        CaptureGeneration? generation;
         lock (_lock)
         {
-            process = _process;
-            _process = null;
+            generation = _generation;
+            _generation = null;
         }
-        process?.Kill();
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        lock (_lock)
-            _lines.Writer.TryComplete();
+        if (generation is null)
+            return;
+        generation.Process.Kill();
+        generation.Cts.Cancel();
+        generation.Lines.Writer.TryComplete();
+        generation.Cts.Dispose();
     }
 
     /// <summary>缓冲快照（线程安全拷贝）</summary>
@@ -96,11 +126,11 @@ public class LogcatCaptureService(IAdbStreamingExecutor streaming, IAppLog log)
 
     // ==================== 内部 ====================
 
-    private async Task ConsumeLoopAsync(IStreamingProcess process, CancellationToken ct)
+    private async Task ConsumeLoopAsync(CaptureGeneration generation)
     {
         try
         {
-            await foreach (var chunk in process.Output.WithCancellation(ct))
+            await foreach (var chunk in generation.Process.Output.WithCancellation(generation.Cts.Token))
             {
                 var line = chunk.StandardOutput ?? chunk.StandardError;
                 if (line is null)
@@ -116,7 +146,7 @@ public class LogcatCaptureService(IAdbStreamingExecutor streaming, IAppLog log)
                     if (_buffer.Count > BufferCapacity)
                         _buffer.RemoveRange(0, _buffer.Count - BufferCapacity); // 环形裁剪
                 }
-                _lines.Writer.TryWrite(parsed);
+                generation.Lines.Writer.TryWrite(parsed); // 只写本世代（P0-1）
             }
         }
         catch (OperationCanceledException)
@@ -129,14 +159,29 @@ public class LogcatCaptureService(IAdbStreamingExecutor streaming, IAppLog log)
         }
         finally
         {
-            await process.DisposeAsync();
+            await generation.Process.DisposeAsync();
+            generation.Lines.Writer.TryComplete(); // 只关本世代（P0-1）
+
+            // 仅当仍是当前世代才清状态 + 通知（旧循环晚到不误伤新一轮，P0-1）
+            var wasCurrent = false;
             lock (_lock)
             {
-                if (ReferenceEquals(_process, process))
-                    _process = null;
-                _lines.Writer.TryComplete();
+                if (ReferenceEquals(_generation, generation))
+                {
+                    _generation = null;
+                    wasCurrent = true;
+                }
             }
-            CaptureStopped?.Invoke();
+            generation.Cts.Dispose();
+            if (wasCurrent)
+                CaptureStopped?.Invoke();
         }
+    }
+
+    private static Channel<LogcatLine> CreateCompletedChannel()
+    {
+        var channel = Channel.CreateUnbounded<LogcatLine>();
+        channel.Writer.TryComplete();
+        return channel;
     }
 }

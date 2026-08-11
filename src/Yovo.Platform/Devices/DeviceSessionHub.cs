@@ -124,8 +124,11 @@ public class DeviceSessionHub : IDeviceSessionHub
 
         // 锁外广播（避免订阅者回调死锁）
         SelectionChanged?.Invoke(string.Empty);
-        // M2：仅当焦点确实从非空变为空才发布（避免每次刷新多余事件）
+        // M2/P1-2：仅当焦点确实从非空变为空才广播；Action 与总线成对触发（P2-4 事件对称）
         if (activeLost)
+        {
+            ActiveDeviceChanged?.Invoke();
             _bus.Publish(new ActiveDeviceChanged(null));
+        }
     }
 }
