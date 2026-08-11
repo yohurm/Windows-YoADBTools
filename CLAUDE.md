@@ -39,7 +39,7 @@ src/FactoryHelper/
 │       ├── Models/                # CommandDefinition / CommandGroup / CommandLibrary 等
 │       ├── Services/              # CommandRepository / CommandEvaluator / ExecutionService
 │       ├── ViewModels/            # TerminalViewModel / CommandManagerViewModel / IWindowService
-│       ├── Views/                 # TerminalView / CommandManagerWindow / TagPickerDialog / WindowService
+│       ├── Views/                 # TerminalView / CommandManagerWindow / WindowService
 │       └── Resources/             # library.default.json（内置命令库，嵌入资源）
 ├── Resources/        # UI Token 统一资源（颜色/间距/样式）
 └── Tools/            # 内置工具（adb.exe + DLL）
