@@ -11,10 +11,13 @@ namespace FactoryHelper.Modules.AdbTerminal.Views;
 /// </summary>
 public partial class TerminalView : UserControl
 {
-    private const double InputPanelOpenWidth = 280;
     private const double InputPanelClosedWidth = 0;
 
     private readonly TerminalViewModel _viewModel;
+
+    /// <summary>输入面板展开宽度（来自全局 Token Size.InputPanel，避免双份硬编码）</summary>
+    private double InputPanelOpenWidth =>
+        Application.Current.TryFindResource("Size.InputPanel") is GridLength size ? size.Value : 280;
 
     public TerminalView(TerminalViewModel viewModel)
     {

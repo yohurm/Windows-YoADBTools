@@ -199,9 +199,16 @@ public partial class CommandManagerViewModel : ObservableObject
         }
 
         var result = await _repository.SaveAsync(Editable);
-        SaveMessage = result.Success
-            ? $"已保存 {Commands.Count} 条命令、{Groups.Count} 个命令组"
-            : $"保存失败: {result.Error}";
+        if (result.Success)
+        {
+            // 保存成功 = 当前快照已落盘：重置脏状态，关闭不再弹确认
+            IsDirty = false;
+            SaveMessage = $"已保存 {Commands.Count} 条命令、{Groups.Count} 个命令组";
+        }
+        else
+        {
+            SaveMessage = $"保存失败: {result.Error}";
+        }
     }
 
     // ==================== 内部 ====================
