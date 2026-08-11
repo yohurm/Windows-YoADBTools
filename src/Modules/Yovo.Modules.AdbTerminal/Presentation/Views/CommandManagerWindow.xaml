@@ -1,0 +1,281 @@
+<ui:FluentWindow x:Class="Yovo.Modules.AdbTerminal.Presentation.Views.CommandManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        FontFamily="{StaticResource Font.Family}"
+        Title="命令库管理" Height="700" Width="1100"
+        WindowStartupLocation="CenterOwner"
+        Closing="OnWindowClosing"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
+
+    <!-- 样式全部来自全局 ThemeTokens（PanelTitle/SectionTitle/FieldLabel/InputBox/ListItem/DataGridRow） -->
+    <!-- DialogHost：ContentDialog 的必需宿主容器 -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 官方标题栏 -->
+        <ui:TitleBar Grid.Row="0" Title="命令库管理"
+                     Icon="pack://application:,,,/Yovo.Shell;component/Resources/app.ico"/>
+
+        <Grid Grid.Row="1" Margin="{StaticResource Padding.Page}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 面板标题 + 说明 -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="命令库管理" Style="{StaticResource PanelTitleStyle}"/>
+                <TextBlock Text="统一管理单条命令与命令组 — 输入提示用逗号分隔，命令中用 {0} {1} 占位"
+                           FontSize="{StaticResource Font.Size.Caption}"
+                           Foreground="{StaticResource Brush.TextTertiary}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <TabControl Grid.Row="1">
+                <!-- ==================== 单条命令 ==================== -->
+                <TabItem Header="单条命令">
+                    <Grid Margin="8,10,8,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{StaticResource Size.ListPanel}"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 左列：命令列表（选中态统一 ListItemStyle — P1-6） -->
+                        <DockPanel Grid.Column="0">
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                <ui:Button Content="新增" Appearance="Secondary"
+                                           Margin="0,0,8,0" Command="{Binding AddCommandCommand}"/>
+                                <ui:Button Content="删除" Appearance="Secondary"
+                                           Command="{Binding DeleteCommandCommand}"/>
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="命令列表" Style="{StaticResource SectionTitleStyle}"/>
+                            <ListBox ItemsSource="{Binding Commands}"
+                                     SelectedItem="{Binding SelectedCommand}"
+                                     DisplayMemberPath="Name"
+                                     BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource ListItemStyle}"/>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </DockPanel>
+
+                        <!-- 右列：命令详情 -->
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{StaticResource Size.FormLabelCol}"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="名称" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedCommand.Name}"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="分类" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedCommand.Category, TargetNullValue=''}"
+                                        ToolTip="直接输入分类名称（如: 通用 / Nori产测）"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="命令" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedCommand.Command}"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="超时(ms)" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedCommand.TimeoutMs}"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="输入提示" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="4" Grid.Column="1" Margin="0,4" Padding="6,3"
+                                        Text="{Binding SelectedCommand.InputPromptsText}"
+                                        TextWrapping="Wrap" Height="52"
+                                        ToolTip="多个提示用逗号分隔，如: 请输入PCBID, 请输入SN"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="成功正则" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedCommand.SuccessRegex}"
+                                        ToolTip="输出匹配该正则即视为成功(用于 bdft 等固定返回非0的工具), 留空则仅按退出码判断"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="失败正则" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="6" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedCommand.FailureRegex}"
+                                        ToolTip="输出匹配该正则即视为失败, 优先级最高(用于参数错误返回0但输出错误信息的工具), 留空跳过"/>
+
+                            <TextBlock Grid.Row="7" Grid.Column="0" Text="描述" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="7" Grid.Column="1" Margin="0,4" Padding="6,3"
+                                        Text="{Binding SelectedCommand.Description}"
+                                        TextWrapping="Wrap"
+                                        VerticalScrollBarVisibility="Auto"/>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+
+                <!-- ==================== 命令组 ==================== -->
+                <TabItem Header="命令组">
+                    <Grid Margin="8,10,8,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{StaticResource Size.ListPanel}"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 左列：命令组列表（与单条命令同宽；选中态统一 P1-6） -->
+                        <DockPanel Grid.Column="0">
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                <ui:Button Content="新增" Appearance="Secondary"
+                                           Margin="0,0,8,0" Command="{Binding AddGroupCommand}"/>
+                                <ui:Button Content="删除" Appearance="Secondary"
+                                           Command="{Binding DeleteGroupCommand}"/>
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="命令组列表" Style="{StaticResource SectionTitleStyle}"/>
+                            <ListBox ItemsSource="{Binding Groups}"
+                                     SelectedItem="{Binding SelectedGroup}"
+                                     DisplayMemberPath="Name"
+                                     BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource ListItemStyle}"/>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </DockPanel>
+
+                        <!-- 右列：组信息 + 步骤编辑（同列上下；关键列 + 选中步骤详情表单） -->
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{StaticResource Size.FormLabelCol}"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 分区 1：基本信息 -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="基本信息" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,8"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="组名称" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedGroup.Name}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="分类" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedGroup.Category, TargetNullValue=''}"
+                                        ToolTip="直接输入分类名称（如: 通用 / Nori产测）"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="描述" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                            <ui:TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                        Text="{Binding SelectedGroup.Description}"/>
+
+                            <!-- 分区 2：步骤列表（关键列，可扫读；P0-1 列宽完整显示表头） -->
+                            <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="步骤列表" Style="{StaticResource SectionTitleStyle}" Margin="0,14,0,8"/>
+                            <DataGrid Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                      ItemsSource="{Binding SelectedGroup.Steps}"
+                                      SelectedItem="{Binding SelectedStep}"
+                                      AutoGenerateColumns="False"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="Horizontal"
+                                      BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
+                                      RowHeight="{StaticResource Size.RowHeight}" CanUserAddRows="False"
+                                      FontSize="{StaticResource Font.Size.Body}"
+                                      RowStyle="{StaticResource DataGridRowStyle}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="步骤名" Binding="{Binding Name}" Width="110"/>
+                                    <DataGridTextColumn Header="命令" Binding="{Binding Command}" Width="*" MinWidth="220"/>
+                                    <DataGridTextColumn Header="延时(ms)" Binding="{Binding DelayAfterMs}" Width="86"/>
+                                    <DataGridTextColumn Header="超时(ms)" Binding="{Binding TimeoutMs}" Width="86"/>
+                                    <DataGridCheckBoxColumn Header="中断" Binding="{Binding StopOnFail}" Width="56"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- 分区 3：选中步骤详情（输入提示/成功/失败正则/延时/超时/中断） -->
+                            <Grid Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{StaticResource Size.FormLabelCol}"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="{StaticResource Size.FormLabelCol}"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="输入提示" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                                <ui:TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                            Text="{Binding SelectedStep.InputPromptsText}"/>
+                                <TextBlock Grid.Row="0" Grid.Column="3" Text="延时(ms)" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                                <ui:TextBox Grid.Row="0" Grid.Column="4" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                            Text="{Binding SelectedStep.DelayAfterMs}"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="成功正则" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                                <ui:TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                            Text="{Binding SelectedStep.SuccessRegex}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="3" Text="超时(ms)" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                                <ui:TextBox Grid.Row="1" Grid.Column="4" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                            Text="{Binding SelectedStep.TimeoutMs}"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="失败正则" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                                <ui:TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource InputBoxStyle}" Margin="0,4"
+                                            Text="{Binding SelectedStep.FailureRegex}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="3" Text="失败中断" Style="{StaticResource FieldLabelStyle}" Margin="0,4"/>
+                                <CheckBox Grid.Row="2" Grid.Column="4" VerticalAlignment="Center" Margin="0,4"
+                                             Content="步骤失败时中断命令组"
+                                             IsChecked="{Binding SelectedStep.StopOnFail}"
+                                             FontSize="{StaticResource Font.Size.Body}"/>
+                            </Grid>
+
+                            <!-- 步骤操作按钮 -->
+                            <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2"
+                                        Orientation="Horizontal" HorizontalAlignment="Right"
+                                        Margin="0,8,0,0">
+                                <ui:Button Content="新增步骤" Appearance="Secondary" Margin="0,0,8,0"
+                                           Command="{Binding AddStepCommand}"/>
+                                <ui:Button Content="删除步骤" Appearance="Secondary" Margin="0,0,8,0"
+                                           Command="{Binding DeleteStepCommand}"/>
+                                <ui:Button Content="上移" Appearance="Secondary" Margin="0,0,8,0"
+                                           Command="{Binding MoveStepUpCommand}"/>
+                                <ui:Button Content="下移" Appearance="Secondary"
+                                           Command="{Binding MoveStepDownCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+
+            <!-- 底部：保存（P0-2：保存按钮先 Dock=Right 靠右，消息文本末子填充） -->
+            <DockPanel Grid.Row="2" Margin="0,12,0,0">
+                <ui:Button DockPanel.Dock="Right" Content="保存" Width="110" Height="32"
+                           Appearance="Primary" Command="{Binding SaveCommand}"/>
+                <TextBlock Text="{Binding SaveMessage}"
+                           FontSize="{StaticResource Font.Size.Body}"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource Brush.TextSecondary}"
+                           Margin="0,0,12,0"/>
+            </DockPanel>
+        </Grid>
+
+        <!-- ContentDialog 宿主（独立覆盖层；ContentDialog 实例由 code-behind 创建并注入） -->
+        <ui:ContentDialogHost x:Name="DialogHost"/>
+    </Grid>
+</ui:FluentWindow>

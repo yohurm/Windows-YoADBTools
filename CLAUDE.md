@@ -1,69 +1,70 @@
 # Yovo-Windows-ADBTools
 
 ## 项目定位
-多模块 Windows 桌面工具平台（Yovo ADB Tools），基于 ADB 提供设备调试与产测工具集。ADB 命令终端为当前首个模块，后续可扩展投屏显示等模块（见 `docs/architecture/架构设计-v4.md`）。
+多模块 Windows 桌面设备工具工作台（Yovo ADB Tools，模块化单体 v5）。基于 ADB 提供产线调试与测试工具集：ADB 命令终端、文件管理、日志分析；投屏显示为 Planned 占位（见 `docs/architecture/架构设计-v5.md`）。
 
 ## 技术栈
-- 语言/框架：C# + WPF (.NET 8)
+- 语言/框架：C# + WPF (.NET 8)，多项目模块化单体（Host / Shell / Platform / Platform.Abstractions / Modules）
 - 目标平台：Windows 10/11 (x64)
-- 打包方式：.NET 自包含单文件发布 (`dotnet publish -p:PublishSingleFile=true`)
-- ADB 集成：内嵌 adb.exe，运行时解压到 `%LOCALAPPDATA%\YovoAdbTools\adb\`
+- 打包方式：.NET 自包含单文件发布（`dotnet publish src/Yovo.Host -c Release -p:PublishSingleFile=true --self-contained true -r win-x64 -o publish`）
+- 依赖注入：Microsoft.Extensions.DependencyInjection（组合根在 `Yovo.Host/App.xaml.cs`）
 - MVVM：CommunityToolkit.Mvvm（源生成器 `[ObservableProperty]` / `[RelayCommand]`）
-- UI：WPF-UI (Fluent)，资源集中在 `Resources/ThemeTokens.xaml`
+- UI：WPF-UI (Fluent)，设计 Token 集中在 `src/Yovo.Shell/Resources/ThemeTokens.xaml`
+- ADB 集成：内嵌 adb.exe 于 `Yovo.Platform`（嵌入资源），运行时解压到 `DataRoot/tools/adb/`
 
 ## 核心功能
-1. 设备管理 — 扫描连接设备（一次 `devices -l` 进程调用解析型号）、状态显示、多选并行发送
-2. 命令管理 — 预设命令库、分组分类、单文件 JSON 配置驱动（数据目录 `Config/library.json` + 版本号 + 损坏自动备份）
-3. 执行引擎 — 单条命令 / 命令组 / 成功判定策略（FailureRegex→SuccessRegex→退出码）
-4. 设置面板 — 右侧操作面板内的平台面板：ADB 路径（可配置，立即生效）+ 数据目录（可配置，重启生效）
+1. 设备管理 — `IDeviceDirectory` 扫描（一次 `devices -l` 解析型号）+ `IDeviceSessionHub` 会话（全局焦点 + 每模块选择作用域，单设备自动选中）
+2. ADB 命令终端 — 命令库/命令组/多设备并行执行/成功判定（FailureRegex→SuccessRegex→退出码）/命令管理窗口（快照编辑、脏关闭确认）
+3. 文件管理 — 设备文件浏览（ls 解析）、push/pull 传输（进度 → 后台任务中心）、删除（安全根 + 确认）/新建目录
+4. 日志分析 — logcat 流式采集（threadtime 解析）、环形缓冲、过滤（级别/tag/正则）、暂停/清空/导出
+5. 设置面板 — 设置页贡献：ADB 路径（`adb.path`，保存立即生效）+ 数据目录（`data.root`，重启生效）
+
+## 架构约定（v5 模块化单体）
+- **依赖方向**：`Host → Shell/Modules → Platform → Platform.Abstractions`；模块间零实现依赖（NetArchTest 强制，`tests/Yovo.Architecture.Tests`）
+- **Platform.Abstractions 无 WPF 类型**：模块通过接口切片消费平台能力（IAdbCommandExecutor/IDeviceSessionHub/IAppLog/IAppPaths 等），UI 端口（IWindowService/IUiDispatcher）由 Shell 实现
+- **贡献点**：模块 `Contribute` 注册导航/视图映射/设置页（`IContributionRegistry`）；视图经 `ViewKey` + `ViewLocator` 解析，契约层不出现 UserControl
+- **模块自治**：模块数据写 `IAppPaths.ModuleData(Id)`；命令库路径 `data/modules/adb-terminal/config/library.json`（v4 用户命令库自动迁移）
+- **模块通信**：进程内 `IEventBus` 集成事件（设备刷新/离线/焦点变化/后台任务）；同步调用走契约接口，异步通知走总线
+- **编辑即快照**：命令管理深拷贝编辑、保存全量提交、取消零污染
+- **成败判定分离**：ADB 客户端不判定成败；判定在模块领域（CommandEvaluator）
+- **设备日志 vs 应用日志严格分离**（ADR-006）：logcat 自持，IAppLog 只承载操作日志（内存环形 + Snapshot，不落盘）
+- **后台任务**：长任务（传输/采集）登记 `IBackgroundTaskCenter`，状态栏展示，退出前取消
+- **占位模块**：`PlannedModule`（IsPlanned=true）仅贡献导航 + "开发中"页；投屏 screen-mirror 本期占位（ADR-007）
+- 新增模块：实现 IModule（Descriptor/ConfigureServices/Contribute/InitializeAsync/DisposeAsync）→ 注册到 `Yovo.Host/ModuleCatalog.cs`
 
 ## 目录结构
 ```
 docs/
 ├── requirements/    # 需求文档
-├── architecture/
-│   ├── 架构设计-v4.md   # 现行架构（v4 重构后）
-│   └── 架构设计-v3.md   # 历史文档（v4 前）
-└── guides/          # 开发指南 / 使用手册
-src/FactoryHelper/
-├── Core/            # 平台扩展点：IModule / IModuleContext / ModuleRegistry / 附加行为
-├── Platform/        # 平台级服务（4 个，模块共享）：
-│   ├── AdbProcessService.cs   # ADB 纯进程调用（不判定成败）
-│   ├── DeviceService.cs       # 设备快照 + 选择会话（不可变 record + 事件）
-│   ├── LogService.cs          # 日志（后台批量落盘 + 按 Source 过滤 + 5MB 轮转）
-│   └── SettingsService.cs     # 配置（按模块命名空间 + 原子写）
-├── Shell/           # 主窗口 + 平台面板：ShellViewModel（导航）/ DevicePanelViewModel / SettingsView / MainWindow
-├── Modules/
-│   └── AdbTerminal/ # 终端模块（自治单元，自持服务与模型）
-│       ├── AdbTerminalModule.cs   # 模块 Id 常量 + Initialize 组装
-│       ├── Models/                # CommandDefinition / CommandGroup / CommandLibrary 等
-│       ├── Services/              # CommandRepository / CommandEvaluator / ExecutionService
-│       ├── ViewModels/            # TerminalViewModel / CommandManagerViewModel / IWindowService
-│       ├── Views/                 # TerminalView / CommandManagerWindow / WindowService
-│       └── Resources/             # library.default.json（内置命令库，嵌入资源）
-├── Resources/        # UI Token 统一资源（颜色/间距/样式）
-└── Tools/            # 内置工具（adb.exe + DLL）
+└── architecture/
+    ├── 架构设计-v5.md   # 现行架构（v5 模块化单体）
+    └── UI联调审查报告.md # UI 缺陷清单与验收（P0-P2 已修复，第 8 节回归清单）
+src/
+├── Yovo.Host/                  # 组合根：App / ModuleCatalog / 启动与退出序列
+├── Yovo.Shell/                 # 工作台壳：MainWindow / 导航 / 设备栏 / 状态栏 / ViewLocator / WindowService / ThemeTokens
+├── Yovo.Platform/              # 平台内核（无 UI）：Paths / SettingsStore / AppLog / ProcessRunner / ToolResolver / AdbClient / DeviceDirectory / SessionHub / EventBus / BackgroundTaskCenter / ContributionRegistry
+├── Yovo.Platform.Abstractions/ # 全部平台契约（无 WPF）：IModule / 贡献点 / 设备 / 进程 / ADB 切片 / 设置 / 日志 / 消息 / 任务
+└── Modules/
+    ├── Yovo.Modules.AdbTerminal/  # 命令终端（Domain/Application/Presentation 分层）
+    ├── Yovo.Modules.FileManager/  # 文件管理
+    └── Yovo.Modules.LogAnalyzer/  # 日志分析
+tests/                      # 单元（Platform/AdbTerminal/LogAnalyzer）+ 架构（NetArchTest）
+scripts/verify-v5-smoke.ps1 # UIA 冒烟回归（UI 审查验收清单）
 ```
-
-## 架构约定（v4）
-- **右侧统一操作面板**：导航-内容框架（Navigation-Content）。左侧导航项（业务模块/预留/平台面板）→ 右侧内容区显示对应面板视图；`NavModuleItem { Title, IconGlyph, CreateView }` 三要素统一建模
-- **依赖方向**：`Shell/Modules → Core/Platform`，模块间不互相依赖；模块内 `Views → ViewModels → Services → Models`
-- **模块上下文只暴露平台能力**（Adb/Devices/Log/Settings/Paths）；模块业务服务模块内自持
-- **编辑即快照**：管理窗口基于深拷贝编辑，保存全量提交，取消零污染
-- **服务层不暴露 UI 类型**（集合/控件）；事件在后台线程，UI 侧用 SynchronizationContext 编组
-- **标签 = Category 纯派生**，无独立标签管理
-- **日志仅内存 + 界面**，不落盘；测试结果不落盘（界面日志即唯一展示）
-- **预留模块**：Shell 层声明 `PlannedModule`（不占注册路径，导航显示"开发中"占位）；未来注册同 Id 真实模块后自动替换
-- **设置**：平台面板（导航"设置"进入），ADB 路径立即生效、数据目录重启生效；路径由 `AppPaths` 统一解析（用户设置 → Tools → 内置解压）
-- 新增模块：实现 IModule（Id/Title/IconGlyph/SortOrder）→ 注册到 App.xaml.cs → 自动出现在导航
 
 ## 构建命令
 ```bash
 # 开发构建
-dotnet build
+dotnet build YovoAdbTools.sln
+
+# 全量测试
+dotnet test YovoAdbTools.sln
 
 # 发布为单文件 exe
-dotnet publish -c Release -p:PublishSingleFile=true --self-contained true -r win-x64 -o publish
+dotnet publish src/Yovo.Host -c Release -p:PublishSingleFile=true --self-contained true -r win-x64 -o publish
+
+# UI 冒烟回归（应用需关闭）
+powershell -ExecutionPolicy Bypass -File scripts/verify-v5-smoke.ps1
 ```
 
 ## 需求文档

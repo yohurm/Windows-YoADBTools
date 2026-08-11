@@ -1,0 +1,27 @@
+<UserControl x:Class="Yovo.Shell.Views.PlannedPlaceholderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="{StaticResource Font.Family}">
+
+    <!-- 预留模块占位页 — 通用（PlannedModule 贡献） -->
+    <Grid Margin="{StaticResource Padding.Page}">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}"
+                       HorizontalAlignment="Center"/>
+            <Border Background="{StaticResource Brush.ListBg}"
+                    BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
+                    CornerRadius="{StaticResource Radius.Md}"
+                    Padding="24,16" Margin="0,20,0,0">
+                <StackPanel>
+                    <TextBlock Text="开发中" FontSize="{StaticResource Font.Size.Subtitle}"
+                               FontWeight="SemiBold" HorizontalAlignment="Center"
+                               Foreground="{StaticResource Brush.Warn}"/>
+                    <TextBlock Text="该模块已列入规划，尚未实现。"
+                               FontSize="{StaticResource Font.Size.Body}"
+                               Foreground="{StaticResource Brush.TextSecondary}"
+                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>

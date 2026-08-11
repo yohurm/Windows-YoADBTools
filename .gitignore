@@ -24,3 +24,6 @@ dist/
 # 日志
 *.log
 Logs/
+
+# UI 联调截图（本地产物，不入库）
+.ui-review/

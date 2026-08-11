@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Yovo.Platform</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Yovo.Platform.Abstractions\Yovo.Platform.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!-- 单元测试访问内部解析器（DeviceDirectory.ParseDevices 等） -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Yovo.Platform.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+
+  <!-- 内置 ADB 二进制（ToolResolver 自读本程序集嵌入资源，运行时解压到 ToolsRoot） -->
+  <ItemGroup>
+    <EmbeddedResource Include="Tools\adb.exe" LogicalName="Yovo.Platform.Tools.adb.exe" />
+    <EmbeddedResource Include="Tools\AdbWinApi.dll" LogicalName="Yovo.Platform.Tools.AdbWinApi.dll" />
+    <EmbeddedResource Include="Tools\AdbWinUsbApi.dll" LogicalName="Yovo.Platform.Tools.AdbWinUsbApi.dll" />
+  </ItemGroup>
+
+</Project>
