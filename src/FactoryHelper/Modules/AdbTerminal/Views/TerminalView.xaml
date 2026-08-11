@@ -17,14 +17,22 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- ======== 工具栏 ======== -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource Margin.Toolbar}">
-            <ui:Button Content="命令管理" Command="{Binding OpenCommandManagerCommand}"
-                       Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSettings24"/>
-            <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"
+        <!-- ======== 工具栏（整宽，独立于三栏——输入区展开时不被挤压） ======== -->
+        <DockPanel Grid.Row="0" Margin="{StaticResource Margin.Toolbar}">
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                <ui:Button Content="命令管理" Command="{Binding OpenCommandManagerCommand}"
+                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSettings24"/>
+                <ui:Button Content="执行命令" Command="{Binding ExecuteCommandCommand}"
+                           Appearance="Primary" Margin="0,0,10,0" Icon="FluentPlay24"/>
+                <ui:Button Content="执行命令组" Command="{Binding ExecuteGroupCommand}"
+                           Appearance="Primary" Margin="0,0,10,0" Icon="FluentPlayCircle24"/>
+                <ui:Button Content="清空日志" Command="{Binding ClearLogCommand}"
+                           Appearance="Secondary" Icon="FluentDelete24"/>
+            </StackPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding StatusText}" VerticalAlignment="Center"
                        FontSize="{StaticResource Font.Size.Md}"
                        Foreground="{StaticResource Brush.TextSecondary}"/>
-        </StackPanel>
+        </DockPanel>
 
         <!-- ======== 三栏主布局 ======== -->
         <Grid Grid.Row="1">
@@ -110,25 +118,15 @@
             <!-- 分隔条 1 -->
             <GridSplitter Grid.Column="1" Style="{StaticResource SplitterStyle}"/>
 
-            <!-- ===== 中栏：执行 + 日志 ===== -->
+            <!-- ===== 中栏：日志 ===== -->
             <Grid Grid.Column="2" Margin="{StaticResource Margin.ColumnMid}">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                    <ui:Button Content="执行命令" Command="{Binding ExecuteCommandCommand}"
-                               Appearance="Primary" Margin="0,0,10,0" Icon="FluentPlay24"/>
-                    <ui:Button Content="执行命令组" Command="{Binding ExecuteGroupCommand}"
-                               Appearance="Primary" Margin="0,0,10,0" Icon="FluentPlayCircle24"/>
-                    <ui:Button Content="清空日志" Command="{Binding ClearLogCommand}"
-                               Appearance="Secondary" Icon="FluentDelete24"/>
-                </StackPanel>
-
                 <!-- 日志面板（VM 集合绑定，按级别着色，上限裁剪） -->
-                <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Padding="0">
+                <Border Grid.Row="0" Style="{StaticResource PanelBorderStyle}" Padding="0">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="执行日志" FontSize="13" FontWeight="SemiBold"
                                    Foreground="{StaticResource Brush.TextPrimary}" Margin="14,12,14,8"/>
@@ -170,7 +168,7 @@
                 </Border>
 
                 <!-- 底部状态 -->
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
                     <ProgressBar Width="100" Height="6"
                                  IsIndeterminate="{Binding IsBusy}"
                                  Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
