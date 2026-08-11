@@ -448,6 +448,8 @@ public partial class LogAnalyzerViewModel : ObservableObject
         if (_taskId is { } id)
             _tasks.Complete(id, BackgroundTaskCompletion.Canceled);
         _taskId = null;
+        // 主动停止：立即更新 UI（CaptureStopped 事件仅意外退出路径触发 — Stop 已清世代，finally 不误伤）
+        IsCapturing = false;
     }
 
     private void OnCaptureStopped()

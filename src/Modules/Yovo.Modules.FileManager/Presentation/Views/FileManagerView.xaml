@@ -101,7 +101,7 @@
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="路径" Width="*">
+                        <GridViewColumn Header="路径" Width="300">
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Path}" FontSize="{StaticResource Font.Size.Caption}"
