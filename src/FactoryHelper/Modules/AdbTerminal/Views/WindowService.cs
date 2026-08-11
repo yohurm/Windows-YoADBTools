@@ -15,13 +15,4 @@ public class WindowService : IWindowService
         };
         return window.ShowDialog();
     }
-
-    public string? PickTag(IReadOnlyList<string> tags, string? current)
-    {
-        var dialog = new TagPickerDialog(tags.ToList(), current)
-        {
-            Owner = Application.Current.MainWindow
-        };
-        return dialog.ShowDialog() == true ? dialog.SelectedTag : null;
-    }
 }

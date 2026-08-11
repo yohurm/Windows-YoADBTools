@@ -89,16 +89,6 @@ public partial class CommandManagerViewModel : ObservableObject
         SelectedCommand = null;
     }
 
-    [RelayCommand]
-    private void PickCommandCategory()
-    {
-        if (SelectedCommand is not { } cmd)
-            return;
-        var tag = _windows.PickTag(Editable.Categories, cmd.Category);
-        if (tag != null)
-            cmd.Category = tag;
-    }
-
     // ==================== 命令组 ====================
 
     [RelayCommand]
@@ -124,16 +114,6 @@ public partial class CommandManagerViewModel : ObservableObject
         UnsubscribeGroup(group);
         Groups.Remove(group);
         SelectedGroup = null;
-    }
-
-    [RelayCommand]
-    private void PickGroupCategory()
-    {
-        if (SelectedGroup is not { } group)
-            return;
-        var tag = _windows.PickTag(Editable.Categories, group.Category);
-        if (tag != null)
-            group.Category = tag;
     }
 
     [RelayCommand]
