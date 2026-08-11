@@ -1,78 +1,54 @@
 using System.Windows;
-using Microsoft.Extensions.DependencyInjection;
 using FactoryHelper.Core;
 using FactoryHelper.Modules.AdbTerminal;
-using FactoryHelper.Services;
-using FactoryHelper.ViewModels;
+using FactoryHelper.Platform;
+using FactoryHelper.Shell;
 
 namespace FactoryHelper;
 
 public partial class App : Application
 {
-    public static ServiceProvider ServiceProvider { get; private set; } = null!;
+    private LogService? _log;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        var services = new ServiceCollection();
+        // ===== 平台服务（4 个，手工组装——简单直接，无需容器） =====
+        var adb = new AdbProcessService();
+        var devices = new DeviceService(adb);
+        _log = new LogService();
+        var settings = new SettingsService();
+        var context = new ModuleContext(adb, devices, _log, settings);
 
-        // ===== 平台级共享服务 =====
-        services.AddSingleton<IAdbService, AdbService>();
-        services.AddSingleton<ILogService, LogService>();
-        services.AddSingleton<ISettingsService, SettingsService>();
-        services.AddSingleton<IDevicePanelService, DevicePanelService>();
-
-        // ===== 终端模块服务 =====
-        services.AddSingleton<ICommandLibraryService, CommandLibraryService>();
-        services.AddSingleton<IExecutionService, ExecutionService>();
-
-        // ===== ViewModel =====
-        services.AddSingleton<ShellViewModel>();
-
-        ServiceProvider = services.BuildServiceProvider();
-
-        // ===== 模块注册（新增模块在此登记） =====
+        // ===== 模块注册（新增模块在此登记，Id 唯一性由 ModuleRegistry 强制） =====
         var registry = new ModuleRegistry();
-        var context = new ModuleContext(
-            ServiceProvider.GetRequiredService<IAdbService>(),
-            ServiceProvider.GetRequiredService<ILogService>(),
-            ServiceProvider.GetRequiredService<ISettingsService>(),
-            ServiceProvider.GetRequiredService<ICommandLibraryService>(),
-            ServiceProvider.GetRequiredService<IExecutionService>(),
-            ServiceProvider.GetRequiredService<IDevicePanelService>());
-
         registry.Register(new AdbTerminalModule());
-        // ===== 预留功能模块（开发中占位） =====
-        registry.Register(new PlaceholderModule("screen-mirror", "投屏显示"));
-        registry.Register(new PlaceholderModule("file-manager", "文件管理"));
-        registry.Register(new PlaceholderModule("log-analyzer", "日志分析"));
+        registry.InitializeAll(context);
 
-        foreach (var module in registry.Modules)
-            module.Initialize(context);
+        // ===== Shell =====
+        var devicePanel = new DevicePanelViewModel(devices, _log);
+        var shell = new ShellViewModel(registry, devicePanel);
+        new MainWindow(shell).Show();
 
-        var mainWindow = new MainWindow(
-            new ShellViewModel(registry,
-                ServiceProvider.GetRequiredService<IAdbService>(),
-                ServiceProvider.GetRequiredService<IDevicePanelService>()),
-            ServiceProvider.GetRequiredService<IDevicePanelService>());
-        mainWindow.Show();
+        // 启动即扫描设备（VM 内部捕获异常，安全 fire-and-forget）
+        _ = devicePanel.RefreshCommand.ExecuteAsync(null);
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _log?.Dispose(); // 日志后台落盘最终刷新
+        base.OnExit(e);
     }
 }
 
-/// <summary>平台模块上下文实现</summary>
+/// <summary>模块上下文实现（组合根）：平台向模块暴露的 4 个能力</summary>
 internal class ModuleContext(
-    IAdbService adb,
-    ILogService log,
-    ISettingsService settings,
-    ICommandLibraryService commandLibrary,
-    IExecutionService execution,
-    IDevicePanelService devices) : IModuleContext
+    IAdbProcessService adb, IDeviceService devices, ILogService log, ISettingsService settings)
+    : IModuleContext
 {
-    public IAdbService Adb { get; } = adb;
+    public IAdbProcessService Adb { get; } = adb;
+    public IDeviceService Devices { get; } = devices;
     public ILogService Log { get; } = log;
     public ISettingsService Settings { get; } = settings;
-    public ICommandLibraryService CommandLibrary { get; } = commandLibrary;
-    public IExecutionService Execution { get; } = execution;
-    public IDevicePanelService Devices { get; } = devices;
 }

@@ -1,0 +1,214 @@
+<UserControl x:Class="FactoryHelper.Modules.AdbTerminal.Views.TerminalView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:conv="clr-namespace:FactoryHelper.Shell.Converters"
+             FontFamily="Microsoft YaHei">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <conv:NullToCollapsedConverter x:Key="NullToCollapsed"/>
+    </UserControl.Resources>
+
+    <!-- 布局: 页面边距 14,10,14,14 (Padding.Page)；列间距 ColumnLeft/Mid/Right；面板间距 PanelGap -->
+    <Grid Margin="{StaticResource Padding.Page}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ======== 工具栏 ======== -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource Margin.Toolbar}">
+            <ui:Button Content="命令管理" Command="{Binding OpenCommandManagerCommand}"
+                       Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSettings24"/>
+            <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"
+                       FontSize="{StaticResource Font.Size.Md}"
+                       Foreground="{StaticResource Brush.TextSecondary}"/>
+        </StackPanel>
+
+        <!-- ======== 三栏主布局 ======== -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="ColLeft" Width="290" MinWidth="240"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition x:Name="ColLog" Width="*" MinWidth="340"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition x:Name="ColInput" Width="0"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ===== 左栏：单条命令 + 命令组 ===== -->
+            <Grid Grid.Column="0" Margin="{StaticResource Margin.ColumnLeft}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 单条命令面板 -->
+                <Border Grid.Row="0" Style="{StaticResource PanelBorderStyle}" Margin="{StaticResource Margin.PanelGap}">
+                    <StackPanel>
+                        <TextBlock Text="单条命令" Style="{StaticResource SectionTitleStyle}"/>
+                        <ComboBox ItemsSource="{Binding Categories}"
+                                  SelectedItem="{Binding SelectedCategory}"
+                                  Margin="0,0,0,8"/>
+                        <ListBox ItemsSource="{Binding Commands}"
+                                 SelectedItem="{Binding SelectedCommand}"
+                                 Height="140"
+                                 BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
+                                 Background="{StaticResource Brush.ListBg}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="2,3">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="[输入]" FontSize="10" FontWeight="Bold"
+                                                       Foreground="{StaticResource Brush.Warning}" VerticalAlignment="Center"
+                                                       Visibility="{Binding RequiresInput, Converter={StaticResource BoolToVisibility}}"
+                                                       Margin="0,0,4,0"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding DisplayCommand}" FontSize="11"
+                                                   Foreground="{StaticResource Brush.TextSecondary}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+
+                <!-- 命令组面板 -->
+                <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Text="命令组" Style="{StaticResource SectionTitleStyle}"/>
+                        <ComboBox ItemsSource="{Binding GroupCategories}"
+                                  SelectedItem="{Binding SelectedGroupCategory}"
+                                  Margin="0,0,0,8"/>
+                        <ListBox ItemsSource="{Binding CommandGroups}"
+                                 SelectedItem="{Binding SelectedGroup}"
+                                 BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
+                                 Background="{StaticResource Brush.ListBg}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="2,3">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Category}" FontSize="10"
+                                                       Foreground="{StaticResource Brush.Tag}" FontWeight="Bold"
+                                                       Margin="0,0,6,0"
+                                                       Visibility="{Binding Category, Converter={StaticResource NullToCollapsed}}"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Description}" FontSize="11"
+                                                   Foreground="{StaticResource Brush.TextSecondary}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding StepCount, StringFormat={}{0} 步}" FontSize="10"
+                                                   Foreground="{StaticResource Brush.TextTertiary}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 分隔条 1 -->
+            <GridSplitter Grid.Column="1" Style="{StaticResource SplitterStyle}"/>
+
+            <!-- ===== 中栏：执行 + 日志 ===== -->
+            <Grid Grid.Column="2" Margin="{StaticResource Margin.ColumnMid}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                    <ui:Button Content="执行命令" Command="{Binding ExecuteCommandCommand}"
+                               Appearance="Primary" Margin="0,0,10,0" Icon="FluentPlay24"/>
+                    <ui:Button Content="执行命令组" Command="{Binding ExecuteGroupCommand}"
+                               Appearance="Primary" Margin="0,0,10,0" Icon="FluentPlayCircle24"/>
+                    <ui:Button Content="清空日志" Command="{Binding ClearLogCommand}"
+                               Appearance="Secondary" Icon="FluentDelete24"/>
+                </StackPanel>
+
+                <!-- 日志面板（VM 集合绑定，按级别着色，上限裁剪） -->
+                <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Padding="0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="执行日志" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource Brush.TextPrimary}" Margin="14,12,14,8"/>
+                        <Border BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="0,1,0,0">
+                            <ScrollViewer x:Name="LogScroll" VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding LogEntries}"
+                                              FontFamily="Consolas" FontSize="12"
+                                              Margin="6,4">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock TextWrapping="Wrap" Padding="2,1">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                                <Setter Property="Foreground" Value="#C62828"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Warn">
+                                                                <Setter Property="Foreground" Value="#C77700"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Info">
+                                                                <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                                <Run Text="{Binding Timestamp, StringFormat={}{0:HH:mm:ss}}"/>
+                                                <Run Text=" "/>
+                                                <Run Text="{Binding Message}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </DockPanel>
+                </Border>
+
+                <!-- 底部状态 -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                    <ProgressBar Width="100" Height="6"
+                                 IsIndeterminate="{Binding IsBusy}"
+                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
+                                 Margin="0,0,10,0"/>
+                    <TextBlock Text="{Binding StatusText}" FontSize="12"
+                               Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- 分隔条 2 -->
+            <GridSplitter Grid.Column="3" Style="{StaticResource SplitterStyle}"/>
+
+            <!-- ===== 右栏：参数输入（动态列宽） ===== -->
+            <Grid Grid.Column="4" Margin="{StaticResource Margin.ColumnRight}">
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="参数输入" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource Brush.TextPrimary}" Margin="0,0,0,8"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ActiveInputs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,10">
+                                            <TextBlock Text="{Binding GroupLabel}" FontSize="11" FontWeight="Bold"
+                                                       Foreground="{StaticResource Brush.Tag}" Margin="0,0,0,2"
+                                                       Visibility="{Binding HasGroupLabel, Converter={StaticResource BoolToVisibility}}"/>
+                                            <TextBlock Text="{Binding Label}" FontSize="11"
+                                                       Foreground="{StaticResource Brush.TextSecondary}" Margin="0,0,0,3"/>
+                                            <ui:TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                                        FontSize="13" MinHeight="30"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

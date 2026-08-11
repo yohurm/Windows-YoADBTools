@@ -1,48 +1,48 @@
 using System.Windows.Controls;
-using FactoryHelper.Services;
+using FactoryHelper.Platform;
 
 namespace FactoryHelper.Core;
 
 /// <summary>
-/// 模块上下文 — 平台向模块暴露的共享能力。
-/// 所有模块（终端/投屏/文件管理）通过它访问平台服务。
+/// 模块上下文 — 平台向模块暴露的共享能力（仅平台级服务）。
+/// 模块自身的业务服务由模块在 Initialize 中自持，不进此上下文。
 /// </summary>
 public interface IModuleContext
 {
-    /// <summary>共享 ADB 设备连接服务</summary>
-    IAdbService Adb { get; }
+    /// <summary>ADB 进程调用（纯进程，不判定成败）</summary>
+    IAdbProcessService Adb { get; }
 
-    /// <summary>共享日志服务</summary>
+    /// <summary>设备快照与选择会话（只读）</summary>
+    IDeviceService Devices { get; }
+
+    /// <summary>平台日志（按 Source 过滤订阅）</summary>
     ILogService Log { get; }
 
-    /// <summary>配置存储（按模块 Id 命名空间）</summary>
+    /// <summary>配置存储（按模块 Id 命名空间分文件）</summary>
     ISettingsService Settings { get; }
-
-    /// <summary>命令仓库（单一数据源）</summary>
-    ICommandLibraryService CommandLibrary { get; }
-
-    /// <summary>执行引擎</summary>
-    IExecutionService Execution { get; }
-
-    /// <summary>平台设备面板（设备列表/选择状态，所有模块共享）</summary>
-    IDevicePanelService Devices { get; }
 }
 
 /// <summary>
 /// 模块契约 — 平台只认识这个接口，模块插拔的扩展点。
-/// 新增模块: 实现 IModule + 注册到 ModuleRegistry，Shell 导航自动出现。
+/// 生命周期约定：Initialize 必须先于 CreateView（ModuleRegistry.InitializeAll 强制）。
 /// </summary>
 public interface IModule
 {
-    /// <summary>模块唯一标识（如 "adb-terminal"）</summary>
+    /// <summary>模块唯一标识（模块内常量单点定义，日志/设置命名空间同源）</summary>
     string Id { get; }
 
-    /// <summary>导航栏显示名（如 "ADB 命令终端"）</summary>
+    /// <summary>导航栏显示名</summary>
     string Title { get; }
 
-    /// <summary>模块初始化（注入平台服务）</summary>
+    /// <summary>导航栏图标（Segoe MDL2 Assets 字符）</summary>
+    string IconGlyph { get; }
+
+    /// <summary>导航排序（小在前，默认 0）</summary>
+    int SortOrder { get; }
+
+    /// <summary>模块初始化（注入平台服务，模块在此组装自身服务与 ViewModel）</summary>
     void Initialize(IModuleContext context);
 
-    /// <summary>创建模块主视图</summary>
+    /// <summary>创建模块主视图（模块自持单实例，设备/命令状态不丢失）</summary>
     UserControl CreateView();
 }

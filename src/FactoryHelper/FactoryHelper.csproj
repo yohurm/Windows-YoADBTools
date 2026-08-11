@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 
@@ -25,6 +24,12 @@
     <EmbeddedResource Include="Tools\adb.exe" LogicalName="FactoryHelper.Tools.adb.exe" />
     <EmbeddedResource Include="Tools\AdbWinApi.dll" LogicalName="FactoryHelper.Tools.AdbWinApi.dll" />
     <EmbeddedResource Include="Tools\AdbWinUsbApi.dll" LogicalName="FactoryHelper.Tools.AdbWinUsbApi.dll" />
+  </ItemGroup>
+
+  <!-- 内置命令库（首次启动写入 Config/library.json，用户可编辑） -->
+  <ItemGroup>
+    <EmbeddedResource Include="Modules\AdbTerminal\Resources\library.default.json"
+                      LogicalName="FactoryHelper.Modules.AdbTerminal.Resources.library.default.json" />
   </ItemGroup>
 
   <!-- 发布配置：单文件自包含 -->
