@@ -7,41 +7,48 @@ using FactoryHelper.Core;
 namespace FactoryHelper.Shell;
 
 /// <summary>
-/// 导航模块项 — 真实模块或预留模块（占位）。
-/// 同 Id 时真实模块优先：未来注册真实模块后预留项自动被替换。
+/// 导航项 — 右侧统一操作面板的统一入口（真实模块 / 预留模块 / 平台面板）。
+/// 三要素：标题 + 图标 + 视图工厂。点击导航 → CreateView → 内容区显示。
 /// </summary>
-public sealed class NavModuleItem(IModule? module, PlannedModule? planned)
+public sealed class NavModuleItem
 {
-    public IModule? Module { get; } = module;
-    public PlannedModule? Planned { get; } = planned;
+    public string Title { get; }
+    public string IconGlyph { get; }
+    private readonly Func<UserControl> _createView;
 
-    public string Title => Module?.Title ?? Planned!.Title;
-    public string IconGlyph => Module?.IconGlyph ?? Planned!.IconGlyph;
+    public NavModuleItem(string title, string iconGlyph, Func<UserControl> createView)
+    {
+        Title = title;
+        IconGlyph = iconGlyph;
+        _createView = createView;
+    }
 
-    /// <summary>创建视图：真实模块懒创建；预留模块显示占位</summary>
-    public UserControl CreateView()
-        => Module is not null ? Module.CreateView() : new PlannedModuleView(Planned!);
+    /// <summary>创建面板视图（真实模块懒创建单实例；占位/设置面板每次进入重建）</summary>
+    public UserControl CreateView() => _createView();
 
-    /// <summary>UIA 辅助功能可访问名称（ListBox 项的 Name）</summary>
+    /// <summary>UIA 辅助功能可访问名称</summary>
     public override string ToString() => Title;
 }
 
 /// <summary>
-/// Shell 导航 ViewModel — 模块列表（真实 + 预留）+ 当前视图切换。
+/// Shell 导航 ViewModel — 右侧统一操作面板的导航模型。
+/// 导航顺序：业务模块（SortOrder）→ 预留模块 → 平台面板（设置）。
 /// 设备面板职责在 DevicePanelViewModel，不在此混入。
 /// </summary>
-public class ShellViewModel : INotifyPropertyChanged
+public partial class ShellViewModel : INotifyPropertyChanged
 {
     private NavModuleItem? _selectedModule;
     private UserControl? _currentView;
 
-    /// <summary>导航模块列表（真实模块按 SortOrder 在前，预留模块在后）</summary>
+    /// <summary>导航列表（业务模块 + 预留 + 设置）</summary>
     public ObservableCollection<NavModuleItem> Modules { get; } = [];
 
     /// <summary>设备面板（组合持有，Shell 左侧公共区）</summary>
     public DevicePanelViewModel DevicePanel { get; }
 
-    /// <summary>当前选中导航项（切换时懒创建视图，单实例复用）</summary>
+    private readonly SettingsViewModel _settingsVm;
+
+    /// <summary>当前选中导航项（切换时懒创建视图）</summary>
     public NavModuleItem? SelectedModule
     {
         get => _selectedModule;
@@ -53,28 +60,36 @@ public class ShellViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>模块内容区当前视图</summary>
+    /// <summary>右侧操作面板当前视图</summary>
     public UserControl? CurrentView
     {
         get => _currentView;
         private set { _currentView = value; OnPropertyChanged(); }
     }
 
-    public ShellViewModel(ModuleRegistry registry, IEnumerable<PlannedModule>? planned, DevicePanelViewModel devicePanel)
+    public ShellViewModel(
+        ModuleRegistry registry,
+        IEnumerable<PlannedModule>? planned,
+        DevicePanelViewModel devicePanel,
+        SettingsViewModel settingsVm)
     {
         DevicePanel = devicePanel;
+        _settingsVm = settingsVm;
 
-        // 真实模块（已注册，按 SortOrder）
+        // 1. 业务模块（已注册，按 SortOrder；模块自持单实例视图）
         foreach (var module in registry.Modules.OrderBy(m => m.SortOrder))
-            Modules.Add(new NavModuleItem(module, null));
+            Modules.Add(new NavModuleItem(module.Title, module.IconGlyph, module.CreateView));
 
-        // 预留模块（未注册的同 Id 项 → 占位入口；已注册的同 Id 被真实项替换，不重复显示）
+        // 2. 预留模块（未注册的同 Id 项 → 占位入口；已注册被真实项替换）
         var registeredIds = registry.Modules.Select(m => m.Id).ToHashSet();
         foreach (var item in planned ?? [])
         {
             if (!registeredIds.Contains(item.Id))
-                Modules.Add(new NavModuleItem(null, item));
+                Modules.Add(new NavModuleItem(item.Title, item.IconGlyph, () => new PlannedModuleView(item)));
         }
+
+        // 3. 平台面板：设置（导航-内容框架统一承载）
+        Modules.Add(new NavModuleItem("设置", "", () => new SettingsView(_settingsVm)));
 
         SelectedModule = Modules.FirstOrDefault();
     }

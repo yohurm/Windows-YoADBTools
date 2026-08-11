@@ -26,12 +26,11 @@ public class AdbTerminalModule : IModule
 
     public void Initialize(IModuleContext context)
     {
-        var repository = new CommandRepository();
+        var repository = new CommandRepository(context.Paths);
         var execution = new ExecutionService(context.Adb, context.Log, ModuleId);
-        var reports = new ReportWriter(context.Log, ModuleId);
 
         _viewModel = new TerminalViewModel(
-            repository, execution, reports,
+            repository, execution,
             context.Devices, context.Log, ModuleId,
             new WindowService());
     }

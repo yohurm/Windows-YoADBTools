@@ -19,7 +19,7 @@
 
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <TextBlock DockPanel.Dock="Left" Text="命令库管理 — 统一管理单条命令与命令组"
-                       FontSize="13" Foreground="{DynamicResource TextFillColorSecondary}" VerticalAlignment="Center"/>
+                       FontSize="13" Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center"/>
         </DockPanel>
 
         <TabControl Grid.Row="1">
@@ -43,7 +43,7 @@
                         <ListBox ItemsSource="{Binding Commands}"
                                  SelectedItem="{Binding SelectedCommand}"
                                  DisplayMemberPath="Name"
-                                 BorderBrush="{DynamicResource ControlStrokeColorDefault}" BorderThickness="1"/>
+                                 BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"/>
                     </DockPanel>
 
                     <!-- 右侧：命令详情（绑定 SelectedCommand 路径，模型 INPC 即时刷新） -->
@@ -122,7 +122,7 @@
                         <ListBox ItemsSource="{Binding Groups}"
                                  SelectedItem="{Binding SelectedGroup}"
                                  DisplayMemberPath="Name"
-                                 BorderBrush="{DynamicResource ControlStrokeColorDefault}" BorderThickness="1"/>
+                                 BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"/>
                     </DockPanel>
 
                     <!-- 右侧：命令组详情（绑定 SelectedGroup 路径） -->
@@ -160,17 +160,17 @@
                                       AutoGenerateColumns="False"
                                       HeadersVisibility="Column"
                                       GridLinesVisibility="All"
-                                      BorderBrush="{DynamicResource ControlStrokeColorDefault}" BorderThickness="1"
+                                      BorderBrush="{StaticResource Brush.ListBorder}" BorderThickness="1"
                                       RowHeight="28" CanUserAddRows="False">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="步骤名" Binding="{Binding Name}" Width="110"/>
-                                    <DataGridTextColumn Header="命令" Binding="{Binding Command}" Width="*"/>
-                                    <DataGridTextColumn Header="延时(ms)" Binding="{Binding DelayAfterMs}" Width="70"/>
-                                    <DataGridTextColumn Header="超时(ms)" Binding="{Binding TimeoutMs}" Width="70"/>
-                                    <DataGridCheckBoxColumn Header="失败中断" Binding="{Binding StopOnFail}" Width="60"/>
-                                    <DataGridTextColumn Header="输入提示" Binding="{Binding InputPromptsText}" Width="90"/>
-                                    <DataGridTextColumn Header="成功正则" Binding="{Binding SuccessRegex}" Width="95"/>
-                                    <DataGridTextColumn Header="失败正则" Binding="{Binding FailureRegex}" Width="95"/>
+                                    <DataGridTextColumn Header="步骤名" Binding="{Binding Name}" Width="90"/>
+                                    <DataGridTextColumn Header="命令" Binding="{Binding Command}" Width="*" MinWidth="160"/>
+                                    <DataGridTextColumn Header="延时(ms)" Binding="{Binding DelayAfterMs}" Width="60"/>
+                                    <DataGridTextColumn Header="超时(ms)" Binding="{Binding TimeoutMs}" Width="60"/>
+                                    <DataGridCheckBoxColumn Header="失败中断" Binding="{Binding StopOnFail}" Width="50"/>
+                                    <DataGridTextColumn Header="输入提示" Binding="{Binding InputPromptsText}" Width="70"/>
+                                    <DataGridTextColumn Header="成功正则" Binding="{Binding SuccessRegex}" Width="70"/>
+                                    <DataGridTextColumn Header="失败正则" Binding="{Binding FailureRegex}" Width="70"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
@@ -196,7 +196,7 @@
         <DockPanel Grid.Row="2" Margin="0,10,0,0">
             <TextBlock DockPanel.Dock="Left" Text="{Binding SaveMessage}"
                        FontSize="11" VerticalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorTertiary}"/>
+                       Foreground="{StaticResource Brush.TextTertiary}"/>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
                 <ui:Button Content="保存" Width="110" Height="30"
                         Appearance="Primary" Command="{Binding SaveCommand}"/>

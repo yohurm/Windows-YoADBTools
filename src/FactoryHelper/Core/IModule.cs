@@ -20,6 +20,9 @@ public interface IModuleContext
 
     /// <summary>配置存储（按模块 Id 命名空间分文件）</summary>
     ISettingsService Settings { get; }
+
+    /// <summary>应用路径（数据目录/ADB 路径，可设置覆盖）</summary>
+    AppPaths Paths { get; }
 }
 
 /// <summary>

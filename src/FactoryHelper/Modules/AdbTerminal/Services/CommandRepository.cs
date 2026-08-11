@@ -1,5 +1,6 @@
 using System.IO;
 using FactoryHelper.Modules.AdbTerminal.Models;
+using FactoryHelper.Platform;
 
 namespace FactoryHelper.Modules.AdbTerminal.Services;
 
@@ -21,15 +22,19 @@ public class CommandRepository
     private readonly string _configDir;
     private readonly string _libraryPath;
 
-    public CommandRepository()
+    public CommandRepository(AppPaths paths)
     {
-        _configDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config");
+        _configDir = paths.ConfigDir;
         _libraryPath = Path.Combine(_configDir, "library.json");
     }
 
-    /// <summary>加载命令库（首次自动生成内置库；损坏自动备份恢复）</summary>
+    /// <summary>加载命令库（首次自动生成内置库；损坏自动备份恢复；旧位置配置自动迁移）</summary>
     public Task<CommandLibrary> LoadAsync()
     {
+        // v4 迁移：数据目录可配置后，历史版本的 Config 在应用目录（BaseDir/Config/library.json）
+        if (!File.Exists(_libraryPath))
+            MigrateLegacyConfig();
+
         if (!File.Exists(_libraryPath))
         {
             var library = LoadBuiltin();
@@ -77,6 +82,23 @@ public class CommandRepository
     }
 
     // ==================== 内部 ====================
+
+    /// <summary>迁移历史配置：应用目录 Config/library.json → 数据目录（保留用户编辑的命令库）</summary>
+    private void MigrateLegacyConfig()
+    {
+        try
+        {
+            var legacy = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "library.json");
+            if (!File.Exists(legacy))
+                return;
+            Directory.CreateDirectory(_configDir);
+            File.Copy(legacy, _libraryPath, overwrite: false);
+        }
+        catch
+        {
+            // 迁移失败不阻断（下次仍从内置生成）
+        }
+    }
 
     /// <summary>从嵌入资源解压内置命令库（模块自包含）</summary>
     private static CommandLibrary LoadBuiltin()

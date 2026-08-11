@@ -19,7 +19,6 @@ public partial class TerminalViewModel : ObservableObject
 
     private readonly CommandRepository _repository;
     private readonly ExecutionService _execution;
-    private readonly ReportWriter _reports;
     private readonly IDeviceService _devices;
     private readonly ILogService _log;
     private readonly IWindowService _windows;
@@ -84,7 +83,6 @@ public partial class TerminalViewModel : ObservableObject
     public TerminalViewModel(
         CommandRepository repository,
         ExecutionService execution,
-        ReportWriter reports,
         IDeviceService devices,
         ILogService log,
         string moduleId,
@@ -92,7 +90,6 @@ public partial class TerminalViewModel : ObservableObject
     {
         _repository = repository;
         _execution = execution;
-        _reports = reports;
         _devices = devices;
         _log = log;
         _moduleId = moduleId;
@@ -143,7 +140,6 @@ public partial class TerminalViewModel : ObservableObject
             var results = await Task.WhenAll(devices.Select(d => _execution.ExecuteAsync(d.Serial, cmd, inputs)));
             foreach (var r in results)
                 LogResult(r);
-            await _reports.WriteAsync($"单条-{cmd.Name}", results);
         }
         catch (Exception ex)
         {
@@ -185,8 +181,6 @@ public partial class TerminalViewModel : ObservableObject
                     : execResult.AllPassed ? "全部通过" : "存在失败项";
                 _log.Info($"[{device.DisplayName}] 结果: {summary}", _moduleId);
             }
-
-            await _reports.WriteAsync($"命令组-{group.Name}", results.SelectMany(r => r.Results).ToList());
         }
         catch (Exception ex)
         {

@@ -9,6 +9,7 @@ public sealed record AdbProcessResult(string Output, string Error, int ExitCode,
 /// <summary>
 /// ADB 进程服务 — 平台级纯进程调用。
 /// 只负责启动 adb.exe 并返回原始输出/退出码/耗时；成败判定是模块领域规则（CommandEvaluator），不在此层。
+/// 路径解析：用户设置（AppPaths.AdbPathOverride）→ 应用目录 Tools → 嵌入资源解压到数据目录。
 /// </summary>
 public interface IAdbProcessService
 {
@@ -17,6 +18,9 @@ public interface IAdbProcessService
 
     /// <summary>ADB 是否可用</summary>
     bool IsAvailable { get; }
+
+    /// <summary>重新解析路径（设置面板保存后调用，立即生效）</summary>
+    void RefreshPath();
 
     /// <summary>
     /// 执行 ADB 命令。
@@ -28,34 +32,49 @@ public interface IAdbProcessService
 
 public class AdbProcessService : IAdbProcessService
 {
-    private readonly string _adbPath;
+    private readonly AppPaths _paths;
+    private string _adbPath;
 
     public string AdbPath => _adbPath;
     public bool IsAvailable => File.Exists(_adbPath);
 
-    public AdbProcessService()
+    public AdbProcessService(AppPaths paths)
+    {
+        _paths = paths;
+        _adbPath = ResolveAdbPath();
+    }
+
+    public void RefreshPath()
     {
         _adbPath = ResolveAdbPath();
     }
 
     /// <summary>
-    /// 解析 ADB 路径（自包含，不依赖外部环境）：
-    /// 1. 优先应用目录 Tools/adb.exe（开发调试）
-    /// 2. 否则从嵌入资源解压到 %LOCALAPPDATA%\YovoAdbTools\adb\ 使用
+    /// 解析 ADB 路径：
+    /// 1. 用户设置（可指向 adb.exe 或所在目录；无效配置静默回退，不覆盖用户设置）
+    /// 2. 应用目录 Tools/adb.exe（开发调试）
+    /// 3. 嵌入资源解压到 {数据目录}/adb/（单文件发布场景）
     /// </summary>
-    private static string ResolveAdbPath()
+    private string ResolveAdbPath()
     {
-        var appDir = AppDomain.CurrentDomain.BaseDirectory;
-        var localTools = Path.Combine(appDir, "Tools", "adb.exe");
+        // 1. 用户设置
+        var overridePath = _paths.AdbPathOverride;
+        if (!string.IsNullOrWhiteSpace(overridePath))
+        {
+            var exe = Directory.Exists(overridePath) ? Path.Combine(overridePath, "adb.exe") : overridePath;
+            if (File.Exists(exe))
+                return exe;
+        }
+
+        // 2. 应用目录 Tools
+        var localTools = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "adb.exe");
         if (File.Exists(localTools))
             return localTools;
 
-        var adbDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "YovoAdbTools", "adb");
-        var extracted = Path.Combine(adbDir, "adb.exe");
+        // 3. 嵌入资源解压
+        var extracted = Path.Combine(_paths.AdbDir, "adb.exe");
         if (!File.Exists(extracted))
-            ExtractEmbeddedAdb(adbDir);
+            ExtractEmbeddedAdb(_paths.AdbDir);
 
         return File.Exists(extracted) ? extracted : localTools; // 提取失败回退（最终 IsAvailable=false）
     }

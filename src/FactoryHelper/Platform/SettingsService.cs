@@ -99,7 +99,12 @@ public class SettingsService : ISettingsService
         var path = GetPath(moduleId);
         var tempPath = path + ".tmp";
         File.WriteAllText(tempPath, JsonSerializer.Serialize(dict, JsonOptions));
-        File.Replace(tempPath, path, null); // 原子替换
+
+        // 原子替换：目标已存在用 File.Replace；首次写入目标不存在则 Move（File.Replace 要求目标存在）
+        if (File.Exists(path))
+            File.Replace(tempPath, path, null);
+        else
+            File.Move(tempPath, path);
     }
 
     private string GetPath(string moduleId)

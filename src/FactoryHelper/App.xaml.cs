@@ -8,25 +8,24 @@ namespace FactoryHelper;
 
 public partial class App : Application
 {
-    private LogService? _log;
-
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // ===== 平台服务（4 个，手工组装——简单直接，无需容器） =====
-        var adb = new AdbProcessService();
-        var devices = new DeviceService(adb);
-        _log = new LogService();
+        // ===== 平台服务（5 个，手工组装——简单直接，无需容器） =====
         var settings = new SettingsService();
-        var context = new ModuleContext(adb, devices, _log, settings);
+        var paths = new AppPaths(settings);
+        var adb = new AdbProcessService(paths);
+        var devices = new DeviceService(adb);
+        var log = new LogService();
+        var context = new ModuleContext(adb, devices, log, settings, paths);
 
         // ===== 模块注册（新增模块在此登记，Id 唯一性由 ModuleRegistry 强制） =====
         var registry = new ModuleRegistry();
         registry.Register(new AdbTerminalModule());
         registry.InitializeAll(context);
 
-        // ===== Shell =====
+        // ===== Shell（导航 + 设备面板 + 设置） =====
         // 预留模块声明（导航显示"开发中"入口；不占注册路径，未来实现后注册真实模块即自动替换）
         PlannedModule[] planned =
         [
@@ -35,28 +34,25 @@ public partial class App : Application
             new("log-analyzer", "日志分析", ""),
         ];
 
-        var devicePanel = new DevicePanelViewModel(devices, _log);
-        var shell = new ShellViewModel(registry, planned, devicePanel);
+        var devicePanel = new DevicePanelViewModel(devices, log);
+        var settingsVm = new SettingsViewModel(settings, adb, paths);
+        var shell = new ShellViewModel(registry, planned, devicePanel, settingsVm);
         new MainWindow(shell).Show();
 
         // 启动即扫描设备（VM 内部捕获异常，安全 fire-and-forget）
         _ = devicePanel.RefreshCommand.ExecuteAsync(null);
     }
-
-    protected override void OnExit(ExitEventArgs e)
-    {
-        _log?.Dispose(); // 日志后台落盘最终刷新
-        base.OnExit(e);
-    }
 }
 
-/// <summary>模块上下文实现（组合根）：平台向模块暴露的 4 个能力</summary>
+/// <summary>模块上下文实现（组合根）：平台向模块暴露的能力</summary>
 internal class ModuleContext(
-    IAdbProcessService adb, IDeviceService devices, ILogService log, ISettingsService settings)
+    IAdbProcessService adb, IDeviceService devices, ILogService log,
+    ISettingsService settings, AppPaths paths)
     : IModuleContext
 {
     public IAdbProcessService Adb { get; } = adb;
     public IDeviceService Devices { get; } = devices;
     public ILogService Log { get; } = log;
     public ISettingsService Settings { get; } = settings;
+    public AppPaths Paths { get; } = paths;
 }

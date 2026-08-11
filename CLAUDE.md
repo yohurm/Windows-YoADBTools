@@ -13,9 +13,9 @@
 
 ## 核心功能
 1. 设备管理 — 扫描连接设备（一次 `devices -l` 进程调用解析型号）、状态显示、多选并行发送
-2. 命令管理 — 预设命令库、分组分类、单文件 JSON 配置驱动（`Config/library.json` + 版本号 + 损坏自动备份）
+2. 命令管理 — 预设命令库、分组分类、单文件 JSON 配置驱动（数据目录 `Config/library.json` + 版本号 + 损坏自动备份）
 3. 执行引擎 — 单条命令 / 命令组 / 成功判定策略（FailureRegex→SuccessRegex→退出码）
-4. 测试结果 — 执行结果自动落盘 CSV（`%LOCALAPPDATA%\YovoAdbTools\Reports\`）
+4. 设置面板 — 右侧操作面板内的平台面板：ADB 路径（可配置，立即生效）+ 数据目录（可配置，重启生效）
 
 ## 目录结构
 ```
@@ -32,13 +32,13 @@ src/FactoryHelper/
 │   ├── DeviceService.cs       # 设备快照 + 选择会话（不可变 record + 事件）
 │   ├── LogService.cs          # 日志（后台批量落盘 + 按 Source 过滤 + 5MB 轮转）
 │   └── SettingsService.cs     # 配置（按模块命名空间 + 原子写）
-├── Shell/           # 主窗口：ShellViewModel（纯导航）/ DevicePanelViewModel / MainWindow
+├── Shell/           # 主窗口 + 平台面板：ShellViewModel（导航）/ DevicePanelViewModel / SettingsView / MainWindow
 ├── Modules/
 │   └── AdbTerminal/ # 终端模块（自治单元，自持服务与模型）
 │       ├── AdbTerminalModule.cs   # 模块 Id 常量 + Initialize 组装
 │       ├── Models/                # CommandDefinition / CommandGroup / CommandLibrary 等
-│       ├── Services/              # CommandRepository / CommandEvaluator / ExecutionService / ReportWriter
-│       ├── ViewModels/            # TerminalViewModel / CommandManagerViewModel
+│       ├── Services/              # CommandRepository / CommandEvaluator / ExecutionService
+│       ├── ViewModels/            # TerminalViewModel / CommandManagerViewModel / IWindowService
 │       ├── Views/                 # TerminalView / CommandManagerWindow / TagPickerDialog / WindowService
 │       └── Resources/             # library.default.json（内置命令库，嵌入资源）
 ├── Resources/        # UI Token 统一资源（颜色/间距/样式）
@@ -46,12 +46,15 @@ src/FactoryHelper/
 ```
 
 ## 架构约定（v4）
+- **右侧统一操作面板**：导航-内容框架（Navigation-Content）。左侧导航项（业务模块/预留/平台面板）→ 右侧内容区显示对应面板视图；`NavModuleItem { Title, IconGlyph, CreateView }` 三要素统一建模
 - **依赖方向**：`Shell/Modules → Core/Platform`，模块间不互相依赖；模块内 `Views → ViewModels → Services → Models`
-- **模块上下文只暴露平台能力**（Adb/Devices/Log/Settings）；模块业务服务模块内自持
+- **模块上下文只暴露平台能力**（Adb/Devices/Log/Settings/Paths）；模块业务服务模块内自持
 - **编辑即快照**：管理窗口基于深拷贝编辑，保存全量提交，取消零污染
 - **服务层不暴露 UI 类型**（集合/控件）；事件在后台线程，UI 侧用 SynchronizationContext 编组
 - **标签 = Category 纯派生**，无独立标签管理
+- **日志仅内存 + 界面**，不落盘；测试结果不落盘（界面日志即唯一展示）
 - **预留模块**：Shell 层声明 `PlannedModule`（不占注册路径，导航显示"开发中"占位）；未来注册同 Id 真实模块后自动替换
+- **设置**：平台面板（导航"设置"进入），ADB 路径立即生效、数据目录重启生效；路径由 `AppPaths` 统一解析（用户设置 → Tools → 内置解压）
 - 新增模块：实现 IModule（Id/Title/IconGlyph/SortOrder）→ 注册到 App.xaml.cs → 自动出现在导航
 
 ## 构建命令
