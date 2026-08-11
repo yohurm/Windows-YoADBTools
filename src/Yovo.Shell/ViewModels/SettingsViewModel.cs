@@ -8,28 +8,42 @@ using Yovo.Platform.Abstractions.Tools;
 namespace Yovo.Shell.ViewModels;
 
 /// <summary>
-/// 平台设置 ViewModel — ADB 路径 / 数据目录（设置页贡献，Shell 内部注册）。
-/// ADB 路径保存后立即生效（IToolResolver.Refresh）；数据目录重启后生效。
-/// 浏览对话框属轻量 UI 服务（无 View 类型引用），务实保留在 VM。
+/// 平台设置 ViewModel — 自底向上仅保留必要项：
+/// 工具链（ADB / 数据目录）+ 日志分析运行参数（缓冲/显示/采集前清空）。
+/// 键名与日志模块约定对齐（字符串常量，Shell 不引用 Modules 程序集）。
 /// </summary>
 public partial class SettingsViewModel : ObservableObject
 {
     public const string AdbPathKey = "adb.path";
     public const string DataRootKey = "data.root";
 
+    // 与 Yovo.Modules.LogAnalyzer 约定一致（避免 Shell → Modules 依赖）
+    private const string LogModuleId = "log-analyzer";
+    private const string LogBufferKey = "buffer.capacity";
+    private const string LogDisplayKey = "display.limit";
+    private const string LogClearOnStartKey = "clear.device.on.start";
+
+    private static SettingsScope LogScope => SettingsScope.Module(LogModuleId);
+
     private readonly ISettingsStore _settings;
     private readonly IAppPaths _paths;
     private readonly IToolResolver _tools;
 
-    /// <summary>ADB 可执行文件路径（空 = 自动解析）</summary>
     [ObservableProperty]
     private string _adbPath;
 
-    /// <summary>数据目录（空 = 默认 %LOCALAPPDATA%\YovoAdbTools\data）</summary>
     [ObservableProperty]
     private string _dataDir;
 
-    /// <summary>保存反馈消息</summary>
+    [ObservableProperty]
+    private int _logBufferCapacity;
+
+    [ObservableProperty]
+    private int _logDisplayLimit;
+
+    [ObservableProperty]
+    private bool _logClearDeviceOnStart;
+
     [ObservableProperty]
     private string _message = string.Empty;
 
@@ -39,10 +53,13 @@ public partial class SettingsViewModel : ObservableObject
         _paths = paths;
         _tools = tools;
 
-        // 当前生效值（设置值或自动解析结果；IAppPaths.DataRoot 本身即"设置或默认"）
         var overridePath = _settings.Get<string?>(SettingsScope.App, AdbPathKey, null);
         AdbPath = overridePath ?? _tools.Resolve(ToolId.Adb).ExePath;
         DataDir = _settings.Get(SettingsScope.App, DataRootKey, _paths.DataRoot) ?? _paths.DataRoot;
+
+        LogBufferCapacity = _settings.Get(LogScope, LogBufferKey, 50_000);
+        LogDisplayLimit = _settings.Get(LogScope, LogDisplayKey, 2_000);
+        LogClearDeviceOnStart = _settings.Get(LogScope, LogClearOnStartKey, false);
     }
 
     [RelayCommand]
@@ -61,7 +78,6 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void BrowseDataDir()
     {
-        // WinForms 对话框仅此一处使用，全限定避免与 WPF 类型歧义
         var dialog = new System.Windows.Forms.FolderBrowserDialog
         {
             Description = "选择数据目录（命令库/ADB 等文件存放位置）",
@@ -81,11 +97,17 @@ public partial class SettingsViewModel : ObservableObject
         _settings.Set<string?>(SettingsScope.App, AdbPathKey, adbValue);
         _settings.Set<string?>(SettingsScope.App, DataRootKey, dirValue);
 
-        // ADB 路径立即生效；数据目录在启动时读取，重启后生效
+        _settings.Set(LogScope, LogBufferKey, Math.Clamp(LogBufferCapacity, 1_000, 500_000));
+        _settings.Set(LogScope, LogDisplayKey, Math.Clamp(LogDisplayLimit, 500, 50_000));
+        _settings.Set(LogScope, LogClearOnStartKey, LogClearDeviceOnStart);
+
+        LogBufferCapacity = _settings.Get(LogScope, LogBufferKey, 50_000);
+        LogDisplayLimit = _settings.Get(LogScope, LogDisplayKey, 2_000);
+
         _tools.Refresh();
         var current = _tools.Resolve(ToolId.Adb);
         Message = current.IsAvailable
-            ? $"已保存。ADB 路径立即生效；数据目录重启后生效。\n当前 ADB: {current.ExePath}"
+            ? $"已保存。ADB 立即生效；数据目录重启生效；日志参数下次采集生效。\n当前 ADB: {current.ExePath}"
             : "已保存。注意：当前 ADB 路径无效，命令执行将不可用。";
     }
 
@@ -94,10 +116,16 @@ public partial class SettingsViewModel : ObservableObject
     {
         _settings.Set<string?>(SettingsScope.App, AdbPathKey, null);
         _settings.Set<string?>(SettingsScope.App, DataRootKey, null);
+        _settings.Set(LogScope, LogBufferKey, 50_000);
+        _settings.Set(LogScope, LogDisplayKey, 2_000);
+        _settings.Set(LogScope, LogClearOnStartKey, false);
 
         _tools.Refresh();
         AdbPath = _tools.Resolve(ToolId.Adb).ExePath;
         DataDir = _paths.DataRoot;
+        LogBufferCapacity = 50_000;
+        LogDisplayLimit = 2_000;
+        LogClearDeviceOnStart = false;
         Message = "已恢复默认。数据目录重启后生效。";
     }
 }

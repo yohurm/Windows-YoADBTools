@@ -22,6 +22,8 @@
       <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
       <conv:BoolToCaptureTextConverter x:Key="BoolToCaptureText"/>
       <conv:BoolToAppearanceConverter x:Key="BoolToAppearance"/>
+      <conv:BoolToTextWrappingConverter x:Key="BoolToTextWrapping"/>
+      <conv:IntToVisibilityConverter x:Key="IntToVisibility"/>
     </ResourceDictionary>
   </Application.Resources>
 </Application>

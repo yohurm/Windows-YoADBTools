@@ -3,6 +3,7 @@ using Yovo.Platform.Abstractions.Adb;
 using Yovo.Platform.Abstractions.Devices;
 using Yovo.Platform.Abstractions.Logging;
 using Yovo.Platform.Abstractions.Process;
+using Yovo.Platform.Abstractions.Settings;
 
 namespace Yovo.Modules.LogAnalyzer.Application;
 
@@ -15,9 +16,18 @@ namespace Yovo.Modules.LogAnalyzer.Application;
 ///   锁内检查+设置防并发双进程。
 /// 严禁把 logcat 写入 IAppLog（ADR-006：应用日志与设备日志严格分离）。
 /// </summary>
-public class LogcatCaptureService(IAdbStreamingExecutor streaming, IAppLog log)
+public class LogcatCaptureService(
+    IAdbStreamingExecutor streaming,
+    IAppLog log,
+    ISettingsStore? settings = null)
 {
-    private const int BufferCapacity = 50_000;
+    public const string BufferCapacityKey = "buffer.capacity";
+    private const int DefaultBufferCapacity = 50_000;
+
+    private int BufferCapacity => Math.Clamp(
+        settings?.Get(SettingsScope.Module(LogAnalyzerModule.ModuleId), BufferCapacityKey, DefaultBufferCapacity)
+            ?? DefaultBufferCapacity,
+        1_000, 500_000);
 
     /// <summary>一次采集的全量状态（世代绑定，防止旧循环污染新世代）</summary>
     private sealed class CaptureGeneration

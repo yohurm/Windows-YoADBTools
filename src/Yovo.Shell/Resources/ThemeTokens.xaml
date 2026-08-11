@@ -33,6 +33,8 @@
     <Color x:Key="Color.Splitter">#B9C2CC</Color>
     <Color x:Key="Color.SplitterHover">#6E7680</Color>
     <Color x:Key="Color.Disabled">#A8A8A8</Color>
+    <!-- 信号行（崩溃/ANR 等）整行强调背景 -->
+    <Color x:Key="Color.SignalBg">#FDEBEA</Color>
 
     <!-- ===== Brush ===== -->
     <SolidColorBrush x:Key="Brush.NavBg" Color="{StaticResource Color.NavBg}"/>
@@ -55,6 +57,7 @@
     <SolidColorBrush x:Key="Brush.Splitter" Color="{StaticResource Color.Splitter}"/>
     <SolidColorBrush x:Key="Brush.SplitterHover" Color="{StaticResource Color.SplitterHover}"/>
     <SolidColorBrush x:Key="Brush.Disabled" Color="{StaticResource Color.Disabled}"/>
+    <SolidColorBrush x:Key="Brush.SignalBg" Color="{StaticResource Color.SignalBg}"/>
 
     <!-- ===== 字号阶梯（语义化，中文产线） ===== -->
     <FontFamily x:Key="Font.Family">Microsoft YaHei</FontFamily>

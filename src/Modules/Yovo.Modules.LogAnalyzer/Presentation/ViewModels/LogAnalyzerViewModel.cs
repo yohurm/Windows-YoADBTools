@@ -1,24 +1,29 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Text.RegularExpressions;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Yovo.Modules.LogAnalyzer.Application;
 using Yovo.Platform.Abstractions;
+using Yovo.Platform.Abstractions.Adb;
 using Yovo.Platform.Abstractions.Devices;
 using Yovo.Platform.Abstractions.Logging;
+using Yovo.Platform.Abstractions.Settings;
 using Yovo.Platform.Abstractions.Tasks;
 
 namespace Yovo.Modules.LogAnalyzer.Presentation.ViewModels;
 
 /// <summary>
-/// 日志分析 ViewModel — 采集 logcat（流式）、过滤（级别/tag/正则）、暂停/清空/导出。
-/// 性能约束（v5 §13.4）：消费端过滤；UI 侧 100ms 批量节流 + 虚拟化列表；显示上限裁剪。
-/// 设备 SingleRequired（全局焦点）；设备掉线自动停止采集。
+/// 日志分析 ViewModel — 采集（流式）/ 过滤（级别含以上 + Tag + 关键字 + PID）/ 暂停/清空/导出。
+/// P1 迭代（日志分析模块架构）：F20 软换行 / F22 清设备缓冲 / F23 复制 / F25 PID /
+/// F26 信号计数 / F27 过滤变更重放缓冲。
+/// 性能约束：消费端过滤；UI 100ms 批量节流 + 虚拟化；显示上限裁剪（缓冲仍全量）。
 /// </summary>
 public partial class LogAnalyzerViewModel : ObservableObject
 {
-    private const int DisplayLimit = 2000;
+    public const string DisplayLimitKey = "display.limit";
+    public const string ClearDeviceOnStartKey = "clear.device.on.start";
+    private const int DefaultDisplayLimit = 2000;
     private const int BatchIntervalMs = 100;
 
     private readonly LogcatCaptureService _capture;
@@ -28,6 +33,9 @@ public partial class LogAnalyzerViewModel : ObservableObject
     private readonly IUiDispatcher _ui;
     private readonly IBackgroundTaskCenter _tasks;
     private readonly IAppLifecycle _lifecycle;
+    private readonly ISettingsStore _settings;
+    private readonly IAdbCommandExecutor _adb;
+    private readonly int _displayLimit;
     private BackgroundTaskId? _taskId;
     private CancellationTokenSource? _captureCts;
 
@@ -39,11 +47,36 @@ public partial class LogAnalyzerViewModel : ObservableObject
     [ObservableProperty]
     private string _selectedLevel = "全部";
 
+    partial void OnSelectedLevelChanged(string value) => RebuildVisibleFromBuffer();
+
     [ObservableProperty]
     private string _tagFilter = string.Empty;
 
+    partial void OnTagFilterChanged(string value) => RebuildVisibleFromBuffer();
+
+    /// <summary>消息关键字（包含匹配，不区分大小写；不做正则 — F06）</summary>
     [ObservableProperty]
-    private string _regexFilter = string.Empty;
+    private string _keywordFilter = string.Empty;
+
+    partial void OnKeywordFilterChanged(string value) => RebuildVisibleFromBuffer();
+
+    /// <summary>PID 过滤（F25：文本包含匹配）</summary>
+    [ObservableProperty]
+    private string _pidFilter = string.Empty;
+
+    partial void OnPidFilterChanged(string value) => RebuildVisibleFromBuffer();
+
+    /// <summary>软换行（F20：默认开，对齐 AS Soft-Wrap）</summary>
+    [ObservableProperty]
+    private bool _isSoftWrap = true;
+
+    /// <summary>当前选中行（F23 复制用）</summary>
+    [ObservableProperty]
+    private LogcatLine? _selectedLine;
+
+    /// <summary>可见集合中崩溃/异常信号行数（F26）</summary>
+    [ObservableProperty]
+    private int _signalCount;
 
     [ObservableProperty]
     private string _statusText = "选择设备后开始采集";
@@ -58,11 +91,21 @@ public partial class LogAnalyzerViewModel : ObservableObject
     /// <summary>暂停可用性：仅在采集中</summary>
     public bool CanPause => IsCapturing;
 
+    /// <summary>清设备缓冲可用性：有焦点设备</summary>
+    public bool CanClearDeviceBuffer => _hub.ActiveDevice is not null;
+
     partial void OnIsCapturingChanged(bool value) => OnPropertyChanged(nameof(CanPause));
 
     /// <summary>级别过滤选项</summary>
     public IReadOnlyList<string> LevelOptions { get; } =
         ["全部", "V", "D", "I", "W", "E", "F"];
+
+    /// <summary>当前过滤条件快照（LogFilter 纯函数消费）</summary>
+    private LogFilterOptions CurrentFilter => new(
+        SelectedLevel == "全部" ? null : SelectedLevel,
+        TagFilter,
+        KeywordFilter,
+        PidFilter);
 
     public LogAnalyzerViewModel(
         LogcatCaptureService capture,
@@ -71,7 +114,9 @@ public partial class LogAnalyzerViewModel : ObservableObject
         IAppLog log,
         IUiDispatcher ui,
         IBackgroundTaskCenter tasks,
-        IAppLifecycle lifecycle)
+        IAppLifecycle lifecycle,
+        ISettingsStore settings,
+        IAdbCommandExecutor adb)
     {
         _capture = capture;
         _hub = hub;
@@ -80,6 +125,11 @@ public partial class LogAnalyzerViewModel : ObservableObject
         _ui = ui;
         _tasks = tasks;
         _lifecycle = lifecycle;
+        _settings = settings;
+        _adb = adb;
+        _displayLimit = Math.Clamp(
+            _settings.Get(SettingsScope.Module(LogAnalyzerModule.ModuleId), DisplayLimitKey, DefaultDisplayLimit),
+            500, 50_000);
 
         // 设备掉线 / 切换 → 自动停止采集
         _hub.ActiveDeviceChanged += () => _ui.Post(StopIfDeviceGone);
@@ -108,6 +158,13 @@ public partial class LogAnalyzerViewModel : ObservableObject
         _captureCts = CancellationTokenSource.CreateLinkedTokenSource(_lifecycle.ShutdownToken);
         try
         {
+            // 设置：开始前清空设备缓冲（adb logcat -c）
+            if (_settings.Get(SettingsScope.Module(LogAnalyzerModule.ModuleId), ClearDeviceOnStartKey, false))
+            {
+                StatusText = "正在清空设备 log 缓冲…";
+                await _adb.ExecuteAsync(device.Serial, "logcat -c", TimeSpan.FromSeconds(10), _captureCts.Token);
+            }
+
             await _capture.StartAsync(device.Serial, _captureCts.Token);
             _captureSerial = device.Serial; // P1-1：记录采集目标
             IsCapturing = true;
@@ -123,6 +180,46 @@ public partial class LogAnalyzerViewModel : ObservableObject
         }
     }
 
+    /// <summary>清空设备 log 缓冲（F22：即时操作，独立于设置项）</summary>
+    [RelayCommand(CanExecute = nameof(CanClearDeviceBuffer))]
+    private async Task ClearDeviceBufferAsync()
+    {
+        if (_hub.ActiveDevice is not { } device)
+            return;
+        try
+        {
+            StatusText = "正在清空设备 log 缓冲…";
+            await _adb.ExecuteAsync(device.Serial, "logcat -c", TimeSpan.FromSeconds(10), _lifecycle.ShutdownToken);
+            StatusText = "已清空设备 log 缓冲";
+        }
+        catch (Exception ex)
+        {
+            _log.Error($"清空设备缓冲失败: {ex.Message}", LogAnalyzerModule.ModuleId);
+            StatusText = $"清空失败: {ex.Message}";
+        }
+    }
+
+    /// <summary>复制选中行原文（F23）</summary>
+    [RelayCommand]
+    private void CopySelected()
+    {
+        if (SelectedLine is { } line)
+        {
+            Clipboard.SetText(line.Raw);
+            StatusText = "已复制选中行";
+        }
+    }
+
+    /// <summary>复制全部可见行原文（F23）</summary>
+    [RelayCommand]
+    private void CopyVisible()
+    {
+        if (VisibleLines.Count == 0)
+            return;
+        Clipboard.SetText(string.Join('\n', VisibleLines.Select(l => l.Raw)));
+        StatusText = $"已复制 {VisibleLines.Count} 行";
+    }
+
     [RelayCommand(CanExecute = nameof(CanPause))]
     private void Pause()
     {
@@ -136,6 +233,7 @@ public partial class LogAnalyzerViewModel : ObservableObject
     {
         VisibleLines.Clear();
         _capture.ClearBuffer();
+        SignalCount = 0;
         StatusText = "已清空";
     }
 
@@ -148,8 +246,8 @@ public partial class LogAnalyzerViewModel : ObservableObject
             Directory.CreateDirectory(exportDir);
             var file = Path.Combine(exportDir, $"logcat-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
 
-            // 导出过滤后的缓冲快照（过滤逻辑与显示一致）
-            var filtered = _capture.BufferSnapshot().Where(MatchesFilter).ToList();
+            // 导出过滤后的缓冲快照（过滤逻辑与显示一致；缓冲全量可导出）
+            var filtered = _capture.BufferSnapshot().Where(l => LogFilter.Matches(l, CurrentFilter)).ToList();
             File.WriteAllLines(file, filtered.Select(l => l.Raw));
             StatusText = $"已导出 {filtered.Count} 行 → {file}";
         }
@@ -181,7 +279,7 @@ public partial class LogAnalyzerViewModel : ObservableObject
                 if (batch.Count == 0)
                     continue;
 
-                var visible = batch.Where(MatchesFilter).ToList();
+                var visible = batch.Where(l => LogFilter.Matches(l, CurrentFilter)).ToList();
                 if (visible.Count == 0)
                     continue;
 
@@ -192,9 +290,10 @@ public partial class LogAnalyzerViewModel : ObservableObject
                     foreach (var line in visible)
                     {
                         VisibleLines.Add(line);
-                        if (VisibleLines.Count > DisplayLimit)
+                        if (VisibleLines.Count > _displayLimit)
                             VisibleLines.RemoveAt(0); // 显示上限裁剪（缓冲仍全量）
                     }
+                    SignalCount = LogSignalScanner.CountSignals(VisibleLines);
                 });
                 await Task.Delay(BatchIntervalMs);
             }
@@ -204,27 +303,25 @@ public partial class LogAnalyzerViewModel : ObservableObject
         }
     }
 
-    /// <summary>过滤：级别 + tag 包含 + 正则（消费端，避免每行 UI 绑定）</summary>
-    private bool MatchesFilter(LogcatLine line)
+    /// <summary>
+    /// 过滤条件变更 → 从缓冲重放可见列表（F27：级别/Tag/关键字/PID 变更立即生效）。
+    /// 取缓冲尾部 displayLimit 行（保持"最新优先"语义）。
+    /// </summary>
+    private void RebuildVisibleFromBuffer()
     {
-        if (SelectedLevel != "全部" && line.Level != SelectedLevel)
-            return false;
-        if (!string.IsNullOrWhiteSpace(TagFilter) &&
-            !(line.Tag?.Contains(TagFilter.Trim(), StringComparison.OrdinalIgnoreCase) ?? false))
-            return false;
-        if (!string.IsNullOrWhiteSpace(RegexFilter))
+        _ui.Post(() =>
         {
-            try
-            {
-                if (!Regex.IsMatch(line.Message, RegexFilter, RegexOptions.IgnoreCase))
-                    return false;
-            }
-            catch
-            {
-                // 无效正则视为不过滤
-            }
-        }
-        return true;
+            var filtered = _capture.BufferSnapshot()
+                .Where(l => LogFilter.Matches(l, CurrentFilter))
+                .ToList();
+            // 尾部截断：保留最新的 displayLimit 行
+            var take = filtered.Count > _displayLimit ? filtered.GetRange(filtered.Count - _displayLimit, _displayLimit) : filtered;
+
+            VisibleLines.Clear();
+            foreach (var line in take)
+                VisibleLines.Add(line);
+            SignalCount = LogSignalScanner.CountSignals(VisibleLines);
+        });
     }
 
     /// <summary>
