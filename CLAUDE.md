@@ -37,8 +37,8 @@
 docs/
 ├── requirements/    # 需求文档
 └── architecture/
-    ├── 架构设计-v5.md   # 现行架构（v5 模块化单体）
-    └── UI联调审查报告.md # UI 缺陷清单与验收（P0-P2 已修复，第 8 节回归清单）
+    ├── 架构设计-v5.md       # 现行架构（v5 模块化单体）
+    └── 日志分析模块架构.md   # 日志分析模块规格（P0 基线 + P1 迭代 A/B 已落地）
 src/
 ├── Yovo.Host/                  # 组合根：App / ModuleCatalog / 启动与退出序列
 ├── Yovo.Shell/                 # 工作台壳：MainWindow / 导航 / 设备栏 / 状态栏 / ViewLocator / WindowService / ThemeTokens
