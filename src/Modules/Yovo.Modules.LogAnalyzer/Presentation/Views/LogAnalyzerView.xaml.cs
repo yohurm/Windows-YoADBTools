@@ -108,7 +108,9 @@ public partial class LogAnalyzerView : UserControl
 
     private void OnLogScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        var scrollViewer = (ScrollViewer)sender;
+        // 附加事件注册在 ListView 上，实际触发者是模板内部 ScrollViewer（OriginalSource）
+        if (e.OriginalSource is not ScrollViewer scrollViewer)
+            return;
         var atBottom = Math.Abs(e.VerticalOffset + e.ViewportHeight - e.ExtentHeight) < 1;
 
         if (atBottom)
