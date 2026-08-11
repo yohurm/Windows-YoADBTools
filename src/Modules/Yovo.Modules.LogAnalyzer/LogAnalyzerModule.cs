@@ -28,6 +28,7 @@ public sealed class LogAnalyzerModule : IModule
     public void ConfigureServices(IServiceCollection services, IModuleHostContext host)
     {
         services.AddSingleton<LogcatCaptureService>();
+        services.AddSingleton<LogPresetStore>();
         services.AddSingleton<LogAnalyzerViewModel>();
     }
 

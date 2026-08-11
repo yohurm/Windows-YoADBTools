@@ -10,8 +10,10 @@ namespace Yovo.Platform.Adb;
 /// <summary>
 /// ADB 客户端实现 — 四个能力切片的进程落地。
 /// adbArgs 不含 adb 路径（ToolResolver 注入）；成败判定永远不在此层（模块领域规则）。
+/// 并发限流（§10.1）：文本命令与流式两个最外层入口 acquire 槽位；
+/// 传输经 ExecuteStreamingAsync 自动受限（不嵌套 acquire，避免信号量死锁）。
 /// </summary>
-public partial class AdbClient(IProcessRunner runner, IToolResolver tools) : IAdbClient
+public partial class AdbClient(IProcessRunner runner, IToolResolver tools, IAdbConcurrencyLimiter limiter) : IAdbClient
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
     private static readonly Encoding Utf8 = Encoding.UTF8;
@@ -20,6 +22,8 @@ public partial class AdbClient(IProcessRunner runner, IToolResolver tools) : IAd
         DeviceSerial? serial, string adbArgs,
         TimeSpan? timeout = null, CancellationToken ct = default)
     {
+        using var slot = await limiter.AcquireAsync(ct); // 最外层入口：占用并发槽位
+
         var tool = tools.Resolve(ToolId.Adb);
         if (!tool.IsAvailable)
             throw new InvalidOperationException($"adb 不可用: {tool.ExePath}");
@@ -35,19 +39,27 @@ public partial class AdbClient(IProcessRunner runner, IToolResolver tools) : IAd
         return new AdbTextResult(result.Output, result.Error, result.ExitCode, result.ElapsedMs);
     }
 
-    public Task<IStreamingProcess> ExecuteStreamingAsync(
+    public async Task<IStreamingProcess> ExecuteStreamingAsync(
         DeviceSerial? serial, string adbArgs, CancellationToken ct = default)
     {
+        var slot = await limiter.AcquireAsync(ct); // 最外层入口：占用槽位（传输/流式共享）
+
         var tool = tools.Resolve(ToolId.Adb);
         if (!tool.IsAvailable)
+        {
+            slot.Dispose();
             throw new InvalidOperationException($"adb 不可用: {tool.ExePath}");
+        }
 
         var spec = new ProcessSpec(
             tool.ExePath,
             BuildArgs(serial, adbArgs),
             StdOutEncoding: Utf8,
             StdErrEncoding: Utf8);
-        return runner.StartStreamingAsync(spec, ct);
+        var streaming = await runner.StartStreamingAsync(spec, ct);
+
+        // 槽位随流式进程生命周期：Dispose 时释放（长采集期间保持占用，防止打爆 adb server）
+        return new SlotHoldingStream(streaming, slot);
     }
 
     // ==================== 传输（push/pull + 进度） ====================
@@ -135,6 +147,25 @@ public partial class AdbClient(IProcessRunner runner, IToolResolver tools) : IAd
 
     /// <summary>参数引号包裹（序列号/路径含空格；内部引号转义防参数截断，M8）</summary>
     private static string QuoteArg(string value) => $"\"{value.Replace("\"", "\\\"")}\"";
+
+    /// <summary>
+    /// 流式进程包装：持有并发槽位，随进程 Dispose 释放（长采集期间占用槽位，防打爆 adb server）。
+    /// </summary>
+    private sealed class SlotHoldingStream(IStreamingProcess inner, IDisposable slot) : IStreamingProcess
+    {
+        public IAsyncEnumerable<ProcessOutputChunk> Output => inner.Output;
+
+        public Task<int> WaitForExitAsync(CancellationToken ct = default)
+            => inner.WaitForExitAsync(ct);
+
+        public void Kill() => inner.Kill();
+
+        public async ValueTask DisposeAsync()
+        {
+            slot.Dispose();
+            await inner.DisposeAsync();
+        }
+    }
 
     /// <summary>adb 进度行："/sdcard/x.bin: 45% | 1234/5678 | 0:00:01"（老格式无总量）</summary>
     [GeneratedRegex(@"(?<percent>\d+)% \| (?<done>\d+)/(?<total>\d+)", RegexOptions.Compiled)]

@@ -39,6 +39,9 @@ public static class PlatformServiceCollection
         services.AddSingleton<IProcessRunner, ProcessRunner>();
         services.AddSingleton<IToolResolver, ToolResolver>();
 
+        // ADB 并发限流（§10.1：默认并行度 4，设置 adb.concurrency 可调）
+        services.AddSingleton<IAdbConcurrencyLimiter, AdbConcurrencyLimiter>();
+
         // ADB 客户端：实现单例，五个接口面共享同一实例（ISP 切片）
         services.AddSingleton<AdbClient>();
         services.AddSingleton<IAdbClient>(sp => sp.GetRequiredService<AdbClient>());

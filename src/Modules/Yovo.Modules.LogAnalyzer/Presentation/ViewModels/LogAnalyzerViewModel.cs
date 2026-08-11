@@ -35,6 +35,7 @@ public partial class LogAnalyzerViewModel : ObservableObject
     private readonly IAppLifecycle _lifecycle;
     private readonly ISettingsStore _settings;
     private readonly IAdbCommandExecutor _adb;
+    private readonly LogPresetStore _presetStore;
     private readonly int _displayLimit;
     private BackgroundTaskId? _taskId;
     private CancellationTokenSource? _captureCts;
@@ -42,7 +43,8 @@ public partial class LogAnalyzerViewModel : ObservableObject
     /// <summary>正在采集的设备（P1-1：焦点切换为其他设备时停采）</summary>
     private DeviceSerial? _captureSerial;
 
-    public ObservableCollection<LogcatLine> VisibleLines { get; } = [];
+    /// <summary>可见列表（F34：连续栈帧折叠为单行）</summary>
+    public ObservableCollection<DisplayLine> VisibleLines { get; } = [];
 
     [ObservableProperty]
     private string _selectedLevel = "全部";
@@ -72,7 +74,28 @@ public partial class LogAnalyzerViewModel : ObservableObject
 
     /// <summary>当前选中行（F23 复制用）</summary>
     [ObservableProperty]
-    private LogcatLine? _selectedLine;
+    private DisplayLine? _selectedLine;
+
+    /// <summary>命名过滤预设（F31）</summary>
+    public ObservableCollection<LogPreset> Presets { get; } = [];
+
+    [ObservableProperty]
+    private LogPreset? _selectedPreset;
+
+    /// <summary>预设名输入回调（View 注入；null = 跳过保存）</summary>
+    public Func<string>? PromptPresetName { get; set; }
+
+    partial void OnSelectedPresetChanged(LogPreset? value)
+    {
+        if (value is null)
+            return;
+        // 应用预设 → 触发各过滤属性变更 → 重放缓冲
+        SelectedLevel = value.Level;
+        TagFilter = value.Tag;
+        KeywordFilter = value.Keyword;
+        PidFilter = value.Pid;
+        StatusText = $"已应用预设: {value.Name}";
+    }
 
     /// <summary>可见集合中崩溃/异常信号行数（F26）</summary>
     [ObservableProperty]
@@ -116,7 +139,8 @@ public partial class LogAnalyzerViewModel : ObservableObject
         IBackgroundTaskCenter tasks,
         IAppLifecycle lifecycle,
         ISettingsStore settings,
-        IAdbCommandExecutor adb)
+        IAdbCommandExecutor adb,
+        LogPresetStore presetStore)
     {
         _capture = capture;
         _hub = hub;
@@ -127,9 +151,14 @@ public partial class LogAnalyzerViewModel : ObservableObject
         _lifecycle = lifecycle;
         _settings = settings;
         _adb = adb;
+        _presetStore = presetStore;
         _displayLimit = Math.Clamp(
             _settings.Get(SettingsScope.Module(LogAnalyzerModule.ModuleId), DisplayLimitKey, DefaultDisplayLimit),
             500, 50_000);
+
+        // 加载命名过滤预设（F31）
+        foreach (var preset in _presetStore.Load())
+            Presets.Add(preset);
 
         // 设备掉线 / 切换 → 自动停止采集
         _hub.ActiveDeviceChanged += () => _ui.Post(StopIfDeviceGone);
@@ -137,6 +166,44 @@ public partial class LogAnalyzerViewModel : ObservableObject
 
         // 消费端节流：后台循环批量取行（100ms），编组回 UI 线程追加
         _ = DrainLoopAsync();
+    }
+
+    /// <summary>保存当前过滤条件为命名预设（F31；名称由 View 输入框提供）</summary>
+    [RelayCommand]
+    private void SavePreset()
+    {
+        if (PromptPresetName is not { } prompt)
+            return;
+        var name = prompt();
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        var preset = new LogPreset(
+            name.Trim(),
+            SelectedLevel,
+            TagFilter.Trim(),
+            KeywordFilter.Trim(),
+            PidFilter.Trim());
+        if (Presets.FirstOrDefault(p => p.Name == preset.Name) is { } existing)
+            Presets.Remove(existing);
+        Presets.Add(preset);
+        SelectedPreset = preset;
+        StatusText = _presetStore.Save(Presets.ToList())
+            ? $"已保存预设: {preset.Name}"
+            : "预设保存失败";
+    }
+
+    /// <summary>删除当前选中预设（F31）</summary>
+    [RelayCommand]
+    private void DeletePreset()
+    {
+        if (SelectedPreset is not { } preset)
+            return;
+        Presets.Remove(preset);
+        SelectedPreset = null;
+        StatusText = _presetStore.Save(Presets.ToList())
+            ? $"已删除预设: {preset.Name}"
+            : "预设删除失败";
     }
 
     [RelayCommand]
@@ -205,7 +272,7 @@ public partial class LogAnalyzerViewModel : ObservableObject
     {
         if (SelectedLine is { } line)
         {
-            Clipboard.SetText(line.Raw);
+            Clipboard.SetText(line.FullRaw); // 折叠行复制完整原文（F34）
             StatusText = "已复制选中行";
         }
     }
@@ -216,7 +283,7 @@ public partial class LogAnalyzerViewModel : ObservableObject
     {
         if (VisibleLines.Count == 0)
             return;
-        Clipboard.SetText(string.Join('\n', VisibleLines.Select(l => l.Raw)));
+        Clipboard.SetText(string.Join('\n', VisibleLines.Select(l => l.FullRaw))); // 折叠行输出完整原文（F34）
         StatusText = $"已复制 {VisibleLines.Count} 行";
     }
 
@@ -258,6 +325,37 @@ public partial class LogAnalyzerViewModel : ObservableObject
         }
     }
 
+    /// <summary>导出 JSON（F32）：当前可见行（含折叠完整原文）结构化输出</summary>
+    [RelayCommand]
+    private void ExportJson()
+    {
+        try
+        {
+            var exportDir = Path.Combine(_paths.ModuleData(LogAnalyzerModule.ModuleId), "exports");
+            Directory.CreateDirectory(exportDir);
+            var file = Path.Combine(exportDir, $"logcat-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+
+            var entries = VisibleLines.Select(d => new
+            {
+                d.Primary.Timestamp,
+                d.Primary.Pid,
+                d.Primary.Tid,
+                d.Primary.Level,
+                d.Primary.Tag,
+                Message = d.FullRaw, // 折叠行输出完整原文（F34）
+                Collapsed = d.CollapsedCount
+            });
+            File.WriteAllText(file, System.Text.Json.JsonSerializer.Serialize(entries,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            StatusText = $"已导出 JSON {VisibleLines.Count} 行 → {file}";
+        }
+        catch (Exception ex)
+        {
+            _log.Error($"导出 JSON 失败: {ex.Message}", LogAnalyzerModule.ModuleId);
+            StatusText = $"导出 JSON 失败: {ex.Message}";
+        }
+    }
+
     // ==================== 内部 ====================
 
     /// <summary>
@@ -287,13 +385,14 @@ public partial class LogAnalyzerViewModel : ObservableObject
                 {
                     if (IsPaused)
                         return;
-                    foreach (var line in visible)
+                    // F34：连续栈帧折叠为单行后追加
+                    foreach (var display in LogStackCollapser.Collapse(visible))
                     {
-                        VisibleLines.Add(line);
+                        VisibleLines.Add(display);
                         if (VisibleLines.Count > _displayLimit)
                             VisibleLines.RemoveAt(0); // 显示上限裁剪（缓冲仍全量）
                     }
-                    SignalCount = LogSignalScanner.CountSignals(VisibleLines);
+                    SignalCount = LogSignalScanner.CountSignals(VisibleLines.Select(d => d.Primary));
                 });
                 await Task.Delay(BatchIntervalMs);
             }
@@ -314,13 +413,15 @@ public partial class LogAnalyzerViewModel : ObservableObject
             var filtered = _capture.BufferSnapshot()
                 .Where(l => LogFilter.Matches(l, CurrentFilter))
                 .ToList();
-            // 尾部截断：保留最新的 displayLimit 行
+            // 尾部截断：保留最新的 displayLimit 行（F27）
             var take = filtered.Count > _displayLimit ? filtered.GetRange(filtered.Count - _displayLimit, _displayLimit) : filtered;
 
+            // F34：重放同样折叠连续栈帧
+            var collapsed = LogStackCollapser.Collapse(take);
             VisibleLines.Clear();
-            foreach (var line in take)
-                VisibleLines.Add(line);
-            SignalCount = LogSignalScanner.CountSignals(VisibleLines);
+            foreach (var display in collapsed)
+                VisibleLines.Add(display);
+            SignalCount = LogSignalScanner.CountSignals(VisibleLines.Select(d => d.Primary));
         });
     }
 

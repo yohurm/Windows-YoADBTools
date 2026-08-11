@@ -5,8 +5,10 @@
              xmlns:beh="clr-namespace:Yovo.Modules.LogAnalyzer.Presentation.Views"
              FontFamily="{StaticResource Font.Family}">
 
-    <Grid Margin="{StaticResource Padding.Page}">
+    <Grid Margin="{StaticResource Padding.Page}"
+          Keyboard.KeyDown="OnKeyDown">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -28,6 +30,8 @@
                            Appearance="Secondary" Margin="0,0,10,0" Icon="FluentEraser24"/>
                 <ui:Button Content="导出" Command="{Binding ExportCommand}"
                            Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSave24"/>
+                <ui:Button Content="导出 JSON" Command="{Binding ExportJsonCommand}"
+                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSaveEdit24"/>
                 <ui:Button Content="复制选中" Command="{Binding CopySelectedCommand}"
                            Appearance="Secondary" Margin="0,0,10,0" Icon="FluentCopy24"/>
                 <ui:Button Content="复制可见" Command="{Binding CopyVisibleCommand}"
@@ -38,8 +42,21 @@
             </StackPanel>
         </DockPanel>
 
+        <!-- 过滤预设行（F31）：下拉应用 / 保存当前 / 删除 -->
+        <DockPanel Grid.Row="1" Margin="0,0,0,8">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <ui:Button Content="保存预设" Command="{Binding SavePresetCommand}"
+                           Appearance="Secondary" Margin="0,0,8,0" Padding="8,3" Height="30"/>
+                <ui:Button Content="删除预设" Command="{Binding DeletePresetCommand}"
+                           Appearance="Secondary" Padding="8,3" Height="30"/>
+            </StackPanel>
+            <TextBlock DockPanel.Dock="Left" Text="预设" Style="{StaticResource FieldLabelStyle}" Margin="0,0,8,0"/>
+            <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}"
+                      DisplayMemberPath="Name" Height="30"/>
+        </DockPanel>
+
         <!-- 过滤行：级别（含以上）+ Tag + 关键字 + PID（均即时生效，无正则） -->
-        <Grid Grid.Row="1" Margin="0,0,0,10">
+        <Grid Grid.Row="2" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="100"/>
@@ -59,15 +76,15 @@
             <ui:TextBox Grid.Column="3" Text="{Binding TagFilter, UpdateSourceTrigger=PropertyChanged}"
                         Style="{StaticResource InputBoxStyle}" ToolTip="按 Tag 包含过滤（如 ActivityManager）"/>
             <TextBlock Grid.Column="4" Text="关键字" Style="{StaticResource FieldLabelStyle}" Margin="12,0,8,0"/>
-            <ui:TextBox Grid.Column="5" Text="{Binding KeywordFilter, UpdateSourceTrigger=PropertyChanged}"
-                        Style="{StaticResource InputBoxStyle}" ToolTip="按消息内容包含过滤（不区分大小写），命中行内高亮"/>
+            <ui:TextBox x:Name="KeywordBox" Grid.Column="5" Text="{Binding KeywordFilter, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource InputBoxStyle}" ToolTip="按消息内容包含过滤（不区分大小写），命中行内高亮（Ctrl+F 聚焦）"/>
             <TextBlock Grid.Column="6" Text="PID" Style="{StaticResource FieldLabelStyle}" Margin="12,0,8,0"/>
             <ui:TextBox Grid.Column="7" Text="{Binding PidFilter, UpdateSourceTrigger=PropertyChanged}"
                         Style="{StaticResource InputBoxStyle}" ToolTip="按进程 PID 过滤（包含匹配）"/>
         </Grid>
 
         <!-- 日志列表（虚拟化 + 附加属性渲染：级别色/关键字高亮/信号强调 + 自动滚底） -->
-        <Border Grid.Row="2" Style="{StaticResource PanelBorderStyle}" Padding="0">
+        <Border Grid.Row="3" Style="{StaticResource PanelBorderStyle}" Padding="0">
             <ListView x:Name="LogList"
                       ItemsSource="{Binding VisibleLines}"
                       SelectedItem="{Binding SelectedLine}"
@@ -97,7 +114,7 @@
         </Border>
 
         <!-- 底部状态：采集点 + 信号计数 + 文案 -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,8,0,0">
             <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
                 <Ellipse.Style>
                     <Style TargetType="Ellipse">

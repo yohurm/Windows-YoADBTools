@@ -16,7 +16,7 @@ public static class LogLineHighlight
 {
     public static readonly DependencyProperty LineProperty =
         DependencyProperty.RegisterAttached(
-            "Line", typeof(LogcatLine), typeof(LogLineHighlight),
+            "Line", typeof(DisplayLine), typeof(LogLineHighlight),
             new PropertyMetadata(null, OnChanged));
 
     public static readonly DependencyProperty KeywordProperty =
@@ -24,8 +24,8 @@ public static class LogLineHighlight
             "Keyword", typeof(string), typeof(LogLineHighlight),
             new PropertyMetadata(null, OnChanged));
 
-    public static LogcatLine? GetLine(DependencyObject obj) => (LogcatLine?)obj.GetValue(LineProperty);
-    public static void SetLine(DependencyObject obj, LogcatLine? value) => obj.SetValue(LineProperty, value);
+    public static DisplayLine? GetLine(DependencyObject obj) => (DisplayLine?)obj.GetValue(LineProperty);
+    public static void SetLine(DependencyObject obj, DisplayLine? value) => obj.SetValue(LineProperty, value);
 
     public static string? GetKeyword(DependencyObject obj) => (string?)obj.GetValue(KeywordProperty);
     public static void SetKeyword(DependencyObject obj, string? value) => obj.SetValue(KeywordProperty, value);
@@ -38,9 +38,10 @@ public static class LogLineHighlight
 
     private static void Rebuild(TextBlock textBlock)
     {
-        if (GetLine(textBlock) is not { } line)
+        if (GetLine(textBlock) is not { } display)
             return;
 
+        var line = display.Primary;
         textBlock.Inlines.Clear();
         var isSignal = LogSignalScanner.IsSignal(line);
         var keyword = GetKeyword(textBlock)?.Trim();
@@ -58,6 +59,10 @@ public static class LogLineHighlight
 
         // 消息段：按关键字行内高亮（F24，OrdinalIgnoreCase 包含，非正则）
         AppendMessage(textBlock, line.Message, keyword);
+
+        // F34：折叠摘要（+N 行堆栈）以弱化色追加
+        if (display.CollapsedCount > 0)
+            Add(textBlock, display.CollapsedSummary, ResolveBrush(textBlock, "Brush.TextTertiary"));
     }
 
     private static void AppendMessage(TextBlock textBlock, string message, string? keyword)
