@@ -36,6 +36,14 @@ public partial class DevicePanelViewModel : INotifyPropertyChanged
         set { _statusText = value; OnPropertyChanged(); }
     }
 
+    private bool _isDevicesExpanded = true;
+    /// <summary>设备列表展开状态（标题行折叠按钮，产线多设备时释放导航空间）</summary>
+    public bool IsDevicesExpanded
+    {
+        get => _isDevicesExpanded;
+        set { _isDevicesExpanded = value; OnPropertyChanged(); }
+    }
+
     public DevicePanelViewModel(IDeviceService devices, ILogService log)
     {
         _devices = devices;

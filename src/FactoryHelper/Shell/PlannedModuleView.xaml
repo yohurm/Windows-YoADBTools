@@ -1,0 +1,19 @@
+<UserControl x:Class="FactoryHelper.Shell.PlannedModuleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- "开发中"占位视图 — 全部走 Token（SymbolIcon + 字号阶梯 + 语义色） -->
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+        <TextBlock Text="&#xE8FF;" FontFamily="Segoe MDL2 Assets" FontSize="40"
+                   Foreground="{StaticResource Brush.TextTertiary}"
+                   HorizontalAlignment="Center" Margin="0,0,0,12"/>
+        <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                   FontSize="{StaticResource Font.Size.Subtitle}" FontWeight="SemiBold"
+                   Foreground="{StaticResource Brush.TextSecondary}"
+                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+        <TextBlock Text="该功能模块开发中，敬请期待"
+                   FontSize="{StaticResource Font.Size.Caption}"
+                   Foreground="{StaticResource Brush.TextTertiary}"
+                   HorizontalAlignment="Center"/>
+    </StackPanel>
+</UserControl>
