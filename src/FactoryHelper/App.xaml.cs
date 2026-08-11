@@ -27,8 +27,16 @@ public partial class App : Application
         registry.InitializeAll(context);
 
         // ===== Shell =====
+        // 预留模块声明（导航显示"开发中"入口；不占注册路径，未来实现后注册真实模块即自动替换）
+        PlannedModule[] planned =
+        [
+            new("screen-mirror", "投屏显示", ""),
+            new("file-manager", "文件管理", ""),
+            new("log-analyzer", "日志分析", ""),
+        ];
+
         var devicePanel = new DevicePanelViewModel(devices, _log);
-        var shell = new ShellViewModel(registry, devicePanel);
+        var shell = new ShellViewModel(registry, planned, devicePanel);
         new MainWindow(shell).Show();
 
         // 启动即扫描设备（VM 内部捕获异常，安全 fire-and-forget）

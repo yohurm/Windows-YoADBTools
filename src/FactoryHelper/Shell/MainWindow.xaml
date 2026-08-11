@@ -35,8 +35,7 @@
                 ClipToBounds="True"
                 Background="{StaticResource Brush.NavBg}"
                 BorderBrush="{StaticResource Brush.PanelBorder}"
-                BorderThickness="0,0,1,0"
-                DataContext="{Binding DevicePanel}">
+                BorderThickness="0,0,1,0">
             <DockPanel Margin="0,8,0,0" MaxWidth="220">
                 <!-- 平台标题 -->
                 <StackPanel DockPanel.Dock="Top" Margin="20,0,16,12">
@@ -48,8 +47,9 @@
                                MaxWidth="184" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
 
-                <!-- 设备面板 -->
-                <StackPanel DockPanel.Dock="Top" Margin="12,0,12,12">
+                <!-- 设备面板（局部 DataContext：设备绑定解析到 DevicePanel，不影响模块导航） -->
+                <StackPanel DockPanel.Dock="Top" Margin="12,0,12,12"
+                            DataContext="{Binding DevicePanel}">
                     <DockPanel Margin="0,0,0,6">
                         <TextBlock Text="设备" FontWeight="SemiBold" FontSize="12.5"
                                    Foreground="{StaticResource Brush.TextPrimary}"

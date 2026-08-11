@@ -51,6 +51,7 @@ src/FactoryHelper/
 - **编辑即快照**：管理窗口基于深拷贝编辑，保存全量提交，取消零污染
 - **服务层不暴露 UI 类型**（集合/控件）；事件在后台线程，UI 侧用 SynchronizationContext 编组
 - **标签 = Category 纯派生**，无独立标签管理
+- **预留模块**：Shell 层声明 `PlannedModule`（不占注册路径，导航显示"开发中"占位）；未来注册同 Id 真实模块后自动替换
 - 新增模块：实现 IModule（Id/Title/IconGlyph/SortOrder）→ 注册到 App.xaml.cs → 自动出现在导航
 
 ## 构建命令
