@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yovo.Modules.AdbTerminal.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yovo.Modules.LogAnalyzer.Tests", "tests\Yovo.Modules.LogAnalyzer.Tests\Yovo.Modules.LogAnalyzer.Tests.csproj", "{C128B83D-7AD8-4B94-9EC8-59B443B097EB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yovo.Modules.FileManager.Tests", "tests\Yovo.Modules.FileManager.Tests\Yovo.Modules.FileManager.Tests.csproj", "{97ED215E-E1A8-4434-A51B-296066342203}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -84,6 +86,10 @@ Global
 		{C128B83D-7AD8-4B94-9EC8-59B443B097EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C128B83D-7AD8-4B94-9EC8-59B443B097EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C128B83D-7AD8-4B94-9EC8-59B443B097EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97ED215E-E1A8-4434-A51B-296066342203}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97ED215E-E1A8-4434-A51B-296066342203}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97ED215E-E1A8-4434-A51B-296066342203}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97ED215E-E1A8-4434-A51B-296066342203}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{001C63B3-3455-4578-8685-3C4F23754AC5} = {F8A46E4E-8C3C-4095-BB43-DAA61B04CAA2}
@@ -98,5 +104,6 @@ Global
 		{6A6D1C2C-139F-41DB-9997-A9DF3AB99B50} = {DB4C3237-5C66-4B48-9DC6-AB2AB7A63F7D}
 		{DCFA4FF7-F9D9-4569-AB3F-6C67E4E46880} = {DB4C3237-5C66-4B48-9DC6-AB2AB7A63F7D}
 		{C128B83D-7AD8-4B94-9EC8-59B443B097EB} = {DB4C3237-5C66-4B48-9DC6-AB2AB7A63F7D}
+		{97ED215E-E1A8-4434-A51B-296066342203} = {DB4C3237-5C66-4B48-9DC6-AB2AB7A63F7D}
 	EndGlobalSection
 EndGlobal

@@ -22,8 +22,8 @@ public sealed class FileManagerModule : IModule
         "文件管理",
         "", // Segoe MDL2: 文件夹图标
         SortOrder: 10,
-        ModuleCapability.MainView | ModuleCapability.BackgroundRunnable | ModuleCapability.MultiDeviceSupported,
-        DeviceSelectionMode.SingleRequired);
+        ModuleCapability.MainView | ModuleCapability.BackgroundRunnable | ModuleCapability.SingleDevicePreferred,
+        DeviceSelectionMode.SingleRequired); // L6：能力位与 SingleRequired 模式一致
 
     public void ConfigureServices(IServiceCollection services, IModuleHostContext host)
     {

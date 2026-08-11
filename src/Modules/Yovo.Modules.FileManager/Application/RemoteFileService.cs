@@ -33,9 +33,13 @@ public partial class RemoteFileService(IAdbCommandExecutor adb)
             if (name is "." or "..")
                 continue; // 导航由路径模型负责（Parent/Combine）
 
+            // Combine 返回 null = 名称非法（穿越/绝对段），防御性跳过（C3）
+            if (path.Combine(name) is not { } childPath)
+                continue;
+
             entries.Add(new RemoteEntry(
                 name,
-                path.Combine(name),
+                childPath,
                 isDirectory,
                 long.TryParse(sizeText, out var size) ? size : null,
                 null)); // Modified：ls -la 日期解析跨 locale 脆弱，MVP 不展示精确时间

@@ -67,7 +67,10 @@ public class CommandRepository
         }
     }
 
-    /// <summary>保存命令库（原子写；成功触发 LibraryChanged）</summary>
+    /// <summary>
+    /// 保存命令库（原子写；成功触发 LibraryChanged）。
+    /// 原子替换兼容首写（H3）：目标存在用 File.Replace，不存在则 Move（Replace 要求目标存在）。
+    /// </summary>
     public async Task<SaveResult> SaveAsync(CommandLibrary library)
     {
         try
@@ -75,7 +78,10 @@ public class CommandRepository
             Directory.CreateDirectory(_configDir);
             var tempPath = _libraryPath + ".tmp";
             await File.WriteAllTextAsync(tempPath, library.ToJson());
-            File.Replace(tempPath, _libraryPath, null); // 原子替换
+            if (File.Exists(_libraryPath))
+                File.Replace(tempPath, _libraryPath, null); // 原子替换（目标已存在）
+            else
+                File.Move(tempPath, _libraryPath);           // 首次写入（目标不存在）
             _log.Info($"命令库已保存: {library.Commands.Count} 条命令, {library.Groups.Count} 个命令组", _source);
         }
         catch (Exception ex)

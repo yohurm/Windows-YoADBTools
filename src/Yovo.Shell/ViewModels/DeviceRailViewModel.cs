@@ -19,7 +19,6 @@ public partial class DeviceRailViewModel : ObservableObject
     private readonly IDeviceSessionHub _hub;
     private readonly IAppLog _log;
     private readonly IUiDispatcher _ui;
-    private readonly SynchronizationContext _sync;
 
     /// <summary>当前激活模块的选择模式（导航切换时更新）</summary>
     private string _currentModuleId = string.Empty;
@@ -57,7 +56,6 @@ public partial class DeviceRailViewModel : ObservableObject
         _hub = hub;
         _log = log;
         _ui = ui;
-        _sync = SynchronizationContext.Current ?? new SynchronizationContext();
 
         // UI 选择 → 会话中枢（防重入：回填期间不写回）
         SelectedDevices.CollectionChanged += (_, _) =>

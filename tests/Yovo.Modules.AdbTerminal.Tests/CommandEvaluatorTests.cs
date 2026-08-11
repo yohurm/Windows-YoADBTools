@@ -1,4 +1,5 @@
 using Yovo.Modules.AdbTerminal.Application;
+using Yovo.Modules.AdbTerminal.Domain;
 using Xunit;
 
 namespace Yovo.Modules.AdbTerminal.Tests;
@@ -6,6 +7,22 @@ namespace Yovo.Modules.AdbTerminal.Tests;
 /// <summary>成功判定策略（FailureRegex → SuccessRegex → 退出码）</summary>
 public class CommandEvaluatorTests
 {
+    // ===== EvaluateSource：判定来源分离（M1） =====
+
+    [Fact]
+    public void EvaluateSource_marks_exit_code_failure_not_failure_regex()
+    {
+        // 无正则、仅退出码非 0 → ExitCode（不再误标 FailureRegex）
+        Assert.Equal(ResultSource.ExitCode, CommandEvaluator.EvaluateSource("plain output", 1, null, null));
+        Assert.Equal(ResultSource.ExitCode, CommandEvaluator.EvaluateSource("ok", 0, null, null));
+        // FailureRegex 命中 → FailureRegex（即使退出码 0）
+        Assert.Equal(ResultSource.FailureRegex, CommandEvaluator.EvaluateSource("error: bad", 0, null, "error"));
+        // SuccessRegex 命中 → SuccessRegex（即使退出码非 0）
+        Assert.Equal(ResultSource.SuccessRegex, CommandEvaluator.EvaluateSource("write ok", 255, "write ok", null));
+        // Failure 优先于 Success
+        Assert.Equal(ResultSource.FailureRegex, CommandEvaluator.EvaluateSource("error then ok", 0, "ok", "error"));
+    }
+
     [Fact]
     public void FailureRegex_matches_first_even_with_exit_zero()
     {

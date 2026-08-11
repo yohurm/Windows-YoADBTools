@@ -27,6 +27,7 @@ public partial class LogAnalyzerViewModel : ObservableObject
     private readonly IAppLog _log;
     private readonly IUiDispatcher _ui;
     private readonly IBackgroundTaskCenter _tasks;
+    private readonly IAppLifecycle _lifecycle;
     private BackgroundTaskId? _taskId;
     private CancellationTokenSource? _captureCts;
 
@@ -66,7 +67,8 @@ public partial class LogAnalyzerViewModel : ObservableObject
         IAppPaths paths,
         IAppLog log,
         IUiDispatcher ui,
-        IBackgroundTaskCenter tasks)
+        IBackgroundTaskCenter tasks,
+        IAppLifecycle lifecycle)
     {
         _capture = capture;
         _hub = hub;
@@ -74,6 +76,7 @@ public partial class LogAnalyzerViewModel : ObservableObject
         _log = log;
         _ui = ui;
         _tasks = tasks;
+        _lifecycle = lifecycle;
 
         // 设备掉线 / 切换 → 自动停止采集
         _hub.ActiveDeviceChanged += () => _ui.Post(StopIfDeviceGone);
@@ -98,7 +101,8 @@ public partial class LogAnalyzerViewModel : ObservableObject
             return;
         }
 
-        _captureCts = new CancellationTokenSource();
+        // H2：采集链入应用退出信号（退出时自动停止）
+        _captureCts = CancellationTokenSource.CreateLinkedTokenSource(_lifecycle.ShutdownToken);
         try
         {
             await _capture.StartAsync(device.Serial, _captureCts.Token);
@@ -154,36 +158,45 @@ public partial class LogAnalyzerViewModel : ObservableObject
 
     // ==================== 内部 ====================
 
-    /// <summary>消费端节流循环：批量取行 → 过滤 → UI 追加（上限裁剪）</summary>
+    /// <summary>
+    /// 消费端节流循环：循环取当前世代行流 → 批量过滤 → UI 追加（上限裁剪）。
+    /// 世代通道关闭（停止/重启）后取下一个世代（C1 修复：停止后可再次采集）。
+    /// </summary>
     private async Task DrainLoopAsync()
     {
-        var batch = new List<LogcatLine>();
-        var reader = _capture.Lines;
-
-        while (await reader.WaitToReadAsync())
+        while (true)
         {
-            batch.Clear();
-            while (reader.TryRead(out var line))
-                batch.Add(line);
-            if (batch.Count == 0)
-                continue;
+            var reader = _capture.Lines;
+            var batch = new List<LogcatLine>();
 
-            var visible = batch.Where(MatchesFilter).ToList();
-            if (visible.Count == 0)
-                continue;
-
-            _ui.Post(() =>
+            while (await reader.WaitToReadAsync())
             {
-                if (IsPaused)
-                    return;
-                foreach (var line in visible)
+                batch.Clear();
+                while (reader.TryRead(out var line))
+                    batch.Add(line);
+                if (batch.Count == 0)
+                    continue;
+
+                var visible = batch.Where(MatchesFilter).ToList();
+                if (visible.Count == 0)
+                    continue;
+
+                _ui.Post(() =>
                 {
-                    VisibleLines.Add(line);
-                    if (VisibleLines.Count > DisplayLimit)
-                        VisibleLines.RemoveAt(0); // 显示上限裁剪（缓冲仍全量）
-                }
-            });
-            await Task.Delay(BatchIntervalMs);
+                    if (IsPaused)
+                        return;
+                    foreach (var line in visible)
+                    {
+                        VisibleLines.Add(line);
+                        if (VisibleLines.Count > DisplayLimit)
+                            VisibleLines.RemoveAt(0); // 显示上限裁剪（缓冲仍全量）
+                    }
+                });
+                await Task.Delay(BatchIntervalMs);
+            }
+
+            // 当前世代关闭：停止（正常）或进程意外结束——短暂等待后取新世代（等待重新开始）
+            await Task.Delay(200);
         }
     }
 

@@ -17,6 +17,9 @@ public static class SelectedItemsBehavior
     /// <summary>源集合 → 宿主 ListBox 弱引用表（OnSourceCollectionChanged 时定位控件）</summary>
     private static readonly ConditionalWeakTable<object, WeakReference<ListBox>> HostMap = [];
 
+    /// <summary>重入抑制（M5）：UI→VM 与 VM→UI 互不触发（防程序化回填死循环）</summary>
+    private static int _isSyncing;
+
     public static readonly DependencyProperty SelectedItemsProperty =
         DependencyProperty.RegisterAttached(
             "SelectedItems", typeof(IList), typeof(SelectedItemsBehavior),
@@ -48,13 +51,22 @@ public static class SelectedItemsBehavior
         }
     }
 
-    /// <summary>源集合变化 → 全量重同步控件选中（集合规模小（设备数），全量最可靠）</summary>
+    /// <summary>源集合变化 → 全量重同步控件选中（集合规模小（设备数），全量最可靠；M5 重入抑制）</summary>
     private static void OnSourceCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (sender is not IList source || !HostMap.TryGetValue(source, out var reference))
+        if (Interlocked.CompareExchange(ref _isSyncing, 1, 0) != 0)
             return;
-        if (reference.TryGetTarget(out var listBox))
-            SyncSourceToListBox(listBox, source);
+        try
+        {
+            if (sender is not IList source || !HostMap.TryGetValue(source, out var reference))
+                return;
+            if (reference.TryGetTarget(out var listBox))
+                SyncSourceToListBox(listBox, source);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isSyncing, 0);
+        }
     }
 
     private static void SyncSourceToListBox(ListBox listBox, IList source)
@@ -67,15 +79,24 @@ public static class SelectedItemsBehavior
         }
     }
 
-    /// <summary>增量同步（UI→VM：SelectedItems 是只读集合，只能增删变化项）</summary>
+    /// <summary>增量同步（UI→VM：SelectedItems 是只读集合，只能增删变化项；M5 重入抑制）</summary>
     private static void OnListBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (sender is not ListBox listBox || GetSelectedItems(listBox) is not IList target)
+        if (Interlocked.CompareExchange(ref _isSyncing, 1, 0) != 0)
             return;
+        try
+        {
+            if (sender is not ListBox listBox || GetSelectedItems(listBox) is not IList target)
+                return;
 
-        foreach (var removed in e.RemovedItems)
-            target.Remove(removed);
-        foreach (var added in e.AddedItems)
-            target.Add(added);
+            foreach (var removed in e.RemovedItems)
+                target.Remove(removed);
+            foreach (var added in e.AddedItems)
+                target.Add(added);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isSyncing, 0);
+        }
     }
 }

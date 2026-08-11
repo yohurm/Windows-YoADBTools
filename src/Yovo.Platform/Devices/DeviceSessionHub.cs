@@ -74,18 +74,21 @@ public class DeviceSessionHub : IDeviceSessionHub
 
     public void SetActiveDevice(DeviceSerial? serial)
     {
+        AdbDevice? device;
         lock (_lock)
         {
-            var device = serial is { IsEmpty: false } s
+            device = serial is { IsEmpty: false } s
                 ? _directory.Devices.FirstOrDefault(d => d.Serial == s)
                 : null;
             if (_active?.Serial == device?.Serial)
                 return; // 无变化不广播
             _active = device;
         }
+
+        // M3：锁内捕获局部变量，锁外发布（避免并发下发布过期值）
         ActiveDeviceChanged?.Invoke();
-        if (_active is not null)
-            _bus.Publish(new ActiveDeviceChanged(_active.Serial));
+        if (device is not null)
+            _bus.Publish(new ActiveDeviceChanged(device.Serial));
     }
 
     // ==================== 内部 ====================
@@ -98,6 +101,7 @@ public class DeviceSessionHub : IDeviceSessionHub
 
     private void OnDevicesRefreshed(DevicesRefreshed message)
     {
+        var activeLost = false;
         lock (_lock)
         {
             var alive = message.Devices.Select(d => d.Serial).ToHashSet();
@@ -110,14 +114,18 @@ public class DeviceSessionHub : IDeviceSessionHub
                     _selections[moduleId] = selection with { Serials = kept };
             }
 
-            // Active 掉线清空
+            // Active 掉线清空（记录状态变化，锁外广播）
             if (_active is { } active && !alive.Contains(active.Serial))
+            {
                 _active = null;
+                activeLost = true;
+            }
         }
 
         // 锁外广播（避免订阅者回调死锁）
         SelectionChanged?.Invoke(string.Empty);
-        if (_active is null)
+        // M2：仅当焦点确实从非空变为空才发布（避免每次刷新多余事件）
+        if (activeLost)
             _bus.Publish(new ActiveDeviceChanged(null));
     }
 }

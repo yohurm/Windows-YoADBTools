@@ -102,8 +102,17 @@ public class ExecutionService
 
             if (step.DelayAfterMs > 0)
             {
-                try { await Task.Delay(step.DelayAfterMs, ct); }
-                catch (TaskCanceledException) { break; }
+                try
+                {
+                    await Task.Delay(step.DelayAfterMs, ct);
+                }
+                catch (TaskCanceledException)
+                {
+                    // L4：取消发生在步骤间延时 — 明确标记未完成（Aborted）
+                    result.Aborted = true;
+                    result.AbortedStepIndex = stepIndex;
+                    return result;
+                }
             }
         }
 
@@ -131,9 +140,7 @@ public class ExecutionService
             result.Error = raw.Error;
             result.ElapsedMs = raw.ElapsedMs;
             result.Success = CommandEvaluator.Evaluate(raw.Output, raw.ExitCode, cmd.SuccessRegex, cmd.FailureRegex);
-            result.Source = result.Success
-                ? (raw.ExitCode == 0 && string.IsNullOrEmpty(cmd.SuccessRegex) ? ResultSource.ExitCode : ResultSource.SuccessRegex)
-                : ResultSource.FailureRegex;
+            result.Source = CommandEvaluator.EvaluateSource(raw.Output, raw.ExitCode, cmd.SuccessRegex, cmd.FailureRegex);
         }
         catch (TimeoutException)
         {

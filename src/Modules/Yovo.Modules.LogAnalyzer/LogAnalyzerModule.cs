@@ -22,8 +22,8 @@ public sealed class LogAnalyzerModule : IModule
         "日志分析",
         "", // Segoe MDL2: 日志图标
         SortOrder: 20,
-        ModuleCapability.MainView | ModuleCapability.BackgroundRunnable | ModuleCapability.MultiDeviceSupported,
-        DeviceSelectionMode.SingleRequired);
+        ModuleCapability.MainView | ModuleCapability.BackgroundRunnable | ModuleCapability.SingleDevicePreferred,
+        DeviceSelectionMode.SingleRequired); // L6：能力位与 SingleRequired 模式一致
 
     public void ConfigureServices(IServiceCollection services, IModuleHostContext host)
     {
@@ -41,7 +41,18 @@ public sealed class LogAnalyzerModule : IModule
             "LogAnalyzerView"));
     }
 
-    public Task InitializeAsync(IServiceProvider services, CancellationToken ct) => Task.CompletedTask;
+    public Task InitializeAsync(IServiceProvider services, CancellationToken ct)
+    {
+        _services = services; // 退出清理需要访问模块服务
+        return Task.CompletedTask;
+    }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    /// <summary>退出清理（H2）：停止 logcat 采集，避免 adb 残留</summary>
+    public ValueTask DisposeAsync()
+    {
+        _services?.GetService<LogcatCaptureService>()?.Stop();
+        return ValueTask.CompletedTask;
+    }
+
+    private IServiceProvider? _services;
 }

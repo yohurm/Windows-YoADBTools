@@ -26,7 +26,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // 全局未处理异常 → 写日志（UI 线程异常不静默崩溃，可定位复现）
+        // 全局未处理异常（H5）：写日志 → 提示 → 退出。
+        // 到达此处的都是不可恢复异常：继续运行会处于半损坏状态，二次故障更难查。
         DispatcherUnhandledException += (_, args) =>
         {
             try
@@ -35,13 +36,21 @@ public partial class App : Application
                     "YovoAdbTools", "logs");
                 Directory.CreateDirectory(logDir);
                 File.WriteAllText(Path.Combine(logDir, $"crash-{DateTime.Now:yyyyMMdd-HHmmss}.log"),
-                    $"{args.Exception}");
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {args.Exception}");
             }
             catch
             {
-                // 日志写入失败不阻断
+                // 日志写入失败不阻断退出流程
             }
-            args.Handled = true; // 不崩溃，保持窗口可用
+
+            MessageBox.Show(
+                $"发生未处理的错误，应用将退出。\n\n{args.Exception.Message}\n\n详细堆栈已写入日志目录。",
+                "Yovo ADB Tools — 错误",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+
+            args.Handled = true;
+            Shutdown(-1); // 触发 OnExit 清理序列（模块 Dispose/传输取消）后退出
         };
 
         var appVersion = typeof(App).Assembly.GetName().Version ?? new Version(1, 0, 0);

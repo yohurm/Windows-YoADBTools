@@ -106,7 +106,7 @@ public partial class AdbClient(IProcessRunner runner, IToolResolver tools) : IAd
         return new TunnelLease(this, serial, $"reverse --remove {remote}");
     }
 
-    /// <summary>隧道租约 — Dispose 时执行移除命令（best-effort，失败不抛出）</summary>
+    /// <summary>隧道租约 — Dispose 时执行移除命令（L7：同步等待完成，确保清理可靠；失败不抛出）</summary>
     private sealed class TunnelLease(AdbClient client, DeviceSerial serial, string removeArgs) : IDisposable
     {
         private bool _disposed;
@@ -118,7 +118,8 @@ public partial class AdbClient(IProcessRunner runner, IToolResolver tools) : IAd
             _disposed = true;
             try
             {
-                _ = client.ExecuteAsync(serial, removeArgs, TimeSpan.FromSeconds(10));
+                client.ExecuteAsync(serial, removeArgs, TimeSpan.FromSeconds(10))
+                    .GetAwaiter().GetResult(); // 同步等待：Dispose 语义保证隧道清理完成
             }
             catch
             {
@@ -132,8 +133,8 @@ public partial class AdbClient(IProcessRunner runner, IToolResolver tools) : IAd
     private static string BuildArgs(DeviceSerial? serial, string adbArgs)
         => serial is { IsEmpty: false } s ? $"-s {QuoteArg(s.Value)} {adbArgs}" : adbArgs;
 
-    /// <summary>参数引号包裹（序列号/路径含空格）</summary>
-    private static string QuoteArg(string value) => $"\"{value}\"";
+    /// <summary>参数引号包裹（序列号/路径含空格；内部引号转义防参数截断，M8）</summary>
+    private static string QuoteArg(string value) => $"\"{value.Replace("\"", "\\\"")}\"";
 
     /// <summary>adb 进度行："/sdcard/x.bin: 45% | 1234/5678 | 0:00:01"（老格式无总量）</summary>
     [GeneratedRegex(@"(?<percent>\d+)% \| (?<done>\d+)/(?<total>\d+)", RegexOptions.Compiled)]

@@ -33,14 +33,18 @@ public class ProcessRunner : IProcessRunner
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            // 仅超时：强杀进程树后抛 TimeoutException（调用方语义层捕获）
-            KillTree(process);
+            // 仅超时：按 KillTreeOnCancel 契约杀进程树后抛 TimeoutException（调用方语义层捕获）
+            if (spec.KillTreeOnCancel)
+                KillTree(process);
+            await DrainOutputsQuietlyAsync(outputTask, errorTask); // L2：超时路径也消费输出，防未观察异常
             throw new TimeoutException($"命令执行超时: {spec.FileName} {spec.Arguments}");
         }
         catch (OperationCanceledException)
         {
-            // 调用方取消
-            KillTree(process);
+            // 调用方取消（KillTreeOnCancel 契约）
+            if (spec.KillTreeOnCancel)
+                KillTree(process);
+            await DrainOutputsQuietlyAsync(outputTask, errorTask); // L2
             throw;
         }
         finally
@@ -62,7 +66,13 @@ public class ProcessRunner : IProcessRunner
 
         var process = CreateProcess(spec, redirectOutput: true);
         process.Start();
-        return Task.FromResult<IStreamingProcess>(new StreamingProcess(process));
+        var streaming = new StreamingProcess(process);
+
+        // 契约「取消 = Kill」：取消令牌触发杀进程树（KillTreeOnCancel 默认 true）
+        if (ct.CanBeCanceled)
+            ct.Register(() => streaming.Kill(spec.KillTreeOnCancel));
+
+        return Task.FromResult<IStreamingProcess>(streaming);
     }
 
     public Task<ILongRunningProcess> StartLongRunningAsync(ProcessSpec spec, CancellationToken ct = default)
@@ -73,7 +83,12 @@ public class ProcessRunner : IProcessRunner
         var process = CreateProcess(spec, redirectOutput: false);
         process.EnableRaisingEvents = true;
         process.Start();
-        return Task.FromResult<ILongRunningProcess>(new LongRunningProcess(process));
+        var longRunning = new LongRunningProcess(process);
+
+        if (ct.CanBeCanceled)
+            ct.Register(() => longRunning.Kill(spec.KillTreeOnCancel));
+
+        return Task.FromResult<ILongRunningProcess>(longRunning);
     }
 
     // ==================== 内部 ====================
@@ -109,6 +124,19 @@ public class ProcessRunner : IProcessRunner
         catch
         {
             // 已退出则忽略
+        }
+    }
+
+    /// <summary>消费输出任务并吞掉其异常（进程被杀后读流中断属预期，L2）</summary>
+    private static async Task DrainOutputsQuietlyAsync(Task<string> outputTask, Task<string> errorTask)
+    {
+        try
+        {
+            await Task.WhenAll(outputTask, errorTask);
+        }
+        catch
+        {
+            // 读流中断属预期（进程已被 Kill）
         }
     }
 
@@ -154,9 +182,10 @@ internal sealed class StreamingProcess : IStreamingProcess
     {
         await foreach (var chunk in _channel.Reader.ReadAllAsync())
             yield return chunk;
-        // 读循环异常（IO 故障）透传，调用方按进程失败处理
-        if (_stdoutTask.Exception is not null)
-            throw new IOException("标准输出读取失败", _stdoutTask.Exception.InnerException);
+        // 读循环异常（IO 故障）透传，调用方按进程失败处理（L1：stdout 与 stderr 均检查）
+        var exception = _stdoutTask.Exception ?? _stderrTask.Exception;
+        if (exception is not null)
+            throw new IOException("标准输出读取失败", exception.InnerException);
     }
 
     public async Task<int> WaitForExitAsync(CancellationToken ct = default)
@@ -166,11 +195,15 @@ internal sealed class StreamingProcess : IStreamingProcess
         return _process.ExitCode;
     }
 
-    public void Kill()
+    /// <summary>接口实现：默认杀树</summary>
+    public void Kill() => Kill(killTree: true);
+
+    /// <summary>杀进程（KillTreeOnCancel 控制是否连根杀树 — 契约落实，C2）</summary>
+    public void Kill(bool killTree)
     {
         try
         {
-            _process.Kill(true);
+            _process.Kill(killTree);
         }
         catch
         {
@@ -193,8 +226,21 @@ internal sealed class StreamingProcess : IStreamingProcess
         }
     }
 
+    /// <summary>
+    /// 释放：若进程仍在运行则杀树（防止取消/中断后 adb 等孤儿进程残留，C2）。
+    /// 幂等：重复 Dispose（进程对象已释放）不抛。
+    /// </summary>
     public ValueTask DisposeAsync()
     {
+        try
+        {
+            if (!_process.HasExited)
+                Kill();
+        }
+        catch
+        {
+            // 已释放/已退出则忽略
+        }
         _process.Dispose();
         return ValueTask.CompletedTask;
     }
@@ -220,11 +266,13 @@ internal sealed class LongRunningProcess : ILongRunningProcess
     public async Task WaitForExitAsync(CancellationToken ct = default)
         => await _process.WaitForExitAsync(ct);
 
-    public void Kill()
+    public void Kill() => Kill(killTree: true);
+
+    public void Kill(bool killTree)
     {
         try
         {
-            _process.Kill(true);
+            _process.Kill(killTree);
         }
         catch
         {
@@ -232,8 +280,18 @@ internal sealed class LongRunningProcess : ILongRunningProcess
         }
     }
 
+    /// <summary>释放：未退出则杀树（C2）；幂等（重复 Dispose 不抛）</summary>
     public ValueTask DisposeAsync()
     {
+        try
+        {
+            if (!_process.HasExited)
+                Kill();
+        }
+        catch
+        {
+            // 已释放/已退出则忽略
+        }
         _process.Dispose();
         return ValueTask.CompletedTask;
     }

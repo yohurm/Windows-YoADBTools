@@ -28,6 +28,7 @@ public class SettingsStore : ISettingsStore
 
     private sealed class Migration
     {
+        public required int FromVersion { get; init; } // L5：fromVersion 参与匹配
         public required int ToVersion { get; init; }
         public required Action<ISettingsMigration> Action { get; init; }
     }
@@ -135,6 +136,7 @@ public class SettingsStore : ISettingsStore
 
     public void Set<T>(SettingsScope scope, string key, T value)
     {
+        ObservableImpl<SettingsChanged>? watcher = null;
         lock (_lock)
         {
             try
@@ -142,14 +144,18 @@ public class SettingsStore : ISettingsStore
                 var state = Load(scope);
                 state.Values[key] = JsonSerializer.Serialize(value, JsonOptions);
                 Save(scope, state);
-                GetWatcher(scope).Emit(new SettingsChanged(scope, key));
+                watcher = GetWatcher(scope);
             }
             catch
             {
                 // 写失败不抛，主流程不受影响
                 System.Diagnostics.Debug.WriteLine($"SettingsStore 写入失败: {scope}/{key}");
+                return;
             }
         }
+
+        // M4：观察者回调移出锁（观察者再入 Get/Set 不会死锁）
+        watcher?.Emit(new SettingsChanged(scope, key));
     }
 
     public IObservable<SettingsChanged> Watch(SettingsScope scope, string? key = null)
@@ -186,8 +192,7 @@ public class SettingsStore : ISettingsStore
         lock (_lock)
         {
             var state = GetState(scope);
-            state.Migrations.Add(new Migration { ToVersion = toVersion, Action = migrate });
-            state.Migrations.Sort((a, b) => a.ToVersion.CompareTo(b.ToVersion));
+            state.Migrations.Add(new Migration { FromVersion = fromVersion, ToVersion = toVersion, Action = migrate });
         }
     }
 
@@ -241,12 +246,11 @@ public class SettingsStore : ISettingsStore
             }
         }
 
-        // 迁移链：按 fromVersion 匹配执行（最多 100 步防死循环）
+        // 迁移链：按 FromVersion == 当前版本匹配执行（L5；最多 100 步防死循环）
         var migrated = false;
-        for (var step = 0; step < 100 && state.Migrations.Any(m => m.ToVersion != state.Version); step++)
+        for (var step = 0; step < 100; step++)
         {
-            // 找到 fromVersion == 当前版本的迁移（多个时按注册顺序执行）
-            var next = state.Migrations.Where(m => m.ToVersion > state.Version).OrderBy(m => m.ToVersion).FirstOrDefault();
+            var next = state.Migrations.FirstOrDefault(m => m.FromVersion == state.Version);
             if (next is null)
                 break;
             next.Action(new MigrationRunner(state));

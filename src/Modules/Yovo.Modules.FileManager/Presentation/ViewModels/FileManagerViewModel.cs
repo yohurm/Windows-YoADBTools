@@ -23,6 +23,7 @@ public partial class FileManagerViewModel : ObservableObject
     private readonly IDeviceSessionHub _hub;
     private readonly IAppLog _log;
     private readonly IUiDispatcher _ui;
+    private readonly IAppLifecycle _lifecycle;
 
     /// <summary>危险操作确认回调（View 注入；null = 直接执行 — 测试场景）</summary>
     public Func<string, bool>? ConfirmAction { get; set; }
@@ -55,13 +56,15 @@ public partial class FileManagerViewModel : ObservableObject
         TransferRunner transfer,
         IDeviceSessionHub hub,
         IAppLog log,
-        IUiDispatcher ui)
+        IUiDispatcher ui,
+        IAppLifecycle lifecycle)
     {
         _files = files;
         _transfer = transfer;
         _hub = hub;
         _log = log;
         _ui = ui;
+        _lifecycle = lifecycle;
 
         // 全局焦点设备变化 → 回填当前设备
         _hub.ActiveDeviceChanged += () => _ui.Post(RefreshDevice);
@@ -72,10 +75,28 @@ public partial class FileManagerViewModel : ObservableObject
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        if (_device is not { } device || IsBusy)
+        if (IsBusy)
+            return;
+        IsBusy = true;
+        try
+        {
+            await LoadDirectoryCoreAsync();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// 目录加载核心（无 IsBusy 门 — 操作成功后的强制刷新走此路径，H1）。
+    /// 内部自身防重入（同一时间只允许一个加载）。
+    /// </summary>
+    private async Task LoadDirectoryCoreAsync()
+    {
+        if (_device is not { } device)
             return;
 
-        IsBusy = true;
         StatusText = $"正在列出: {_currentPath.Value}";
         try
         {
@@ -89,10 +110,6 @@ public partial class FileManagerViewModel : ObservableObject
         {
             _log.Error($"列出目录失败: {ex.Message}", FileManagerModule.ModuleId);
             StatusText = $"列出失败: {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
         }
     }
 
@@ -138,14 +155,20 @@ public partial class FileManagerViewModel : ObservableObject
         {
             foreach (var file in localFiles)
             {
-                var remote = _currentPath.Combine(Path.GetFileName(file));
-                StatusText = $"正在上传: {Path.GetFileName(file)}";
+                var fileName = Path.GetFileName(file);
+                if (_currentPath.Combine(fileName) is not { } remote)
+                {
+                    StatusText = $"跳过非法文件名: {fileName}";
+                    continue;
+                }
+                StatusText = $"正在上传: {fileName}";
                 await _transfer.RunAsync(device.Serial, TransferDirection.Push, file, remote,
-                    new Progress<TransferProgress>(p => TransferPercent = p.Percent));
+                    new Progress<TransferProgress>(p => TransferPercent = p.Percent),
+                    LinkedToken()); // H2：退出时取消传输（Kill adb）
             }
             StatusText = $"已上传 {localFiles.Length} 个文件";
             TransferPercent = null;
-            await RefreshAsync();
+            await LoadDirectoryCoreAsync(); // H1：强制刷新（不受 IsBusy 门控）
         }
         catch (Exception ex)
         {
@@ -176,7 +199,8 @@ public partial class FileManagerViewModel : ObservableObject
         {
             StatusText = $"正在下载: {entry.Name}";
             await _transfer.RunAsync(device.Serial, TransferDirection.Pull, localFile, entry.Path,
-                new Progress<TransferProgress>(p => TransferPercent = p.Percent));
+                new Progress<TransferProgress>(p => TransferPercent = p.Percent),
+                LinkedToken()); // H2：退出时取消传输（Kill adb）
             StatusText = $"已下载: {entry.Name}";
             TransferPercent = null;
         }
@@ -211,7 +235,7 @@ public partial class FileManagerViewModel : ObservableObject
         {
             await _files.DeleteAsync(device.Serial, entry.Path);
             StatusText = $"已删除: {entry.Name}";
-            await RefreshAsync();
+            await LoadDirectoryCoreAsync(); // H1：强制刷新
         }
         catch (Exception ex)
         {
@@ -233,14 +257,19 @@ public partial class FileManagerViewModel : ObservableObject
         var name = PromptForDirectoryName();
         if (string.IsNullOrWhiteSpace(name))
             return;
+        // C3：目录名必须合法（拒绝 "/"、".."、"." 段）
+        if (_currentPath.Combine(name) is not { } path)
+        {
+            StatusText = "目录名非法：不能包含 /、.. 或 . 段";
+            return;
+        }
 
         IsBusy = true;
         try
         {
-            var path = _currentPath.Combine(name);
             await _files.CreateDirectoryAsync(device.Serial, path);
             StatusText = $"已创建目录: {name}";
-            await RefreshAsync();
+            await LoadDirectoryCoreAsync(); // H1：强制刷新
         }
         catch (Exception ex)
         {
@@ -257,6 +286,9 @@ public partial class FileManagerViewModel : ObservableObject
     public Func<string>? PromptDirectoryName { get; set; }
 
     private string? PromptForDirectoryName() => PromptDirectoryName?.Invoke();
+
+    /// <summary>传输令牌：应用退出信号链接（H2）</summary>
+    private CancellationToken LinkedToken() => _lifecycle.ShutdownToken;
 
     /// <summary>全局焦点设备 → 当前设备（无设备时清空列表）</summary>
     private void RefreshDevice()

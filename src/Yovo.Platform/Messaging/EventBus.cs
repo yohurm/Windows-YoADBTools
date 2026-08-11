@@ -31,7 +31,8 @@ public class EventBus : IEventBus
                         sync(message);
                         break;
                     case Func<T, Task> async:
-                        _ = async(message); // fire-and-forget：异步订阅者不阻塞发布
+                        // fire-and-forget：异步订阅者不阻塞发布；异常安全包装防未观察（M7）
+                        _ = RunSafelyAsync(async(message));
                         break;
                 }
             }
@@ -39,6 +40,18 @@ public class EventBus : IEventBus
             {
                 // 订阅者异常隔离
             }
+        }
+    }
+
+    private static async Task RunSafelyAsync(Task task)
+    {
+        try
+        {
+            await task;
+        }
+        catch
+        {
+            // 订阅者异常隔离（防 UnobservedTaskException）
         }
     }
 

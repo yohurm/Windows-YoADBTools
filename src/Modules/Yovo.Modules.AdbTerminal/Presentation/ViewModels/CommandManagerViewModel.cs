@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -222,16 +223,19 @@ public partial class CommandManagerViewModel : ObservableObject
 
     private void SubscribeGroup(CommandGroup group)
     {
-        group.Steps.CollectionChanged += (_, _) => IsDirty = true;
+        group.Steps.CollectionChanged += OnStepsChanged; // 具名 handler，可成对退订（M6）
         foreach (var step in group.Steps)
             step.PropertyChanged += OnEdited;
     }
 
     private void UnsubscribeGroup(CommandGroup group)
     {
+        group.Steps.CollectionChanged -= OnStepsChanged;
         foreach (var step in group.Steps)
             step.PropertyChanged -= OnEdited;
     }
+
+    private void OnStepsChanged(object? sender, NotifyCollectionChangedEventArgs e) => IsDirty = true;
 
     /// <summary>领域校验：名称非空、占位符与输入提示一致、正则合法</summary>
     private static string? Validate(CommandDefinition cmd)
