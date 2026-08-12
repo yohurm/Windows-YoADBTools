@@ -96,7 +96,11 @@ public partial class LogSessionViewModel : ObservableObject
     {
         if (_syncingScope)
             return;
-        if (value is null || ReferenceEquals(value, AllProcessesEntry))
+        // 绑定初始化/ItemsSource 重建（RefreshPackageOptions 的 Clear）会推入 null —
+        // 非用户选择，不得切换作用域（否则包名会话会被静默降级为 All）
+        if (value is null)
+            return;
+        if (ReferenceEquals(value, AllProcessesEntry))
         {
             if (Session.Scope != SessionScope.All)
             {

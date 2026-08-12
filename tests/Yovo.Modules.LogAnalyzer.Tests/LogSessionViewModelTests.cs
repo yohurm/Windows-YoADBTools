@@ -188,6 +188,19 @@ public class LogSessionViewModelTests
     }
 
     [Fact]
+    public void Null_package_selection_is_binding_noise_not_scope_change()
+    {
+        // 绑定初始化/ItemsSource 重建推入 null 不得切换作用域（包名会话防静默降级 All）
+        var t = new TestSessionVm();
+        var vm = t.Create(scope: SessionScope.Package, packageName: "com.example.app");
+        Assert.Equal(SessionScope.Package, vm.Session.Scope);
+
+        vm.SelectedPackage = null; // 模拟绑定噪声
+
+        Assert.Equal(SessionScope.Package, vm.Session.Scope); // 作用域保持
+    }
+
+    [Fact]
     public void Non_digit_pid_text_rejected_without_scope_change()
     {
         var t = new TestSessionVm();
