@@ -37,7 +37,7 @@ public partial class FileManagerViewModel : ObservableObject
     private RemoteEntry? _selectedEntry;
 
     [ObservableProperty]
-    private string _currentPathText = "/";
+    private string _currentPathText = "/sdcard"; // 默认 /sdcard（产线常用，与 _currentPath 一致）
 
     [ObservableProperty]
     private string _statusText = "选择设备后浏览文件";
@@ -48,7 +48,8 @@ public partial class FileManagerViewModel : ObservableObject
     [ObservableProperty]
     private double? _transferPercent;
 
-    private RemotePath _currentPath = RemotePath.Root;
+    /// <summary>当前路径（默认 /sdcard — 产线常用；可向上导航至根，产品决策 2026-08-12）</summary>
+    private RemotePath _currentPath = new("/sdcard");
     private AdbDevice? _device;
 
     /// <summary>加载世代（P1-3：快速导航时旧结果过期丢弃，不覆盖新目录）</summary>
@@ -319,8 +320,9 @@ public partial class FileManagerViewModel : ObservableObject
         if (active is null)
         {
             Entries.Clear();
-            CurrentPathText = "/";
-            _currentPath = RemotePath.Root;
+            // 默认 /sdcard（产线常用；设备连接后即从此目录开始）
+            CurrentPathText = "/sdcard";
+            _currentPath = new RemotePath("/sdcard");
         }
         else
         {

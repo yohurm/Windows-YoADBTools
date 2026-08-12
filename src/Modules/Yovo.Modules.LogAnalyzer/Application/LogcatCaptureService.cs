@@ -120,8 +120,8 @@ public class LogcatCaptureService(
         generation.Cts.Dispose();
     }
 
-    /// <summary>缓冲快照（线程安全拷贝）</summary>
-    public IReadOnlyList<LogcatLine> BufferSnapshot()
+    /// <summary>缓冲快照（线程安全拷贝；virtual 供测试替身）</summary>
+    public virtual IReadOnlyList<LogcatLine> BufferSnapshot()
     {
         lock (_lock)
             return _buffer.ToList();

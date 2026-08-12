@@ -70,7 +70,11 @@ public partial class RemoteFileService(IAdbCommandExecutor adb)
     /// <summary>shell 参数引号包裹（路径含空格）</summary>
     private static string Quote(string value) => $"'{value.Replace("'", "'\\''")}'";
 
-    /// <summary>ls -la 行解析：权限 链接数 属主 属组 大小 日期 时间 名称（名称允许空格）</summary>
-    [GeneratedRegex(@"^(?<perms>[dl\-][rwx\-]{9})\s+\d+\s+\S+\s+\S+\s+(?<size>\d+)\s+\S+\s+\S+\s+(?<name>.+)$", RegexOptions.Compiled)]
+    /// <summary>
+    /// ls -la 行解析：权限 链接数 属主 属组 大小 日期 时间 名称（名称允许空格）。
+    /// 权限位字符集含 s/S/t/T（setuid/setgid/sticky）— Android 存储大量 drwxrws---（setgid），
+    /// 缺字符会导致目录行被跳过（2026-08-12 真实设备排查修复）。
+    /// </summary>
+    [GeneratedRegex(@"^(?<perms>[dl\-][rwxsStT\-]{9})\s+\d+\s+\S+\s+\S+\s+(?<size>\d+)\s+\S+\s+\S+\s+(?<name>.+)$", RegexOptions.Compiled)]
     private static partial Regex LsLineRegex();
 }

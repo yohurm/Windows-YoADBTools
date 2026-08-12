@@ -19,6 +19,7 @@ public partial class FileManagerView : UserControl
 
     private void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
+        DebugLog($"OnLoaded: DataContext={DataContext?.GetType().Name ?? "null"}");
         if (DataContext is not FileManagerViewModel vm)
             return;
 
@@ -26,6 +27,21 @@ public partial class FileManagerView : UserControl
         vm.PickLocalPath = PickLocalPath;
         vm.ConfirmAction = Confirm;
         vm.PromptDirectoryName = PromptDirectoryName;
+        DebugLog("OnLoaded: injected");
+    }
+
+    /// <summary>临时调试日志（定位 mkdir 对话框不弹问题，修复后移除）</summary>
+    private static void DebugLog(string message)
+    {
+        try
+        {
+            System.IO.File.AppendAllText(
+                System.IO.Path.Combine(System.IO.Path.GetTempPath(), "yovo-fm-loaded.log"),
+                $"{DateTime.Now:HH:mm:ss.fff} {message}\n");
+        }
+        catch
+        {
+        }
     }
 
     /// <summary>文件对话框：上传多选（返回 | 分隔路径）；下载单选（返回保存路径）</summary>

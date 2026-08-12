@@ -41,6 +41,29 @@ public class RemoteFileServiceTests
     }
 
     [Fact]
+    public async Task ListAsync_parses_real_device_output()
+    {
+        // 真实设备 ls -la /sdcard/ 输出（V2361A，2026-08-12 抓取）
+        const string output = """
+        total 538421
+        drwxrws---  5 u0_a0    media_rw      3452 2026-07-29 18:29 .BBKAppStore
+        -rwxrwxr-x  1 media_rw media_rw       308 2026-06-16 07:23 .clear_sdcard.ini
+        drwxrws---  3 u0_a0    media_rw      3452 2025-12-17 11:02 .dwd
+        drwxrws---  3 u0_a0    media_rw      3452 2026-07-06 18:03 .networkstate
+        -rw-rw----  1 media_rw media_rw     12345 2026-08-11 10:00 normal file.txt
+        """;
+        var service = new RemoteFileService(new FakeAdbExecutor(Result(output, 0)));
+
+        var entries = await service.ListAsync(Serial, new RemotePath("/sdcard"));
+
+        Assert.Equal(5, entries.Count);
+        Assert.Equal(".BBKAppStore", entries[0].Name);
+        Assert.True(entries[0].IsDirectory);
+        Assert.Equal(12345, entries.First(e => e.Name == "normal file.txt").Size);
+        Assert.False(entries.First(e => e.Name == ".clear_sdcard.ini").IsDirectory);
+    }
+
+    [Fact]
     public async Task ListAsync_skips_current_and_parent_entries()
     {
         const string output = """
