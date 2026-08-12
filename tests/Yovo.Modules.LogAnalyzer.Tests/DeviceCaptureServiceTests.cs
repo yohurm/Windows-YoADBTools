@@ -9,7 +9,7 @@ using Xunit;
 namespace Yovo.Modules.LogAnalyzer.Tests;
 
 /// <summary>采集服务：启停重启（C1 世代替换）/ 缓冲 / 停止关闭通道</summary>
-public class LogcatCaptureServiceTests
+public class DeviceCaptureServiceTests
 {
     private static readonly DeviceSerial Serial = new("V2361A");
 
@@ -19,7 +19,7 @@ public class LogcatCaptureServiceTests
         var streaming = new FakeStreamingExecutor();
         FakeStreamingProcess? current = null;
         streaming.Handler = (_, _, _) => Task.FromResult<IStreamingProcess>(current = new FakeStreamingProcess());
-        var service = new LogcatCaptureService(streaming, new SilentLog());
+        var service = new DeviceCaptureService(streaming, new SilentLog());
 
         // 第一轮采集
         await service.StartAsync(Serial);
@@ -52,7 +52,7 @@ public class LogcatCaptureServiceTests
         var streaming = new FakeStreamingExecutor();
         FakeStreamingProcess? current = null;
         streaming.Handler = (_, _, _) => Task.FromResult<IStreamingProcess>(current = new FakeStreamingProcess());
-        var service = new LogcatCaptureService(streaming, new SilentLog());
+        var service = new DeviceCaptureService(streaming, new SilentLog());
 
         await service.StartAsync(Serial);
         current!.Emit("08-11 10:00:00.000  1  1 I Tag: a");
@@ -76,7 +76,7 @@ public class LogcatCaptureServiceTests
         var streaming = new FakeStreamingExecutor();
         FakeStreamingProcess? current = null;
         streaming.Handler = (_, _, _) => Task.FromResult<IStreamingProcess>(current = new FakeStreamingProcess());
-        var service = new LogcatCaptureService(streaming, new SilentLog());
+        var service = new DeviceCaptureService(streaming, new SilentLog());
         var stoppedEvents = 0;
         service.CaptureStopped += () => stoppedEvents++;
 
@@ -118,7 +118,7 @@ public class LogcatCaptureServiceTests
             }
             return Task.FromResult<IStreamingProcess>(new FakeStreamingProcess());
         };
-        var service = new LogcatCaptureService(streaming, new SilentLog());
+        var service = new DeviceCaptureService(streaming, new SilentLog());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartAsync(Serial));
         Assert.False(service.IsCapturing);
@@ -144,7 +144,7 @@ public class LogcatCaptureServiceTests
             callCount++;
             return Task.FromResult<IStreamingProcess>(new FakeStreamingProcess());
         };
-        var service = new LogcatCaptureService(streaming, new SilentLog());
+        var service = new DeviceCaptureService(streaming, new SilentLog());
 
         await service.StartAsync(Serial);
         await service.StartAsync(Serial); // 已在采集：忽略

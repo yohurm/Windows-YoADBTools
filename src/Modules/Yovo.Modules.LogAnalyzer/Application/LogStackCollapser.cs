@@ -8,11 +8,6 @@ public sealed record DisplayLine(LogcatLine Primary, IReadOnlyList<LogcatLine> C
 
     /// <summary>折叠摘要文本（追加在 Primary 消息后显示）</summary>
     public string CollapsedSummary => Collapsed.Count > 0 ? $"\n\t… +{Collapsed.Count} 行堆栈" : string.Empty;
-
-    /// <summary>复制/导出用的完整原文（含折叠行）</summary>
-    public string FullRaw => Collapsed.Count == 0
-        ? Primary.Raw
-        : string.Join('\n', new[] { Primary.Raw }.Concat(Collapsed.Select(l => l.Raw)));
 }
 
 /// <summary>

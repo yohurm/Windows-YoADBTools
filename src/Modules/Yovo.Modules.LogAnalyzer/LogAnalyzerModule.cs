@@ -8,8 +8,9 @@ using Yovo.Platform.Abstractions.Devices;
 namespace Yovo.Modules.LogAnalyzer;
 
 /// <summary>
-/// 日志分析模块 — 自治单元（v5 §13.4）。
-/// 流式 logcat 采集（IAdbStreamingExecutor）、环形缓冲、过滤、暂停/清空/导出。
+/// 日志分析模块 — 自治单元（v5 §13.4 + 多窗口架构 M1）。
+/// 设备级单流采集（ADR-LA-001）→ 多会话扇出（Xshell 式 Tab，按包名/PID 划分）；
+/// 进程索引（包名↔PID 重绑）、AS 风格过滤栏（级别/包名/PID/检索）。
 /// 设备模式 SingleRequired（全局焦点）；采集期间登记后台任务（BackgroundRunnable）。
 /// </summary>
 public sealed class LogAnalyzerModule : IModule
@@ -27,8 +28,10 @@ public sealed class LogAnalyzerModule : IModule
 
     public void ConfigureServices(IServiceCollection services, IModuleHostContext host)
     {
-        services.AddSingleton<LogcatCaptureService>();
-        services.AddSingleton<LogPresetStore>();
+        // 域层单例（采集单流 / 进程索引 / 会话工作区）；LogSessionViewModel 由工作区主机工厂创建
+        services.AddSingleton<DeviceCaptureService>();
+        services.AddSingleton<ProcessIndexService>();
+        services.AddSingleton<LogWorkspace>();
         services.AddSingleton<LogAnalyzerViewModel>();
     }
 
@@ -48,10 +51,11 @@ public sealed class LogAnalyzerModule : IModule
         return Task.CompletedTask;
     }
 
-    /// <summary>退出清理（H2）：停止 logcat 采集，避免 adb 残留</summary>
+    /// <summary>退出清理（H2）：停止 logcat 采集与进程索引，避免 adb 残留</summary>
     public ValueTask DisposeAsync()
     {
-        _services?.GetService<LogcatCaptureService>()?.Stop();
+        _services?.GetService<DeviceCaptureService>()?.Stop();
+        _services?.GetService<ProcessIndexService>()?.Stop();
         return ValueTask.CompletedTask;
     }
 

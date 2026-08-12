@@ -1,79 +1,176 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using Yovo.Modules.LogAnalyzer.Application;
 using Yovo.Modules.LogAnalyzer.Presentation.ViewModels;
 
 namespace Yovo.Modules.LogAnalyzer.Presentation.Views;
 
 /// <summary>
 /// 日志分析视图 — 纯 View（DataContext = LogAnalyzerViewModel）。
-/// code-behind 仅保留：自动滚底（F21）+ 快捷键（F35）。
+/// code-behind 仅保留 UI 服务注入：新建会话对话框（包名/PID）、重命名输入、快捷键（F35 + M1）。
 /// </summary>
 public partial class LogAnalyzerView : UserControl
 {
-    private bool _isAutoScroll = true;
-
     public LogAnalyzerView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
-    private void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        // View 注入预设名输入（VM 保持可测）
+        // View 注入输入回调（VM 保持可测）
         if (DataContext is LogAnalyzerViewModel vm)
-            vm.PromptPresetName = PromptPresetName;
+        {
+            vm.PromptSessionTitle = PromptSessionTitle;
+            vm.PromptPackageName = PromptPackage;
+            vm.PromptPidName = PromptPid;
+        }
+        // 快捷键挂到主窗口 PreviewKeyDown：WPF KeyDown 从焦点元素路由，
+        // 无焦点时模块视图收不到 → 窗口级 Preview（隧道自根发起，聚焦无关）
+        if (System.Windows.Application.Current.MainWindow is { } window)
+            window.PreviewKeyDown += OnWindowPreviewKeyDown;
     }
 
-    /// <summary>预设名输入框（轻量对话框，与文件管理同模式）</summary>
-    private string PromptPresetName()
+    private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        var window = new System.Windows.Window
-        {
-            Title = "保存过滤预设",
-            Width = 360,
-            Height = 130,
-            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner,
-            Owner = System.Windows.Application.Current.MainWindow,
-            ShowInTaskbar = false,
-            ResizeMode = System.Windows.ResizeMode.NoResize
-        };
-        var textBox = new TextBox { Margin = new System.Windows.Thickness(12, 12, 12, 8) };
-        var ok = new System.Windows.Controls.Button
-        {
-            Content = "确定",
-            IsDefault = true,
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
-            Margin = new System.Windows.Thickness(0, 0, 12, 12)
-        };
-        var cancel = new System.Windows.Controls.Button
-        {
-            Content = "取消",
-            IsCancel = true,
-            Margin = new System.Windows.Thickness(0, 0, 8, 12)
-        };
-        var buttons = new System.Windows.Controls.StackPanel
-        {
-            Orientation = System.Windows.Controls.Orientation.Horizontal,
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Right
-        };
-        buttons.Children.Add(cancel);
-        buttons.Children.Add(ok);
-        var panel = new System.Windows.Controls.DockPanel();
-        DockPanel.SetDock(buttons, System.Windows.Controls.Dock.Bottom);
-        panel.Children.Add(buttons);
-        panel.Children.Add(textBox);
-        window.Content = panel;
-
-        string name = string.Empty;
-        ok.Click += (_, _) => { name = textBox.Text; window.DialogResult = true; };
-        return window.ShowDialog() == true ? name : string.Empty;
+        if (System.Windows.Application.Current.MainWindow is { } window)
+            window.PreviewKeyDown -= OnWindowPreviewKeyDown;
     }
 
     /// <summary>
-    /// 快捷键（F35）：空格=暂停（采集时）、Ctrl+L=清空、Ctrl+C=复制选中（非输入框）、Ctrl+F=聚焦关键字。
-    /// 输入框聚焦时不劫持空格/Ctrl+C（保留文本编辑系统行为）。
+    /// 窗口级快捷键（聚焦无关；e.Handled 置位后网格 KeyDown 不再重复触发）。
+    /// 转发给网格处理逻辑（快捷键语义集中一处）。
+    /// </summary>
+    private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
+        => OnKeyDown(sender, e);
+
+    // ==================== 新建会话（[+]，M1 F40/F41/F42） ====================
+
+    private void OnNewSessionClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.ContextMenu is { } menu)
+        {
+            menu.PlacementTarget = button;
+            menu.Placement = PlacementMode.Bottom;
+            menu.IsOpen = true;
+            menu.Focus(); // 程序化打开的菜单默认无输入焦点 → 聚焦后可响应鼠标/键盘
+            e.Handled = true;
+        }
+    }
+
+    // ==================== 输入对话框（轻量 Window，与文件管理同模式） ====================
+
+    /// <summary>重命名会话标题输入（View 注入）</summary>
+    private string PromptSessionTitle(LogSession session)
+    {
+        var box = new TextBox { Text = session.Title, Margin = new Thickness(12, 12, 12, 8) };
+        string result = string.Empty;
+        var window = PromptWindow("重命名会话", box, text =>
+        {
+            result = text.Trim();
+            return result.Length > 0;
+        });
+        window.ShowDialog();
+        return result;
+    }
+
+    /// <summary>按包名开窗：可搜索下拉选进程</summary>
+    private string PromptPackage()
+    {
+        var vm = (LogAnalyzerViewModel)DataContext;
+        var combo = new ComboBox
+        {
+            ItemsSource = vm.ProcessEntries,
+            DisplayMemberPath = nameof(ProcessEntry.ProcessName),
+            IsEditable = true,
+            IsTextSearchEnabled = true,
+            Margin = new Thickness(12, 12, 12, 8)
+        };
+        TextSearch.SetTextPath(combo, nameof(ProcessEntry.ProcessName));
+
+        string result = string.Empty;
+        var window = PromptWindow("按包名新建会话", combo, text =>
+        {
+            result = combo.SelectedItem is ProcessEntry entry ? entry.ProcessName : text;
+            return !string.IsNullOrWhiteSpace(result);
+        });
+        window.ShowDialog();
+        return result;
+    }
+
+    /// <summary>按 PID 开窗：数字输入</summary>
+    private string PromptPid()
+    {
+        var box = new TextBox { Margin = new Thickness(12, 12, 12, 8) };
+        string result = string.Empty;
+        var window = PromptWindow("按 PID 新建会话", box, text =>
+        {
+            result = text.Trim();
+            return result.All(char.IsAsciiDigit) && result.Length > 0;
+        });
+        window.ShowDialog();
+        return result;
+    }
+
+    private static Window PromptWindow(string title, Control input, Func<string, bool> validate)
+    {
+        var window = new Window
+        {
+            Title = title,
+            Width = 400,
+            Height = 150,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = System.Windows.Application.Current.MainWindow,
+            ShowInTaskbar = false,
+            ResizeMode = ResizeMode.NoResize
+        };
+        var ok = new Button
+        {
+            Content = "确定",
+            IsDefault = true,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 0, 12, 12)
+        };
+        var cancel = new Button
+        {
+            Content = "取消",
+            IsCancel = true,
+            Margin = new Thickness(0, 0, 8, 12)
+        };
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(ok);
+        var panel = new DockPanel();
+        DockPanel.SetDock(buttons, Dock.Bottom);
+        panel.Children.Add(buttons);
+        panel.Children.Add(input);
+        window.Content = panel;
+
+        ok.Click += (_, _) =>
+        {
+            if (validate(input is TextBox tb ? tb.Text : (input as ComboBox)?.Text ?? string.Empty))
+                window.DialogResult = true;
+        };
+        return window;
+    }
+
+    private static void ShowInfo(string title, string message)
+        => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+
+    // ==================== 快捷键（F35 + M1：Ctrl+T/W/Tab 会话操作） ====================
+
+    /// <summary>
+    /// 空格=暂停焦点会话（采集中）、Ctrl+L=清空焦点会话、Ctrl+F=聚焦焦点会话检索框、
+    /// Ctrl+T=新建全部日志、Ctrl+W=关闭焦点会话、Ctrl+Tab/Shift=切换会话。
+    /// 输入框聚焦时不劫持（保留文本编辑系统行为）。
     /// </summary>
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
@@ -94,31 +191,53 @@ public partial class LogAnalyzerView : UserControl
             vm.ClearCommand.Execute(null);
             e.Handled = true;
         }
-        else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control && !inTextBox)
+        else if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control && !inTextBox)
         {
-            vm.CopySelectedCommand.Execute(null);
+            vm.AddAllSessionCommand.Execute(null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.W && Keyboard.Modifiers == ModifierKeys.Control && !inTextBox)
+        {
+            if (vm.ActiveSession is { } active)
+                vm.CloseSessionCommand.Execute(active.Session.Id);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            SwitchSession(shift ? -1 : 1);
             e.Handled = true;
         }
         else if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
         {
-            KeywordBox.Focus();
+            if (SessionTabs.SelectedContent is LogSessionPane pane)
+                pane.FocusKeyword();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.P && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+        {
+            vm.AddPackageSessionInteractiveCommand.Execute(null); // 按包名开窗
+            e.Handled = true;
+        }
+        else if (e.Key == Key.D && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+        {
+            vm.AddPidSessionInteractiveCommand.Execute(null); // 按 PID 开窗
             e.Handled = true;
         }
     }
 
-    private void OnLogScrollChanged(object sender, ScrollChangedEventArgs e)
+    /// <summary>Ctrl+Tab / Ctrl+Shift+Tab 切换会话（WPF TabControl 默认不处理）</summary>
+    private void SwitchSession(int direction)
     {
-        // 附加事件注册在 ListView 上，实际触发者是模板内部 ScrollViewer（OriginalSource）
-        if (e.OriginalSource is not ScrollViewer scrollViewer)
+        if (DataContext is not LogAnalyzerViewModel vm || vm.SessionViewModels.Count < 2)
             return;
-        var atBottom = Math.Abs(e.VerticalOffset + e.ViewportHeight - e.ExtentHeight) < 1;
-
-        if (atBottom)
-            _isAutoScroll = true;             // 用户滚回底部 → 重新跟随
-        else if (e.ExtentHeightChange == 0)
-            _isAutoScroll = false;            // 高度未变但位置变了 = 用户滚动 → 解锁
-
-        if (e.ExtentHeightChange > 0 && _isAutoScroll)
-            scrollViewer.ScrollToEnd();       // 新内容 + 跟随模式 → 滚到底
+        var current = vm.ActiveSession;
+        var index = current is null
+            ? 0
+            : vm.SessionViewModels.IndexOf(current);
+        if (index < 0)
+            index = 0;
+        var next = vm.SessionViewModels[(index + direction + vm.SessionViewModels.Count) % vm.SessionViewModels.Count];
+        vm.ActiveSession = next;
     }
 }

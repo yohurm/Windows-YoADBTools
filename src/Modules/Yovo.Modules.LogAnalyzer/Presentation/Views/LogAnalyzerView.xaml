@@ -2,20 +2,50 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-             xmlns:beh="clr-namespace:Yovo.Modules.LogAnalyzer.Presentation.Views"
+             xmlns:views="clr-namespace:Yovo.Modules.LogAnalyzer.Presentation.Views"
              FontFamily="{StaticResource Font.Family}">
+
+    <UserControl.Resources>
+        <!-- 会话 Tab 头：信号红点 + 标题 + 关闭按钮 -->
+        <DataTemplate x:Key="SessionTabHeader">
+            <DockPanel Margin="0,2">
+                <Ellipse x:Name="SignalDot" DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,6,0"
+                         VerticalAlignment="Center" Fill="{StaticResource Brush.Error}"
+                         Visibility="{Binding SignalCount, Converter={StaticResource IntToVisibility}}"
+                         ToolTip="本会话检测到崩溃/异常信号"/>
+                <Button DockPanel.Dock="Right" Content="✕" Width="16" Height="16" Padding="0"
+                        Margin="6,0,0,0" VerticalAlignment="Center" BorderThickness="0"
+                        Background="Transparent" Foreground="{StaticResource Brush.TextSecondary}"
+                        ToolTip="关闭会话 (Ctrl+W)"
+                        Command="{Binding DataContext.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                        CommandParameter="{Binding Session.Id}">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource Brush.Error}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <TextBlock Text="{Binding Session.Title}" VerticalAlignment="Center"
+                           FontSize="{StaticResource Font.Size.Body}"
+                           ToolTip="{Binding Session.Title}"/>
+            </DockPanel>
+        </DataTemplate>
+    </UserControl.Resources>
 
     <Grid Margin="{StaticResource Padding.Page}"
           Keyboard.KeyDown="OnKeyDown">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 工具栏：采集控制 + P1 迭代（清设备缓冲/复制/软换行） -->
+        <!-- 模块工具栏（裁剪后，§7.1）：开始/停止（Device 级）| 暂停/清空/导出（焦点会话级） -->
         <DockPanel Grid.Row="0" Margin="{StaticResource Margin.Toolbar}">
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                 <ui:Button Content="{Binding IsCapturing, Converter={StaticResource BoolToCaptureText}, ConverterParameter=停止采集|开始采集}"
@@ -23,98 +53,63 @@
                            Appearance="{Binding IsCapturing, Converter={StaticResource BoolToAppearance}}"
                            Margin="0,0,10,0" Icon="FluentPlay24"/>
                 <ui:Button Content="暂停" Command="{Binding PauseCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentPause24"/>
+                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentPause24"
+                           ToolTip="冻结当前焦点会话（缓冲继续；其他会话照常刷新）"/>
                 <ui:Button Content="清空" Command="{Binding ClearCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentDelete24"/>
+                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentDelete24"
+                           ToolTip="清空当前焦点会话可见区（共享缓冲保留）"/>
                 <ui:Button Content="清设备缓冲" Command="{Binding ClearDeviceBufferCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentEraser24"/>
+                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentEraser24"
+                           ToolTip="adb logcat -c 并清空共享缓冲与全部会话可见区"/>
                 <ui:Button Content="导出" Command="{Binding ExportCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSave24"/>
-                <ui:Button Content="导出 JSON" Command="{Binding ExportJsonCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSaveEdit24"/>
-                <ui:Button Content="复制选中" Command="{Binding CopySelectedCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentCopy24"/>
-                <ui:Button Content="复制可见" Command="{Binding CopyVisibleCommand}"
-                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentCopySelect24"/>
-                <ToggleButton Content="软换行" IsChecked="{Binding IsSoftWrap}"
-                              Margin="0,0,10,0" Padding="10,4"
-                              ToolTip="长行自动换行（对齐 Android Studio Soft-Wrap）"/>
+                           Appearance="Secondary" Margin="0,0,10,0" Icon="FluentSave24"
+                           ToolTip="导出当前焦点会话过滤后的 txt"/>
             </StackPanel>
-        </DockPanel>
-
-        <!-- 过滤预设行（F31）：下拉应用 / 保存当前 / 删除 -->
-        <DockPanel Grid.Row="1" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <ui:Button Content="保存预设" Command="{Binding SavePresetCommand}"
-                           Appearance="Secondary" Margin="0,0,8,0" Padding="8,3" Height="30"/>
-                <ui:Button Content="删除预设" Command="{Binding DeletePresetCommand}"
-                           Appearance="Secondary" Padding="8,3" Height="30"/>
+                <ui:Button x:Name="NewSessionButton" Content="＋" Width="28" Padding="0"
+                           Appearance="Secondary" Click="OnNewSessionClick"
+                           ToolTip="新建会话（全部日志 / 按包名 / 按 PID）">
+                    <ui:Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="全部日志" Command="{Binding AddAllSessionCommand}"/>
+                            <MenuItem Header="按包名…" Command="{Binding AddPackageSessionInteractiveCommand}"/>
+                            <MenuItem Header="按 PID…" Command="{Binding AddPidSessionInteractiveCommand}"/>
+                        </ContextMenu>
+                    </ui:Button.ContextMenu>
+                </ui:Button>
             </StackPanel>
-            <TextBlock DockPanel.Dock="Left" Text="预设" Style="{StaticResource FieldLabelStyle}" Margin="0,0,8,0"/>
-            <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}"
-                      DisplayMemberPath="Name" Height="30"/>
         </DockPanel>
 
-        <!-- 过滤行：级别（含以上）+ Tag + 关键字 + PID（均即时生效，无正则） -->
-        <Grid Grid.Row="2" Margin="0,0,0,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="140"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="100"/>
-            </Grid.ColumnDefinitions>
+        <!-- 会话 Tab 栏 + 内容（Xshell 式多会话，M1） -->
+        <TabControl x:Name="SessionTabs" Grid.Row="1"
+                    ItemsSource="{Binding SessionViewModels}"
+                    SelectedItem="{Binding ActiveSession}"
+                    ItemTemplate="{StaticResource SessionTabHeader}">
+            <TabControl.ItemContainerStyle>
+                <Style TargetType="TabItem">
+                    <Setter Property="ContextMenu">
+                        <Setter.Value>
+                            <ContextMenu>
+                                <MenuItem Header="重命名"
+                                          Command="{Binding PlacementTarget.Parent.DataContext.RenameSessionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                          CommandParameter="{Binding Session}"/>
+                                <MenuItem Header="关闭"
+                                          Command="{Binding PlacementTarget.Parent.DataContext.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                          CommandParameter="{Binding Session.Id}"/>
+                            </ContextMenu>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.ItemContainerStyle>
+            <TabControl.ContentTemplate>
+                <DataTemplate>
+                    <views:LogSessionPane/>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
 
-            <TextBlock Grid.Column="0" Text="级别" Style="{StaticResource FieldLabelStyle}" Margin="0,0,8,0"/>
-            <ComboBox Grid.Column="1" ItemsSource="{Binding LevelOptions}"
-                      SelectedItem="{Binding SelectedLevel}"
-                      ToolTip="最低级别（含以上），与 Android Studio Logcat 一致"/>
-            <TextBlock Grid.Column="2" Text="Tag" Style="{StaticResource FieldLabelStyle}" Margin="12,0,8,0"/>
-            <ui:TextBox Grid.Column="3" Text="{Binding TagFilter, UpdateSourceTrigger=PropertyChanged}"
-                        Style="{StaticResource InputBoxStyle}" ToolTip="按 Tag 包含过滤（如 ActivityManager）"/>
-            <TextBlock Grid.Column="4" Text="关键字" Style="{StaticResource FieldLabelStyle}" Margin="12,0,8,0"/>
-            <ui:TextBox x:Name="KeywordBox" Grid.Column="5" Text="{Binding KeywordFilter, UpdateSourceTrigger=PropertyChanged}"
-                        Style="{StaticResource InputBoxStyle}" ToolTip="按消息内容包含过滤（不区分大小写），命中行内高亮（Ctrl+F 聚焦）"/>
-            <TextBlock Grid.Column="6" Text="PID" Style="{StaticResource FieldLabelStyle}" Margin="12,0,8,0"/>
-            <ui:TextBox Grid.Column="7" Text="{Binding PidFilter, UpdateSourceTrigger=PropertyChanged}"
-                        Style="{StaticResource InputBoxStyle}" ToolTip="按进程 PID 过滤（包含匹配）"/>
-        </Grid>
-
-        <!-- 日志列表（虚拟化 + 附加属性渲染：级别色/关键字高亮/信号强调 + 自动滚底） -->
-        <Border Grid.Row="3" Style="{StaticResource PanelBorderStyle}" Padding="0">
-            <ListView x:Name="LogList"
-                      ItemsSource="{Binding VisibleLines}"
-                      SelectedItem="{Binding SelectedLine}"
-                      VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.VirtualizationMode="Recycling"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                      ScrollViewer.ScrollChanged="OnLogScrollChanged"
-                      BorderThickness="0"
-                      FontFamily="{StaticResource Font.Family.Mono}"
-                      FontSize="{StaticResource Font.Size.Caption}">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                        <Setter Property="Padding" Value="0"/>
-                    </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Padding="2,1"
-                                   Width="{Binding ActualWidth, ElementName=LogList}"
-                                   TextWrapping="{Binding DataContext.IsSoftWrap, RelativeSource={RelativeSource AncestorType=ListView}, Converter={StaticResource BoolToTextWrapping}}"
-                                   beh:LogLineHighlight.Line="{Binding}"
-                                   beh:LogLineHighlight.Keyword="{Binding DataContext.KeywordFilter, RelativeSource={RelativeSource AncestorType=ListView}}"/>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-        </Border>
-
-        <!-- 底部状态：采集点 + 信号计数 + 文案 -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,8,0,0">
+        <!-- 底部状态（§7.4）：采集点 + 缓冲/可见/信号/索引年龄（StatusText 合成） -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
             <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
                 <Ellipse.Style>
                     <Style TargetType="Ellipse">
@@ -129,13 +124,6 @@
             </Ellipse>
             <TextBlock Text="{Binding StatusText}" FontSize="{StaticResource Font.Size.Body}"
                        Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center"/>
-            <Border Background="{StaticResource Brush.SignalBg}" CornerRadius="4"
-                    Padding="6,1" Margin="12,0,0,0" VerticalAlignment="Center"
-                    Visibility="{Binding SignalCount, Converter={StaticResource IntToVisibility}}">
-                <TextBlock Text="{Binding SignalCount, StringFormat=信号 {0}}" FontSize="{StaticResource Font.Size.Caption}"
-                           FontWeight="SemiBold" Foreground="{StaticResource Brush.Error}"
-                           VerticalAlignment="Center"/>
-            </Border>
         </StackPanel>
     </Grid>
 </UserControl>

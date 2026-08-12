@@ -16,7 +16,7 @@
 1. 设备管理 — `IDeviceDirectory` 扫描（一次 `devices -l` 解析型号）+ `IDeviceSessionHub` 会话（全局焦点 + 每模块选择作用域，单设备自动选中）
 2. ADB 命令终端 — 命令库/命令组/多设备并行执行/成功判定（FailureRegex→SuccessRegex→退出码）/命令管理窗口（快照编辑、脏关闭确认）
 3. 文件管理 — 设备文件浏览（ls 解析）、push/pull 传输（进度 → 后台任务中心）、删除（安全根 + 确认）/新建目录
-4. 日志分析 — logcat 流式采集（threadtime 解析）、环形缓冲、过滤（级别含以上 / Tag / 关键字 / PID，无正则框）、暂停/清空/导出/预设
+4. 日志分析 — 设备级单流采集（ADR-LA-001）+ **多会话 Tab**（Xshell 式，F40）；会话按 **包名/PID 划分**（F41/F42，进程索引 `ps` 周期刷新 + PID 自动重绑含历史，F43）；AS 风格过滤栏（级别含以上 / 包名/进程 / 精确 PID / 检索，无正则框，F44）；每会话独立暂停/滚底/信号计数/导出 txt；清空=会话可见区，清设备缓冲=Device 级（`logcat -c` 且清共享缓冲）；快捷键 Ctrl+T/W/Tab（会话操作）；软换行/复制专用命令/预设/JSON 导出已移除（ADR-LA-004/005）
 5. 设置面板 — ADB 路径（`adb.path`，立即生效）+ 数据目录（`data.root`，重启生效）+ 日志缓冲/显示行数/开采前 `logcat -c`
 
 ## 架构约定（v5 模块化单体）
@@ -68,6 +68,9 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-v5-smoke.ps1
 
 # 全功能联调（应用需关闭；覆盖导航/终端执行/命令管理/文件/日志/设置/占位）
 powershell -ExecutionPolicy Bypass -File scripts/verify-v5-full.ps1
+
+# 日志分析多会话联调（应用需关闭 + 设备在线；覆盖 M1：多 Tab/按包名开窗/进程索引/关 Tab）
+powershell -ExecutionPolicy Bypass -File scripts/verify-v5-multisession.ps1
 ```
 
 ## 发布检查清单（G-P1-2）

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Yovo.Modules.LogAnalyzer.Tests;
 
-/// <summary>堆栈折叠（F34）：连续栈帧折叠为单行，复制保留完整原文</summary>
+/// <summary>堆栈折叠（F34）：连续栈帧折叠为单行（缓冲仍全量，导出走原始 Raw）</summary>
 public class LogStackCollapserTests
 {
     private static LogcatLine Line(string message, string level = "E")
@@ -29,10 +29,9 @@ public class LogStackCollapserTests
         Assert.Equal(0, collapsed[1].CollapsedCount);           // 后续普通行
         // 折叠摘要文本
         Assert.Equal("\n\t… +3 行堆栈", collapsed[0].CollapsedSummary);
-        // 完整原文：含全部栈帧
-        var full = collapsed[0].FullRaw;
-        Assert.Contains("\tat com.example.Main.onCreate", full);
-        Assert.Contains("\t... 3 more", full);
+        // 折叠组保留全部栈帧（导出仍可还原完整原文）
+        Assert.Contains("\tat com.example.Main.onCreate", collapsed[0].Collapsed[0].Raw);
+        Assert.Equal("\t... 3 more", collapsed[0].Collapsed[2].Raw);
     }
 
     [Fact]

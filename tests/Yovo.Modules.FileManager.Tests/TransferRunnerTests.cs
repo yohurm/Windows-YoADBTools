@@ -32,8 +32,9 @@ public class TransferRunnerTests
         var runner = new TransferRunner(fake, tasks);
         var reported = new List<TransferProgress>();
 
+        // Progress<T> 无 SynchronizationContext 时回调走线程池（异步竞态）— 用同步 IProgress 替代
         await runner.RunAsync(Serial, TransferDirection.Push, "a.bin", new RemotePath("/sdcard/a.bin"),
-            new Progress<TransferProgress>(reported.Add));
+            new SyncProgress<TransferProgress>(reported.Add));
 
         Assert.Single(reported);
         Assert.Equal(50.0, reported[0].Percent);
@@ -65,6 +66,12 @@ public class TransferRunnerTests
     }
 
     // ==================== 测试支撑 ====================
+
+    /// <summary>同步 IProgress（避免 Progress&lt;T&gt; 线程池异步回调竞态）</summary>
+    private sealed class SyncProgress<T>(Action<T> action) : IProgress<T>
+    {
+        public void Report(T value) => action(value);
+    }
 
     private sealed class FakeTransfer : IAdbTransfer
     {

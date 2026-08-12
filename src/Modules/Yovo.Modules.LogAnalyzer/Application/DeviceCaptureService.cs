@@ -8,7 +8,8 @@ using Yovo.Platform.Abstractions.Settings;
 namespace Yovo.Modules.LogAnalyzer.Application;
 
 /// <summary>
-/// logcat 采集服务 — 流式逐行解析 + 环形缓冲（默认 50k）+ 行流订阅。
+/// 设备级 logcat 采集（ADR-LA-001：同设备单流多视图）— 流式逐行解析 + 环形缓冲（默认 50k）
+/// + 行流订阅（每设备至多 1 路 logcat；多会话由 Workspace 扇出，禁止按 Tab 起进程）。
 /// 世代状态机（复审 P0-1/P0-2/P2-3）：
 ///   一次 Start 产生一个 CaptureGeneration（Channel + 进程 + CTS 绑定）；
 ///   消费循环只操作本世代 Channel，finally 仅当仍是当前世代才清状态/触发 CaptureStopped；
@@ -16,7 +17,7 @@ namespace Yovo.Modules.LogAnalyzer.Application;
 ///   锁内检查+设置防并发双进程。
 /// 严禁把 logcat 写入 IAppLog（ADR-006：应用日志与设备日志严格分离）。
 /// </summary>
-public class LogcatCaptureService(
+public class DeviceCaptureService(
     IAdbStreamingExecutor streaming,
     IAppLog log,
     ISettingsStore? settings = null)
@@ -103,7 +104,7 @@ public class LogcatCaptureService(
         }
     }
 
-    /// <summary>停止采集（Kill 进程 + 关闭当前世代通道；不清理缓冲）</summary>
+    /// <summary>停止采集（取消 + Kill 进程 + 关闭当前世代通道；不清理缓冲）</summary>
     public void Stop()
     {
         CaptureGeneration? generation;
@@ -114,10 +115,12 @@ public class LogcatCaptureService(
         }
         if (generation is null)
             return;
-        generation.Process.Kill();
+        // 顺序敏感：先 Cancel 再 Kill — 进程退出/消费循环 finally 会 Dispose CTS，
+        // 若 Kill 先行，finally（内联或并发）可能在 Cancel 前 Dispose → ObjectDisposedException（真实崩溃路径）
         generation.Cts.Cancel();
+        generation.Process.Kill();
         generation.Lines.Writer.TryComplete();
-        generation.Cts.Dispose();
+        generation.Cts.Dispose(); // 幂等：与 finally 的 Dispose 并发安全
     }
 
     /// <summary>缓冲快照（线程安全拷贝；virtual 供测试替身）</summary>
@@ -132,6 +135,16 @@ public class LogcatCaptureService(
     {
         lock (_lock)
             _buffer.Clear();
+    }
+
+    /// <summary>缓冲行数（状态栏显示；O(1) 不拷贝）</summary>
+    public int BufferCount
+    {
+        get
+        {
+            lock (_lock)
+                return _buffer.Count;
+        }
     }
 
     // ==================== 内部 ====================

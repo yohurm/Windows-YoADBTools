@@ -1,0 +1,102 @@
+<UserControl x:Class="Yovo.Modules.LogAnalyzer.Presentation.Views.LogSessionPane"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:beh="clr-namespace:Yovo.Modules.LogAnalyzer.Presentation.Views"
+             FontFamily="{StaticResource Font.Family}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 过滤栏（F44：AS Logcat 形态 — 级别/包名/PID/检索同屏） -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="90"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*" MinWidth="140"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="130"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*" MinWidth="160"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="级别" Style="{StaticResource FieldLabelStyle}" Margin="0,0,8,0"/>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding LevelOptions}"
+                      SelectedItem="{Binding SelectedLevel}"
+                      ToolTip="最低级别（含以上），与 Android Studio Logcat 一致"/>
+
+            <TextBlock Grid.Column="2" Text="包名" Style="{StaticResource FieldLabelStyle}" Margin="12,0,8,0"/>
+            <StackPanel Grid.Column="3" Orientation="Horizontal">
+                <ComboBox ItemsSource="{Binding PackageOptions}" SelectedItem="{Binding SelectedPackage}"
+                          DisplayMemberPath="ProcessName" IsEnabled="{Binding IsPackageComboEnabled}"
+                          IsEditable="True" TextSearch.TextPath="ProcessName"
+                          MinWidth="120" MaxWidth="240" ToolTip="按包名/进程过滤（进程索引映射；选「全部进程」回到总览）"/>
+                <CheckBox Content="子进程" IsChecked="{Binding IncludeChildProcesses}"
+                          IsEnabled="{Binding IsIncludeChildrenVisible}" VerticalAlignment="Center"
+                          Margin="8,0,0,0" ToolTip="包含 com.foo:* 子进程（ADR-LA-008，默认关）"/>
+            </StackPanel>
+
+            <TextBlock Grid.Column="4" Text="PID" Style="{StaticResource FieldLabelStyle}" Margin="12,0,8,0"/>
+            <ui:TextBox Grid.Column="5" Text="{Binding PidText, UpdateSourceTrigger=PropertyChanged}"
+                        IsEnabled="{Binding IsPidBoxEnabled}"
+                        Style="{StaticResource InputBoxStyle}"
+                        ToolTip="精确 PID（ADR-LA-007）；包名作用域下只读显示绑定 PID 列表"/>
+
+            <TextBlock Grid.Column="6" Text="检索" Style="{StaticResource FieldLabelStyle}" Margin="12,0,8,0"/>
+            <ui:TextBox x:Name="KeywordBox" Grid.Column="7" Text="{Binding KeywordFilter, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource InputBoxStyle}"
+                        ToolTip="按消息/原文包含过滤（不区分大小写），命中行内高亮（Ctrl+F 聚焦本会话）"/>
+        </Grid>
+
+        <!-- 日志列表（虚拟化 + 附加属性渲染；NoWrap + 横向滚动，ADR-LA-004） -->
+        <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Padding="0">
+            <ListView x:Name="LogList"
+                      ItemsSource="{Binding VisibleLines}"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      ScrollViewer.ScrollChanged="OnLogScrollChanged"
+                      BorderThickness="0"
+                      FontFamily="{StaticResource Font.Family.Mono}"
+                      FontSize="{StaticResource Font.Size.Caption}">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="0"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Padding="2,1"
+                                   TextWrapping="NoWrap"
+                                   beh:LogLineHighlight.Line="{Binding}"
+                                   beh:LogLineHighlight.Keyword="{Binding DataContext.KeywordFilter, RelativeSource={RelativeSource AncestorType=ListView}}"/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
+
+        <!-- 会话状态行：暂停徽标 + 可见行数 + 信号徽标 -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0">
+            <TextBlock Text="已暂停（缓冲继续）" FontSize="{StaticResource Font.Size.Caption}"
+                       Foreground="{StaticResource Brush.Warn}" VerticalAlignment="Center"
+                       Margin="0,0,8,0"
+                       Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibility}}"/>
+            <TextBlock Text="{Binding VisibleLines.Count, StringFormat=可见 {0}}" FontSize="{StaticResource Font.Size.Body}"
+                       Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+            <Border Background="{StaticResource Brush.SignalBg}" CornerRadius="4"
+                    Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding SignalCount, Converter={StaticResource IntToVisibility}}">
+                <TextBlock Text="{Binding SignalCount, StringFormat=信号 {0}}" FontSize="{StaticResource Font.Size.Caption}"
+                           FontWeight="SemiBold" Foreground="{StaticResource Brush.Error}"
+                           VerticalAlignment="Center"/>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>
