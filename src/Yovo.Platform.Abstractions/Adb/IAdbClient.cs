@@ -38,7 +38,10 @@ public interface IAdbTransfer
         IProgress<TransferProgress>? progress = null, CancellationToken ct = default);
 }
 
-/// <summary>ADB 隧道切片 — forward/reverse（投屏等远期使用，本期实现通用桩）</summary>
+/// <summary>
+/// ADB 隧道切片 — forward/reverse。预留：当前无业务调用方（投屏立项后消费，G-P1-6）；
+/// 勿在投屏外新增依赖。
+/// </summary>
 public interface IAdbTunnel
 {
     /// <summary>建立 forward 隧道；Dispose 释放</summary>

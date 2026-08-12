@@ -44,6 +44,10 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _logClearDeviceOnStart;
 
+    /// <summary>设备自动刷新间隔（秒，0=关闭；G-P1-3）</summary>
+    [ObservableProperty]
+    private int _deviceAutoRefresh;
+
     [ObservableProperty]
     private string _message = string.Empty;
 
@@ -60,7 +64,10 @@ public partial class SettingsViewModel : ObservableObject
         LogBufferCapacity = _settings.Get(LogScope, LogBufferKey, 50_000);
         LogDisplayLimit = _settings.Get(LogScope, LogDisplayKey, 2_000);
         LogClearDeviceOnStart = _settings.Get(LogScope, LogClearOnStartKey, false);
+        DeviceAutoRefresh = _settings.Get(SettingsScope.App, DeviceAutoRefreshKey, 0);
     }
+
+    private const string DeviceAutoRefreshKey = "devices.autoRefresh";
 
     [RelayCommand]
     private void BrowseAdbPath()
@@ -100,6 +107,7 @@ public partial class SettingsViewModel : ObservableObject
         _settings.Set(LogScope, LogBufferKey, Math.Clamp(LogBufferCapacity, 1_000, 500_000));
         _settings.Set(LogScope, LogDisplayKey, Math.Clamp(LogDisplayLimit, 500, 50_000));
         _settings.Set(LogScope, LogClearOnStartKey, LogClearDeviceOnStart);
+        _settings.Set(SettingsScope.App, DeviceAutoRefreshKey, Math.Max(0, DeviceAutoRefresh));
 
         LogBufferCapacity = _settings.Get(LogScope, LogBufferKey, 50_000);
         LogDisplayLimit = _settings.Get(LogScope, LogDisplayKey, 2_000);
@@ -119,6 +127,7 @@ public partial class SettingsViewModel : ObservableObject
         _settings.Set(LogScope, LogBufferKey, 50_000);
         _settings.Set(LogScope, LogDisplayKey, 2_000);
         _settings.Set(LogScope, LogClearOnStartKey, false);
+        _settings.Set(SettingsScope.App, DeviceAutoRefreshKey, 0);
 
         _tools.Refresh();
         AdbPath = _tools.Resolve(ToolId.Adb).ExePath;
@@ -126,6 +135,7 @@ public partial class SettingsViewModel : ObservableObject
         LogBufferCapacity = 50_000;
         LogDisplayLimit = 2_000;
         LogClearDeviceOnStart = false;
-        Message = "已恢复默认。数据目录重启后生效。";
+        DeviceAutoRefresh = 0;
+        Message = "已恢复默认。数据目录/自动刷新重启后生效。";
     }
 }

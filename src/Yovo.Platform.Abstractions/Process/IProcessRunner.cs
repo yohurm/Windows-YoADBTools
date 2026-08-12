@@ -53,6 +53,7 @@ public interface ILongRunningProcess : IAsyncDisposable
 /// 进程运行器 — 平台内核能力中枢。
 /// 短命令 RunAsync（可超时）；大输出 StartStreamingAsync；长驻 StartLongRunningAsync（禁止超时）。
 /// 取消语义统一：KillTreeOnCancel 默认 true（adb 进程会衍生 shell 子进程，必须连根杀）。
+/// StartLongRunningAsync 预留：当前无业务调用方（投屏立项后消费，G-P1-6）；勿扩无主 API。
 /// </summary>
 public interface IProcessRunner
 {

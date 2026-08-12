@@ -9,8 +9,7 @@ obj/
 .idea/
 *.swp
 
-# 运行时配置（用户命令库，不提交，避免覆盖他人配置）
-src/FactoryHelper/bin/Debug/net8.0-windows/Config/
+# 运行时/用户配置（不提交，避免覆盖他人环境）
 Config/
 
 # 发布输出
@@ -18,7 +17,7 @@ publish/
 publish_*/
 dist/
 
-# 仓库根目录下的备用工具目录（仅忽略根目录，src/FactoryHelper/Tools/ 内的内嵌 ADB 必须提交）
+# 仓库根目录备用工具目录（内嵌 ADB 在 src/Yovo.Platform 嵌入资源中）
 /tools/
 
 # 日志

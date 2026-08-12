@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Yovo.Modules.FileManager\Yovo.Modules.FileManager.csproj" />
+    <ProjectReference Include="..\..\src\Yovo.Platform\Yovo.Platform.csproj" />
   </ItemGroup>
 
 </Project>

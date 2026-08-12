@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Yovo.Platform.Abstractions;
 using Yovo.Platform.Abstractions.Devices;
 using Yovo.Platform.Abstractions.Logging;
+using Yovo.Platform.Abstractions.Settings;
 
 namespace Yovo.Shell.ViewModels;
 
@@ -19,6 +20,10 @@ public partial class DeviceRailViewModel : ObservableObject
     private readonly IDeviceSessionHub _hub;
     private readonly IAppLog _log;
     private readonly IUiDispatcher _ui;
+    private readonly ISettingsStore _settings;
+
+    /// <summary>自动刷新定时器（G-P1-3：devices.autoRefresh 秒，0=关，默认关）</summary>
+    private System.Threading.Timer? _autoRefreshTimer;
 
     /// <summary>当前激活模块的选择模式（导航切换时更新）</summary>
     private string _currentModuleId = string.Empty;
@@ -50,12 +55,14 @@ public partial class DeviceRailViewModel : ObservableObject
         IDeviceDirectory directory,
         IDeviceSessionHub hub,
         IAppLog log,
-        IUiDispatcher ui)
+        IUiDispatcher ui,
+        ISettingsStore settings)
     {
         _directory = directory;
         _hub = hub;
         _log = log;
         _ui = ui;
+        _settings = settings;
 
         // UI 选择 → 会话中枢（防重入：回填期间不写回）
         SelectedDevices.CollectionChanged += (_, _) =>
@@ -71,6 +78,17 @@ public partial class DeviceRailViewModel : ObservableObject
 
         // 目录变化 → 编组回 UI 差异合并
         _directory.DevicesChanged += () => _ui.Post(SyncFromDirectory);
+
+        // G-P1-3：低频自动刷新（devices.autoRefresh 秒，0=关默认关；重启生效）
+        var intervalSeconds = _settings.Get(SettingsScope.App, AutoRefreshKey, 0);
+        if (intervalSeconds > 0)
+        {
+            _autoRefreshTimer = new System.Threading.Timer(
+                _ => _ui.Post(() => _ = RefreshCoreAsync()),
+                null,
+                TimeSpan.FromSeconds(intervalSeconds),
+                TimeSpan.FromSeconds(intervalSeconds));
+        }
     }
 
     /// <summary>
@@ -86,8 +104,14 @@ public partial class DeviceRailViewModel : ObservableObject
         _ui.Post(SyncFromHub);
     }
 
+    /// <summary>自动刷新设置键（秒，0=关闭）</summary>
+    public const string AutoRefreshKey = "devices.autoRefresh";
+
     [RelayCommand]
-    private async Task RefreshAsync()
+    private async Task RefreshAsync() => await RefreshCoreAsync();
+
+    /// <summary>扫描核心（手动刷新与自动轮询共用；防重入由目录 SemaphoreSlim 保证）</summary>
+    private async Task RefreshCoreAsync()
     {
         if (IsRefreshing)
             return;

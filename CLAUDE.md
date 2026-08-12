@@ -16,8 +16,8 @@
 1. 设备管理 — `IDeviceDirectory` 扫描（一次 `devices -l` 解析型号）+ `IDeviceSessionHub` 会话（全局焦点 + 每模块选择作用域，单设备自动选中）
 2. ADB 命令终端 — 命令库/命令组/多设备并行执行/成功判定（FailureRegex→SuccessRegex→退出码）/命令管理窗口（快照编辑、脏关闭确认）
 3. 文件管理 — 设备文件浏览（ls 解析）、push/pull 传输（进度 → 后台任务中心）、删除（安全根 + 确认）/新建目录
-4. 日志分析 — logcat 流式采集（threadtime 解析）、环形缓冲、过滤（级别/tag/正则）、暂停/清空/导出
-5. 设置面板 — 设置页贡献：ADB 路径（`adb.path`，保存立即生效）+ 数据目录（`data.root`，重启生效）
+4. 日志分析 — logcat 流式采集（threadtime 解析）、环形缓冲、过滤（级别含以上 / Tag / 关键字 / PID，无正则框）、暂停/清空/导出/预设
+5. 设置面板 — ADB 路径（`adb.path`，立即生效）+ 数据目录（`data.root`，重启生效）+ 日志缓冲/显示行数/开采前 `logcat -c`
 
 ## 架构约定（v5 模块化单体）
 - **依赖方向**：`Host → Shell/Modules → Platform → Platform.Abstractions`；模块间零实现依赖（NetArchTest 强制，`tests/Yovo.Architecture.Tests`）
@@ -65,7 +65,17 @@ dotnet publish src/Yovo.Host -c Release -p:PublishSingleFile=true --self-contain
 
 # UI 冒烟回归（应用需关闭）
 powershell -ExecutionPolicy Bypass -File scripts/verify-v5-smoke.ps1
+
+# 全功能联调（应用需关闭；覆盖导航/终端执行/命令管理/文件/日志/设置/占位）
+powershell -ExecutionPolicy Bypass -File scripts/verify-v5-full.ps1
 ```
+
+## 发布检查清单（G-P1-2）
+1. `dotnet build YovoAdbTools.sln` — 0 警告 0 错误
+2. `dotnet test YovoAdbTools.sln` — 全部通过（含架构测试）
+3. `scripts/verify-v5-full.ps1` — 全功能联调全绿（无 crash 日志）
+4. `dotnet publish src/Yovo.Host -c Release ... -o publish` — 单文件自包含
+5. 启动 `publish/YovoAdbTools.exe` 冒烟确认
 
 ## 需求文档
 详见 `docs/requirements/需求分析.md`

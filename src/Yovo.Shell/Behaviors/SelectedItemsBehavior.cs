@@ -71,6 +71,13 @@ public static class SelectedItemsBehavior
 
     private static void SyncSourceToListBox(ListBox listBox, IList source)
     {
+        // 单选模式（Single* 模块）：SelectedItems 集合不可操作，用 SelectedItem
+        if (listBox.SelectionMode == SelectionMode.Single)
+        {
+            listBox.SelectedItem = source.Count > 0 ? source[0] : null;
+            return;
+        }
+
         listBox.SelectedItems.Clear();
         foreach (var item in source)
         {

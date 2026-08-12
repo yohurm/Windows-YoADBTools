@@ -8,22 +8,22 @@ namespace Yovo.Platform.Abstractions.Composition;
 /// </summary>
 public interface IContributionRegistrar
 {
-    /// <summary>导航项（主内容区页签）</summary>
+    /// <summary>导航项（主内容区页签；Shell 已消费）</summary>
     void Navigation(NavigationContribution contrib);
 
-    /// <summary>视图映射（viewKey → View 类型，Shell 的 ViewLocator 查询用）</summary>
+    /// <summary>视图映射（viewKey → View 类型，Shell 的 ViewLocator 查询用；已消费）</summary>
     void View(string viewKey, Type viewType);
 
-    /// <summary>命令贡献（工具栏/命令面板，二期渲染）</summary>
+    /// <summary>命令贡献 — 预留：Shell 暂无渲染面，勿依赖（G-P1-5）</summary>
     void Command(CommandContribution contrib);
 
-    /// <summary>设置页贡献（导航"设置"分组）</summary>
+    /// <summary>设置页贡献（导航"设置"分组；Shell 已消费）</summary>
     void SettingsPage(SettingsPageContribution contrib);
 
-    /// <summary>状态栏项贡献</summary>
+    /// <summary>状态栏项贡献 — 预留：Shell 暂无渲染面，勿依赖（G-P1-5）</summary>
     void StatusItem(StatusItemContribution contrib);
 
-    /// <summary>设备右键/更多操作贡献</summary>
+    /// <summary>设备右键/更多操作贡献 — 预留：Shell 暂无渲染面，勿依赖（G-P1-5）</summary>
     void DeviceAction(DeviceActionContribution contrib);
 }
 
