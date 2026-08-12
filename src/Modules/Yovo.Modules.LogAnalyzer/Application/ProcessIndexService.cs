@@ -16,7 +16,9 @@ public sealed record ProcessEntry(string Pid, string ProcessName, DateTimeOffset
 /// </summary>
 public static partial class ProcessPsParser
 {
-    private const int MaxEntries = 500;
+    // 产线设备常驻进程可达数百，高 PID 应用（如 com.ggec.hs01 pid 30407）必须保留 —
+    // 500 上限会截断导致按包名下拉找不到目标应用（2026-08-12 真实设备复现）
+    private const int MaxEntries = 2000;
 
     // 两列格式：PID NAME
     [GeneratedRegex(@"^\s*(?<pid>\d+)\s+(?<name>\S+)\s*$", RegexOptions.Compiled)]

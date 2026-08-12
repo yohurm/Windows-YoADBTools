@@ -2,7 +2,7 @@
 # ASCII only (PS 5.1 GBK decoding bug). Chinese strings from Unicode code points.
 # Covers: nav / terminal exec / cmd manager / file browser / log analyzer capture+filter / settings / planned page / crash watch.
 param(
-    [string]$ExePath = "..\publish\YovoAdbTools.exe"
+    [string]$ExePath = (Join-Path (Split-Path $PSScriptRoot -Parent) "publish\YovoAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"
@@ -92,9 +92,12 @@ Get-Process -Name YovoAdbTools -ErrorAction SilentlyContinue | Stop-Process -For
 Remove-Item (Join-Path $crashDir "crash-*.log") -ErrorAction SilentlyContinue
 $exe = (Resolve-Path $ExePath).Path
 $proc = Start-Process -FilePath $exe -PassThru
-Start-Sleep -Seconds 10
-
-$win = Find-RootWindow "Yovo ADB Tools"
+# 冷启动（单文件解包）可达 10s+ — 轮询等待主窗口
+$win = $null
+for ($i = 0; $i -lt 30 -and -not $win; $i++) {
+    Start-Sleep -Milliseconds 1000
+    $win = Find-RootWindow "Yovo ADB Tools"
+}
 Check "main window" ($null -ne $win) "not found"
 if (-not $win) { exit 1 }
 CrashCheck "launch"

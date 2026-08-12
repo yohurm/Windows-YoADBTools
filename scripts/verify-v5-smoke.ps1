@@ -3,7 +3,7 @@
 # WPF-UI FluentWindow title bars report empty UIA/Win32 text -> identify windows by size.
 # Checks: nav items / settings page / cmd manager open+close / P0-2 save right / P0-1 headers / P0-3 status bar right.
 param(
-    [string]$ExePath = "..\src\Yovo.Host\bin\Debug\net8.0-windows\YovoAdbTools.exe"
+    [string]$ExePath = (Join-Path (Split-Path $PSScriptRoot -Parent) "src\Yovo.Host\bin\Debug\net8.0-windows\YovoAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"
@@ -98,9 +98,12 @@ function Check([string]$name, [bool]$passed, [string]$detail) {
 # ============ 1. Launch ============
 $exe = (Resolve-Path $ExePath).Path
 $proc = Start-Process -FilePath $exe -PassThru
-Start-Sleep -Seconds 6
-
-$win = Find-RootWindow $S_MAINTITLE
+# 冷启动（Debug 构建也偶发 >6s）— 轮询等待主窗口
+$win = $null
+for ($i = 0; $i -lt 30 -and -not $win; $i++) {
+    Start-Sleep -Milliseconds 1000
+    $win = Find-RootWindow $S_MAINTITLE
+}
 Check "main window appears" ($null -ne $win) "no root window"
 if (-not $win) {
     Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue

@@ -1,7 +1,7 @@
 # Yovo-Windows-ADBTools
 
 ## 项目定位
-多模块 Windows 桌面设备工具工作台（Yovo ADB Tools，模块化单体 v5）。基于 ADB 提供产线调试与测试工具集：ADB 命令终端、文件管理、日志分析；投屏显示为 Planned 占位（见 `docs/architecture/架构设计-v5.md`）。
+多模块 Windows 桌面设备工具工作台（Yovo ADB Tools，模块化单体 v5）。基于 ADB 提供产线调试与测试工具集：ADB 命令终端、文件管理、日志分析；投屏显示为 Planned 占位（需求与设计见 `docs/requirements/需求分析.md`、`docs/architecture/日志分析模块-功能细化与多窗口架构.md`）。
 
 ## 技术栈
 - 语言/框架：C# + WPF (.NET 8)，多项目模块化单体（Host / Shell / Platform / Platform.Abstractions / Modules）
@@ -35,10 +35,8 @@
 ## 目录结构
 ```
 docs/
-├── requirements/    # 需求文档
-└── architecture/
-    ├── 架构设计-v5.md       # 现行架构（v5 模块化单体）
-    └── 日志分析模块架构.md   # 日志分析模块规格（P0 基线 + P1 迭代 A/B 已落地）
+├── requirements/    # 需求文档（需求分析.md）
+└── architecture/    # 日志分析模块-功能细化与多窗口架构.md（R0 裁剪 + M1 多会话已落地，M2 分屏未开始）
 src/
 ├── Yovo.Host/                  # 组合根：App / ModuleCatalog / 启动与退出序列
 ├── Yovo.Shell/                 # 工作台壳：MainWindow / 导航 / 设备栏 / 状态栏 / ViewLocator / WindowService / ThemeTokens

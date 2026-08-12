@@ -2,7 +2,7 @@
 # ASCII only (PS 5.1 GBK). Chinese from Unicode code points.
 # Stages: terminal exec (success/fail/timeout/input) / cmd manager edit+save / file mgr real ops / log analyzer real capture+signal+export+preset.
 param(
-    [string]$ExePath = "..\publish\YovoAdbTools.exe"
+    [string]$ExePath = (Join-Path (Split-Path $PSScriptRoot -Parent) "publish\YovoAdbTools.exe")
 )
 
 $ErrorActionPreference = "Continue"
@@ -100,8 +100,12 @@ Get-Process -Name YovoAdbTools -ErrorAction SilentlyContinue | Stop-Process -For
 Remove-Item (Join-Path (Join-Path $env:LOCALAPPDATA "YovoAdbTools\logs") "crash-*.log") -ErrorAction SilentlyContinue
 $exe = (Resolve-Path $ExePath).Path
 $proc = Start-Process -FilePath $exe -PassThru
-Start-Sleep -Seconds 10
-$script:win = Find-RootWindow "Yovo ADB Tools"
+# 冷启动（单文件解包）可达 10s+ — 轮询等待主窗口
+$script:win = $null
+for ($i = 0; $i -lt 30 -and -not $script:win; $i++) {
+    Start-Sleep -Milliseconds 1000
+    $script:win = Find-RootWindow "Yovo ADB Tools"
+}
 Check "main window" ($null -ne $script:win) "not found"
 if (-not $script:win) { exit 1 }
 

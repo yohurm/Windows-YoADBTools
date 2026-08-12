@@ -1,3 +1,4 @@
+using System.Text;
 using Yovo.Modules.LogAnalyzer.Application;
 using Yovo.Platform.Abstractions.Adb;
 using Yovo.Platform.Abstractions.Devices;
@@ -73,6 +74,22 @@ public class ProcessIndexServiceTests
     public void PsParser_empty_output_yields_empty_list()
     {
         Assert.Empty(ProcessPsParser.Parse("", Now));
+    }
+
+    [Fact]
+    public void PsParser_keeps_high_pid_processes_beyond_500()
+    {
+        // 产线设备 900+ 进程（真实设备 944）：高 PID 应用（如 com.ggec.hs01 pid 30407）
+        // 不得被 500 上限截断（2026-08-12 复现：按包名下拉找不到目标应用）
+        var lines = new StringBuilder();
+        for (var pid = 1; pid <= 700; pid++)
+            lines.AppendLine($"{pid,6}  com.pkg{pid % 100}.app");
+        lines.AppendLine(" 30407  com.ggec.hs01"); // 高 PID 尾部
+
+        var entries = ProcessPsParser.Parse(lines.ToString(), Now);
+
+        Assert.Equal(701, entries.Count); // 不再截断在 500
+        Assert.Contains(entries, e => e.Pid == "30407" && e.ProcessName == "com.ggec.hs01");
     }
 
     // ==================== PidSet 映射 ====================
