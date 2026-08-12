@@ -205,7 +205,13 @@ if ($plusBtn) {
                 # PID 框是 Package 作用域下禁用的输入框（显示绑定 PID 列表）
                 if (-not $e.Current.IsEnabled) { $pkgPidBox = $e; break }
             }
-            Check "package session PID box read-only (bound pids)" ($null -ne $pkgPidBox) "no disabled pid box"
+            Check "package session PID box read-only" ($null -ne $pkgPidBox) "no disabled pid box"
+            # 端到端：索引→包名→PID 绑定→只读显示（高 PID 应用不再被 500 上限截断）
+            $boundText = ""
+            if ($pkgPidBox) {
+                try { $boundText = $pkgPidBox.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value } catch {}
+            }
+            Check "package session shows bound pids" ($boundText -match '^\s*\d+(\s*,\s*\d+)*\s*$') "value=[$boundText]"
         }
     }
     }
