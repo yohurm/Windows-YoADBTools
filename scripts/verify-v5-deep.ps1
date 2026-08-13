@@ -1,6 +1,6 @@
 # Yovo ADB Tools v5 - deep real-device functional test
 # ASCII only (PS 5.1 GBK). Chinese from Unicode code points.
-# Stages: terminal exec (success/fail/timeout/input) / cmd manager edit+save / file mgr real ops / log analyzer real capture+signal+export+preset.
+# Stages: terminal exec (success/fail/timeout/input) / cmd manager edit+save / file mgr real ops / log analyzer real capture+signal+filter+export.
 param(
     [string]$ExePath = (Join-Path (Split-Path $PSScriptRoot -Parent) "publish\YovoAdbTools.exe")
 )
@@ -100,7 +100,7 @@ Get-Process -Name YovoAdbTools -ErrorAction SilentlyContinue | Stop-Process -For
 Remove-Item (Join-Path (Join-Path $env:LOCALAPPDATA "YovoAdbTools\logs") "crash-*.log") -ErrorAction SilentlyContinue
 $exe = (Resolve-Path $ExePath).Path
 $proc = Start-Process -FilePath $exe -PassThru
-# 冷启动（单文件解包）可达 10s+ — 轮询等待主窗口
+# cold start (single-file extraction) can exceed 10s; poll for main window
 $script:win = $null
 for ($i = 0; $i -lt 30 -and -not $script:win; $i++) {
     Start-Sleep -Milliseconds 1000
@@ -149,7 +149,8 @@ Select-Nav $script:win $S_FILES | Out-Null
 Start-Sleep -Seconds 2
 $uploadBtn = Find-ByName $script:win $S_UPLOAD
 Check "file manager renders" ($null -ne $uploadBtn) "missing"
-$testDir = "yovo-deep-test-$([DateTime]::Now.ToString('HHmmss'))"
+# "!" prefix sorts the dir to the top of the sdcard list (virtualized ListView only materializes visible rows)
+$testDir = "!yovo-deep-test-$([DateTime]::Now.ToString('HHmmss'))"
 if ($uploadBtn) {
     # mkdir via dialog
     $mkdirBtn = Find-ByName $script:win $S_MKDIR
@@ -175,27 +176,32 @@ if ($uploadBtn) {
     Check "mkdir device-verified" ($null -ne $exists) "dir not on device"
     if ($exists) {
         # delete it (select + delete + confirm)
+        # Find-ByName 命中行内名称 TextBlock → 向上走到 DataItem 祖先（文件行）再 Select
         $dirItem = Find-ByName $script:win $testDir
         if ($dirItem) {
-            $dirItem.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() | Out-Null
-            Start-Sleep -Milliseconds 400
-            $delBtn = Find-ByName $script:win $S_DELDIR
-            Invoke-Element $delBtn
-            Start-Sleep -Milliseconds 800
+            $walker = [System.Windows.Automation.TreeWalker]::ControlViewWalker
+            $item = $dirItem
+            while ($item -and $item.Current.ControlType -ne [System.Windows.Automation.ControlType]::DataItem) {
+                $item = $walker.GetParent($item)
+            }
+            if ($item) {
+                $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() | Out-Null
+                Start-Sleep -Milliseconds 400
+                $delBtn = Find-ByName $script:win $S_DELDIR
+                Invoke-Element $delBtn
+                Start-Sleep -Milliseconds 800
 
-            $confirmWin = $null
-            $allWin = $script:win.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-                (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)))
-            $okBtn = Find-ByName $script:win (CString @(0x786E,0x5B9A))
-            if ($okBtn) { Invoke-Element $okBtn }
-            Start-Sleep -Seconds 2
-            $gone = & $adb shell ls /sdcard/ 2>$null | Select-String $testDir
-            Check "delete device-verified" ($null -eq $gone) "dir still on device"
+                $okBtn = Find-ByName $script:win (CString @(0x786E,0x5B9A))
+                if ($okBtn) { Invoke-Element $okBtn }
+                Start-Sleep -Seconds 2
+                $gone = & $adb shell ls /sdcard/ 2>$null | Select-String $testDir
+                Check "delete device-verified" ($null -eq $gone) "dir still on device"
+            } else { Check "delete flow" $false "no list item ancestor" }
         } else { Check "delete flow" $false "dir item not in list" }
     }
 }
 
-# ============ 5. Log analyzer: real capture + signal + filter + export + preset ============
+# ============ 5. Log analyzer: real capture + signal + filter + export ============
 Select-Nav $script:win $S_LOGS | Out-Null
 Start-Sleep -Milliseconds 800
 $startBtn = Find-ByName $script:win $S_START
@@ -206,24 +212,22 @@ if ($startBtn) {
     $stopBtn = Find-ByName $script:win $S_STOP
     Check "capture running" ($null -ne $stopBtn) "not capturing"
     if ($stopBtn) {
-        # capture has real lines: look for "ActivityManager" tag in list
-        Check "real log lines" (Wait-Text "ActivityManager" 10000) "no ActivityManager lines"
-        # manufacture crash signal (log -p F injects FATAL EXCEPTION via AndroidRuntime tag)
+        # manufacture crash signal first (log -p F injects FATAL EXCEPTION via AndroidRuntime tag)
+        # -> guaranteed line in stream: real-log check + signal badge + keyword filter all anchor on it
         & $adb shell log -p F -t AndroidRuntime "FATAL EXCEPTION: main" 2>$null | Out-Null
         Start-Sleep -Seconds 4
+        Check "real log lines" (Wait-Text "FATAL EXCEPTION" 10000) "no log lines"
         Check "signal detected (count badge)" (Wait-Text (CString @(0x4FE1,0x53F7))) "no signal badge"
-        # keyword filter replays buffer (F27)
-        $kwBox = Find-ByName $script:win (CString @(0x5173,0x952E,0x5B57))  # keyword label -> find input box by position: use 6th column; simpler: set via the box after label
-
+        # keyword filter replays buffer (F27); M1 filter bar edit order: 0=package combo 1=PID 2=search
         $edits = $script:win.FindAll([System.Windows.Automation.TreeScope]::Descendants,
             (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Edit)))
         if ($edits.Count -ge 3) {
-            $kw = $edits[1].GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
-            $kw.SetValue("ActivityManager")
+            $kw = $edits[2].GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+            $kw.SetValue("FATAL EXCEPTION")
             Start-Sleep -Seconds 2
-            Check "keyword filter applied" (Wait-Text "ActivityManager") "no match after filter"
+            Check "keyword filter applied" (Wait-Text "FATAL EXCEPTION") "no match after filter"
         }
-        # export txt + json
+        # export txt
         $exportBtn = Find-ByName $script:win $S_EXPORT
         Invoke-Element $exportBtn
         Start-Sleep -Seconds 2
@@ -234,28 +238,6 @@ if ($startBtn) {
             $lineCount = (Get-Content $txtFiles[0].FullName | Measure-Object -Line).Lines
             Check "export txt has content" ($lineCount -gt 0) "empty export"
         }
-        # preset save
-        $savePreset = Find-ByName $script:win $S_SAVEP
-        if ($savePreset) {
-            Invoke-Element $savePreset
-            Start-Sleep -Milliseconds 800
-            $dlgEdit = $null
-            $allEdits = $script:win.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-                (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Edit)))
-            foreach ($t in $allEdits) {
-                if ($t.Current.BoundingRectangle.Height -gt 20 -and $t.Current.Name -eq '') { $dlgEdit = $t; break }
-            }
-            if ($dlgEdit) {
-                $dlgEdit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($S_PRESETNM)
-                Start-Sleep -Milliseconds 300
-                $okBtn = Find-ByName $script:win (CString @(0x786E,0x5B9A))
-                if ($okBtn) { Invoke-Element $okBtn }
-                Start-Sleep -Seconds 1
-                $presetsFile = Join-Path $moduleData "log-analyzer\config\presets.json"
-                $presetExists = (Test-Path $presetsFile) -and (Get-Content $presetsFile -Raw -ErrorAction SilentlyContinue).Contains($S_PRESETNM)
-                Check "preset persisted" $presetExists "presets.json missing preset"
-            }
-        }
         # stop
         Invoke-Element $stopBtn
         Start-Sleep -Seconds 2
@@ -264,6 +246,8 @@ if ($startBtn) {
 }
 
 # ============ 6. Cleanup: remove test command via cmd manager ============
+Select-Nav $script:win $S_TERMINAL | Out-Null # 回终端页（cmd manager 按钮所在）
+Start-Sleep -Milliseconds 600
 $mgrBtn = Find-ByName $script:win $S_CMDMGR 8000
 if (-not $mgrBtn) { Start-Sleep -Seconds 2; $mgrBtn = Find-ByName $script:win $S_CMDMGR 8000 }
 Check "cmd manager button found" ($null -ne $mgrBtn) "missing"

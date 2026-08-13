@@ -11,10 +11,14 @@ namespace Yovo.Modules.FileManager.Application;
 /// </summary>
 public partial class RemoteFileService(IAdbCommandExecutor adb)
 {
-    /// <summary>列出目录内容（adb shell ls -la；解析 权限/大小/时间/名称）</summary>
+    /// <summary>
+    /// 列出目录内容（adb shell ls -la；解析 权限/大小/时间/名称）。
+    /// 路径必须带尾斜杠：`ls -la /sdcard`（无斜杠）只输出符号链接本身
+    /// （/sdcard -> /storage/self/primary），不列内容 — 2026-08-13 真实设备复现。
+    /// </summary>
     public async Task<IReadOnlyList<RemoteEntry>> ListAsync(DeviceSerial serial, RemotePath path, CancellationToken ct = default)
     {
-        var raw = await adb.ExecuteAsync(serial, $"shell ls -la {Quote(path.Value)}",
+        var raw = await adb.ExecuteAsync(serial, $"shell ls -la {Quote(LsPath(path.Value))}",
             TimeSpan.FromSeconds(10), ct);
         if (raw.ExitCode != 0)
             throw new InvalidOperationException($"列出目录失败: {raw.Error.Trim()}".Trim());
@@ -69,6 +73,9 @@ public partial class RemoteFileService(IAdbCommandExecutor adb)
 
     /// <summary>shell 参数引号包裹（路径含空格）</summary>
     private static string Quote(string value) => $"'{value.Replace("'", "'\\''")}'";
+
+    /// <summary>ls 目录路径：确保尾斜杠（无斜杠时 ls 输出符号链接本身而非内容）</summary>
+    private static string LsPath(string value) => value.TrimEnd('/') + "/";
 
     /// <summary>
     /// ls -la 行解析：权限 链接数 属主 属组 大小 日期 时间 名称（名称允许空格）。

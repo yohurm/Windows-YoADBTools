@@ -98,7 +98,7 @@ function Check([string]$name, [bool]$passed, [string]$detail) {
 # ============ 1. Launch ============
 $exe = (Resolve-Path $ExePath).Path
 $proc = Start-Process -FilePath $exe -PassThru
-# 冷启动（Debug 构建也偶发 >6s）— 轮询等待主窗口
+# cold start (Debug build can exceed 6s); poll for main window
 $win = $null
 for ($i = 0; $i -lt 30 -and -not $win; $i++) {
     Start-Sleep -Milliseconds 1000

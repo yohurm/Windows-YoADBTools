@@ -92,7 +92,7 @@ Get-Process -Name YovoAdbTools -ErrorAction SilentlyContinue | Stop-Process -For
 Remove-Item (Join-Path $crashDir "crash-*.log") -ErrorAction SilentlyContinue
 $exe = (Resolve-Path $ExePath).Path
 $proc = Start-Process -FilePath $exe -PassThru
-# 冷启动（单文件解包）可达 10s+ — 轮询等待主窗口
+# cold start (single-file extraction) can exceed 10s; poll for main window
 $win = $null
 for ($i = 0; $i -lt 30 -and -not $win; $i++) {
     Start-Sleep -Milliseconds 1000
@@ -202,10 +202,16 @@ Check "file manager renders (upload)" ($null -ne $uploadBtn) "missing"
 $refreshBtn = Find-ByName $win $S_REFRESH 3000
 Check "file refresh button" ($null -ne $refreshBtn) "missing"
 if ($refreshBtn) { Invoke-Element $refreshBtn; Start-Sleep -Seconds 2 }
-# any directory entry visible (sdcard has content)
-# 目录列出成功 = 列表控件内有目录类型条目（"目录" 列值）
-$dirType = Find-ByContains $win (CString @(0x76EE,0x5F55))  # contains "目录" (type column header or value)
-Check "device dir listing" ($null -ne $dirType) "no directory entry visible"
+# 真实条目检查：状态文本 "N 项" 且 N>0（旧的"目录"列头检查在空列表时假通过 —
+# 2026-08-13 ls 尾斜杠缺陷漏网原因）
+$itemSuffix = CString @(0x9879)  # "项"
+$statusText = Find-ByContains $win $itemSuffix 10000
+$itemCount = 0
+if ($statusText) {
+    $m = [regex]::Match($statusText.Current.Name, "^\s*(\d+)\s*$itemSuffix")
+    if ($m.Success) { $itemCount = [int]$m.Groups[1].Value }
+}
+Check "device dir listing (real items)" ($itemCount -gt 0) "status=[$($statusText.Current.Name)]"
 CrashCheck "file manager"
 
 # ============ 6. Log analyzer: capture + filter ============

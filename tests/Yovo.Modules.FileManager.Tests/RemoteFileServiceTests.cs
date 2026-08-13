@@ -89,6 +89,38 @@ public class RemoteFileServiceTests
     }
 
     [Fact]
+    public async Task ListAsync_uses_trailing_slash_path()
+    {
+        // ls 无尾斜杠时输出符号链接本身而非目录内容（/sdcard -> /storage/self/primary）
+        string? receivedArgs = null;
+        var service = new RemoteFileService(new FakeAdbExecutor((_, args) =>
+        {
+            receivedArgs = args;
+            return Result("total 1", 0);
+        }));
+
+        await service.ListAsync(Serial, new RemotePath("/sdcard"));
+        Assert.Equal("shell ls -la '/sdcard/'", receivedArgs);
+
+        // 根目录：TrimEnd('/') 后补斜杠仍为 "/"
+        await service.ListAsync(Serial, new RemotePath("/"));
+        Assert.Equal("shell ls -la '/'", receivedArgs);
+    }
+
+    [Fact]
+    public async Task ListAsync_symlink_only_output_yields_empty_list()
+    {
+        // 旧行为回归保护：无尾斜杠时设备只回符号链接行（name 含 / 被安全跳过 → 0 项）
+        // 新行为已带尾斜杠；此测试保护解析器对符号链接行的防御
+        const string output = "lrw-r--r-- 1 root root 21 2009-01-01 08:00 /sdcard -> /storage/self/primary\n";
+        var service = new RemoteFileService(new FakeAdbExecutor(Result(output, 0)));
+
+        var entries = await service.ListAsync(Serial, new RemotePath("/sdcard"));
+
+        Assert.Empty(entries); // 不崩溃、不产生伪条目
+    }
+
+    [Fact]
     public async Task Delete_uses_rm_rf_with_quoted_path()
     {
         string? receivedArgs = null;
