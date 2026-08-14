@@ -1,0 +1,122 @@
+name: CI
+
+# Yovo ADB Tools v6 — 持续集成与发布流水线（架构文档 §11.3）
+# 触发：push / PR 到 main；手动 workflow_dispatch。
+# 验收门槛与 CLAUDE.md「发布检查清单」一致（1/2/3/7 项自动化）。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: 验证（Rust + 前端）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+
+      - name: sidecar adb（从 old/ 归档拷贝）
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/setup-adb.ps1
+
+      - name: pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      - name: 前端依赖
+        working-directory: ui
+        run: pnpm install --frozen-lockfile
+
+      - name: 前端类型检查
+        working-directory: ui
+        run: pnpm exec tsc -b
+
+      - name: 前端测试（Vitest）
+        working-directory: ui
+        run: pnpm test
+
+      - name: Rust 构建（含 fake-adb 明文 bin）
+        run: cargo build --workspace
+
+      - name: Rust 测试（含 fake-adb 集成）
+        run: cargo test --workspace
+
+      - name: Clippy（-D warnings）
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  package:
+    name: 打包（NSIS ≤ 12 MB）
+    runs-on: windows-latest
+    needs: verify
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+
+      - name: sidecar adb
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/setup-adb.ps1
+
+      - name: pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      - name: 前端依赖 + 构建
+        working-directory: ui
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: tauri-cli
+        run: cargo install tauri-cli --locked
+
+      - name: 打包 NSIS
+        working-directory: app/yovo-app
+        run: cargo tauri build
+
+      - name: 体积断言（≤ 12 MB）
+        shell: powershell
+        run: |
+          $setup = Get-ChildItem target/release/bundle/nsis -Filter "*setup.exe" | Select-Object -First 1
+          if (-not $setup) { throw "未找到安装包产物" }
+          $mb = [math]::Round($setup.Length / 1MB, 2)
+          Write-Host "安装包：$($setup.Name) = $mb MB"
+          if ($mb -gt 12) { throw "超过 12 MB 预算" }
+
+      - name: 上传安装包产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: YovoAdbTools-installer
+          path: target/release/bundle/nsis/*setup.exe
+          if-no-files-found: error
