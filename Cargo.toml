@@ -7,6 +7,7 @@ members = [
   "core/yovo-logsrv",
   "core/yovo-files",
   "app/yovo-app",
+  "tools/fake-adb",
 ]
 
 [workspace.package]

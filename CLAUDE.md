@@ -62,10 +62,11 @@ tools/
 scripts/verify-v6-{smoke,full,logs-perf}.ps1
 ```
 
-## 构建命令（S1 骨架落地后生效）
+## 构建命令
 ```bash
-# Rust：测试 / 静态检查
-cargo test
+# Rust：构建（含 fake-adb 明文 bin，集成测试依赖）→ 测试 → 静态检查
+cargo build --workspace
+cargo test --workspace
 cargo clippy --all-targets -- -D warnings
 
 # 前端：依赖 / 类型检查 / 测试 / 构建
@@ -82,7 +83,7 @@ cargo tauri build
 ```
 
 ## 发布检查清单（v6 版）
-1. `cargo test` — 全部通过（含 fake-adb 集成：采集世代/取消/掉线清缓冲）
+1. `cargo build --workspace && cargo test --workspace` — 全部通过（含 fake-adb 集成：单流采集/世代/取消/掉线清缓冲）
 2. `cargo clippy --all-targets -- -D warnings` — 0 警告
 3. `pnpm -C ui typecheck && pnpm -C ui test` — 全部通过（含 @yovo/api ↔ yovo-protocol 契约测试）
 4. `scripts/verify-v6-smoke.ps1` — 冒烟全绿（启动/导航/设备/设置）
@@ -98,8 +99,9 @@ cargo tauri build
 - **S3 文件模块已落地**：设备目录浏览（YVirtualList 虚拟化）/ 上传（tauri-plugin-dialog 选文件）/ 下载（save 对话框）/ 删除（确认框 + core 侧 SafetyRoot）/ 新建目录 / 传输面板（进度条/取消/状态徽章）
 - **S4 日志模块已落地**：多会话 Tab（按包名/PID/全部）/ AS 风格过滤栏（级别含以上/Tag/关键字，无正则）/ 进程索引重绑（历史 PID 集上限 8）/ 信号扫描（崩溃/ANR 徽章）/ 堆叠折叠 / 溢出回补（log.replay）/ 导出 / 快捷键（Space/Ctrl+L/F/T/W/Tab）/ 批量 IPC 消费端过滤（pipeline.ts 纯函数 + 14 单测）
 - **体积优化**：release profile 启用 lto + codegen-units=1 + strip + panic=abort → exe **6.36 MB**
-- **验收现状**：cargo test 全绿、clippy -D warnings 通过、Vitest **96** 用例全绿、tsc -b 0 错误；verify-v6-smoke/full 脚本就绪
-- 待续：release 体积复测（S4 后）；fake-adb 集成测试 fixture；NSIS 安装包构建；verify-v6-logs-perf 性能脚本
+- **fake-adb 集成测试已落地**：tools/fake-adb（脚本化假 adb，零共享状态：测试拷贝 exe + 同名 json 到独立临时目录）；yovo-logsrv 集成测试 7 用例（单流采集/解析/批量/停止保留缓冲/幂等/掉线 Stopped/取消终止进程树/切换清缓冲）；期间修复两个真实缺陷：run_capture 关闭通道忙循环（饿死 stderr 读任务）与 Batcher 生产端结束丢尾部批次（现冲刷 flush）
+- **验收现状**：`cargo build --workspace && cargo test --workspace` 全绿（含 7 集成）、clippy -D warnings 通过、Vitest **96** 用例全绿、tsc -b 0 错误；verify-v6-smoke/full/logs-perf 三脚本就绪
+- 待续：NSIS 安装包构建（真机 tauri CLI，见 scripts 说明）；S5 全功能联调与旧版下线
 - **v5 遗留**：全部 C#/WPF 代码、旧测试与 v5 联调脚本已移至 `old/`（`old/src`、`old/tests`、`old/YovoAdbTools.sln`、`old/scripts`），仅存档参考，不作为 v6 实现依据；S5 随新架构全功能验收后彻底移除
 - **sidecar 二进制**：`tools/adb.exe` 等被 .gitignore 排除（不入库）；新机器构建前运行 `scripts/setup-adb.ps1` 从 `old/src/Yovo.Platform/Tools/` 拷贝
 

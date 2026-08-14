@@ -65,11 +65,17 @@ async fn aggregate_loop(
         tokio::select! {
             biased;
             _ = cancel.cancelled() => {
-                // 最后一搏：取消时不再推送（UI 已随停止处理）
+                // 取消：不再推送（UI 已随停止处理，缓冲可重放）
                 break;
             }
             line = line_rx.recv() => {
-                let Some(line) = line else { break };
+                let Some(line) = line else {
+                    // 生产端结束：最后一搏冲刷剩余行，避免尾部批次丢失
+                    if !pending.is_empty() {
+                        flush(&mut pending, &mut pending_bytes, &serial, &sink, &mut dropped_batches);
+                    }
+                    break;
+                };
                 pending_bytes += line.ts.len() + line.tag.len() + line.msg.len() + 32;
                 pending.push(line);
                 if pending.len() >= max_lines || pending_bytes >= max_bytes {

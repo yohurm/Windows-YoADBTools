@@ -94,6 +94,9 @@ impl ProcessRunner {
         let mut stderr_done = stderr_rx.is_closed();
 
         loop {
+            if stdout_done && stderr_done {
+                break;
+            }
             tokio::select! {
                 biased;
                 _ = cancel.cancelled() => {
@@ -101,21 +104,19 @@ impl ProcessRunner {
                     let _ = child.wait().await;
                     return Err(AdbError::Cancelled);
                 }
-                chunk = stdout_rx.recv() => {
+                // 关键：通道关闭后必须禁用分支（否则恒就绪 → 忙循环饿死另一读任务）
+                chunk = stdout_rx.recv(), if !stdout_done => {
                     match chunk {
                         Some(c) => stdout_text.push_str(&c),
                         None => stdout_done = true,
                     }
                 }
-                chunk = stderr_rx.recv() => {
+                chunk = stderr_rx.recv(), if !stderr_done => {
                     match chunk {
                         Some(c) => stderr_text.push_str(&c),
                         None => stderr_done = true,
                     }
                 }
-            }
-            if stdout_done && stderr_done {
-                break;
             }
         }
         for reader in readers {
@@ -162,7 +163,28 @@ impl ProcessRunner {
 
         if let Some(stdout) = stdout {
             let mut lines = BufReader::new(stdout).lines();
+            let mut stderr_done = stderr_rx.is_closed();
             loop {
+                if stderr_done {
+                    // stderr 已关：只等 stdout 行（避免关闭通道分支恒就绪导致忙循环）
+                    match lines.next_line().await {
+                        Ok(Some(l)) => {
+                            if line_tx.send(l).await.is_err() {
+                                kill_tree(&mut child);
+                                let _ = child.wait().await;
+                                return Err(AdbError::Cancelled);
+                            }
+                        }
+                        Ok(None) => break,
+                        Err(e) => return Err(AdbError::Io(e)),
+                    }
+                    if cancel.is_cancelled() {
+                        kill_tree(&mut child);
+                        let _ = child.wait().await;
+                        return Err(AdbError::Cancelled);
+                    }
+                    continue;
+                }
                 tokio::select! {
                     biased;
                     _ = cancel.cancelled() => {
@@ -170,9 +192,10 @@ impl ProcessRunner {
                         let _ = child.wait().await;
                         return Err(AdbError::Cancelled);
                     }
-                    chunk = stderr_rx.recv() => {
-                        if let Some(c) = chunk {
-                            stderr_text.push_str(&c);
+                    chunk = stderr_rx.recv(), if !stderr_done => {
+                        match chunk {
+                            Some(c) => stderr_text.push_str(&c),
+                            None => stderr_done = true,
                         }
                     }
                     line = lines.next_line() => {

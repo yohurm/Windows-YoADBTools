@@ -1,0 +1,10 @@
+[package]
+name = "fake-adb"
+description = "Yovo ADB Tools v6 — 脚本化假 adb.exe（core 集成测试 fixture，不发布）"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
