@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Yovo.Modules.FileManager.Domain;
 using Yovo.Platform.Abstractions.Adb;
@@ -46,7 +47,7 @@ public partial class RemoteFileService(IAdbCommandExecutor adb)
                 childPath,
                 isDirectory,
                 long.TryParse(sizeText, out var size) ? size : null,
-                null)); // Modified：ls -la 日期解析跨 locale 脆弱，MVP 不展示精确时间
+                ParseModified(match.Groups["date"].Value, match.Groups["time"].Value)));
         }
 
         return entries
@@ -78,10 +79,30 @@ public partial class RemoteFileService(IAdbCommandExecutor adb)
     private static string LsPath(string value) => value.TrimEnd('/') + "/";
 
     /// <summary>
+    /// 解析 ls 日期字段 → 修改时间。
+    /// Android toybox 输出 `yyyy-MM-dd HH:mm`（2026-08-13 真实设备抓取）；
+    /// 兼容 MM-dd HH:mm / MM-dd yyyy（无年份 = 当年）。解析失败 → null（不崩溃）。
+    /// </summary>
+    private static DateTimeOffset? ParseModified(string date, string time)
+    {
+        var text = $"{date} {time}";
+        foreach (var format in ModifiedFormats)
+        {
+            if (DateTimeOffset.TryParseExact(text, format, CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var parsed))
+                return parsed;
+        }
+        return null;
+    }
+
+    private static readonly string[] ModifiedFormats =
+        ["yyyy-MM-dd HH:mm", "MM-dd HH:mm", "MM-dd yyyy", "yyyy-MM-dd HH:mm:ss"];
+
+    /// <summary>
     /// ls -la 行解析：权限 链接数 属主 属组 大小 日期 时间 名称（名称允许空格）。
     /// 权限位字符集含 s/S/t/T（setuid/setgid/sticky）— Android 存储大量 drwxrws---（setgid），
     /// 缺字符会导致目录行被跳过（2026-08-12 真实设备排查修复）。
     /// </summary>
-    [GeneratedRegex(@"^(?<perms>[dl\-][rwxsStT\-]{9})\s+\d+\s+\S+\s+\S+\s+(?<size>\d+)\s+\S+\s+\S+\s+(?<name>.+)$", RegexOptions.Compiled)]
+    [GeneratedRegex(@"^(?<perms>[dl\-][rwxsStT\-]{9})\s+\d+\s+\S+\s+\S+\s+(?<size>\d+)\s+(?<date>\S+)\s+(?<time>\S+)\s+(?<name>.+)$", RegexOptions.Compiled)]
     private static partial Regex LsLineRegex();
 }

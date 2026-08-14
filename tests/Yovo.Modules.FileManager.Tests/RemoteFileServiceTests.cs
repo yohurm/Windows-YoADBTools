@@ -36,6 +36,9 @@ public class RemoteFileServiceTests
         Assert.False(data.IsDirectory);
         Assert.Equal(1234, data.Size);
         Assert.Equal("/sdcard/data.bin", data.Path.Value);
+        // 修改时间（Android toybox: yyyy-MM-dd HH:mm）
+        Assert.Equal(new DateTime(2026, 8, 11, 10, 0, 0), data.Modified!.Value.DateTime);
+        Assert.Equal(new DateTime(2026, 8, 11, 10, 0, 0), entries[0].Modified!.Value.DateTime);
         // 含空格文件名
         Assert.NotNull(entries.FirstOrDefault(e => e.Name == "with space.txt"));
     }
@@ -118,6 +121,40 @@ public class RemoteFileServiceTests
         var entries = await service.ListAsync(Serial, new RemotePath("/sdcard"));
 
         Assert.Empty(entries); // 不崩溃、不产生伪条目
+    }
+
+    [Fact]
+    public async Task ListAsync_parses_modified_with_fallback_formats()
+    {
+        // 非 toybox 格式：MM-dd HH:mm（当年）与 MM-dd yyyy（老文件）兼容
+        const string output = """
+        -rw-rw----  1 root sdcard_rw   100 08-11 10:00 recent.bin
+        -rw-rw----  1 root sdcard_rw   100 12-17 11:02 old.bin
+        -rw-rw----  1 root sdcard_rw   100 08-11 2025 year.bin
+        """;
+        var service = new RemoteFileService(new FakeAdbExecutor(Result(output, 0)));
+
+        var entries = await service.ListAsync(Serial, new RemotePath("/sdcard"));
+
+        var recent = entries.First(e => e.Name == "recent.bin");
+        Assert.Equal(DateTime.Today.Year, recent.Modified!.Value.Year); // 缺年份 → 当年
+        Assert.Equal(new DateTime(DateTime.Today.Year, 8, 11, 10, 0, 0), recent.Modified!.Value.DateTime);
+        var old = entries.First(e => e.Name == "old.bin");
+        Assert.Equal(DateTime.Today.Year, old.Modified!.Value.Year);
+        var year = entries.First(e => e.Name == "year.bin");
+        Assert.Equal(new DateTime(2025, 8, 11, 0, 0, 0), year.Modified!.Value.DateTime);
+    }
+
+    [Fact]
+    public async Task ListAsync_returns_null_modified_on_unparseable_date()
+    {
+        const string output = "-rw-rw----  1 root sdcard_rw   100 ??-?? ??:?? weird.bin\n";
+        var service = new RemoteFileService(new FakeAdbExecutor(Result(output, 0)));
+
+        var entries = await service.ListAsync(Serial, new RemotePath("/sdcard"));
+
+        var weird = Assert.Single(entries);
+        Assert.Null(weird.Modified); // 解析失败不崩溃、显示空
     }
 
     [Fact]
