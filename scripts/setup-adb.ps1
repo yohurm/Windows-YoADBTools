@@ -1,4 +1,4 @@
-# Yovo ADB Tools v6 — sidecar adb 准备
+﻿# Yovo ADB Tools v6 — sidecar adb 准备
 # tools/ 被 .gitignore 排除（二进制不入库）；本脚本从 v5 归档拷贝官方 adb 三件套。
 # 用法：
 #   powershell -ExecutionPolicy Bypass -File scripts/setup-adb.ps1

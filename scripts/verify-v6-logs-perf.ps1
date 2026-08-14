@@ -1,4 +1,4 @@
-# Yovo ADB Tools v6 — 日志性能验收（需设备在线；真机桌面会话运行）
+﻿# Yovo ADB Tools v6 — 日志性能验收（需设备在线；真机桌面会话运行）
 # 用法（应用需关闭）：
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-logs-perf.ps1
 # 目标（架构文档 §12）：50k 缓冲 + 3 会话 + 每会话 2000 可见行，UI 交互不掉帧。
@@ -41,7 +41,7 @@ $logsDir = Join-Path $env:LOCALAPPDATA "YovoAdbTools\logs"
 $panics = @(Get-ChildItem $logsDir -Filter "panic-*.log" -ErrorAction SilentlyContinue)
 
 if ($failures.Count -eq 0 -and $panics.Count -eq 0) {
-    Write-Host "v6 日志性能验收通过 ✅"
+    Write-Host "v6 日志性能验收通过 "
 } else {
     if ($failures.Count -gt 0) { Write-Host "未通过：$($failures -join '、')" }
     if ($panics.Count -gt 0) { Write-Host "crash：$($panics.Name -join '、')" }

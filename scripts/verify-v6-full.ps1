@@ -1,4 +1,4 @@
-# Yovo ADB Tools v6 — 全功能联调（需设备在线；真机桌面会话运行）
+﻿# Yovo ADB Tools v6 — 全功能联调（需设备在线；真机桌面会话运行）
 # 用法（应用需关闭）：
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-full.ps1
 # 覆盖：启动 / 设备扫描 / 终端（库加载/执行/命令管理）/ 文件（浏览/传输/删除）/
@@ -55,7 +55,7 @@ $panics = @(Get-ChildItem $logsDir -Filter "panic-*.log" -ErrorAction SilentlyCo
 
 Write-Host "== 结果 =="
 if ($failures.Count -eq 0 -and $panics.Count -eq 0) {
-    Write-Host "v6 全功能联调全绿 ✅（$($steps.Count) 项检查通过，无 crash 日志）"
+    Write-Host "v6 全功能联调全绿 （$($steps.Count) 项检查通过，无 crash 日志）"
 } else {
     if ($failures.Count -gt 0) {
         Write-Host "未通过项：$($failures -join '、')"

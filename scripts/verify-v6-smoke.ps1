@@ -1,4 +1,4 @@
-# Yovo ADB Tools v6 — 冒烟回归（S1）
+﻿# Yovo ADB Tools v6 — 冒烟回归（S1）
 # 用法（应用需关闭，真机桌面会话运行）：
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-smoke.ps1
 # 覆盖：启动存活 / 无 panic 日志 / 数据目录创建（adb 解压 + 设置）
@@ -22,8 +22,8 @@ $p = Start-Process -FilePath $Exe -PassThru
 Start-Sleep -Seconds 8
 
 Write-Host "[2/4] 检查进程存活…"
-if ($p.HasExited) {
-    throw "应用提前退出 code=$($p.ExitCode)"
+if (-not $p -or $p.HasExited) {
+    throw "应用启动失败或提前退出 code=$($p.ExitCode)"
 }
 Write-Host "  OK：进程存活 (pid=$($p.Id))"
 
@@ -35,15 +35,20 @@ if ($panics.Count -gt 0) {
 }
 Write-Host "  OK：无 panic 日志"
 
-Write-Host "[4/4] 检查数据目录初始化（adb 解压/设置）…"
+Write-Host "[4/4] 检查启动管线产物（sidecar 解压 + 默认命令库）…"
 Start-Sleep -Seconds 3
-$settings = Join-Path $dataRoot "settings"
-if (-not (Test-Path $settings)) {
-    Write-Host "  WARN：settings 目录未创建（首次启动可能未触发设置写盘）"
-} else {
-    Write-Host "  OK：数据根已初始化"
+$adbExe = Join-Path $dataRoot "data\tools\adb\adb.exe"
+$library = Join-Path $dataRoot "data\modules\adb-terminal\config\library.json"
+if (-not (Test-Path $adbExe)) {
+    Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+    throw "sidecar adb 未解压: $adbExe"
 }
+if (-not (Test-Path $library)) {
+    Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+    throw "默认命令库未写入: $library"
+}
+Write-Host "  OK：adb 解压 + 命令库就绪"
 
 Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
 Write-Host ""
-Write-Host "v6 冒烟通过 ✅（进程存活 8s，无 panic，数据目录就绪）"
+Write-Host "v6 冒烟通过 （进程存活 8s，无 panic，启动管线产物就绪）"
