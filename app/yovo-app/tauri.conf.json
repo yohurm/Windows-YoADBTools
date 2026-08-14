@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.yovo.adbtools",
   "build": {
-    "beforeDevCommand": "pnpm --dir ../../ui dev",
+    "beforeDevCommand": "pnpm --dir ../ui dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm --dir ../../ui build",
-    "frontendDist": "../ui/apps/shell/dist"
+    "beforeBuildCommand": "pnpm --dir ../ui build",
+    "frontendDist": "../../ui/apps/shell/dist"
   },
   "app": {
     "windows": [
