@@ -6,7 +6,9 @@
     "dev": "pnpm --filter @yovo/shell dev",
     "build": "pnpm --filter @yovo/shell build",
     "typecheck": "tsc -b",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint:tokens": "node ../scripts/check-ui-tokens.mjs",
+    "lint": "pnpm lint:tokens"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0",

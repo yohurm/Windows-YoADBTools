@@ -101,8 +101,8 @@ cargo tauri build
 - **体积优化**：release profile 启用 lto + codegen-units=1 + strip + panic=abort → exe 6.4 MB
 - **NSIS 安装包已打通**：`cargo tauri build` 产出 **5.80 MB**（≤12 MB 达标；含 sidecar adb 内嵌 + WebView2 embedBootstrapper 引导）；原生 tauri-cli（cargo install）；tauri.conf 路径约定（frontendDist 相对 config 目录、beforeX 命令 cwd=app/）；NSIS 工具链离线缓存方案（winget NSIS → `%LOCALAPPDATA%\tauri\nsis-3.11`）；scripts/build-release.ps1 全流程封装
 - **fake-adb 集成测试已落地**：tools/fake-adb（脚本化假 adb，零共享状态：测试拷贝 exe + 同名 json 到独立临时目录）；yovo-logsrv 集成测试 7 用例（单流采集/解析/批量/停止保留缓冲/幂等/掉线 Stopped/取消终止进程树/切换清缓冲）；期间修复两个真实缺陷：run_capture 关闭通道忙循环（饿死 stderr 读任务）与 Batcher 生产端结束丢尾部批次（现冲刷 flush）
-- **验收现状**：`cargo build --workspace && cargo test --workspace` 全绿（含 7 集成）、clippy -D warnings 通过、Vitest **96** 用例全绿、tsc -b 0 错误；verify-v6-smoke/full/logs-perf 三脚本就绪
-- 待续（S5，需真机 + 设备，脚本已备）：安装包安装/冒烟、全功能联调、日志性能验收、产线镜像预置 WebView2、旧版下线
+- **验收现状**：`cargo build --workspace && cargo test --workspace` 全绿（含 7 集成）、clippy -D warnings 通过、Vitest **96** 用例全绿、tsc -b 0 错误、`pnpm lint`（ADR-v6-011 token 纪律，scripts/check-ui-tokens.mjs）通过、**verify-v6-smoke.ps1 已实际跑通**（进程存活/无 panic/sidecar 解压/默认命令库写入；期间修复 events.rs 必须在 tauri 异步运行时 spawn 的启动崩溃）
+- 待续（S5，需设备，脚本已备）：安装包安装冒烟、全功能联调、日志性能验收、产线镜像预置 WebView2、旧版下线
 - **v5 遗留**：全部 C#/WPF 代码、旧测试与 v5 联调脚本已移至 `old/`（`old/src`、`old/tests`、`old/YovoAdbTools.sln`、`old/scripts`），仅存档参考，不作为 v6 实现依据；S5 随新架构全功能验收后彻底移除
 - **sidecar 二进制**：`tools/adb.exe` 等被 .gitignore 排除（不入库）；新机器构建前运行 `scripts/setup-adb.ps1` 从 `old/src/Yovo.Platform/Tools/` 拷贝
 

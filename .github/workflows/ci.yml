@@ -55,6 +55,10 @@ jobs:
         working-directory: ui
         run: pnpm test
 
+      - name: token 纪律（ADR-v6-011：禁硬编码色值/字号）
+        working-directory: ui
+        run: pnpm lint
+
       - name: Rust 构建（含 fake-adb 明文 bin）
         run: cargo build --workspace
 
