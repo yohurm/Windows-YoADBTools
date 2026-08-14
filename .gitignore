@@ -19,10 +19,11 @@ publish-*/
 dist/
 
 # 仓库根目录 sidecar 工具二进制（不入库；scripts/setup-adb.ps1 从 old/ 归档拷贝）
-# 注：tools/fake-adb/ 源码正常入库
+# 注：tools/fake-adb/ 源码正常入库；msedgedriver 为本地 E2E 工具（按需下载，不入库）
 /tools/adb.exe
 /tools/AdbWinApi.dll
 /tools/AdbWinUsbApi.dll
+/tools/msedgedriver/
 
 # Rust 构建产物
 /target/

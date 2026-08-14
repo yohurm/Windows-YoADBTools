@@ -18,6 +18,7 @@ tokio-util = "0.7"
 thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-appender = "0.2"
 time.workspace = true
 yovo-protocol.workspace = true
 yovo-domain.workspace = true

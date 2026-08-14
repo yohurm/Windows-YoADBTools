@@ -32,11 +32,23 @@ use crate::state::AppState;
 use crate::tasks::TaskCenter;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+    // 诊断日志：release（windows_subsystem）无控制台 → 落盘 logs/app.log（滚动 1MB×3）
+    // 与设备日志严格分离（ADR-v6-010）；AppLog 内存环仍不落盘。
+    let logs_dir = AppPaths::local_root().join("logs");
+    let file_appender = tracing_appender::rolling::Builder::new()
+        .rotation(tracing_appender::rolling::Rotation::DAILY)
+        .max_log_files(7)
+        .filename_prefix("app")
+        .filename_suffix("log")
+        .build(&logs_dir)
+        .expect("日志目录创建失败");
+    let (writer, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "yovo_app=info,yovo_adb=info,yovo_logsrv=info".into()),
         )
+        .with_writer(writer)
         .init();
 
     let root_cancel = CancellationToken::new();

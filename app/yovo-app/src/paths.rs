@@ -12,7 +12,7 @@ pub struct AppPaths {
 }
 
 impl AppPaths {
-    fn local_root() -> PathBuf {
+    pub fn local_root() -> PathBuf {
         let base = std::env::var("LOCALAPPDATA").unwrap_or_else(|_| ".".to_string());
         PathBuf::from(base).join("YovoAdbTools")
     }

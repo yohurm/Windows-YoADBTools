@@ -4,7 +4,7 @@
 # 覆盖：启动存活 / 无 panic 日志 / 数据目录创建（adb 解压 + 设置）
 
 param(
-    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\yovo-app.exe")
+    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YovoAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"

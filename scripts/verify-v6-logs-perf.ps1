@@ -4,7 +4,7 @@
 # 目标（架构文档 §12）：50k 缓冲 + 3 会话 + 每会话 2000 可见行，UI 交互不掉帧。
 
 param(
-    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\yovo-app.exe")
+    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YovoAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"

@@ -5,7 +5,7 @@
 #       日志（多会话/过滤/导出）/ 设置 / 占位模块；退出后检查 crash 日志。
 
 param(
-    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\yovo-app.exe")
+    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YovoAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"
