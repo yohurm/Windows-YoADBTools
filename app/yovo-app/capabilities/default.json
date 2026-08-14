@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Yovo ADB Tools v6 主窗口默认能力：核心 API（invoke/event）+ 本应用命令",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "dialog:default"]
 }

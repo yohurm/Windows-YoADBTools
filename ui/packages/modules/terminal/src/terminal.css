@@ -5,16 +5,16 @@
 }
 
 .yovo-terminal__title {
-  font-size: var(--yovo-font-size-page-title);
+  font-size: var(--yovo-font-page-title);
   font-weight: 600;
-  color: var(--yovo-color-text-primary);
+  color: var(--yovo-text-primary);
   margin-right: var(--yovo-space-sm);
 }
 
 .yovo-terminal__devices {
   margin-left: auto;
-  font-size: var(--yovo-font-size-caption);
-  color: var(--yovo-color-text-secondary);
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-text-secondary);
 }
 
 .yovo-terminal__body {
@@ -27,8 +27,8 @@
 
 .yovo-terminal__library {
   overflow: auto;
-  background: var(--yovo-color-panel-bg);
-  border: 1px solid var(--yovo-color-panel-border);
+  background: var(--yovo-panel-bg);
+  border: 1px solid var(--yovo-panel-border);
   border-radius: var(--yovo-radius-md);
   padding: var(--yovo-space-sm);
 }
@@ -37,8 +37,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--yovo-color-panel-bg);
-  border: 1px solid var(--yovo-color-panel-border);
+  background: var(--yovo-panel-bg);
+  border: 1px solid var(--yovo-panel-border);
   border-radius: var(--yovo-radius-md);
 }
 
@@ -48,8 +48,8 @@
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
   font-weight: 600;
-  color: var(--yovo-color-text-primary);
-  border-bottom: 1px solid var(--yovo-color-list-border);
+  color: var(--yovo-text-primary);
+  border-bottom: 1px solid var(--yovo-list-border);
 }
 
 .yovo-terminal__results-list {
@@ -60,14 +60,14 @@
 
 .yovo-terminal__result {
   padding: var(--yovo-space-sm);
-  border-left: 3px solid var(--yovo-color-success);
+  border-left: 3px solid var(--yovo-success);
   margin-bottom: var(--yovo-space-sm);
-  background: var(--yovo-color-list-bg);
+  background: var(--yovo-list-bg);
   border-radius: var(--yovo-radius-sm);
 }
 
 .yovo-terminal__result--fail {
-  border-left-color: var(--yovo-color-error);
+  border-left-color: var(--yovo-error);
 }
 
 .yovo-terminal__result-head {
@@ -77,20 +77,20 @@
 }
 
 .yovo-terminal__result-time {
-  font-family: var(--yovo-font-family-mono);
-  font-size: var(--yovo-font-size-caption);
-  color: var(--yovo-color-text-tertiary);
+  font-family: var(--yovo-font-mono);
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-text-tertiary);
 }
 
 .yovo-terminal__result-serial {
-  font-family: var(--yovo-font-family-mono);
-  font-size: var(--yovo-font-size-caption);
-  color: var(--yovo-color-accent);
+  font-family: var(--yovo-font-mono);
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-accent);
 }
 
 .yovo-terminal__result-title {
   font-weight: 600;
-  color: var(--yovo-color-text-primary);
+  color: var(--yovo-text-primary);
   margin-right: auto;
 }
 
@@ -98,16 +98,16 @@
 .yovo-terminal__result-out {
   margin: var(--yovo-space-xs) 0 0;
   padding: var(--yovo-space-xs);
-  font-family: var(--yovo-font-family-mono);
-  font-size: var(--yovo-font-size-caption);
+  font-family: var(--yovo-font-mono);
+  font-size: var(--yovo-font-caption);
   white-space: pre-wrap;
   word-break: break-all;
-  background: var(--yovo-color-content-bg);
+  background: var(--yovo-content-bg);
   border-radius: var(--yovo-radius-sm);
 }
 
 .yovo-terminal__result-msg {
-  color: var(--yovo-color-error);
+  color: var(--yovo-error);
 }
 
 .yovo-terminal__inputs {

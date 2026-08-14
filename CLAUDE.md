@@ -95,8 +95,10 @@ cargo tauri build
 - 架构设计定稿（2026-08-14）；实现按 **S1–S5 strangler-fig**（架构文档 §15）推进，总工期约 9–12 周（2 人）
 - **S1 骨架已落地**：Cargo workspace（core 五 crate）+ Tauri 壳（app/yovo-app，25 条命令全量接线）+ @yovo/ui 组件库 + @yovo/api 契约层 + 工作台壳（设备栏/导航/设置/状态栏/模块注册表）+ sidecar adb
 - **S2 终端模块已落地**：命令库（默认库 3 组 9 命令，首次启动写入）/ 命令组 / 多设备并行 / 成败判定（core 领域层）/ 命令管理窗口（快照编辑、全量提交、取消零污染）/ 占位符填值对话框 / 结果日志流；GroupProgress 携带命令名；@yovo/ui 新增 YDialog/YToast(createToaster)
-- **验收现状**：release exe **11.90 MB**（≤12MB）；cargo test 全绿、clippy -D warnings 通过、Vitest **76** 用例全绿、tsc -b 0 错误
-- 待续：S3 文件模块 / S4 日志模块 UI（core 侧采集/传输服务已就绪，UI 为占位页）；fake-adb 集成测试 fixture；NSIS 安装包构建
+- **S3 文件模块已落地**：设备目录浏览（YVirtualList 虚拟化）/ 上传（tauri-plugin-dialog 选文件）/ 下载（save 对话框）/ 删除（确认框 + core 侧 SafetyRoot）/ 新建目录 / 传输面板（进度条/取消/状态徽章）
+- **体积优化**：release profile 启用 lto + codegen-units=1 + strip + panic=abort → exe **6.36 MB**
+- **验收现状**：release exe **6.36 MB**（≤12MB 达标）；cargo test 全绿、clippy -D warnings 通过、Vitest **82** 用例全绿、tsc -b 0 错误
+- 待续：S4 日志模块 UI（core 侧采集服务已就绪，UI 为占位页）；fake-adb 集成测试 fixture；NSIS 安装包构建；verify-v6-full/logs-perf 脚本
 - **v5 遗留**：全部 C#/WPF 代码、旧测试与 v5 联调脚本已移至 `old/`（`old/src`、`old/tests`、`old/YovoAdbTools.sln`、`old/scripts`），仅存档参考，不作为 v6 实现依据；S5 随新架构全功能验收后彻底移除
 - **sidecar 二进制**：`tools/adb.exe` 等被 .gitignore 排除（不入库）；新机器构建前运行 `scripts/setup-adb.ps1` 从 `old/src/Yovo.Platform/Tools/` 拷贝
 

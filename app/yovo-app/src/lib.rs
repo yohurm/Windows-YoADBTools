@@ -127,6 +127,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let app = builder
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::device::device_list,
             commands::device::device_refresh,

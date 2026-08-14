@@ -11,15 +11,15 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--yovo-color-nav-bg);
-  border-right: 1px solid var(--yovo-color-panel-border);
+  background: var(--yovo-nav-bg);
+  border-right: 1px solid var(--yovo-panel-border);
 }
 
 .yovo-layout__content {
   grid-row: 1;
   grid-column: 2;
   overflow: auto;
-  background: var(--yovo-color-content-bg);
+  background: var(--yovo-content-bg);
   padding: var(--yovo-space-md);
   box-sizing: border-box;
 }
@@ -30,8 +30,167 @@
 }
 
 .yovo-module-title {
-  font-size: var(--yovo-font-size-page-title);
+  font-size: var(--yovo-font-page-title);
   font-weight: 600;
-  color: var(--yovo-color-text-primary);
+  color: var(--yovo-text-primary);
   margin-right: var(--yovo-space-sm);
+}
+
+/* ===== 设备栏 ===== */
+.yovo-device-rail {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--yovo-panel-border);
+}
+
+.yovo-device-rail__header {
+  display: flex;
+  align-items: center;
+  gap: var(--yovo-space-xs);
+  padding: var(--yovo-space-sm) var(--yovo-space-md);
+}
+
+.yovo-device-rail__title {
+  flex: 1;
+  font-weight: 600;
+  color: var(--yovo-text-primary);
+}
+
+.yovo-device-rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--yovo-space-sm) var(--yovo-space-sm);
+  overflow: auto;
+}
+
+.yovo-device-rail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--yovo-space-sm);
+  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  border-radius: var(--yovo-radius-sm);
+  cursor: pointer;
+}
+
+.yovo-device-rail__item:hover {
+  background: var(--yovo-nav-hover);
+}
+
+.yovo-device-rail__item--active {
+  background: var(--yovo-accent-bg);
+}
+
+.yovo-device-rail__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.yovo-device-rail__dot--online {
+  background: var(--yovo-success);
+}
+
+.yovo-device-rail__dot--off {
+  background: var(--yovo-offline);
+}
+
+.yovo-device-rail__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.yovo-device-rail__model {
+  font-weight: 600;
+  color: var(--yovo-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yovo-device-rail__serial {
+  font-family: var(--yovo-font-mono);
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-text-tertiary);
+}
+
+.yovo-device-rail__badge {
+  margin-left: auto;
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-warn);
+  flex-shrink: 0;
+}
+
+.yovo-device-rail__empty {
+  padding: var(--yovo-space-sm) var(--yovo-space-md);
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-text-tertiary);
+}
+
+/* ===== 模块导航 ===== */
+.yovo-nav {
+  flex: 1;
+  overflow: auto;
+  padding: var(--yovo-space-sm) var(--yovo-space-md);
+}
+
+.yovo-nav__caption {
+  font-weight: 600;
+  color: var(--yovo-text-primary);
+  margin-bottom: var(--yovo-space-xs);
+}
+
+.yovo-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.yovo-nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--yovo-space-sm);
+  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  border-radius: var(--yovo-radius-sm);
+  cursor: pointer;
+  color: var(--yovo-text-primary);
+}
+
+.yovo-nav__item:hover {
+  background: var(--yovo-nav-hover);
+}
+
+.yovo-nav__item--active {
+  background: var(--yovo-accent-bg);
+  color: var(--yovo-accent);
+  font-weight: 600;
+}
+
+.yovo-nav__title {
+  flex: 1;
+}
+
+.yovo-nav__planned {
+  font-size: var(--yovo-font-caption);
+  background: var(--yovo-offline);
+  color: var(--yovo-panel-bg);
+  padding: 1px var(--yovo-space-xs);
+  border-radius: var(--yovo-radius-sm);
+}
+
+/* ===== 状态栏 ===== */
+.yovo-status__tasks {
+  margin-right: var(--yovo-space-md);
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-warn);
+}
+
+.yovo-status__task {
+  margin-left: var(--yovo-space-xs);
+}
+
+.yovo-status__device {
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-text-secondary);
 }
