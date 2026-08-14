@@ -28,9 +28,9 @@ dist/
 node_modules/
 *.tsbuildinfo
 
-# 日志
+# 日志（仅仓库根 Logs/；注意勿匹配 ui/packages/modules/logs/）
 *.log
-Logs/
+/Logs/
 
 # UI 联调截图（本地产物，不入库）
 .ui-review/
