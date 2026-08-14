@@ -15,6 +15,7 @@ Config/
 # 发布输出
 publish/
 publish_*/
+publish-*/
 dist/
 
 # 仓库根目录备用工具目录（内嵌 ADB 在 src/Yovo.Platform 嵌入资源中）
