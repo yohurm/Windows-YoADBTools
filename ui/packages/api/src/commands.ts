@@ -1,0 +1,112 @@
+/**
+ * @yovo/api — 类型化 invoke 命令封装（与 core/yovo-app/src/commands/* 一一对应）。
+ */
+
+import { invoke } from "@tauri-apps/api/core";
+
+import type {
+  AdbExecRequest,
+  AppSettings,
+  CommandDto,
+  CommandLibraryDto,
+  DeviceInfo,
+  ExecOutcome,
+  ExportRequest,
+  ExportResult,
+  GroupRunRequest,
+  LogBatch,
+  PathOpRequest,
+  ReplayRequest,
+  RemoteEntry,
+  SettingKey,
+  TransferRequest,
+} from "./types";
+
+// ===== device =====
+
+export const deviceList = () => invoke<DeviceInfo[]>("device.list");
+
+export const deviceRefresh = () => invoke<DeviceInfo[]>("device.refresh");
+
+// ===== adb =====
+
+export const adbExec = (req: AdbExecRequest) => invoke<ExecOutcome>("adb.exec", { req });
+
+// ===== terminal =====
+
+export interface EvalResult {
+  ok: boolean;
+  message: string;
+  exit_code: number;
+  stdout: string;
+  stderr: string;
+}
+
+export const terminalEval = (serial: string, command: CommandDto) =>
+  invoke<EvalResult>("terminal.eval", { serial, command });
+
+export const groupRun = (req: GroupRunRequest) => invoke<number>("group.run", { req });
+
+export const groupCancel = (runId: number) => invoke<void>("group.cancel", { runId });
+
+// ===== command library =====
+
+export const commandlibLoad = () => invoke<CommandLibraryDto>("commandlib.load");
+
+export const commandlibSave = (dto: CommandLibraryDto) =>
+  invoke<void>("commandlib.save", { dto });
+
+// ===== files =====
+
+export const filesList = (serial: string, path: string) =>
+  invoke<RemoteEntry[]>("files.list", { serial, path });
+
+export const filesPush = (req: TransferRequest) => invoke<number>("files.push", { req });
+
+export const filesPull = (req: TransferRequest) => invoke<number>("files.pull", { req });
+
+export const filesCancel = (id: number) => invoke<void>("files.cancel", { id });
+
+export const filesDelete = (req: PathOpRequest) => invoke<void>("files.delete", { req });
+
+export const filesMkdir = (req: PathOpRequest) => invoke<void>("files.mkdir", { req });
+
+// ===== log =====
+
+export const logCaptureStart = (serial: string) =>
+  invoke<void>("log.capture.start", { serial });
+
+export const logCaptureStop = (serial: string) =>
+  invoke<void>("log.capture.stop", { serial });
+
+export const logClear = (serial: string) => invoke<void>("log.clear", { serial });
+
+export const logClearDevice = (serial: string) =>
+  invoke<void>("log.clearDevice", { serial });
+
+export const logReplay = (req: ReplayRequest) => invoke<LogBatch>("log.replay", { req });
+
+export const logExport = (req: ExportRequest) => invoke<ExportResult>("log.export", { req });
+
+// ===== settings =====
+
+export const settingsGet = (key: SettingKey) => invoke<unknown>("settings.get", { key });
+
+export const settingsSet = (key: SettingKey, value: unknown) =>
+  invoke<AppSettings>("settings.set", { key, value });
+
+// ===== system =====
+
+export interface SystemInfo {
+  version: string;
+  data_root: string;
+  adb_path: string;
+  settings: AppSettings;
+}
+
+export const systemInfo = () => invoke<SystemInfo>("system.info");
+
+export const systemOpenPath = (path: string) => invoke<void>("system.openPath", { path });
+
+export const systemReportError = (message: string) =>
+  invoke<void>("system.reportError", { message });

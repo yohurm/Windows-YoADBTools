@@ -1,0 +1,30 @@
+.yovo-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--yovo-space-xl) + var(--yovo-space-xs));
+  height: calc(var(--yovo-space-xl) + var(--yovo-space-xs));
+  padding: 0;
+  border: none;
+  border-radius: var(--yovo-radius-sm);
+  background-color: transparent;
+  color: var(--yovo-text-secondary);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.yovo-icon-button:focus-visible {
+  outline: 2px solid var(--yovo-accent);
+  outline-offset: 1px;
+}
+
+.yovo-icon-button:not(:disabled):hover {
+  background-color: var(--yovo-nav-hover);
+  color: var(--yovo-text-primary);
+}
+
+.yovo-icon-button:disabled {
+  color: var(--yovo-disabled);
+  cursor: not-allowed;
+}

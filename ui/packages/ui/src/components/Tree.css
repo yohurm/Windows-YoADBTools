@@ -1,0 +1,50 @@
+.yovo-tree {
+  font-family: var(--yovo-font-sans);
+  color: var(--yovo-text-primary);
+  background-color: var(--yovo-panel-bg);
+  box-sizing: border-box;
+}
+
+.yovo-tree__row {
+  display: flex;
+  align-items: center;
+  gap: var(--yovo-space-xs);
+  padding-right: var(--yovo-space-sm);
+  font-size: var(--yovo-font-body);
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.yovo-tree__row:hover {
+  background-color: var(--yovo-nav-hover);
+}
+
+.yovo-tree__row--selected {
+  background-color: var(--yovo-accent-bg);
+  color: var(--yovo-accent);
+}
+
+.yovo-tree__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--yovo-space-lg);
+  height: var(--yovo-space-lg);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--yovo-text-tertiary);
+  cursor: pointer;
+}
+
+.yovo-tree__chevron--leaf {
+  pointer-events: none;
+}
+
+.yovo-tree__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

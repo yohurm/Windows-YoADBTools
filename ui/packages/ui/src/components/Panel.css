@@ -1,0 +1,49 @@
+.yovo-panel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--yovo-panel-border);
+  border-radius: var(--yovo-radius-md);
+  background-color: var(--yovo-panel-bg);
+  color: var(--yovo-text-primary);
+  font-family: var(--yovo-font-sans);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.yovo-panel__title {
+  margin: 0;
+  padding: var(--yovo-space-md) var(--yovo-space-md) 0;
+  font-size: var(--yovo-font-body-strong);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-text-primary);
+}
+
+.yovo-panel__body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.yovo-panel--padding-none .yovo-panel__body {
+  padding: 0;
+}
+
+.yovo-panel--padding-xs .yovo-panel__body {
+  padding: var(--yovo-space-xs);
+}
+
+.yovo-panel--padding-sm .yovo-panel__body {
+  padding: var(--yovo-space-sm);
+}
+
+.yovo-panel--padding-md .yovo-panel__body {
+  padding: var(--yovo-space-md);
+}
+
+.yovo-panel--padding-lg .yovo-panel__body {
+  padding: var(--yovo-space-lg);
+}
+
+.yovo-panel--padding-xl .yovo-panel__body {
+  padding: var(--yovo-space-xl);
+}

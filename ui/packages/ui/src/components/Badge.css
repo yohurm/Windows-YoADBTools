@@ -1,0 +1,40 @@
+.yovo-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--yovo-space-sm);
+  height: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
+  border-radius: calc(var(--yovo-radius-md) * 2);
+  border: 1px solid transparent;
+  font-family: var(--yovo-font-sans);
+  font-size: var(--yovo-font-caption);
+  font-weight: var(--yovo-font-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.yovo-badge--neutral {
+  background-color: var(--yovo-list-bg);
+  border-color: var(--yovo-list-border);
+  color: var(--yovo-text-secondary);
+}
+
+.yovo-badge--accent {
+  background-color: var(--yovo-accent-bg);
+  color: var(--yovo-accent);
+}
+
+.yovo-badge--success {
+  background-color: var(--yovo-success-bg);
+  color: var(--yovo-success);
+}
+
+.yovo-badge--warn {
+  background-color: var(--yovo-warn-bg);
+  color: var(--yovo-tag);
+}
+
+.yovo-badge--error {
+  background-color: var(--yovo-signal-bg);
+  color: var(--yovo-error);
+}

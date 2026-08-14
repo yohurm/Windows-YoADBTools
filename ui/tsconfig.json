@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/api" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/app" },
+    { "path": "./packages/modules/mirror" },
+    { "path": "./packages/modules/terminal" },
+    { "path": "./packages/modules/files" },
+    { "path": "./packages/modules/logs" },
+    { "path": "./apps/shell" }
+  ]
+}

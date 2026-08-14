@@ -1,0 +1,29 @@
+[package]
+name = "yovo-app"
+description = "Yovo ADB Tools v6 — Tauri 桌面壳（组合根，唯一引用 Tauri 的 crate）"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util", "fs"] }
+tokio-util = "0.7"
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+time.workspace = true
+yovo-protocol.workspace = true
+yovo-domain.workspace = true
+yovo-adb.workspace = true
+yovo-logsrv.workspace = true
+yovo-files.workspace = true
+
+[lib]
+name = "yovo_app_lib"
+crate-type = ["lib"]

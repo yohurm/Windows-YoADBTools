@@ -1,0 +1,19 @@
+.yovo-virtual-list {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: var(--yovo-list-bg);
+  font-family: var(--yovo-font-sans);
+  box-sizing: border-box;
+}
+
+.yovo-virtual-list__inner {
+  position: relative;
+  width: 100%;
+}
+
+.yovo-virtual-list__row {
+  box-sizing: border-box;
+  overflow: hidden;
+}

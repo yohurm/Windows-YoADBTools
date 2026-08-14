@@ -1,0 +1,29 @@
+.yovo-progress {
+  position: relative;
+  width: 100%;
+  height: var(--yovo-space-xs);
+  border-radius: var(--yovo-radius-sm);
+  background-color: var(--yovo-list-bg);
+  overflow: hidden;
+}
+
+.yovo-progress__bar {
+  height: 100%;
+  border-radius: var(--yovo-radius-sm);
+  background-color: var(--yovo-accent);
+  transition: width 200ms ease;
+}
+
+.yovo-progress--indeterminate .yovo-progress__bar {
+  width: 40%;
+  animation: yovo-progress-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes yovo-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}

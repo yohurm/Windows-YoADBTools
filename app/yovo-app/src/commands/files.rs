@@ -1,0 +1,107 @@
+//! 文件模块命令：浏览/传输/取消/删除/新建。
+
+use tauri::{AppHandle, Manager, State};
+use tokio_util::sync::CancellationToken;
+
+use crate::commands::{ipc, ipc_code};
+use crate::state::AppState;
+use yovo_protocol::{
+    Direction, IpcError, IpcErrorCode, PathOpRequest, RemoteEntry, TransferRequest,
+};
+
+/// `files.list`：浏览设备目录。
+#[tauri::command]
+pub async fn files_list(
+    state: State<'_, AppState>,
+    serial: String,
+    path: String,
+) -> Result<Vec<RemoteEntry>, IpcError> {
+    state.browser.list(&serial, &path, CancellationToken::new()).await.map_err(ipc)
+}
+
+/// `files.push`：本机 → 设备（异步传输，进度经 `transfer.progress` 事件）。
+#[tauri::command]
+pub async fn files_push(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: TransferRequest,
+) -> Result<u32, IpcError> {
+    spawn_transfer(state, app, req, Direction::Push)
+}
+
+/// `files.pull`：设备 → 本机。
+#[tauri::command]
+pub async fn files_pull(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: TransferRequest,
+) -> Result<u32, IpcError> {
+    spawn_transfer(state, app, req, Direction::Pull)
+}
+
+fn spawn_transfer(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: TransferRequest,
+    direction: Direction,
+) -> Result<u32, IpcError> {
+    let id = state.transfer_next.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+    let cancel = CancellationToken::new();
+    state.transfer_cancels.lock().expect("transfer lock poisoned").insert(id, cancel.clone());
+
+    let task_id = state.tasks.register(match direction {
+        Direction::Push => format!("上传: {}", req.remote),
+        Direction::Pull => format!("下载: {}", req.local),
+    });
+
+    let transfers = state.transfers.clone();
+    let sink = state.event_tx.clone();
+    let spec = yovo_files::TransferSpec {
+        id,
+        serial: req.serial.clone(),
+        direction,
+        local: req.local.clone(),
+        remote: req.remote.clone(),
+    };
+    tokio::spawn(async move {
+        let result = transfers.run(spec, cancel, sink).await;
+        let state = app.state::<AppState>();
+        state.transfer_cancels.lock().expect("transfer lock poisoned").remove(&id);
+        state.tasks.finish(task_id);
+        if let Err(e) = result {
+            state.app_log.error(format!("传输失败: {e}"));
+        }
+    });
+    Ok(id)
+}
+
+/// `files.cancel`：取消传输。
+#[tauri::command]
+pub fn files_cancel(state: State<'_, AppState>, id: u32) -> Result<(), IpcError> {
+    let cancel = state.transfer_cancels.lock().expect("transfer lock poisoned").get(&id).cloned();
+    match cancel {
+        Some(c) => {
+            c.cancel();
+            Ok(())
+        }
+        None => Err(ipc_code(IpcErrorCode::NotFound, format!("传输不存在: {id}"))),
+    }
+}
+
+/// `files.delete`：删除（core 侧 SafetyRoot 强制校验，ADR-v6-013）。
+#[tauri::command]
+pub async fn files_delete(
+    state: State<'_, AppState>,
+    req: PathOpRequest,
+) -> Result<(), IpcError> {
+    state.mutator.delete(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc)
+}
+
+/// `files.mkdir`：新建目录。
+#[tauri::command]
+pub async fn files_mkdir(
+    state: State<'_, AppState>,
+    req: PathOpRequest,
+) -> Result<(), IpcError> {
+    state.mutator.mkdir(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc)
+}

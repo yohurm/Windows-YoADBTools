@@ -18,8 +18,15 @@ publish_*/
 publish-*/
 dist/
 
-# 仓库根目录备用工具目录（内嵌 ADB 在 src/Yovo.Platform 嵌入资源中）
+# 仓库根目录 sidecar 工具目录（二进制不入库；scripts/setup-adb.ps1 从 old/ 归档拷贝）
 /tools/
+
+# Rust 构建产物
+/target/
+
+# Node 依赖与 TS 构建产物
+node_modules/
+*.tsbuildinfo
 
 # 日志
 *.log

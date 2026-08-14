@@ -1,0 +1,37 @@
+.yovo-layout {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  grid-template-columns: var(--yovo-shell-nav, 232px) 1fr;
+  height: 100vh;
+}
+
+.yovo-layout__rail {
+  grid-row: 1;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--yovo-color-nav-bg);
+  border-right: 1px solid var(--yovo-color-panel-border);
+}
+
+.yovo-layout__content {
+  grid-row: 1;
+  grid-column: 2;
+  overflow: auto;
+  background: var(--yovo-color-content-bg);
+  padding: var(--yovo-space-md);
+  box-sizing: border-box;
+}
+
+.yovo-layout > :last-child {
+  grid-row: 2;
+  grid-column: 1 / span 2;
+}
+
+.yovo-module-title {
+  font-size: var(--yovo-font-size-page-title);
+  font-weight: 600;
+  color: var(--yovo-color-text-primary);
+  margin-right: var(--yovo-space-sm);
+}

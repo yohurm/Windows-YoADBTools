@@ -1,0 +1,23 @@
+{
+  "name": "@yovo/shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@yovo/app": "workspace:*",
+    "@yovo/ui": "workspace:*",
+    "@yovo/module-terminal": "workspace:*",
+    "@yovo/module-files": "workspace:*",
+    "@yovo/module-logs": "workspace:*",
+    "@yovo/module-mirror": "workspace:*",
+    "solid-js": "^1.9.5"
+  },
+  "devDependencies": {
+    "vite": "^6.3.0",
+    "vite-plugin-solid": "^2.11.6"
+  }
+}

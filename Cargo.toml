@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+  "core/yovo-protocol",
+  "core/yovo-domain",
+  "core/yovo-adb",
+  "core/yovo-logsrv",
+  "core/yovo-files",
+  "app/yovo-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+regex = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util", "fs"] }
+tracing = "0.1"
+time = { version = "0.3", features = ["formatting", "local-offset"] }
+
+yovo-protocol = { path = "core/yovo-protocol" }
+yovo-domain = { path = "core/yovo-domain" }
+yovo-adb = { path = "core/yovo-adb" }
+yovo-logsrv = { path = "core/yovo-logsrv" }
+yovo-files = { path = "core/yovo-files" }
