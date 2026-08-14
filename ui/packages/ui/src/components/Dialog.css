@@ -1,0 +1,55 @@
+.yovo-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--yovo-font-sans);
+}
+
+.yovo-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  /* Accent 低透明度遮罩：由强调色派生，避免硬编码色值 */
+  background-color: color-mix(in srgb, var(--yovo-accent) 24%, transparent);
+}
+
+.yovo-dialog__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100% - var(--yovo-space-lg) * 2);
+  max-height: calc(100% - var(--yovo-space-xl) * 2);
+  border: 1px solid var(--yovo-panel-border);
+  border-radius: var(--yovo-radius-md);
+  background-color: var(--yovo-panel-bg);
+  color: var(--yovo-text-primary);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.yovo-dialog__title {
+  margin: 0;
+  padding: var(--yovo-space-md) var(--yovo-space-lg);
+  border-bottom: 1px solid var(--yovo-list-border);
+  font-size: var(--yovo-font-subtitle);
+  font-weight: var(--yovo-font-weight-semibold);
+}
+
+.yovo-dialog__body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--yovo-space-lg);
+  overflow: auto;
+  font-size: var(--yovo-font-body);
+}
+
+.yovo-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--yovo-space-sm);
+  padding: var(--yovo-space-md) var(--yovo-space-lg);
+  border-top: 1px solid var(--yovo-list-border);
+}

@@ -21,6 +21,9 @@ pub struct TaskInfo {
 pub struct GroupProgress {
     pub run_id: u32,
     pub serial: String,
+    /// 命令名（展示用）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,

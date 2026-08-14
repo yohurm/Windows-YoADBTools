@@ -84,6 +84,7 @@ pub async fn group_run(
                 let _ = sink.try_send(AppEvent::GroupProgress(GroupProgress {
                     run_id,
                     serial: e.serial,
+                    name: Some(e.name),
                     ok: e.verdict.is_pass(),
                     message: if message.is_empty() { None } else { Some(message) },
                 }));

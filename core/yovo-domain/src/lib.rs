@@ -12,7 +12,8 @@ pub mod safety;
 pub use applog::{AppLog, AppLogEntry, LogLevel};
 pub use command::{
     CommandDefinition, CommandEvaluator, CommandGroup, CommandLibrary, GroupExecutor,
-    GroupRunEvent, InputField, LibraryError, RunError, Runner, Verdict, split_command_line,
+    GroupRunEvent, InputField, LibraryError, RunError, Runner, Verdict, default_library,
+    split_command_line,
 };
 pub use focus::{DeviceFocus, SelectionMode};
 pub use safety::{PathError, RemotePath, SafetyError, SafetyRoot};

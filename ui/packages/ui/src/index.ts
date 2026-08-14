@@ -64,3 +64,9 @@ export type { YVirtualListProps } from "./components/VirtualList";
 
 export { YTree } from "./components/Tree";
 export type { YTreeProps, TreeNode } from "./components/Tree";
+
+export { YDialog } from "./components/Dialog";
+export type { YDialogProps } from "./components/Dialog";
+
+export { YToast, YToaster, createToaster } from "./components/Toast";
+export type { ToastItem, ToastTone, Toaster, YToastProps, YToasterProps } from "./components/Toast";

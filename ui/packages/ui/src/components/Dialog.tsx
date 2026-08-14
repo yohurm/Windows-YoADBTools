@@ -1,0 +1,59 @@
+/**
+ * YDialog —— 模态对话框。
+ * open 时渲染遮罩（Accent 低透明度）+ 居中面板（PanelBg 底、PanelBorder 边框、Radius.Md 圆角）。
+ * Esc 键触发 onClose；点击遮罩不关闭（防误触，仅由显式取消/确认按钮关闭）。
+ * `open` 支持 `boolean` 或响应式 `Accessor<boolean>`。
+ */
+import { Show, createEffect, onCleanup } from "solid-js";
+import type { Accessor, JSX } from "solid-js";
+import "./Dialog.css";
+
+export interface YDialogProps {
+  /** 是否打开（布尔值或响应式访问器） */
+  open: boolean | Accessor<boolean>;
+  /** 标题 */
+  title?: string;
+  /** 面板宽度（px），默认 560 */
+  width?: number;
+  /** 关闭回调（Esc 触发） */
+  onClose: () => void;
+  /** 底部按钮区 */
+  footer?: JSX.Element;
+  children: JSX.Element;
+}
+
+/**
+ * 渲染一个带遮罩的模态对话框。
+ */
+export function YDialog(props: YDialogProps): JSX.Element {
+  const isOpen = (): boolean => (typeof props.open === "function" ? props.open() : props.open);
+
+  createEffect(() => {
+    if (!isOpen()) return;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        props.onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
+  });
+
+  return (
+    <Show when={isOpen()}>
+      <div class="yovo-dialog">
+        <div class="yovo-dialog__backdrop" aria-hidden="true" />
+        <div
+          class="yovo-dialog__panel"
+          role="dialog"
+          aria-modal="true"
+          style={{ width: `${props.width ?? 560}px` }}
+        >
+          {props.title ? <h3 class="yovo-dialog__title">{props.title}</h3> : null}
+          <div class="yovo-dialog__body">{props.children}</div>
+          {props.footer ? <div class="yovo-dialog__footer">{props.footer}</div> : null}
+        </div>
+      </div>
+    </Show>
+  );
+}

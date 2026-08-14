@@ -1,0 +1,37 @@
+.yovo-toaster {
+  position: fixed;
+  top: var(--yovo-space-md);
+  right: var(--yovo-space-md);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--yovo-space-sm);
+  pointer-events: none;
+  font-family: var(--yovo-font-sans);
+}
+
+.yovo-toast {
+  pointer-events: auto;
+  max-width: calc(var(--yovo-space-xl) * 14);
+  padding: var(--yovo-space-sm) var(--yovo-space-md);
+  border: 1px solid var(--yovo-panel-border);
+  border-left: 3px solid var(--yovo-accent);
+  border-radius: var(--yovo-radius-sm);
+  background-color: var(--yovo-panel-bg);
+  color: var(--yovo-text-primary);
+  font-size: var(--yovo-font-body);
+  box-sizing: border-box;
+}
+
+.yovo-toast--success {
+  border-left-color: var(--yovo-success);
+}
+
+.yovo-toast--error {
+  border-left-color: var(--yovo-error);
+}
+
+.yovo-toast--info {
+  border-left-color: var(--yovo-accent);
+}

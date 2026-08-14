@@ -191,6 +191,7 @@ export interface TaskInfo {
 export interface GroupProgress {
   run_id: number;
   serial: string;
+  name?: string;
   ok: boolean;
   message?: string;
 }

@@ -56,6 +56,8 @@ impl<T: Runner + ?Sized> Runner for Arc<T> {
 #[derive(Debug, Clone)]
 pub struct GroupRunEvent {
     pub serial: String,
+    /// 命令名（展示用）
+    pub name: String,
     /// 组内命令序号（0 起）
     pub command_index: usize,
     pub total: usize,
@@ -132,6 +134,7 @@ impl<R: Runner> GroupExecutor<R> {
             let abort = command.abort_on_fail && !verdict.is_pass();
             let _ = progress_tx.try_send(GroupRunEvent {
                 serial: serial.to_string(),
+                name: command.name.clone(),
                 command_index: index,
                 total,
                 verdict,
