@@ -3,7 +3,7 @@
   width: 100%;
   height: var(--yovo-space-xs);
   border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-list-bg);
+  background-color: var(--yovo-surface-2);
   overflow: hidden;
 }
 

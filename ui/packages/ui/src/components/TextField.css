@@ -7,7 +7,7 @@
 
 .yovo-text-field__label {
   font-size: var(--yovo-font-caption);
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
 }
 
 .yovo-text-field__control {
@@ -16,9 +16,9 @@
   gap: var(--yovo-space-xs);
   height: calc(var(--yovo-space-lg) * 2);
   padding: 0 var(--yovo-space-sm);
-  border: 1px solid var(--yovo-panel-border);
+  border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-panel-bg);
+  background-color: var(--yovo-surface);
   box-sizing: border-box;
   transition: border-color var(--yovo-dur-fast) var(--yovo-ease-standard);
 }
@@ -34,13 +34,13 @@
   border: none;
   outline: none;
   background: transparent;
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
   font-family: inherit;
   font-size: var(--yovo-font-body);
 }
 
 .yovo-text-field__input::placeholder {
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
 }
 
 .yovo-text-field__clear {
@@ -53,18 +53,18 @@
   border: none;
   border-radius: var(--yovo-radius-sm);
   background: transparent;
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
   cursor: pointer;
 }
 
 .yovo-text-field__clear:hover {
   background-color: var(--yovo-nav-hover);
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
 }
 
 .yovo-text-field--disabled .yovo-text-field__control {
-  background-color: var(--yovo-list-bg);
-  border-color: var(--yovo-list-border);
+  background-color: var(--yovo-surface-2);
+  border-color: var(--yovo-border);
 }
 
 .yovo-text-field--disabled .yovo-text-field__input {

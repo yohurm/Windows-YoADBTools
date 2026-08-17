@@ -1,7 +1,7 @@
 .yovo-tree {
   font-family: var(--yovo-font-sans);
-  color: var(--yovo-text-primary);
-  background-color: var(--yovo-panel-bg);
+  color: var(--yovo-fg);
+  background-color: var(--yovo-surface);
   box-sizing: border-box;
 }
 
@@ -21,7 +21,7 @@
 }
 
 .yovo-tree__row--selected {
-  background-color: var(--yovo-accent-bg);
+  background-color: var(--yovo-accent-soft);
   color: var(--yovo-accent);
 }
 
@@ -35,7 +35,7 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
   cursor: pointer;
 }
 

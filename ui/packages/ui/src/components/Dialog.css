@@ -22,10 +22,10 @@
   flex-direction: column;
   max-width: calc(100% - var(--yovo-space-lg) * 2);
   max-height: calc(100% - var(--yovo-space-xl) * 2);
-  border: 1px solid var(--yovo-panel-border);
+  border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
-  background-color: var(--yovo-panel-bg);
-  color: var(--yovo-text-primary);
+  background-color: var(--yovo-surface);
+  color: var(--yovo-fg);
   box-sizing: border-box;
   overflow: hidden;
   animation: yovo-dialog-in var(--yovo-dur-enter) var(--yovo-ease-decel);
@@ -54,7 +54,7 @@
 .yovo-dialog__title {
   margin: 0;
   padding: var(--yovo-space-md) var(--yovo-space-lg);
-  border-bottom: 1px solid var(--yovo-list-border);
+  border-bottom: 1px solid var(--yovo-border);
   font-size: var(--yovo-font-subtitle);
   font-weight: var(--yovo-font-weight-semibold);
 }
@@ -73,5 +73,5 @@
   justify-content: flex-end;
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-md) var(--yovo-space-lg);
-  border-top: 1px solid var(--yovo-list-border);
+  border-top: 1px solid var(--yovo-border);
 }

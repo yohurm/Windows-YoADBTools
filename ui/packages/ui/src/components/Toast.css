@@ -15,11 +15,11 @@
   pointer-events: auto;
   max-width: calc(var(--yovo-space-xl) * 14);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
-  border: 1px solid var(--yovo-panel-border);
+  border: 1px solid var(--yovo-border);
   border-left: 3px solid var(--yovo-accent);
   border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-panel-bg);
-  color: var(--yovo-text-primary);
+  background-color: var(--yovo-surface);
+  color: var(--yovo-fg);
   font-size: var(--yovo-font-body);
   box-sizing: border-box;
   animation: yovo-toast-in var(--yovo-dur-normal) var(--yovo-ease-decel);

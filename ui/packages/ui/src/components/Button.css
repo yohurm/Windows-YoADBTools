@@ -28,7 +28,7 @@
   cursor: not-allowed;
   background-color: var(--yovo-disabled);
   border-color: transparent;
-  color: var(--yovo-panel-bg);
+  color: var(--yovo-surface);
 }
 
 .yovo-button--sm {
@@ -44,7 +44,7 @@
 
 .yovo-button--primary {
   background-color: var(--yovo-accent);
-  color: var(--yovo-panel-bg);
+  color: var(--yovo-surface);
 }
 
 .yovo-button--primary:not(:disabled):hover {
@@ -52,28 +52,28 @@
 }
 
 .yovo-button--secondary {
-  background-color: var(--yovo-panel-bg);
-  color: var(--yovo-text-primary);
-  border-color: var(--yovo-panel-border);
+  background-color: var(--yovo-surface);
+  color: var(--yovo-fg);
+  border-color: var(--yovo-border);
 }
 
 .yovo-button--secondary:not(:disabled):hover {
-  background-color: var(--yovo-list-bg);
+  background-color: var(--yovo-surface-2);
 }
 
 .yovo-button--ghost {
   background-color: transparent;
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
 }
 
 .yovo-button--ghost:not(:disabled):hover {
   background-color: var(--yovo-nav-hover);
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
 }
 
 .yovo-button--danger {
   background-color: var(--yovo-error);
-  color: var(--yovo-panel-bg);
+  color: var(--yovo-surface);
 }
 
 .yovo-button--danger:not(:disabled):hover {

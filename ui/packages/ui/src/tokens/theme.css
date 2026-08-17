@@ -35,17 +35,7 @@
   --yovo-level-f: #FFFFFF;
   --yovo-level-f-bg: #C22929;
 
-  /* —— 兼容别名（旧组件/模块迁移前使用；Phase C/D 移除） —— */
-  --yovo-nav-bg: var(--yovo-surface-2);
-  --yovo-content-bg: var(--yovo-bg-base);
-  --yovo-panel-bg: var(--yovo-surface);
-  --yovo-panel-border: var(--yovo-border);
-  --yovo-list-bg: var(--yovo-surface-2);
-  --yovo-list-border: var(--yovo-border);
-  --yovo-text-primary: var(--yovo-fg);
-  --yovo-text-secondary: var(--yovo-fg-2);
-  --yovo-text-tertiary: var(--yovo-fg-3);
-  --yovo-accent-bg: var(--yovo-accent-soft);
+  /* —— Component 层：跨组件通用（hover/禁用/信号底/徽章色） —— */
   --yovo-accent-hover: #094DDB;
   --yovo-success-bg: #E3F2E4;
   --yovo-warn-bg: #FCF1DD;
@@ -124,7 +114,7 @@
   --yovo-level-f: #1B1D22;
   --yovo-level-f-bg: #E86A6A;
 
-  /* —— 兼容别名（深色） —— */
+  /* —— Component 层：跨组件通用（深色） —— */
   --yovo-accent-hover: #6AA3FF;
   --yovo-success-bg: #24351F;
   --yovo-warn-bg: #3A2E1A;

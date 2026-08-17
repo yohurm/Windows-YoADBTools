@@ -16,6 +16,9 @@ const TOKEN_DIR = "packages/ui/src/tokens/"; // token 定义处是唯一允许�
 const COLOR_RE = /#[0-9a-fA-F]{3,8}\b|\b(rgb|hsl)a?\(/;
 const FONT_SIZE_RE = /font-size\s*:\s*\d/;
 const MOTION_RE = /(?:transition|animation)\s*:[^;]*\b\d+(?:\.\d+)?(?:ms|s)\b/;
+/** 已废弃的兼容别名（Phase C/D 迁移至 Semantic 层后禁止引用）。 */
+const DEPRECATED_ALIAS_RE =
+  /--yovo-(nav-bg|content-bg|panel-bg|panel-border|list-bg|list-border|text-primary|text-secondary|text-tertiary|accent-bg)\b/;
 
 /** 递归收集文件。 */
 function walk(dir, out) {
@@ -46,6 +49,9 @@ for (const file of files) {
     }
     if (isCss && MOTION_RE.test(line)) {
       violations.push(`${rel}:${i + 1}: 硬编码动效时长 → ${line.trim()}（须用 var(--yovo-dur-*)）`);
+    }
+    if (isCss && DEPRECATED_ALIAS_RE.test(line)) {
+      violations.push(`${rel}:${i + 1}: 引用废弃兼容别名 → ${line.trim()}（迁移到 Semantic 层 --yovo-fg/surface/border）`);
     }
   });
 }

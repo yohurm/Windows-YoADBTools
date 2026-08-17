@@ -11,10 +11,10 @@
   height: var(--yovo-control-height);
   min-width: calc(var(--yovo-space-xl) * 5);
   padding: 0 var(--yovo-space-sm);
-  border: 1px solid var(--yovo-panel-border);
+  border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-panel-bg);
-  color: var(--yovo-text-primary);
+  background-color: var(--yovo-surface);
+  color: var(--yovo-fg);
   font-family: inherit;
   font-size: var(--yovo-font-body);
   cursor: pointer;
@@ -39,7 +39,7 @@
 }
 
 .yovo-select__value--placeholder {
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
 }
 
 .yovo-select__menu {
@@ -51,9 +51,9 @@
   margin: var(--yovo-space-xs) 0 0;
   padding: var(--yovo-space-xs) 0;
   list-style: none;
-  border: 1px solid var(--yovo-panel-border);
+  border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-panel-bg);
+  background-color: var(--yovo-surface);
   max-height: calc(var(--yovo-space-xl) * 10);
   overflow-y: auto;
 }
@@ -61,7 +61,7 @@
 .yovo-select__option {
   padding: var(--yovo-space-xs) var(--yovo-space-sm);
   font-size: var(--yovo-font-body);
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -74,7 +74,7 @@
 
 .yovo-select__option--selected {
   color: var(--yovo-accent);
-  background-color: var(--yovo-accent-bg);
+  background-color: var(--yovo-accent-soft);
 }
 
 .yovo-select__option--active {
@@ -82,7 +82,7 @@
 }
 
 .yovo-select--disabled .yovo-select__trigger {
-  background-color: var(--yovo-list-bg);
+  background-color: var(--yovo-surface-2);
   color: var(--yovo-disabled);
   cursor: not-allowed;
 }

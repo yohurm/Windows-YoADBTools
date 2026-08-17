@@ -4,9 +4,9 @@
   justify-content: space-between;
   gap: var(--yovo-space-md);
   padding: var(--yovo-space-xs) var(--yovo-space-md);
-  background-color: var(--yovo-nav-bg);
-  border-top: 1px solid var(--yovo-panel-border);
-  color: var(--yovo-text-secondary);
+  background-color: var(--yovo-surface-2);
+  border-top: 1px solid var(--yovo-border);
+  color: var(--yovo-fg-2);
   font-family: var(--yovo-font-sans);
   font-size: var(--yovo-font-caption);
   box-sizing: border-box;

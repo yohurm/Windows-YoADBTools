@@ -8,7 +8,7 @@
   border: none;
   border-radius: var(--yovo-radius-sm);
   background-color: transparent;
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
   cursor: pointer;
   box-sizing: border-box;
   transition:
@@ -23,7 +23,7 @@
 
 .yovo-icon-button:not(:disabled):hover {
   background-color: var(--yovo-nav-hover);
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
 }
 
 .yovo-icon-button:disabled {

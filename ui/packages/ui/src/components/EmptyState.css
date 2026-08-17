@@ -6,17 +6,17 @@
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-xl);
   text-align: center;
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
   font-family: var(--yovo-font-sans);
 }
 
 .yovo-empty-state__title {
   font-size: var(--yovo-font-body-strong);
   font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
 }
 
 .yovo-empty-state__description {
   font-size: var(--yovo-font-body);
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
 }

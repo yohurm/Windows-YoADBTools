@@ -2,7 +2,7 @@
   display: flex;
   align-items: stretch;
   gap: var(--yovo-space-xs);
-  border-bottom: 1px solid var(--yovo-panel-border);
+  border-bottom: 1px solid var(--yovo-border);
   font-family: var(--yovo-font-sans);
   overflow-x: auto;
   box-sizing: border-box;
@@ -15,7 +15,7 @@
   padding: 0 var(--yovo-space-md);
   height: calc(var(--yovo-space-xl) + var(--yovo-space-sm));
   border-bottom: 2px solid transparent;
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
   font-size: var(--yovo-font-body);
   cursor: pointer;
   white-space: nowrap;
@@ -29,7 +29,7 @@
 
 .yovo-tabs__tab:hover {
   background-color: var(--yovo-nav-hover);
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
 }
 
 .yovo-tabs__tab:focus-visible {
@@ -85,7 +85,7 @@
   border: none;
   border-radius: var(--yovo-radius-sm);
   background: transparent;
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
   cursor: pointer;
 }
 
@@ -106,7 +106,7 @@
   border: none;
   border-radius: var(--yovo-radius-sm);
   background: transparent;
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
   cursor: pointer;
 }
 

@@ -13,10 +13,10 @@
   justify-content: center;
   width: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
   height: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
-  border: 1px solid var(--yovo-panel-border);
+  border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-panel-bg);
-  color: var(--yovo-panel-bg);
+  background-color: var(--yovo-surface);
+  color: var(--yovo-surface);
   box-sizing: border-box;
   transition:
     background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
@@ -39,7 +39,7 @@
 
 .yovo-checkbox__label {
   font-size: var(--yovo-font-body);
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
 }
 
 .yovo-checkbox--disabled {
@@ -47,8 +47,8 @@
 }
 
 .yovo-checkbox--disabled .yovo-checkbox__box {
-  background-color: var(--yovo-list-bg);
-  border-color: var(--yovo-list-border);
+  background-color: var(--yovo-surface-2);
+  border-color: var(--yovo-border);
 }
 
 .yovo-checkbox--disabled .yovo-checkbox__box--checked {

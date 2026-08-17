@@ -3,7 +3,7 @@
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: var(--yovo-list-bg);
+  background-color: var(--yovo-surface-2);
   font-family: var(--yovo-font-sans);
   box-sizing: border-box;
 }

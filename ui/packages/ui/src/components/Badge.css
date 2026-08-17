@@ -14,13 +14,13 @@
 }
 
 .yovo-badge--neutral {
-  background-color: var(--yovo-list-bg);
-  border-color: var(--yovo-list-border);
-  color: var(--yovo-text-secondary);
+  background-color: var(--yovo-surface-2);
+  border-color: var(--yovo-border);
+  color: var(--yovo-fg-2);
 }
 
 .yovo-badge--accent {
-  background-color: var(--yovo-accent-bg);
+  background-color: var(--yovo-accent-soft);
   color: var(--yovo-accent);
 }
 

@@ -41,7 +41,11 @@ async fn real_browse_and_transfer_roundtrip() {
     let browser = FileBrowser::new(client.clone());
     let entries = browser.list(&serial, "/sdcard", CancellationToken::new()).await.expect("浏览失败");
     assert!(!entries.is_empty());
-    eprintln!("[真机] /sdcard 条目 {} 个", entries.len());
+    assert!(
+        entries.iter().any(|e| e.mtime.is_some()),
+        "ls -la 解析应携带修改时间列（文件列表展示依据）"
+    );
+    eprintln!("[真机] /sdcard 条目 {} 个（含 mtime 解析）", entries.len());
 
     // 2) push 一个测试文件
     let stamp = std::time::SystemTime::now()
