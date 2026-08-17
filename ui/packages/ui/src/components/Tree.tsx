@@ -1,7 +1,12 @@
 /**
- * YTree —— 泛型树。
- * 缩进层级 + 展开箭头（chevron）；expandedKeys 受控或 defaultExpandedKeys 默认展开；
- * 固定行高（默认 30）。
+ * YTree —— 泛型树（对齐 Kobalte/WAI-ARIA Tree 可达性模型）。
+ *
+ * 键盘：
+ * - ↑/↓ 在可见节点间移动焦点；→ 展开（有子节点时，否则移到下一节点）；← 收起（已展开时，否则移到父节点）
+ * - Enter 选中；空格选中（不滚动）
+ *
+ * ARIA：`role=tree/treeitem` + `aria-expanded` + roving tabindex（仅焦点节点 tabindex=0）。
+ * 受控展开（expandedKeys）或默认展开（defaultExpandedKeys）。
  */
 import { For, createMemo, createSignal } from "solid-js";
 import type { JSX } from "solid-js";
@@ -43,6 +48,7 @@ export function YTree<T = unknown>(props: YTreeProps<T>): JSX.Element {
 
   const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set(props.defaultExpandedKeys ?? []));
   const [selected, setSelected] = createSignal<string | null>(null);
+  const [focusedKey, setFocusedKey] = createSignal<string | null>(null);
 
   const isExpanded = (key: string): boolean => {
     const ek = props.expandedKeys;
@@ -85,29 +91,97 @@ export function YTree<T = unknown>(props: YTreeProps<T>): JSX.Element {
     return result;
   });
 
+  const focusKey = (key: string): void => {
+    setFocusedKey(key);
+    const el = document.querySelector<HTMLElement>(`[data-tree-key="${key}"]`);
+    el?.focus();
+  };
+
+  const onTreeKeyDown = (event: KeyboardEvent): void => {
+    const visible = rows();
+    if (visible.length === 0) return;
+    const focused = focusedKey() ?? selected() ?? visible[0]!.node.key;
+    const index = visible.findIndex((r) => r.node.key === focused);
+    const current = index >= 0 ? visible[index]! : visible[0]!;
+    const hasChildren = !!current.node.children && current.node.children.length > 0;
+
+    switch (event.key) {
+      case "ArrowDown": {
+        event.preventDefault();
+        const next = visible[Math.min(index + 1, visible.length - 1)];
+        if (next) focusKey(next.node.key);
+        break;
+      }
+      case "ArrowUp": {
+        event.preventDefault();
+        const prev = visible[Math.max(index - 1, 0)];
+        if (prev) focusKey(prev.node.key);
+        break;
+      }
+      case "ArrowRight": {
+        event.preventDefault();
+        if (hasChildren && !isExpanded(current.node.key)) {
+          toggle(current.node.key);
+        } else {
+          const next = visible[Math.min(index + 1, visible.length - 1)];
+          if (next) focusKey(next.node.key);
+        }
+        break;
+      }
+      case "ArrowLeft": {
+        event.preventDefault();
+        if (hasChildren && isExpanded(current.node.key)) {
+          toggle(current.node.key);
+        } else {
+          // 移到父节点：向上找 depth 更小的最近节点
+          for (let i = index - 1; i >= 0; i--) {
+            const row = visible[i];
+            if (row && row.depth < current.depth) {
+              focusKey(row.node.key);
+              break;
+            }
+          }
+        }
+        break;
+      }
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        select(current.node);
+        break;
+    }
+  };
+
   return (
-    <div class="yovo-tree" role="tree">
+    <div class="yovo-tree" role="tree" aria-label="树" tabindex={0} onKeyDown={onTreeKeyDown}>
       <For each={rows()}>
         {({ node, depth }) => {
           const hasChildren = !!node.children && node.children.length > 0;
           const expandedNow = hasChildren && isExpanded(node.key);
           return (
             <div
+              data-tree-key={node.key}
               class="yovo-tree__row"
               classList={{ "yovo-tree__row--selected": selected() === node.key }}
               role="treeitem"
               aria-expanded={hasChildren ? expandedNow : undefined}
+              aria-selected={selected() === node.key}
+              tabindex={focusedKey() === node.key ? 0 : -1}
               style={{
                 height: `${rowHeight()}px`,
                 "padding-left": `calc(${depth} * var(--yovo-space-lg))`,
               }}
-              onClick={() => select(node)}
+              onClick={() => {
+                select(node);
+                setFocusedKey(node.key);
+              }}
             >
               {hasChildren ? (
                 <button
                   type="button"
                   class="yovo-tree__chevron"
                   aria-label={expandedNow ? "collapse" : "expand"}
+                  tabindex={-1}
                   onClick={(event) => {
                     event.stopPropagation();
                     toggle(node.key);
