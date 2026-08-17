@@ -5,6 +5,7 @@
 
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -122,4 +123,63 @@ async fn real_safety_root_rejects_dangerous_path() {
     let result = mutator.delete(&serial, "/sdcard/../data/x", CancellationToken::new()).await;
     assert!(result.is_err(), "路径穿越必须被 core 拒绝");
     eprintln!("[真机] SafetyRoot 拒绝危险路径验证通过");
+}
+
+/// 传输取消端到端：pull 设备上的大文件，中途取消 → Cancelled 状态事件 + 错误返回。
+#[tokio::test]
+async fn real_transfer_cancel_midflight() {
+    let client = Arc::new(AdbClient::new(
+        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a3"), PathBuf::from("n/a3")),
+        4,
+    ));
+    let Some(serial) = online_device(&client).await else {
+        eprintln!("跳过：无在线设备");
+        return;
+    };
+    // 找一个设备上的大文件（≥10MB）作为拉取源；没有则跳过
+    let browser = FileBrowser::new(client.clone());
+    let entries = browser.list(&serial, "/storage/emulated/0/", CancellationToken::new()).await.unwrap();
+    let Some(big) = entries.iter().find(|e| e.kind == yovo_protocol::EntryKind::File && e.size >= 10 * 1024 * 1024) else {
+        eprintln!("跳过：设备无 ≥10MB 文件可拉取");
+        return;
+    };
+    eprintln!("[真机] 取消测试拉取: {} ({} bytes)", big.name, big.size);
+
+    let runner = TransferRunner::new(client);
+    let (tx, mut rx) = mpsc::channel::<AppEvent>(16);
+    let local = std::env::temp_dir().join(format!("yovo-cancel-{}-{}.bin", std::process::id(), big.name));
+    let cancel = CancellationToken::new();
+    let spec = TransferSpec {
+        id: 77,
+        serial: serial.clone(),
+        direction: Direction::Pull,
+        local: local.to_string_lossy().into_owned(),
+        remote: format!("/storage/emulated/0/{}", big.name),
+    };
+    let handle = tokio::spawn({
+        let runner = runner.clone();
+        let tx = tx.clone();
+        let cancel = cancel.clone();
+        async move { runner.run(spec, cancel, tx).await }
+    });
+
+    // 等 Running 事件后取消
+    let mut saw_running = false;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    while !saw_running && tokio::time::Instant::now() < deadline {
+        if let Ok(Some(AppEvent::TransferProgress(p))) =
+            tokio::time::timeout(Duration::from_millis(500), rx.recv()).await
+        {
+            saw_running = p.state == yovo_protocol::TransferState::Running;
+        }
+    }
+    assert!(saw_running, "应进入 Running 状态");
+    cancel.cancel();
+
+    let result = tokio::time::timeout(Duration::from_secs(15), handle).await.expect("传输未按时终止");
+    assert!(result.is_ok(), "join 失败");
+    let outcome = result.expect("checked");
+    assert!(outcome.is_err(), "取消应返回错误");
+    eprintln!("[真机] 取消生效: {outcome:?}");
+    let _ = std::fs::remove_file(&local);
 }

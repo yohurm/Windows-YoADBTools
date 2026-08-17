@@ -128,3 +128,50 @@ async fn real_detach_clears_ring() {
     assert!(!service.is_capturing(&serial));
     assert!(service.ring(&serial).is_empty(), "切换/掉线清缓冲（防串设备）");
 }
+
+/// 日志导出端到端：采集 → 停止 → 过滤导出 txt → 文件内容与过滤一致。
+#[tokio::test]
+async fn real_export_filtered_txt() {
+    let client = Arc::new(AdbClient::new(
+        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a2"), PathBuf::from("n/a2")),
+        4,
+    ));
+    let Some(serial) = online_device(&client).await else {
+        eprintln!("跳过：无在线设备");
+        return;
+    };
+    let (tx, mut rx) = mpsc::channel::<AppEvent>(128);
+    let service = CaptureService::new(client, tx, 50_000);
+
+    service.start(&serial, false).await.expect("开始采集");
+    let _lines = collect_events(&mut rx, 5, Duration::from_secs(30)).await;
+    service.stop(&serial).await;
+
+    let ring = service.ring(&serial);
+    let filter = yovo_protocol::LogFilter {
+        min_level: Some('W'),
+        ..Default::default()
+    };
+    let exports_dir = std::env::temp_dir().join(format!(
+        "yovo-real-export-{}-{:?}",
+        std::process::id(),
+        std::thread::current().id()
+    ));
+    let export = yovo_logsrv::ExportService::new(exports_dir.clone());
+    let result = export
+        .export(&serial, &ring, Some(&filter), ring.capacity())
+        .expect("导出失败");
+    eprintln!("[真机] 导出 {} 行 → {}", result.lines, result.path);
+
+    // 验证文件内容与过滤一致
+    let content = std::fs::read_to_string(&result.path).expect("读导出文件");
+    assert_eq!(content.lines().count() as u64, result.lines);
+    for line in content.lines() {
+        let level = yovo_logsrv::parse_threadtime(line).level;
+        assert!(
+            yovo_protocol::level_rank(level) >= yovo_protocol::level_rank('W'),
+            "导出应只含 W 及以上级别，实际 {level}: {line}"
+        );
+    }
+    let _ = std::fs::remove_dir_all(&exports_dir);
+}

@@ -1,4 +1,4 @@
-//! 真实设备集成测试（自底而上调试第一层：yovo-adb）。
+//! 真实设备集成测试（自底而上调试第一层：yovo-adb + 命令组编排端到端）。
 //!
 //! 无在线设备时自动跳过；有设备时对真实 adb.exe 执行扫描/命令/ls/ps/流式全链路。
 //! 运行方式：`cargo test -p yovo-adb --test real_device -- --nocapture`
@@ -10,6 +10,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use yovo_adb::{AdbClient, ToolResolver};
+use yovo_domain::{default_library, GroupExecutor, Verdict};
 
 fn real_adb() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -138,4 +139,44 @@ async fn real_device_stream_lines() {
     let joined = tokio::time::timeout(Duration::from_secs(10), stream).await;
     assert!(joined.is_ok(), "流未按时终止");
     eprintln!("[真机] 取消后流已终止");
+}
+
+/// 命令组编排端到端：默认库「设备信息」组在真机上执行，
+/// 逐命令进度事件回流、判定全部通过（失败正则→成功正则→退出码）。
+#[tokio::test]
+async fn real_device_group_run_end_to_end() {
+    let client = std::sync::Arc::new(client());
+    let Some(serial) = online_device(&client).await else {
+        eprintln!("跳过：无在线设备");
+        return;
+    };
+    let library = default_library();
+    let group = library.group("g-device").expect("默认库含 g-device 组");
+    assert_eq!(group.commands.len(), 3);
+
+    let executor = GroupExecutor::new(client);
+    let (tx, mut rx) = mpsc::channel::<yovo_domain::GroupRunEvent>(16);
+    executor
+        .run(&group.commands, std::slice::from_ref(&serial), tx, CancellationToken::new())
+        .await;
+
+    let mut events = Vec::new();
+    while let Ok(e) = rx.try_recv() {
+        events.push(e);
+    }
+    assert_eq!(events.len(), 3, "组内 3 条命令应各产生一条进度事件");
+    for e in &events {
+        eprintln!(
+            "[真机] 组命令 {}: verdict={:?} msg={:.60}",
+            e.name,
+            e.verdict,
+            e.message
+        );
+        assert_eq!(e.serial, serial);
+    }
+    assert!(
+        events.iter().all(|e| e.verdict.is_pass()),
+        "设备信息组在真机上应全部通过"
+    );
+    assert!(events.iter().any(|e| matches!(e.verdict, Verdict::Pass)), "至少一条 Pass");
 }
