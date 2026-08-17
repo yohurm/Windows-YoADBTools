@@ -27,7 +27,7 @@ jobs:
       - name: Rust 缓存
         uses: swatinem/rust-cache@v2
 
-      - name: sidecar adb（从 old/ 归档拷贝）
+      - name: sidecar adb（下载官方 platform-tools）
         shell: powershell
         run: powershell -ExecutionPolicy Bypass -File scripts/setup-adb.ps1
 

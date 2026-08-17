@@ -107,9 +107,9 @@ cargo tauri build
 - **Phase D 三模块重绘已落地**：① 日志——列对齐行（时间 18ch/PID/级别/Tag≤24ch/消息，等宽 tabular-nums）、级别 3px 左条、Fatal 反色块、信号行底色+Error 左条、行选中（VirtualList 选择模式）、检索框放大镜+accent 边框、三态空态（未采集引导/等待/过滤无命中）、状态行采集指示+设备+滞后回补提示、会话右键菜单（关闭其他/重命名/复制会话，YTabs onContextMenu）；修复溢出回补提示被回补批次立即清除的缺陷；② 终端——结构化结果卡片（设备维度分组、组头汇总徽章、折叠输出区失败默认展开、用时经 core duration_ms 全链路）、命令库树命令数徽章+模板 title（YTree badge/title）；③ 文件——面包屑路径栏（逐级可点）、双栏（目录下钻 | 文件列表含 ls 修改时间列，core RemoteEntry.mtime 全链路）、扩展名分类色图标、传输卡片（方向图标/速度采样/终态 3s 淡出自动移除）
 - **模块级测试扩展**：logs store 12 用例（会话生命周期/消费端过滤/信号计数/溢出回补/掉线清缓冲/焦点隔离）+ pipeline 15 用例（新增行级信号标记）；files 纯函数 13 用例（新增 splitPath/fileCategory）；Vitest 累计 **177** 用例；Rust 侧 ls 解析新增 mtime 断言、settings 契约 4 用例
 - **验收现状**：`cargo build --workspace && cargo test --workspace` 全绿（含 7 集成 + 4 设置契约 + 13 真机）、clippy -D warnings 通过、Vitest **177** 用例全绿（含壳组件 11 / logs store 12）、tsc -b 0 错误、`pnpm lint`（ADR-v6-011 token 纪律 + 动效时长纪律，scripts/check-ui-tokens.mjs）通过、**verify-v6-smoke.ps1 已实际跑通**（进程存活/无 panic/sidecar 解压/默认命令库写入；期间修复 events.rs 必须在 tauri 异步运行时 spawn 的启动崩溃）
-- 待续（S5，需设备，脚本已备）：安装包安装冒烟、全功能联调、日志性能验收、产线镜像预置 WebView2、旧版下线
-- **v5 遗留**：全部 C#/WPF 代码、旧测试与 v5 联调脚本已移至 `old/`（`old/src`、`old/tests`、`old/YovoAdbTools.sln`、`old/scripts`），仅存档参考，不作为 v6 实现依据；S5 随新架构全功能验收后彻底移除
-- **sidecar 二进制**：`tools/adb.exe` 等被 .gitignore 排除（不入库）；新机器构建前运行 `scripts/setup-adb.ps1` 从 `old/src/Yovo.Platform/Tools/` 拷贝
+- 待续（S5，需设备，脚本已备）：安装包安装冒烟、全功能联调、日志性能验收、产线镜像预置 WebView2
+- **v5 已下线**：C#/WPF 归档 `old/` 已移除，不再作为实现依据
+- **sidecar 二进制**：`tools/adb.exe` 等被 .gitignore 排除（不入库）；新机器构建前运行 `scripts/setup-adb.ps1` 从 Google platform-tools 下载官方三件套
 
 ## 需求文档
 详见 `docs/requirements/需求分析.md`

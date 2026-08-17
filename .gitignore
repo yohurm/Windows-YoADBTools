@@ -1,40 +1,70 @@
-# .NET 构建产物
-bin/
-obj/
-*.user
-*.suo
+# ============================================================================
+# Yovo ADB Tools — Git 忽略
+# ============================================================================
 
-# IDE
+# —— 操作系统 ——
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# —— 编辑器 / IDE ——
 .vs/
 .idea/
 *.swp
+*.swo
+*~
+*.bak
+*.orig
+*.user
+*.suo
 
-# 运行时/用户配置（不提交，避免覆盖他人环境）
+# —— 环境与密钥（示例文件可入库） ——
+.env
+.env.*
+!.env.example
+
+# —— 本地临时目录（截图、联调、一次性产物） ——
+.tmp*/
+.tmp-*/
+.ui-review/
+
+# —— 日志（仅仓库根 Logs/；勿写成 logs/ 以免误伤 ui/packages/modules/logs/） ——
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/Logs/
+
+# —— .NET 构建产物 ——
+bin/
+obj/
+
+# —— 运行时/用户配置（不提交，避免覆盖他人环境） ——
 Config/
 
-# 发布输出
+# —— 发布输出 ——
 publish/
 publish_*/
 publish-*/
-dist/
 
-# 仓库根目录 sidecar 工具二进制（不入库；scripts/setup-adb.ps1 从 old/ 归档拷贝）
-# 注：tools/fake-adb/ 源码正常入库；msedgedriver 为本地 E2E 工具（按需下载，不入库）
+# —— Rust ——
+/target/
+*.rs.bk
+
+# —— Node / pnpm / Vite / Turbo ——
+node_modules/
+*.tsbuildinfo
+dist/
+.turbo/
+.vite/
+coverage/
+
+# —— Sidecar 工具二进制（不入库；scripts/setup-adb.ps1 从 Google platform-tools 下载） ——
+# tools/fake-adb/ 源码正常入库；msedgedriver 为本地 E2E 工具（按需下载）
 /tools/adb.exe
 /tools/AdbWinApi.dll
 /tools/AdbWinUsbApi.dll
 /tools/msedgedriver/
-
-# Rust 构建产物
-/target/
-
-# Node 依赖与 TS 构建产物
-node_modules/
-*.tsbuildinfo
-
-# 日志（仅仓库根 Logs/；注意勿匹配 ui/packages/modules/logs/）
-*.log
-/Logs/
-
-# UI 联调截图（本地产物，不入库）
-.ui-review/
