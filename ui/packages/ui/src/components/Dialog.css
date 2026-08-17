@@ -13,6 +13,7 @@
   inset: 0;
   /* Accent 低透明度遮罩：由强调色派生，避免硬编码色值 */
   background-color: color-mix(in srgb, var(--yovo-accent) 24%, transparent);
+  animation: yovo-fade-in var(--yovo-dur-normal) var(--yovo-ease-standard);
 }
 
 .yovo-dialog__panel {
@@ -27,6 +28,27 @@
   color: var(--yovo-text-primary);
   box-sizing: border-box;
   overflow: hidden;
+  animation: yovo-dialog-in var(--yovo-dur-enter) var(--yovo-ease-decel);
+}
+
+@keyframes yovo-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes yovo-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--yovo-space-lg) * -1)) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .yovo-dialog__title {

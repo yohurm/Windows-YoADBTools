@@ -22,9 +22,9 @@
   user-select: none;
   box-sizing: border-box;
   transition:
-    background-color var(--yovo-dur-fast) var(--yovo-ease),
-    color var(--yovo-dur-fast) var(--yovo-ease),
-    border-bottom-color var(--yovo-dur-fast) var(--yovo-ease);
+    background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
+    color var(--yovo-dur-fast) var(--yovo-ease-standard),
+    border-bottom-color var(--yovo-dur-fast) var(--yovo-ease-standard);
 }
 
 .yovo-tabs__tab:hover {

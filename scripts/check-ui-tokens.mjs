@@ -4,6 +4,7 @@
  * 组件目录（tokens/ 之外）禁止硬编码色值（#hex / rgb( / hsl(）与硬编码字号（font-size: Npx）。
  * 设计 token 单源：所有色值/字号必须来自 tokens（theme.css 或 colors/typography.ts）。
  * 结构值（边框 1px、z-index 等）不受限。
+ * 动效纪律（UI设计系统-v6.md §2.4）：transition/animation 时长必须走 var(--yovo-dur-*)。
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -14,6 +15,7 @@ const TOKEN_DIR = "packages/ui/src/tokens/"; // token 定义处是唯一允许�
 
 const COLOR_RE = /#[0-9a-fA-F]{3,8}\b|\b(rgb|hsl)a?\(/;
 const FONT_SIZE_RE = /font-size\s*:\s*\d/;
+const MOTION_RE = /(?:transition|animation)\s*:[^;]*\b\d+(?:\.\d+)?(?:ms|s)\b/;
 
 /** 递归收集文件。 */
 function walk(dir, out) {
@@ -42,6 +44,9 @@ for (const file of files) {
     if (isCss && FONT_SIZE_RE.test(line)) {
       violations.push(`${rel}:${i + 1}: 硬编码字号 → ${line.trim()}`);
     }
+    if (isCss && MOTION_RE.test(line)) {
+      violations.push(`${rel}:${i + 1}: 硬编码动效时长 → ${line.trim()}（须用 var(--yovo-dur-*)）`);
+    }
   });
 }
 
@@ -50,4 +55,4 @@ if (violations.length > 0) {
   for (const v of violations) console.error(`  ${v}`);
   process.exit(1);
 }
-console.log("tokens 纪律检查通过：前端（组件库/壳/模块）零硬编码色值/字号");
+console.log("tokens 纪律检查通过：前端（组件库/壳/模块）零硬编码色值/字号/动效时长");

@@ -86,8 +86,11 @@
   --yovo-dur-normal: 160ms;
   --yovo-dur-slow: 300ms;
   --yovo-dur-enter: 350ms;
-  --yovo-ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --yovo-ease-out: cubic-bezier(0, 0, 0.4, 1);
+  --yovo-dur-loop: 800ms;
+  --yovo-dur-loop-slow: 1.2s;
+  --yovo-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --yovo-ease-decel: cubic-bezier(0, 0, 0.4, 1);
+  --yovo-ease-loop: ease-in-out;
 }
 
 [data-theme="dark"] {
@@ -132,4 +135,13 @@
 [data-density="comfortable"] {
   --yovo-control-height: 32px;
   --yovo-row-height: 26px;
+}
+
+/* 无障碍：系统开启「减少动效」时取消装饰性入场动画（循环指示器保留） */
+@media (prefers-reduced-motion: reduce) {
+  .yovo-dialog__backdrop,
+  .yovo-dialog__panel,
+  .yovo-toast {
+    animation: none;
+  }
 }

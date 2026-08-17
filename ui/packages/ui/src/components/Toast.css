@@ -22,6 +22,18 @@
   color: var(--yovo-text-primary);
   font-size: var(--yovo-font-body);
   box-sizing: border-box;
+  animation: yovo-toast-in var(--yovo-dur-normal) var(--yovo-ease-decel);
+}
+
+@keyframes yovo-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--yovo-space-md) * 2));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .yovo-toast--success {

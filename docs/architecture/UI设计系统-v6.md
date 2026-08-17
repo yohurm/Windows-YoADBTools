@@ -82,7 +82,9 @@ Component（组件级：--yovo-button-hover-bg / --yovo-log-level-w…，唯一�
 
 ### 2.4 动效
 
-- `--yovo-dur-fast: 100ms`（hover/按下）、`--yovo-dur-normal: 160ms`（面板/下拉）、`--yovo-ease: cubic-bezier(.2,.8,.2,1)`
+- 时长分级（HarmonyOS）：`--yovo-dur-fast: 100ms`（hover/按下）、`--yovo-dur-normal: 160ms`（面板/下拉）、`--yovo-dur-slow: 300ms`（页面级）、`--yovo-dur-enter: 350ms`（入场/退场）；循环指示：`--yovo-dur-loop: 800ms`（spinner）、`--yovo-dur-loop-slow: 1.2s`（不确定进度条扫动）
+- 缓动：`--yovo-ease-standard: cubic-bezier(0.4,0,0.2,1)`（标准）、`--yovo-ease-decel: cubic-bezier(0,0,0.4,1)`（减速）、`--yovo-ease-loop: ease-in-out`（循环）
+- JS 消费侧经 `@yovo/ui` 导出 `MotionDuration` / `MotionEasing`（与 theme.css 契约测试强制一致）；动效时长硬编码由纪律 lint 拦截
 - 用途克制：下拉展开/淡入淡出/行高亮过渡；日志列表**不动效**（性能优先）。
 
 ---
@@ -153,7 +155,7 @@ Component（组件级：--yovo-button-hover-bg / --yovo-log-level-w…，唯一�
 | YTabs | ←/→ 切换；Home/End；Delete 关闭（可关时）；Ctrl+Tab 循环 | `role=tablist/tab/tabpanel` |
 | YSelect/YComboBox | 展开后 ↑/↓ 选项；Enter 选；Esc 关；可搜索时输入过滤 | `role=combobox aria-expanded aria-activedescendant` |
 | YTree | ↑/↓ 移动；→ 展开/← 收起；Enter 选中 | `role=tree/treeitem aria-expanded` |
-| YVirtualList | 行可聚焦（roving tabindex） | `role=list/listitem`（日志场景） |
+| YVirtualList | 选择模式：行可聚焦（roving tabindex）+ ↑/↓/Home/End/Enter/Space | 选择模式 `role=listbox/option` + `aria-selected`（单选）；非选择模式无列表语义（性能路径） |
 
 ---
 

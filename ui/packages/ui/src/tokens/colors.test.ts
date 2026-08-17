@@ -186,6 +186,6 @@ describe("theme.css 变量", () => {
     expect(themeCss).toContain("--yovo-control-height:");
     expect(themeCss).toContain("--yovo-row-height:");
     expect(themeCss).toContain("--yovo-dur-fast:");
-    expect(themeCss).toContain("--yovo-ease:");
+    expect(themeCss).toContain("--yovo-ease-standard:");
   });
 });

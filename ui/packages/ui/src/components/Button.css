@@ -13,7 +13,10 @@
   white-space: nowrap;
   user-select: none;
   box-sizing: border-box;
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition:
+    background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
+    border-color var(--yovo-dur-fast) var(--yovo-ease-standard),
+    color var(--yovo-dur-fast) var(--yovo-ease-standard);
 }
 
 .yovo-button:focus-visible {
@@ -84,7 +87,7 @@
   border-top-color: transparent;
   border-radius: 50%;
   box-sizing: border-box;
-  animation: yovo-spin 800ms linear infinite;
+  animation: yovo-spin var(--yovo-dur-loop) linear infinite;
 }
 
 @keyframes yovo-spin {
