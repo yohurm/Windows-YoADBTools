@@ -1,6 +1,11 @@
 /**
- * YSelect —— 自绘下拉选择框。
- * 点击展开、点击外部关闭、键盘 Esc 关闭、选择后关闭。
+ * YSelect —— 自绘下拉选择框（对齐 Kobalte Select 可达性模型）。
+ *
+ * 交互：
+ * - 点击展开、点击外部关闭、Esc 关闭（逐层退出）
+ * - 展开后 ↑/↓ 移动活动选项（aria-activedescendant）、Home/End 首尾、
+ *   Enter/Space 选择、Tab 关闭并提交活动选项
+ * - 触发钮 `aria-haspopup=listbox aria-expanded`；菜单 `role=listbox`；选项 `role=option`
  */
 import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
 import type { JSX } from "solid-js";
@@ -32,13 +37,52 @@ export interface YSelectProps {
  */
 export function YSelect(props: YSelectProps): JSX.Element {
   const [open, setOpen] = createSignal(false);
+  const [activeIndex, setActiveIndex] = createSignal(-1);
   let rootRef: HTMLDivElement | undefined;
+  let triggerRef: HTMLButtonElement | undefined;
 
   const selected = (): YSelectOption | undefined => props.options.find((o) => o.value === props.value);
+
+  /** 当前活动选项值（用于 aria-activedescendant；索引为 -1 时回退选中项）。 */
+  const activeValue = (): string => {
+    const idx = activeIndex();
+    if (idx >= 0 && props.options[idx]) return props.options[idx]!.value;
+    return props.value ?? "";
+  };
 
   const handleSelect = (value: string): void => {
     props.onChange?.(value);
     setOpen(false);
+    triggerRef?.focus();
+  };
+
+  /** 展开时初始化活动项为当前选中项。 */
+  const openMenu = (): void => {
+    const wasOpen = open();
+    setOpen(!wasOpen);
+    if (!wasOpen) {
+      const idx = props.options.findIndex((o) => o.value === props.value);
+      setActiveIndex(idx);
+    }
+  };
+
+  const moveActive = (delta: number): void => {
+    if (!open()) {
+      openMenu();
+      return;
+    }
+    setActiveIndex((i) => {
+      const n = props.options.length;
+      if (n === 0) return -1;
+      return (i + delta + n) % n;
+    });
+  };
+
+  const commitActive = (): void => {
+    const idx = activeIndex();
+    if (open() && idx >= 0 && props.options[idx]) {
+      handleSelect(props.options[idx]!.value);
+    }
   };
 
   onMount(() => {
@@ -50,6 +94,7 @@ export function YSelect(props: YSelectProps): JSX.Element {
     const handleDocKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
         setOpen(false);
+        triggerRef?.focus();
       }
     };
     document.addEventListener("mousedown", handleDocPointerDown);
@@ -60,15 +105,53 @@ export function YSelect(props: YSelectProps): JSX.Element {
     });
   });
 
+  const onTriggerKeyDown = (event: KeyboardEvent): void => {
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        moveActive(1);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        moveActive(-1);
+        break;
+      case "Home":
+        event.preventDefault();
+        if (open() && props.options.length > 0) setActiveIndex(0);
+        break;
+      case "End":
+        event.preventDefault();
+        if (open() && props.options.length > 0) setActiveIndex(props.options.length - 1);
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        if (open()) {
+          commitActive();
+        } else {
+          openMenu();
+        }
+        break;
+      case "Tab":
+        if (open()) {
+          commitActive();
+        }
+        break;
+    }
+  };
+
   return (
     <div ref={(el) => (rootRef = el)} class="yovo-select" classList={{ "yovo-select--disabled": !!props.disabled }}>
       <button
+        ref={(el) => (triggerRef = el)}
         type="button"
         class="yovo-select__trigger"
         disabled={props.disabled}
         aria-haspopup="listbox"
         aria-expanded={open()}
-        onClick={() => setOpen((o) => !o)}
+        aria-activedescendant={open() ? `yovo-option-${activeValue()}` : undefined}
+        onClick={openMenu}
+        onKeyDown={onTriggerKeyDown}
       >
         <span
           class="yovo-select__value"
@@ -81,12 +164,17 @@ export function YSelect(props: YSelectProps): JSX.Element {
       <Show when={open()}>
         <ul class="yovo-select__menu" role="listbox">
           <For each={props.options}>
-            {(option) => (
+            {(option, index) => (
               <li
+                id={`yovo-option-${option.value}`}
                 class="yovo-select__option"
-                classList={{ "yovo-select__option--selected": option.value === props.value }}
+                classList={{
+                  "yovo-select__option--selected": option.value === props.value,
+                  "yovo-select__option--active": index() === activeIndex(),
+                }}
                 role="option"
                 aria-selected={option.value === props.value}
+                onMouseEnter={() => setActiveIndex(index())}
                 onClick={() => handleSelect(option.value)}
               >
                 {option.label}

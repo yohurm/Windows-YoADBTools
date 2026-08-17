@@ -98,4 +98,73 @@ describe("YDialog", () => {
     setOpen(false);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
+  it("打开后聚焦面板内首个可聚焦元素（可达性）", () => {
+    render(() => (
+      <YDialog open onClose={() => {}} footer={<button>确定</button>}>
+        内容
+      </YDialog>
+    ));
+    // queueMicrotask 后焦点应落在 footer 的「确定」按钮
+    return new Promise<void>((done) => {
+      queueMicrotask(() => {
+        expect(document.activeElement).toBe(screen.getByRole("button", { name: "确定" }));
+        done();
+      });
+    });
+  });
+
+  it("Tab 焦点陷阱：末尾再 Tab 回到首个按钮", () => {
+    render(() => (
+      <YDialog
+        open
+        onClose={() => {}}
+        footer={
+          <>
+            <button>取消</button>
+            <button>确定</button>
+          </>
+        }
+      >
+        内容
+      </YDialog>
+    ));
+    return new Promise<void>((done) => {
+      queueMicrotask(() => {
+        const last = screen.getByRole("button", { name: "确定" });
+        const first = screen.getByRole("button", { name: "取消" });
+        last.focus();
+        fireEvent.keyDown(document, { key: "Tab" });
+        expect(document.activeElement).toBe(first);
+        done();
+      });
+    });
+  });
+
+  it("Shift+Tab 焦点陷阱：首个再回退到末尾按钮", () => {
+    render(() => (
+      <YDialog
+        open
+        onClose={() => {}}
+        footer={
+          <>
+            <button>取消</button>
+            <button>确定</button>
+          </>
+        }
+      >
+        内容
+      </YDialog>
+    ));
+    return new Promise<void>((done) => {
+      queueMicrotask(() => {
+        const first = screen.getByRole("button", { name: "取消" });
+        const last = screen.getByRole("button", { name: "确定" });
+        first.focus();
+        fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+        expect(document.activeElement).toBe(last);
+        done();
+      });
+    });
+  });
 });

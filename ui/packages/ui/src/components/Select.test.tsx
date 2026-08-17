@@ -39,4 +39,41 @@ describe("YSelect", () => {
     fireEvent.mouseDown(document.body);
     expect(screen.queryByRole("listbox")).toBeNull();
   });
+
+  it("键盘：Enter 展开，↓ 移动活动项，Enter 提交", () => {
+    const onChange = vi.fn();
+    render(() => <YSelect options={OPTIONS} value="a" placeholder="请选择" onChange={onChange} />);
+    const trigger = screen.getByRole("button");
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    expect(screen.getByRole("listbox")).toBeTruthy();
+    // 初始活动项 = 当前选中 a；↓ 到 b
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    expect(trigger.getAttribute("aria-activedescendant")).toBe("yovo-option-b");
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    expect(onChange).toHaveBeenCalledWith("b");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("键盘：闭合态 ↓ 直接展开；Esc 关闭并回焦触发钮", () => {
+    render(() => <YSelect options={OPTIONS} placeholder="请选择" />);
+    const trigger = screen.getByRole("button");
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    expect(screen.getByRole("listbox")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("键盘：Home/End 跳到首尾活动项", () => {
+    render(() => <YSelect options={OPTIONS} placeholder="请选择" />);
+    const trigger = screen.getByRole("button");
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    fireEvent.keyDown(trigger, { key: "End" });
+    expect(trigger.getAttribute("aria-activedescendant")).toBe("yovo-option-c");
+    fireEvent.keyDown(trigger, { key: "Home" });
+    expect(trigger.getAttribute("aria-activedescendant")).toBe("yovo-option-a");
+  });
 });

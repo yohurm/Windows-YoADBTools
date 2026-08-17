@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   gap: var(--yovo-space-sm);
-  height: calc(var(--yovo-space-lg) * 2);
+  height: var(--yovo-control-height);
   min-width: calc(var(--yovo-space-xl) * 5);
   padding: 0 var(--yovo-space-sm);
   border: 1px solid var(--yovo-panel-border);
@@ -26,7 +26,7 @@
 }
 
 .yovo-select__trigger:focus-visible {
-  outline: 2px solid var(--yovo-accent);
+  outline: 2px solid var(--yovo-focus-ring);
   outline-offset: 1px;
 }
 
@@ -75,6 +75,10 @@
 .yovo-select__option--selected {
   color: var(--yovo-accent);
   background-color: var(--yovo-accent-bg);
+}
+
+.yovo-select__option--active {
+  background-color: var(--yovo-nav-hover);
 }
 
 .yovo-select--disabled .yovo-select__trigger {
