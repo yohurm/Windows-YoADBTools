@@ -24,6 +24,10 @@ export interface TreeNode<T = unknown> {
   children?: TreeNode<T>[];
   /** 业务数据 */
   data?: T;
+  /** 尾部胶囊徽章（如命令数） */
+  badge?: string;
+  /** hover 完整提示（如命令模板） */
+  title?: string;
 }
 
 export interface YTreeProps<T = unknown> {
@@ -193,7 +197,10 @@ export function YTree<T = unknown>(props: YTreeProps<T>): JSX.Element {
                 <span class="yovo-tree__chevron yovo-tree__chevron--leaf" />
               )}
               {node.icon ? <Icon name={node.icon} size={16} /> : null}
-              <span class="yovo-tree__label">{node.label}</span>
+              <span class="yovo-tree__label" title={node.title}>
+                {node.label}
+              </span>
+              {node.badge ? <span class="yovo-tree__badge">{node.badge}</span> : null}
             </div>
           );
         }}

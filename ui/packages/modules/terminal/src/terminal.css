@@ -1,3 +1,9 @@
+/* ============================================================================
+ * ADB 命令终端（UI设计系统-v6.md §4.2）。
+ * 结构化结果卡片：设备维度分组 → 头部行（设备徽章 + 命令名 + 通过/失败徽章 + 用时）
+ * + 折叠输出区（等宽滚动，失败默认展开）。
+ * ========================================================================== */
+
 .yovo-terminal {
   display: flex;
   flex-direction: column;
@@ -6,15 +12,15 @@
 
 .yovo-terminal__title {
   font-size: var(--yovo-font-page-title);
-  font-weight: 600;
-  color: var(--yovo-text-primary);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
   margin-right: var(--yovo-space-sm);
 }
 
 .yovo-terminal__devices {
   margin-left: auto;
   font-size: var(--yovo-font-caption);
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
 }
 
 .yovo-terminal__body {
@@ -27,8 +33,8 @@
 
 .yovo-terminal__library {
   overflow: auto;
-  background: var(--yovo-panel-bg);
-  border: 1px solid var(--yovo-panel-border);
+  background: var(--yovo-surface);
+  border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
   padding: var(--yovo-space-sm);
 }
@@ -37,9 +43,10 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--yovo-panel-bg);
-  border: 1px solid var(--yovo-panel-border);
+  background: var(--yovo-surface);
+  border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
+  overflow: hidden;
 }
 
 .yovo-terminal__results-head {
@@ -47,9 +54,9 @@
   align-items: center;
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
-  font-weight: 600;
-  color: var(--yovo-text-primary);
-  border-bottom: 1px solid var(--yovo-list-border);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
+  border-bottom: 1px solid var(--yovo-border);
 }
 
 .yovo-terminal__results-list {
@@ -58,12 +65,29 @@
   padding: var(--yovo-space-sm);
 }
 
+/* ===== 设备维度分组（组头 = 设备 + 汇总徽章） ===== */
+
+.yovo-terminal__group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--yovo-space-sm);
+  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  margin-bottom: var(--yovo-space-xs);
+  background: var(--yovo-surface-2);
+  border-radius: var(--yovo-radius-sm);
+  position: sticky;
+  top: 0;
+}
+
+/* ===== 结果卡片 ===== */
+
 .yovo-terminal__result {
-  padding: var(--yovo-space-sm);
+  border: 1px solid var(--yovo-border);
   border-left: 3px solid var(--yovo-success);
   margin-bottom: var(--yovo-space-sm);
-  background: var(--yovo-list-bg);
+  background: var(--yovo-surface);
   border-radius: var(--yovo-radius-sm);
+  overflow: hidden;
 }
 
 .yovo-terminal__result--fail {
@@ -74,40 +98,78 @@
   display: flex;
   align-items: center;
   gap: var(--yovo-space-sm);
+  width: 100%;
+  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--yovo-font-sans);
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.yovo-terminal__result-head:hover {
+  background: var(--yovo-nav-hover);
+}
+
+.yovo-terminal__result-head:focus-visible {
+  outline: 2px solid var(--yovo-focus-ring);
+  outline-offset: -2px;
+}
+
+.yovo-terminal__result-title {
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
+  flex-shrink: 0;
+}
+
+.yovo-terminal__result-msgline {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-error);
+}
+
+.yovo-terminal__result-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--yovo-space-sm);
+  flex-shrink: 0;
+}
+
+.yovo-terminal__result-duration {
+  font-family: var(--yovo-font-mono);
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-fg-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .yovo-terminal__result-time {
   font-family: var(--yovo-font-mono);
   font-size: var(--yovo-font-caption);
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
 }
 
-.yovo-terminal__result-serial {
-  font-family: var(--yovo-font-mono);
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-accent);
-}
-
-.yovo-terminal__result-title {
-  font-weight: 600;
-  color: var(--yovo-text-primary);
-  margin-right: auto;
-}
-
-.yovo-terminal__result-msg,
+/* 折叠输出区：等宽滚动 */
 .yovo-terminal__result-out {
-  margin: var(--yovo-space-xs) 0 0;
-  padding: var(--yovo-space-xs);
+  margin: 0;
+  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  max-height: 260px;
+  overflow: auto;
   font-family: var(--yovo-font-mono);
   font-size: var(--yovo-font-caption);
   white-space: pre-wrap;
   word-break: break-all;
-  background: var(--yovo-content-bg);
-  border-radius: var(--yovo-radius-sm);
+  background: var(--yovo-surface-2);
+  color: var(--yovo-fg);
+  border-top: 1px solid var(--yovo-border);
 }
 
-.yovo-terminal__result-msg {
-  color: var(--yovo-error);
+.yovo-terminal__result-out--empty {
+  color: var(--yovo-fg-3);
 }
 
 .yovo-terminal__inputs {

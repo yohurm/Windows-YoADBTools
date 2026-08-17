@@ -1,24 +1,25 @@
 /**
- * 日志分析主视图：工具栏 + 多会话 Tab（Xshell 式）+ AS 风格过滤栏 + 虚拟化列表。
+ * 日志分析主视图（UI设计系统-v6.md §4.1）：
+ * 工具栏 + 多会话 Tab（右键菜单：关闭其他/重命名/复制）+ 过滤栏（检索框放大镜/清除/accent 边框）
+ * + 虚拟化列表（行选中/级别左条/Fatal 反色块/信号行底色）+ 会话状态行（采集指示·设备·缓冲·信号·滞后回补）。
  */
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 
 import {
+  Icon,
   YBadge,
   YButton,
   YDialog,
   YEmptyState,
-  YIconButton,
   YSelect,
   YTabs,
   YTextField,
   YToolbar,
   YVirtualList,
 } from "@yovo/ui";
-import type { LogLine } from "@yovo/api";
 
-import { LEVELS, levelRank, type SessionScope } from "./pipeline";
+import { LEVELS, levelRank, type SessionScope, type ViewRow } from "./pipeline";
 import { logStore } from "./store";
 import "./logs.css";
 
@@ -27,14 +28,14 @@ const LEVEL_OPTIONS = [
   ...LEVELS.map((l) => ({ value: l, label: l })),
 ];
 
-/** 行级别着色。 */
-const levelClass = (level: string): string => {
-  const rank = levelRank(level);
-  if (level === "W") return "yovo-logs__level--warn";
-  if (level === "E" || level === "F") return "yovo-logs__level--error";
-  if (rank <= 1) return "yovo-logs__level--dim";
-  return "";
-};
+/** 级别 → 类名后缀（未知级别归入 dim）。 */
+const LEVEL_SUFFIX: Record<string, string> = { V: "v", D: "d", I: "i", W: "w", E: "e", F: "f" };
+
+const levelClass = (level: string): string => `yovo-logs__level--${LEVEL_SUFFIX[level] ?? "dim"}`;
+const barClass = (level: string): string => `yovo-logs__row--bar-${LEVEL_SUFFIX[level] ?? "dim"}`;
+
+/** 行 key（稳定定位 + 选中态）。 */
+const rowKey = (row: ViewRow): string => `${row.line.seq}-${row.line.pid}`;
 
 /** 关键字高亮（忽略大小写）；始终返回数组。 */
 function highlight(msg: string, keyword: string): (string | { mark: string })[] {
@@ -114,8 +115,86 @@ function NewSessionDialog(props: { open: () => boolean; onClose: () => void }) {
   );
 }
 
+/** 会话右键菜单（关闭其他/重命名/复制会话）。 */
+function SessionMenu(props: {
+  menu: () => { x: number; y: number; id: number } | null;
+  onClose: () => void;
+  onRename: (id: number) => void;
+}) {
+  onMount(() => {
+    const close = (): void => props.onClose();
+    document.addEventListener("mousedown", close);
+    onCleanup(() => document.removeEventListener("mousedown", close));
+  });
+  return (
+    <Show when={props.menu()} keyed>
+      {(m) => (
+        <div class="yovo-logs__menu" style={{ left: `${m.x}px`, top: `${m.y}px` }} role="menu">
+          <button
+            type="button"
+            class="yovo-logs__menu-item"
+            role="menuitem"
+            onClick={() => props.onRename(m.id)}
+          >
+            重命名
+          </button>
+          <button
+            type="button"
+            class="yovo-logs__menu-item"
+            role="menuitem"
+            onClick={() => {
+              logStore.duplicateSession(m.id);
+              props.onClose();
+            }}
+          >
+            复制会话
+          </button>
+          <button
+            type="button"
+            class="yovo-logs__menu-item"
+            role="menuitem"
+            onClick={() => {
+              logStore.closeOthers(m.id);
+              props.onClose();
+            }}
+          >
+            关闭其他
+          </button>
+        </div>
+      )}
+    </Show>
+  );
+}
+
+/** 会话空态：未采集（引导开始）/ 等待输出 / 过滤无命中 三态。 */
+function SessionEmpty(props: { session: { minLevel: string | null; tagContains: string; keyword: string } }) {
+  const filterActive = (): boolean =>
+    props.session.minLevel !== null || props.session.tagContains.length > 0 || props.session.keyword.length > 0;
+  return (
+    <div class="yovo-logs__empty">
+      <Show
+        when={!logStore.state.capturing && !filterActive()}
+        fallback={
+          <YEmptyState
+            icon="log"
+            title={logStore.state.capturing ? "等待设备输出…" : "无匹配日志"}
+            description={logStore.state.capturing ? "logcat 采集中，暂未收到行" : "调整过滤条件（级别/Tag/关键字）后重试"}
+          />
+        }
+      >
+        <YEmptyState icon="log" title="未采集" description="点击「开始采集」拉取设备日志" />
+        <YButton onClick={() => void logStore.startCapture()}>开始采集</YButton>
+      </Show>
+    </div>
+  );
+}
+
 export function LogAnalyzerView() {
   const [newOpen, setNewOpen] = createSignal(false);
+  const [selectedKey, setSelectedKey] = createSignal<string | number | null>(null);
+  const [menu, setMenu] = createSignal<{ x: number; y: number; id: number } | null>(null);
+  const [renameTarget, setRenameTarget] = createSignal<number | null>(null);
+  const [renameText, setRenameText] = createSignal("");
 
   let keywordRef: HTMLInputElement | undefined;
 
@@ -128,6 +207,12 @@ export function LogAnalyzerView() {
     const serial = logStore.focusSerial();
     void serial;
     logStore.ensureSession();
+  });
+
+  // 会话切换重置行选中
+  createEffect(() => {
+    void logStore.state.activeSessionId;
+    setSelectedKey(null);
   });
 
   const active = createMemo(() => {
@@ -195,6 +280,18 @@ export function LogAnalyzerView() {
     await logStore.exportSession(id);
   };
 
+  const openMenu = (id: string, event: MouseEvent): void => {
+    event.preventDefault();
+    setMenu({ x: event.clientX, y: event.clientY, id: Number(id) });
+  };
+
+  const startRename = (id: number): void => {
+    const session = logStore.state.sessions.find((s) => s.id === id);
+    setRenameTarget(id);
+    setRenameText(session?.title ?? "");
+    setMenu(null);
+  };
+
   return (
     <div class="yovo-logs">
       <YToolbar>
@@ -248,6 +345,7 @@ export function LogAnalyzerView() {
           onActivate={(id) => logStore.setActive(Number(id))}
           onClose={(id) => logStore.closeSession(Number(id))}
           onNew={() => setNewOpen(true)}
+          onContextMenu={openMenu}
         />
       </div>
 
@@ -268,11 +366,15 @@ export function LogAnalyzerView() {
                 onInput={(v) => logStore.patchFilter(session.id, { tagContains: v })}
               />
               <span
-                class="yovo-logs__kw"
+                class="yovo-logs__search"
+                classList={{ "yovo-logs__search--active": session.keyword.length > 0 }}
                 ref={(el) => {
                   keywordRef = el.querySelector("input") ?? undefined;
                 }}
               >
+                <span class="yovo-logs__search-icon" aria-hidden="true">
+                  <Icon name="search" size={13} />
+                </span>
                 <YTextField
                   label="关键字"
                   placeholder="检索消息"
@@ -291,20 +393,28 @@ export function LogAnalyzerView() {
             </div>
 
             <div class="yovo-logs__list">
-              <Show
-                when={session.visible.length > 0}
-                fallback={<YEmptyState icon="log" title="暂无日志" description={logStore.state.capturing ? "等待设备输出…" : "点击「开始」采集"} />}
-              >
+              <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} />}>
                 <YVirtualList<ViewRow>
                   items={() => session.visible}
                   itemHeight={22}
-                  getItemKey={(row) => `${row.line.seq}-${row.line.pid}`}
+                  getItemKey={rowKey}
                   autoScrollToBottom={() => session.autoScroll}
+                  ariaLabel="日志列表"
+                  selectedKey={selectedKey}
+                  onSelectRow={(row) => setSelectedKey(rowKey(row))}
                   renderRow={(row) => (
-                    <div class="yovo-logs__row">
+                    <div
+                      class="yovo-logs__row"
+                      classList={{
+                        [barClass(row.line.level)]: true,
+                        "yovo-logs__row--signal": row.signal !== undefined,
+                      }}
+                    >
                       <span class="yovo-logs__row-ts">{row.line.ts}</span>
                       <span class="yovo-logs__row-pid">{row.line.pid}</span>
-                      <span class={`yovo-logs__row-level ${levelClass(row.line.level)}`}>{row.line.level}</span>
+                      <span class={`yovo-logs__row-level ${levelClass(row.line.level)}`}>
+                        {row.line.level}
+                      </span>
                       <span class="yovo-logs__row-tag">{row.line.tag}</span>
                       <span class="yovo-logs__row-msg">
                         <For each={highlight(row.line.msg, session.keyword)}>
@@ -321,6 +431,14 @@ export function LogAnalyzerView() {
             </div>
 
             <div class="yovo-logs__status">
+              <span class="yovo-logs__status-capture">
+                <span
+                  class="yovo-logs__status-dot"
+                  classList={{ "yovo-logs__status-dot--on": logStore.state.capturing }}
+                />
+                {logStore.state.capturing ? "采集中" : "已停止"}
+              </span>
+              <span>设备 {logStore.focusSerial() ?? "—"}</span>
               <span>缓冲 {logStore.state.bufferLines}</span>
               <span>可见 {session.visible.length}</span>
               <span classList={{ "yovo-logs__status-signal": session.signalCount > 0 }}>
@@ -329,18 +447,42 @@ export function LogAnalyzerView() {
               <Show when={logStore.state.indexUpdatedAt !== null}>
                 <span>进程索引 {Math.round((Date.now() - (logStore.state.indexUpdatedAt ?? 0)) / 1000)}s 前</span>
               </Show>
+              <Show when={logStore.state.overflowed}>
+                <span class="yovo-logs__status-lag">缓冲滞后（已回补）</span>
+              </Show>
             </div>
           </div>
         )}
       </Show>
 
       <NewSessionDialog open={newOpen} onClose={() => setNewOpen(false)} />
+
+      <SessionMenu menu={menu} onClose={() => setMenu(null)} onRename={startRename} />
+
+      <YDialog
+        open={() => renameTarget() !== null}
+        title="重命名会话"
+        width={400}
+        onClose={() => setRenameTarget(null)}
+        footer={
+          <>
+            <YButton variant="ghost" onClick={() => setRenameTarget(null)}>
+              取消
+            </YButton>
+            <YButton
+              onClick={() => {
+                const id = renameTarget();
+                if (id !== null) logStore.renameSession(id, renameText());
+                setRenameTarget(null);
+              }}
+            >
+              确定
+            </YButton>
+          </>
+        }
+      >
+        <YTextField label="会话标题" value={renameText()} onInput={setRenameText} />
+      </YDialog>
     </div>
   );
-}
-
-/** ViewRow 轻量别名（行渲染）。 */
-interface ViewRow {
-  line: LogLine;
-  collapsedAfter?: number;
 }

@@ -40,6 +40,8 @@ export interface EvalResult {
   exit_code: number;
   stdout: string;
   stderr: string;
+  /** 执行用时（毫秒） */
+  duration_ms: number;
 }
 
 export const terminalEval = (serial: string, command: CommandDto) =>

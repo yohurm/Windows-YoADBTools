@@ -63,6 +63,8 @@ pub struct GroupRunEvent {
     pub total: usize,
     pub verdict: Verdict,
     pub message: String,
+    /// 单命令用时（毫秒）
+    pub duration_ms: u64,
 }
 
 /// 组执行编排器（无状态，可复用）。
@@ -120,10 +122,12 @@ impl<R: Runner> GroupExecutor<R> {
                 }
             }
             let argv = split_command_line(&command.template);
+            let started = std::time::Instant::now();
             let outcome = self
                 .runner
                 .run(serial, argv, None, cancel.clone())
                 .await;
+            let duration_ms = started.elapsed().as_millis() as u64;
             let (verdict, message) = match outcome {
                 Ok(o) => (
                     CommandEvaluator::evaluate(command, &o),
@@ -139,6 +143,7 @@ impl<R: Runner> GroupExecutor<R> {
                 total,
                 verdict,
                 message,
+                duration_ms,
             });
             if abort {
                 return;

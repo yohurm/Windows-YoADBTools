@@ -19,6 +19,8 @@ pub struct EvalResult {
     pub exit_code: i32,
     pub stdout: String,
     pub stderr: String,
+    /// 执行用时（毫秒）
+    pub duration_ms: u64,
 }
 
 /// `terminal.eval`：执行一条命令并做领域判定。
@@ -30,11 +32,13 @@ pub async fn terminal_eval(
 ) -> Result<EvalResult, IpcError> {
     let definition = CommandDefinition::from_dto(&command);
     let argv = split_command_line(&definition.template);
+    let started = std::time::Instant::now();
     let outcome = state
         .client
         .run(&serial, &argv, None, CancellationToken::new())
         .await
         .map_err(ipc_adb)?;
+    let duration_ms = started.elapsed().as_millis() as u64;
     let verdict = CommandEvaluator::evaluate(&definition, &outcome);
     let (ok, message) = match verdict {
         Verdict::Pass => (true, String::new()),
@@ -46,6 +50,7 @@ pub async fn terminal_eval(
         exit_code: outcome.exit_code,
         stdout: outcome.stdout,
         stderr: outcome.stderr,
+        duration_ms,
     })
 }
 
@@ -90,6 +95,7 @@ pub async fn group_run(
                     name: Some(e.name),
                     ok: e.verdict.is_pass(),
                     message: if message.is_empty() { None } else { Some(message) },
+                    duration_ms: e.duration_ms,
                 }));
             }
         });

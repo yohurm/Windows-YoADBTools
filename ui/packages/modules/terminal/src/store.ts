@@ -24,6 +24,8 @@ export interface ResultEntry {
   message: string;
   stdout: string;
   time: string;
+  /** 执行用时（毫秒；无则显示 —） */
+  durationMs?: number;
 }
 
 let nextId = 1;
@@ -79,6 +81,7 @@ export function createTerminalStore() {
             ok: r.ok,
             message: r.message,
             stdout: r.stdout,
+            durationMs: r.duration_ms,
           });
         } catch (e) {
           push({ kind: "command", serial, title: command.name, ok: false, message: String(e), stdout: "" });
@@ -109,6 +112,7 @@ export function createTerminalStore() {
       ok: e.ok,
       message: e.message ?? "",
       stdout: "",
+      durationMs: e.duration_ms,
     });
   });
 

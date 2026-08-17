@@ -56,4 +56,7 @@ pub struct RemoteEntry {
     /// 符号链接目标（kind = symlink 时）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub link_target: Option<String>,
+    /// 修改时间（`ls -la` 日期时间列原文，如 `2026-01-01 12:00`）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mtime: Option<String>,
 }

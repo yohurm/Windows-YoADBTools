@@ -51,6 +51,29 @@ export function formatSize(bytes: number): string {
   return `${(mb / 1024).toFixed(2)} GB`;
 }
 
+/** 面包屑分段：`/storage/emulated/0` → ["storage","emulated","0"]（根路径为 []）。 */
+export function splitPath(path: string): string[] {
+  return path.split("/").filter((segment) => segment.length > 0);
+}
+
+/** 文件扩展名分类（§4.3 分类色图标）。 */
+export type FileCategory = "apk" | "media" | "doc" | "archive" | "other";
+
+export function fileCategory(name: string): FileCategory {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  if (ext === "apk" || ext === "aab") return "apk";
+  if (
+    ["png", "jpg", "jpeg", "gif", "webp", "bmp", "mp3", "mp4", "mkv", "avi", "flac", "ogg", "wav", "webm"].includes(ext)
+  ) {
+    return "media";
+  }
+  if (["txt", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "md", "json", "xml", "log", "csv"].includes(ext)) {
+    return "doc";
+  }
+  if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archive";
+  return "other";
+}
+
 export interface UiTransfer {
   id: number;
   direction: "push" | "pull";
@@ -59,7 +82,12 @@ export interface UiTransfer {
   total?: number;
   state: TransferState;
   message?: string;
+  /** 最近采样速率（bytes/s） */
+  speed?: number;
 }
+
+/** 终态传输在面板保留时长（ms），配合淡出动画。 */
+const TERMINAL_KEEP_MS = 3000;
 
 export function createFileStore() {
   const [entries, setEntries] = createStore<RemoteEntry[]>([]);
@@ -69,27 +97,51 @@ export function createFileStore() {
 
   const focusSerial = (): string | null => deviceStore.state.focusSerial;
 
-  function upsertTransfer(progress: TransferProgress): void {
-    const index = transfers.findIndex((t) => t.id === progress.id);
+  /** 速率采样基准（id → 上次 bytes/时间戳）。 */
+  const speedBase = new Map<number, { bytes: number; ts: number }>();
+
+  function upsertTransfer(progress: TransferProgress, name?: string): void {
+    const now = Date.now();
+    const base = speedBase.get(progress.id);
+    const speed =
+      base !== undefined && now > base.ts
+        ? Math.max(0, Math.round(((progress.bytes - base.bytes) / (now - base.ts)) * 1000))
+        : undefined;
+    speedBase.set(progress.id, { bytes: progress.bytes, ts: now });
     const patch = {
       bytes: progress.bytes,
       total: progress.total,
       state: progress.state,
       message: progress.message,
+      speed,
     };
+    const index = transfers.findIndex((t) => t.id === progress.id);
     if (index < 0) {
       setTransfers((ts) => [
         ...ts,
         {
           id: progress.id,
           direction: progress.direction,
-          name: `${progress.direction === "push" ? "上传" : "下载"} #${progress.id}`,
+          name: name ?? `${progress.direction === "push" ? "上传" : "下载"} #${progress.id}`,
           ...patch,
         },
       ]);
     } else {
-      setTransfers(index, patch);
+      setTransfers(index, name !== undefined ? { ...patch, name } : patch);
     }
+    // 终态：3s 后从面板移除（视图侧同步淡出）
+    if (progress.state !== "running") {
+      speedBase.delete(progress.id);
+      window.setTimeout(() => {
+        setTransfers((ts) => ts.filter((t) => t.id !== progress.id));
+      }, TERMINAL_KEEP_MS);
+    }
+  }
+
+  /** 传输名回填（invoke 返回 id 后；进度事件可能先到）。 */
+  function setTransferName(id: number, name: string): void {
+    const index = transfers.findIndex((t) => t.id === id);
+    if (index >= 0) setTransfers(index, { name });
   }
 
   async function refresh(): Promise<void> {
@@ -123,6 +175,12 @@ export function createFileStore() {
     }
   }
 
+  /** 面包屑直达（跳转任意上级路径）。 */
+  async function goTo(target: string): Promise<void> {
+    setPath("value", target);
+    await refresh();
+  }
+
   async function remove(name: string): Promise<void> {
     const serial = focusSerial();
     if (!serial) return;
@@ -141,14 +199,16 @@ export function createFileStore() {
     const serial = focusSerial();
     if (!serial) return;
     const id = await filesPush({ serial, direction: "push", local, remote: joinPath(path.value, remoteName) });
-    upsertTransfer({ id, direction: "push", bytes: 0, state: "running" });
+    setTransferName(id, remoteName);
+    upsertTransfer({ id, direction: "push", bytes: 0, state: "running" }, remoteName);
   }
 
   async function pull(remoteName: string, local: string): Promise<void> {
     const serial = focusSerial();
     if (!serial) return;
     const id = await filesPull({ serial, direction: "pull", local, remote: joinPath(path.value, remoteName) });
-    upsertTransfer({ id, direction: "pull", bytes: 0, state: "running" });
+    setTransferName(id, remoteName);
+    upsertTransfer({ id, direction: "pull", bytes: 0, state: "running" }, remoteName);
   }
 
   async function cancel(id: number): Promise<void> {
@@ -167,6 +227,7 @@ export function createFileStore() {
     refresh,
     enterDirectory,
     goUp,
+    goTo,
     remove,
     mkdir,
     push,

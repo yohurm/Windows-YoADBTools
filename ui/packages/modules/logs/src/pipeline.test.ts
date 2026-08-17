@@ -135,6 +135,17 @@ describe("collapseStack", () => {
     expect(rows[1]).toMatchObject({ collapsedAfter: 2 });
     expect(rows[2]!.line.msg).toBe("next");
   });
+
+  it("逐行标记信号（崩溃/ANR → signal 字段，供行级底色与 Error 左条）", () => {
+    const rows = collapseStack([
+      line({ msg: "normal" }),
+      line({ tag: "AndroidRuntime", msg: "FATAL EXCEPTION: main" }),
+      line({ msg: "ANR in com.foo" }),
+    ]);
+    expect(rows[0]!.signal).toBeUndefined();
+    expect(rows[1]!.signal).toBe("crash");
+    expect(rows[2]!.signal).toBe("anr");
+  });
 });
 
 describe("RingMirror 共享缓冲镜像", () => {

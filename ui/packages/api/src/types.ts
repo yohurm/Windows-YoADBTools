@@ -113,6 +113,8 @@ export interface RemoteEntry {
   size: number;
   permission: string;
   link_target?: string;
+  /** 修改时间（ls -la 日期时间列原文） */
+  mtime?: string;
 }
 
 // ===== commands DTO =====
@@ -200,6 +202,8 @@ export interface GroupProgress {
   name?: string;
   ok: boolean;
   message?: string;
+  /** 单命令用时（毫秒） */
+  duration_ms: number;
 }
 
 /** core → UI 统一事件负载（kind = AppEvent 内部 tag，camelCase）。 */

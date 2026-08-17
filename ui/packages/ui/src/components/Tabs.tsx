@@ -41,6 +41,8 @@ export interface YTabsProps {
   onClose?: (id: string) => void;
   /** 新建回调（提供时显示 +） */
   onNew?: () => void;
+  /** 标签右键菜单（id + 原始事件；由调用方定位菜单） */
+  onContextMenu?: (id: string, event: MouseEvent) => void;
 }
 
 /**
@@ -130,6 +132,7 @@ export function YTabs(props: YTabsProps): JSX.Element {
                 props.onActivate?.(tab.id);
                 setFocusedId(tab.id);
               }}
+              onContextMenu={(event) => props.onContextMenu?.(tab.id, event)}
             >
               {tab.dot ? (
                 <span class="yovo-tabs__dot" classList={{ [`yovo-tabs__dot--${tab.dot.tone}`]: true }} />

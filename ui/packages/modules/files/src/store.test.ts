@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { RemoteEntry } from "@yovo/api";
 
-import { formatSize, joinPath, parentOf, sortEntries } from "./store";
+import { fileCategory, formatSize, joinPath, parentOf, sortEntries, splitPath } from "./store";
 
 describe("joinPath", () => {
   it("根目录拼接", () => {
@@ -45,5 +45,40 @@ describe("formatSize", () => {
     expect(formatSize(2048)).toBe("2.0 KB");
     expect(formatSize(5 * 1024 * 1024)).toBe("5.0 MB");
     expect(formatSize(3 * 1024 * 1024 * 1024)).toBe("3.00 GB");
+  });
+});
+
+describe("splitPath（面包屑分段）", () => {
+  it("多级路径分段", () => {
+    expect(splitPath("/storage/emulated/0")).toEqual(["storage", "emulated", "0"]);
+  });
+  it("根路径为空段", () => {
+    expect(splitPath("/")).toEqual([]);
+    expect(splitPath("")).toEqual([]);
+  });
+  it("尾部斜杠不产生空段", () => {
+    expect(splitPath("/sdcard/DCIM/")).toEqual(["sdcard", "DCIM"]);
+  });
+});
+
+describe("fileCategory（扩展名分类色）", () => {
+  it("APK/AAB", () => {
+    expect(fileCategory("app.apk")).toBe("apk");
+    expect(fileCategory("bundle.AAB")).toBe("apk");
+  });
+  it("媒体", () => {
+    expect(fileCategory("photo.PNG")).toBe("media");
+    expect(fileCategory("movie.mp4")).toBe("media");
+    expect(fileCategory("song.flac")).toBe("media");
+  });
+  it("文档", () => {
+    expect(fileCategory("report.pdf")).toBe("doc");
+    expect(fileCategory("data.json")).toBe("doc");
+    expect(fileCategory("sys.log")).toBe("doc");
+  });
+  it("归档与其他", () => {
+    expect(fileCategory("pack.zip")).toBe("archive");
+    expect(fileCategory("unknown.xyz")).toBe("other");
+    expect(fileCategory("noext")).toBe("other");
   });
 });

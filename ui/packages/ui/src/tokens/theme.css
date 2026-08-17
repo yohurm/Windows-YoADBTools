@@ -23,6 +23,9 @@
   --yovo-offline: #8A919C;
   --yovo-focus-ring: rgba(10, 89, 247, 0.45);
 
+  /* —— Component 层：浮层阴影（菜单/弹出面板） —— */
+  --yovo-shadow-overlay: 0 4px 16px rgba(16, 24, 40, 0.16);
+
   /* —— Component 层：logcat 级别板（浅色） —— */
   --yovo-level-v: #6E7686;
   --yovo-level-d: #3D6E9E;
@@ -110,6 +113,7 @@
   --yovo-error: #F06A5A;
   --yovo-offline: #6E7686;
   --yovo-focus-ring: rgba(76, 141, 255, 0.5);
+  --yovo-shadow-overlay: 0 4px 16px rgba(0, 0, 0, 0.55);
 
   /* —— Component 层：logcat 级别板（深色） —— */
   --yovo-level-v: #8A93A6;

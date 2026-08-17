@@ -23,7 +23,9 @@ export type IconName =
   | "clear"
   | "export"
   | "trash"
-  | "info";
+  | "info"
+  | "arrow-up"
+  | "arrow-down";
 
 export interface IconProps {
   /** 图标名 */
@@ -122,6 +124,18 @@ const ICON_PATHS: Record<IconName, JSX.Element> = {
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
       <line x1="12" y1="8" x2="12.01" y2="8" />
+    </>
+  ),
+  "arrow-up": (
+    <>
+      <line x1="12" y1="19" x2="12" y2="5" />
+      <polyline points="5 12 12 5 19 12" />
+    </>
+  ),
+  "arrow-down": (
+    <>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <polyline points="19 12 12 19 5 12" />
     </>
   ),
 };

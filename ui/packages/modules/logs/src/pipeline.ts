@@ -123,24 +123,27 @@ export interface ViewRow {
   line: LogLine;
   /** 其后被折叠的连续堆栈帧数（>0 时折叠显示） */
   collapsedAfter?: number;
+  /** 该行命中的信号（崩溃/ANR → 行级底色 + Error 左条） */
+  signal?: SignalKind;
 }
 
-/** 连续 `at xxx` 堆栈帧折叠为首帧 + 计数。 */
+/** 连续 `at xxx` 堆栈帧折叠为首帧 + 计数；逐行标记信号。 */
 export function collapseStack(lines: readonly LogLine[]): ViewRow[] {
   const rows: ViewRow[] = [];
   let i = 0;
   while (i < lines.length) {
     const line = lines[i]!;
+    const signal = scanSignal(line)?.kind;
     if (line.msg.startsWith("at ")) {
       let j = i + 1;
       while (j < lines.length && lines[j]!.msg.startsWith("at ")) {
         j++;
       }
       const count = j - i - 1;
-      rows.push(count > 0 ? { line, collapsedAfter: count } : { line });
+      rows.push(count > 0 ? { line, collapsedAfter: count, signal } : { line, signal });
       i = j;
     } else {
-      rows.push({ line });
+      rows.push({ line, signal });
       i++;
     }
   }

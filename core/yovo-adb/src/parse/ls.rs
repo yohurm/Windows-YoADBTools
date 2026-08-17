@@ -33,9 +33,8 @@ pub fn parse_ls(output: &str) -> Vec<RemoteEntry> {
             fields.next()?;
             fields.next()?;
             let size: u64 = fields.next()?.parse().ok()?;
-            // 日期 时间（两列）
-            fields.next()?;
-            fields.next()?;
+            // 日期 时间（两列，原文保留）
+            let mtime = Some(format!("{} {}", fields.next()?, fields.next()?));
             let name = fields.collect::<Vec<_>>().join(" ");
             if name.is_empty() || name == "." || name == ".." {
                 return None;
@@ -46,6 +45,7 @@ pub fn parse_ls(output: &str) -> Vec<RemoteEntry> {
                 size,
                 permission: mode.to_string(),
                 link_target,
+                mtime,
             })
         })
         .collect()
@@ -69,8 +69,10 @@ lrwxrwxrwx 1 root root 12 2026-01-03 09:00 data -> /sdcard/DCIM
         assert_eq!(entries[0].name, "Alarms");
         assert_eq!(entries[0].kind, EntryKind::Dir);
         assert_eq!(entries[0].size, 4096);
+        assert_eq!(entries[0].mtime.as_deref(), Some("2026-01-01 12:00"));
         assert_eq!(entries[1].kind, EntryKind::File);
         assert_eq!(entries[1].size, 12345);
+        assert_eq!(entries[1].mtime.as_deref(), Some("2026-01-02 08:30"));
         assert_eq!(entries[2].kind, EntryKind::Symlink);
         assert_eq!(entries[2].link_target.as_deref(), Some("/sdcard/DCIM"));
     }

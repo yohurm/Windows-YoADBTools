@@ -1,3 +1,10 @@
+/* ============================================================================
+ * 日志分析模块（UI设计系统-v6.md §4.1）。
+ * 行结构列对齐等宽：[时间 18ch] [PID] [级别] [Tag ≤24ch] [消息]；
+ * 级别色字 + 3px 级别左条；Fatal 反色块；信号行底色 + Error 左条；
+ * 日志列表不动效（性能优先，§2.4）。
+ * ========================================================================== */
+
 .yovo-logs {
   display: flex;
   flex-direction: column;
@@ -6,8 +13,8 @@
 
 .yovo-logs__title {
   font-size: var(--yovo-font-page-title);
-  font-weight: 600;
-  color: var(--yovo-text-primary);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
   margin-right: var(--yovo-space-sm);
 }
 
@@ -20,32 +27,58 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  background: var(--yovo-panel-bg);
-  border: 1px solid var(--yovo-panel-border);
+  background: var(--yovo-surface);
+  border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
+  overflow: hidden;
 }
+
+/* ===== 过滤栏（单行，控件统一 26px 高） ===== */
 
 .yovo-logs__filter {
   display: flex;
   align-items: center;
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
-  border-bottom: 1px solid var(--yovo-list-border);
+  border-bottom: 1px solid var(--yovo-border);
   flex-wrap: wrap;
 }
 
-.yovo-logs__kw {
-  display: inline-block;
+/* 检索框：放大镜图标 + 过滤生效 accent 边框 */
+.yovo-logs__search {
+  position: relative;
+  display: inline-flex;
+}
+
+.yovo-logs__search-icon {
+  position: absolute;
+  left: var(--yovo-space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--yovo-fg-3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.yovo-logs__search .yovo-text-field__input {
+  padding-left: calc(var(--yovo-space-md) + var(--yovo-space-sm));
+}
+
+.yovo-logs__search--active .yovo-text-field__control {
+  border-color: var(--yovo-accent);
 }
 
 .yovo-logs__scope {
   margin-left: auto;
   font-size: var(--yovo-font-caption);
   color: var(--yovo-accent);
-  background: var(--yovo-accent-bg);
+  background: var(--yovo-accent-soft);
   padding: 2px var(--yovo-space-sm);
   border-radius: var(--yovo-radius-sm);
 }
+
+/* ===== 虚拟化日志列表 ===== */
 
 .yovo-logs__list {
   flex: 1;
@@ -58,24 +91,44 @@
   align-items: center;
   gap: var(--yovo-space-sm);
   height: 100%;
-  padding: 0 var(--yovo-space-sm);
+  padding: 0 var(--yovo-space-sm) 0 var(--yovo-space-xs);
   font-family: var(--yovo-font-mono);
   font-size: var(--yovo-font-caption);
-  border-bottom: 1px solid var(--yovo-list-border);
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--yovo-border);
+  border-left: 3px solid transparent;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
+/* 行交互：hover 弱强调底（accent-soft 稀释）；日志行不动效 */
 .yovo-logs__row:hover {
-  background: var(--yovo-nav-hover);
+  background-color: color-mix(in srgb, var(--yovo-accent-soft) 40%, transparent);
 }
 
+/* 信号行（崩溃/ANR）：信号底色 + Error 左条 */
+.yovo-logs__row--signal {
+  background-color: var(--yovo-signal-bg);
+  border-left-color: var(--yovo-error);
+}
+
+/* 级别左条（3px） */
+.yovo-logs__row--bar-v { border-left-color: var(--yovo-level-v); }
+.yovo-logs__row--bar-d { border-left-color: var(--yovo-level-d); }
+.yovo-logs__row--bar-i { border-left-color: var(--yovo-level-i); }
+.yovo-logs__row--bar-w { border-left-color: var(--yovo-level-w); }
+.yovo-logs__row--bar-e { border-left-color: var(--yovo-level-e); }
+.yovo-logs__row--bar-f { border-left-color: var(--yovo-level-f-bg); }
+
+/* 列对齐（等宽 + tabular-nums） */
 .yovo-logs__row-ts {
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
+  width: 18ch;
   flex-shrink: 0;
 }
 
 .yovo-logs__row-pid {
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
   min-width: 48px;
   text-align: right;
   flex-shrink: 0;
@@ -83,32 +136,38 @@
 
 .yovo-logs__row-level {
   min-width: 14px;
-  font-weight: 600;
+  font-weight: var(--yovo-font-weight-semibold);
   flex-shrink: 0;
+  text-align: center;
+  box-sizing: border-box;
 }
 
-.yovo-logs__level--warn {
-  color: var(--yovo-warn);
+.yovo-logs__level--v { color: var(--yovo-level-v); }
+.yovo-logs__level--d { color: var(--yovo-level-d); }
+.yovo-logs__level--i { color: var(--yovo-level-i); }
+.yovo-logs__level--w { color: var(--yovo-level-w); }
+.yovo-logs__level--e { color: var(--yovo-level-e); }
+
+/* Fatal 反色块 */
+.yovo-logs__level--f {
+  color: var(--yovo-level-f);
+  background-color: var(--yovo-level-f-bg);
+  border-radius: 2px;
+  padding: 0 2px;
 }
 
-.yovo-logs__level--error {
-  color: var(--yovo-error);
-}
-
-.yovo-logs__level--dim {
-  color: var(--yovo-text-tertiary);
-}
+.yovo-logs__level--dim { color: var(--yovo-fg-3); }
 
 .yovo-logs__row-tag {
   color: var(--yovo-accent);
-  max-width: 180px;
+  max-width: 24ch;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
 }
 
 .yovo-logs__row-msg {
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
@@ -116,29 +175,99 @@
 
 .yovo-logs__mark {
   background: var(--yovo-warn-bg);
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
   border-radius: 2px;
   padding: 0 2px;
 }
 
 .yovo-logs__row-fold {
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
   font-size: var(--yovo-font-caption);
   flex-shrink: 0;
 }
 
+/* ===== 会话状态行（采集指示·设备·缓冲·可见·信号·进程索引·滞后回补） ===== */
+
 .yovo-logs__status {
   display: flex;
+  align-items: center;
   gap: var(--yovo-space-md);
   padding: var(--yovo-space-xs) var(--yovo-space-md);
-  border-top: 1px solid var(--yovo-list-border);
+  border-top: 1px solid var(--yovo-border);
   font-size: var(--yovo-font-caption);
-  color: var(--yovo-text-secondary);
+  color: var(--yovo-fg-2);
+}
+
+.yovo-logs__status-capture {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--yovo-space-xs);
+}
+
+.yovo-logs__status-dot {
+  width: var(--yovo-space-sm);
+  height: var(--yovo-space-sm);
+  border-radius: 50%;
+  background: var(--yovo-offline);
+}
+
+.yovo-logs__status-dot--on {
+  background: var(--yovo-success);
 }
 
 .yovo-logs__status-signal {
   color: var(--yovo-error);
-  font-weight: 600;
+  font-weight: var(--yovo-font-weight-semibold);
+}
+
+.yovo-logs__status-lag {
+  color: var(--yovo-warn);
+  font-weight: var(--yovo-font-weight-semibold);
+}
+
+/* ===== 空态 / 会话菜单 / 新建会话 ===== */
+
+.yovo-logs__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--yovo-space-md);
+  height: 100%;
+}
+
+.yovo-logs__menu {
+  position: fixed;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  padding: var(--yovo-space-xs);
+  background: var(--yovo-surface);
+  border: 1px solid var(--yovo-border);
+  border-radius: var(--yovo-radius-sm);
+  box-shadow: var(--yovo-shadow-overlay);
+}
+
+.yovo-logs__menu-item {
+  border: none;
+  background: transparent;
+  color: var(--yovo-fg);
+  text-align: left;
+  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  border-radius: var(--yovo-radius-xs);
+  cursor: pointer;
+  font-size: var(--yovo-font-body);
+  font-family: var(--yovo-font-sans);
+}
+
+.yovo-logs__menu-item:hover {
+  background: var(--yovo-nav-hover);
+}
+
+.yovo-logs__menu-item:focus-visible {
+  outline: 2px solid var(--yovo-focus-ring);
+  outline-offset: -1px;
 }
 
 .yovo-logs__new {

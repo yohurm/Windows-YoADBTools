@@ -170,6 +170,38 @@ export function createLogStore() {
     setState("activeSessionId", id);
   }
 
+  /** 重命名会话（右键菜单）。 */
+  function renameSession(id: number, title: string): void {
+    const idx = sessionIndex(id);
+    const trimmed = title.trim();
+    if (idx < 0 || trimmed.length === 0) return;
+    setState("sessions", idx, { title: trimmed });
+  }
+
+  /** 复制会话（右键菜单）：拷贝 scope 与过滤，独立可见区（基于现有缓冲重建）。 */
+  function duplicateSession(id: number): number | null {
+    const src = state.sessions.find((s) => s.id === id);
+    if (!src) return null;
+    const copy = makeSession({ ...src.scope }, `${src.title} 副本`);
+    copy.minLevel = src.minLevel;
+    copy.tagContains = src.tagContains;
+    copy.keyword = src.keyword;
+    copy.paused = src.paused;
+    copy.autoScroll = src.autoScroll;
+    setState("sessions", (s) => [...s, copy]);
+    setState("activeSessionId", copy.id);
+    rebuildSession(copy.id);
+    return copy.id;
+  }
+
+  /** 关闭其他会话（右键菜单；保留指定会话并激活）。 */
+  function closeOthers(id: number): void {
+    const target = state.sessions.find((s) => s.id === id);
+    if (!target) return;
+    setState("sessions", [target]);
+    setState("activeSessionId", id);
+  }
+
   /** 更新会话过滤字段并重建可见区（仅当前会话）。 */
   function patchFilter(id: number, patch: Partial<LogSessionState>): void {
     const idx = sessionIndex(id);
@@ -270,6 +302,8 @@ export function createLogStore() {
       const from = mirror.lastSeqNumber() + 1;
       const batch = await logReplay({ serial, from_seq: from, limit: 100_000 });
       onBatch(batch);
+      // 回补完成后保留「滞后（已回补）」提示，直到下一批正常推送（onBatch 清标记）
+      setState("overflowed", true);
     } catch (e) {
       console.error("log.replay 回补失败", e);
     }
@@ -308,6 +342,9 @@ export function createLogStore() {
     ensureSession,
     createSession,
     closeSession,
+    closeOthers,
+    renameSession,
+    duplicateSession,
     setActive,
     patchFilter,
     startCapture,
@@ -323,3 +360,5 @@ export function createLogStore() {
 
 /** 模块级单例。 */
 export const logStore = createLogStore();
+
+export type LogStoreApi = ReturnType<typeof createLogStore>;

@@ -30,6 +30,8 @@ pub struct GroupProgress {
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// 单命令用时（毫秒；结果卡片头部展示）
+    pub duration_ms: u64,
 }
 
 /// 统一事件负载。

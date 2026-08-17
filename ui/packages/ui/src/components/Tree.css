@@ -44,7 +44,18 @@
 }
 
 .yovo-tree__label {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.yovo-tree__badge {
+  flex: none;
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-fg-3);
+  background: var(--yovo-surface-2);
+  border-radius: var(--yovo-radius-sm);
+  padding: 0 var(--yovo-space-xs);
 }
