@@ -1,8 +1,10 @@
 # Yovo ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1 定稿（2026-08-17，基于外部调研）  
-> **调研依据：** Evil Martians《Devs in mind 2025》（开发者工具 UI 设计原则）、Fluent 2（Windows 设计语言：4px 网格/密度/排版）、Mirafold DESIGN.md（语义 token 系统：`--fg/--surface/--border/--accent`）、Kobalte（无头可及性交互模型：Dialog/Tabs/Combobox/Select）、业界日志查看器实践（列对齐、级别色板、定高虚拟化）。  
+> **状态：** v1.1（2026-08-17，融合 HarmonyOS 设计语言）  
+> **调研依据：** HarmonyOS 开发者文档设计规范（详见 `docs/architecture/harmonyos-design-notes.md`：宇宙蓝/圆角阶梯/时长分级/标准缓动）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yovo/ui`（token 单源 + 组件）+ `@yovo/app`（壳）+ `@yovo/modules/*`（三模块）。所有改动必须同步更新本文件。
+>
+> **v1.1 变更（HarmonyOS 融合）**：主强调色 → 宇宙蓝 `#0A59F7`（浅）/`#4C8DFF`（深）；语义色对齐鸿蒙（浅色取深色变体以保正文对比度 ≥4.5:1，由 WCAG 门禁测试强制）；圆角阶梯 → 4/8/16/20/32；动效 → 鸿蒙时长分级 100/160/300/350ms + 标准曲线 `cubic-bezier(0.4,0,0.2,1)`/减速 `(0,0,0.4,1)`。PC 桌面端遵循鸿蒙「PC 小 2vp、8vp 网格」原则做密度收敛。
 
 ---
 

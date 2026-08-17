@@ -29,21 +29,21 @@ export const Primitive = {
   darkFg: "#E8EAEF",
   darkFg2: "#A6ADBB",
   darkFg3: "#6E7686",
-  // 强调
-  blue600: "#1456A8",
-  blueSoft: "#DCE9FA",
-  darkBlue: "#6EA8E8",
-  darkBlueSoft: "#22334D",
-  // 语义色
-  green: "#1F7A33",
+  // 强调（HarmonyOS 宇宙蓝系）
+  blue600: "#0A59F7",
+  blueSoft: "#D9E7FF",
+  darkBlue: "#4C8DFF",
+  darkBlueSoft: "#22365E",
+  // 语义色（HarmonyOS 语义色系；浅色取深色变体以达标正文对比度 ≥4.5:1）
+  green: "#2C7A38",
   greenSoft: "#E3F2E4",
-  darkGreen: "#57B96B",
-  amber: "#9A6A00",
+  darkGreen: "#64BB5C",
+  amber: "#A35200",
   amberSoft: "#FCF1DD",
-  darkAmber: "#D9A43C",
-  red: "#C22929",
+  darkAmber: "#ED6F21",
+  red: "#CC2B1B",
   redSoft: "#FDEBEA",
-  darkRed: "#E86A6A",
+  darkRed: "#F06A5A",
 } as const;
 
 // ===== Semantic 层（浅色主题） =====
@@ -82,7 +82,7 @@ export const Colors = {
   /** 离线/禁用 */
   Offline: Primitive.gray400,
   /** 键盘焦点环 */
-  FocusRing: "rgba(20,86,168,0.45)",
+  FocusRing: "rgba(10,89,247,0.45)",
   // ===== 兼容别名（旧组件/模块迁移前使用，Phase C/D 逐步移除） =====
   NavBg: Primitive.gray100,
   ContentBg: Primitive.gray50,
@@ -94,8 +94,8 @@ export const Colors = {
   TextSecondary: Primitive.gray500,
   TextTertiary: Primitive.gray400,
   AccentBg: Primitive.blueSoft,
-  AccentHover: "#0E4A8F",
-  NavHover: "#E8EEF6",
+  AccentHover: "#094DDB",
+  NavHover: "#EDF3FF",
   Tag: "#8A5A00",
   Splitter: Primitive.gray300,
   SplitterHover: "#6E7680",
@@ -125,7 +125,7 @@ export const DarkColors: Record<SemanticColorName, string> = {
   Error: Primitive.darkRed,
   SignalBg: "#4A2A28",
   Offline: Primitive.darkFg3,
-  FocusRing: "rgba(110,168,232,0.5)",
+  FocusRing: "rgba(76,141,255,0.5)",
   NavBg: Primitive.darkSurface2,
   ContentBg: Primitive.darkBase,
   PanelBg: Primitive.darkSurface,
@@ -136,8 +136,8 @@ export const DarkColors: Record<SemanticColorName, string> = {
   TextSecondary: Primitive.darkFg2,
   TextTertiary: Primitive.darkFg3,
   AccentBg: Primitive.darkBlueSoft,
-  AccentHover: "#7FB2EE",
-  NavHover: "#2A313B",
+  AccentHover: "#6AA3FF",
+  NavHover: "#2A3345",
   Tag: "#C99A3D",
   Splitter: Primitive.darkBorderStrong,
   SplitterHover: "#9AA3AD",

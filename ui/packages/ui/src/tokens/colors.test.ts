@@ -23,7 +23,7 @@ function loadThemeCss(): string {
 
 const themeCss = loadThemeCss();
 
-/** 规范要求的浅色语义基准值（UI设计系统-v6.md §2.1；必须完全一致） */
+/** 规范要求的浅色语义基准值（UI设计系统-v6.md §2.1·HarmonyOS 融合版；必须完全一致） */
 const EXPECTED_LIGHT: Record<string, string> = {
   BgBase: "#F5F6F8",
   Surface: "#FFFFFF",
@@ -33,11 +33,11 @@ const EXPECTED_LIGHT: Record<string, string> = {
   Fg3: "#8A919C",
   Border: "#D9DEE6",
   BorderStrong: "#B7BFCB",
-  Accent: "#1456A8",
-  AccentSoft: "#DCE9FA",
-  Success: "#1F7A33",
-  Warn: "#9A6A00",
-  Error: "#C22929",
+  Accent: "#0A59F7",
+  AccentSoft: "#D9E7FF",
+  Success: "#2C7A38",
+  Warn: "#A35200",
+  Error: "#CC2B1B",
   Offline: "#8A919C",
 };
 
