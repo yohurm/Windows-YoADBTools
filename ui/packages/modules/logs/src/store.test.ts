@@ -262,4 +262,36 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     expect(mocks.logCaptureStop).toHaveBeenCalledWith("S1");
     expect(store.state.capturing).toBe(false);
   });
+
+  it("startCapture 清空镜像，只保留启动后的行", async () => {
+    const store = wiredStore();
+    push("S1", [mk(0)]);
+    expect(store.state.bufferLines).toBe(1);
+    await store.startCapture();
+    expect(store.state.bufferLines).toBe(0);
+    expect(store.state.sessions[0]!.visible).toHaveLength(0);
+    push("S1", [mk(1, { msg: "after-start" })]);
+    expect(store.state.sessions[0]!.visible).toHaveLength(1);
+    expect(store.state.sessions[0]!.visible[0]!.line.msg).toBe("after-start");
+    await store.stopCapture();
+  });
+
+  it("startCapture 经 replay 填入缓冲（事件丢失兜底）", async () => {
+    mocks.logReplay.mockResolvedValue(batch("S1", [mk(3, { msg: "from-replay" })]));
+    const store = wiredStore();
+    await store.startCapture();
+    expect(mocks.logReplay).toHaveBeenCalledWith({ serial: "S1", from_seq: 0, limit: 100_000 });
+    expect(store.state.bufferLines).toBe(1);
+    expect(store.state.sessions[0]!.visible[0]!.line.msg).toBe("from-replay");
+    await store.stopCapture();
+  });
+
+  it("exportSession 带出 write_mode", async () => {
+    const store = wiredStore();
+    const id = store.state.sessions[0]!.id;
+    await store.exportSession(id, "D:\\out.txt");
+    expect(mocks.logExport).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "D:\\out.txt", write_mode: "overwrite" }),
+    );
+  });
 });

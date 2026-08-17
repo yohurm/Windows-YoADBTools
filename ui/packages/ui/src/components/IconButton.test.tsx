@@ -22,4 +22,12 @@ describe("YIconButton", () => {
     render(() => <YIconButton icon="play" disabled />);
     expect((screen.getByRole("button") as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("loading 时旋转并禁用", () => {
+    const { container } = render(() => <YIconButton icon="refresh" title="刷新" loading />);
+    const btn = screen.getByRole("button", { name: "刷新" });
+    expect(btn.getAttribute("aria-busy")).toBe("true");
+    expect((btn as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector(".yovo-icon-button--loading")).toBeTruthy();
+  });
 });

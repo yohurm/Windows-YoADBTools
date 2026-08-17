@@ -9,7 +9,7 @@ use crate::state::AppState;
 use yovo_protocol::{AppEvent, AppSettings, IpcError, IpcErrorCode, SettingKey};
 
 /// `settings.get`：单键值。
-#[tauri::command]
+#[tauri::command(rename = "settings.get")]
 pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::Value {
     let s = state.settings.snapshot();
     match key {
@@ -21,11 +21,14 @@ pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::
         SettingKey::ClearDeviceOnStart => serde_json::json!(s.clear_device_on_start),
         SettingKey::Theme => serde_json::json!(s.theme),
         SettingKey::Density => serde_json::json!(s.density),
+        SettingKey::ExportDefaultPath => serde_json::json!(s.export_default_path),
+        SettingKey::ExportAskEveryTime => serde_json::json!(s.export_ask_every_time),
+        SettingKey::ExportWriteMode => serde_json::json!(s.export_write_mode),
     }
 }
 
 /// `settings.set`：更新单键并落盘；返回全量快照；`adb.path` 立即生效。
-#[tauri::command]
+#[tauri::command(rename = "settings.set")]
 pub fn settings_set(
     state: State<'_, AppState>,
     key: SettingKey,

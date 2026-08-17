@@ -7,16 +7,24 @@ use tokio_util::sync::CancellationToken;
 
 use crate::commands::ipc;
 use crate::state::AppState;
+use yovo_logsrv::LogError;
 use yovo_protocol::{ExportRequest, ExportResult, IpcError, LogBatch, ReplayRequest};
 
 /// `log.capture.start`：开始采集（幂等；可选先 `logcat -c`）+ 进程索引启动。
-#[tauri::command]
+#[tauri::command(rename = "log.capture.start")]
 pub async fn log_capture_start(
     state: State<'_, AppState>,
     serial: String,
 ) -> Result<(), IpcError> {
     let clear = state.settings.snapshot().clear_device_on_start;
-    state.capture.start(&serial, clear).await.map_err(ipc)?;
+    let started = match state.capture.start(&serial, clear).await {
+        Ok(()) => true,
+        Err(LogError::AlreadyRunning) => false,
+        Err(e) => return Err(ipc(e)),
+    };
+    if !started {
+        return Ok(());
+    }
 
     // 进程索引：采集中周期 ps 刷新
     let index_cancel = CancellationToken::new();
@@ -38,7 +46,7 @@ pub async fn log_capture_start(
 }
 
 /// `log.capture.stop`：停采（保留缓冲，可继续过滤重放）。
-#[tauri::command]
+#[tauri::command(rename = "log.capture.stop")]
 pub async fn log_capture_stop(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
     if let Some(cancel) = state.index_cancels.lock().expect("index lock poisoned").remove(&serial) {
         cancel.cancel();
@@ -51,14 +59,14 @@ pub async fn log_capture_stop(state: State<'_, AppState>, serial: String) -> Res
 }
 
 /// `log.clear`：清设备共享缓冲（会话可见区由 UI 清）。
-#[tauri::command]
+#[tauri::command(rename = "log.clear")]
 pub fn log_clear(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
     state.capture.clear(&serial);
     Ok(())
 }
 
 /// `log.clearDevice`：`logcat -c` 并清共享缓冲。
-#[tauri::command]
+#[tauri::command(rename = "log.clearDevice")]
 pub async fn log_clear_device(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
     state
         .client
@@ -70,7 +78,7 @@ pub async fn log_clear_device(state: State<'_, AppState>, serial: String) -> Res
 }
 
 /// `log.replay`：回补/会话重建（溢出补齐与过滤重放共用）。
-#[tauri::command]
+#[tauri::command(rename = "log.replay")]
 pub fn log_replay(state: State<'_, AppState>, req: ReplayRequest) -> Result<LogBatch, IpcError> {
     let ring = state.capture.ring(&req.serial);
     let lines = match &req.filter {
@@ -82,12 +90,32 @@ pub fn log_replay(state: State<'_, AppState>, req: ReplayRequest) -> Result<LogB
 }
 
 /// `log.export`：导出过滤后缓冲快照为 txt（core 持有全量缓冲）。
-#[tauri::command]
+#[tauri::command(rename = "log.export")]
 pub fn log_export(state: State<'_, AppState>, req: ExportRequest) -> Result<ExportResult, IpcError> {
     let ring = state.capture.ring(&req.serial);
+    let settings = state.settings.snapshot();
+    let dest = req.path.filter(|p| !p.is_empty()).or_else(|| {
+        if settings.export_default_path.is_empty() {
+            None
+        } else {
+            Some(format!(
+                "{}/logcat-{}.txt",
+                settings.export_default_path.trim_end_matches(['/', '\\']),
+                req.serial
+            ))
+        }
+    });
+    let mode = req.write_mode;
     let result = state
         .export
-        .export(&req.serial, &ring, req.filter.as_ref(), ring.capacity())
+        .export(
+            &req.serial,
+            &ring,
+            req.filter.as_ref(),
+            ring.capacity(),
+            dest.as_deref().map(std::path::Path::new),
+            mode,
+        )
         .map_err(ipc)?;
     state.app_log.info(format!("日志已导出: {}", result.path));
     Ok(result)

@@ -6,7 +6,7 @@
 
 import { Component, For } from "solid-js";
 
-import { Icon, type IconName } from "@yovo/ui";
+import { Icon } from "@yovo/ui";
 
 import { modules } from "../registry";
 
@@ -28,17 +28,22 @@ export const NavList: Component<{ activeId: string; onNavigate: (id: string) => 
           {(mod) => {
             const active = () => mod.id === props.activeId;
             return (
-              <li
-                class="yovo-nav__item"
-                classList={{ "yovo-nav__item--active": active() }}
-                tabIndex={active() ? 0 : -1}
-                aria-current={active() ? "page" : undefined}
-                onClick={() => props.onNavigate(mod.id)}
-                onKeyDown={(event) => onItemKeyDown(mod.id, event)}
-              >
-                <Icon name={mod.icon as IconName} size={16} />
-                <span class="yovo-nav__title">{mod.title}</span>
-                {mod.isPlanned && <span class="yovo-nav__planned">开发中</span>}
+              <li>
+                <button
+                  type="button"
+                  class="yovo-nav__item"
+                  classList={{ "yovo-nav__item--active": active() }}
+                  tabIndex={active() ? 0 : -1}
+                  aria-current={active() ? "page" : undefined}
+                  onClick={() => props.onNavigate(mod.id)}
+                  onKeyDown={(event) => onItemKeyDown(mod.id, event)}
+                >
+                  <span class="yovo-nav__icon">
+                    <Icon name={mod.icon} size={16} />
+                  </span>
+                  <span class="yovo-nav__title">{mod.title}</span>
+                  {mod.isPlanned && <span class="yovo-nav__planned">开发中</span>}
+                </button>
               </li>
             );
           }}

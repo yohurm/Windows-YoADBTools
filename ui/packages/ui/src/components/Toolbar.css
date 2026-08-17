@@ -1,7 +1,10 @@
 .yovo-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
   gap: var(--yovo-space-sm);
-  margin-bottom: var(--yovo-space-md);
+  min-height: var(--yovo-control-height);
+  margin-bottom: var(--yovo-space-sm);
+  overflow-x: auto;
 }

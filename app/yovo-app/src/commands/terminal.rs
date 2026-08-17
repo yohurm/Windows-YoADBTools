@@ -24,7 +24,7 @@ pub struct EvalResult {
 }
 
 /// `terminal.eval`：执行一条命令并做领域判定。
-#[tauri::command]
+#[tauri::command(rename = "terminal.eval")]
 pub async fn terminal_eval(
     state: State<'_, AppState>,
     serial: String,
@@ -55,7 +55,7 @@ pub async fn terminal_eval(
 }
 
 /// `group.run`：命令组编排（多设备并行/组内串行/延时/失败中断）。
-#[tauri::command]
+#[tauri::command(rename = "group.run")]
 pub async fn group_run(
     state: State<'_, AppState>,
     app: AppHandle,
@@ -116,7 +116,7 @@ pub async fn group_run(
 }
 
 /// `group.cancel`：取消命令组运行。
-#[tauri::command]
+#[tauri::command(rename = "group.cancel")]
 pub fn group_cancel(state: State<'_, AppState>, run_id: u32) -> Result<(), IpcError> {
     let cancel = state
         .group_runs

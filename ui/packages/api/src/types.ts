@@ -79,6 +79,9 @@ export interface AppSettings {
   clear_device_on_start: boolean;
   theme: Theme;
   density: Density;
+  export_default_path: string;
+  export_ask_every_time: boolean;
+  export_write_mode: "overwrite" | "append";
 }
 
 export type SettingKey =
@@ -89,7 +92,10 @@ export type SettingKey =
   | "display_limit"
   | "clear_device_on_start"
   | "theme"
-  | "density";
+  | "density"
+  | "export_default_path"
+  | "export_ask_every_time"
+  | "export_write_mode";
 
 // ===== transfer =====
 
@@ -135,6 +141,8 @@ export interface ReplayRequest {
 export interface ExportRequest {
   serial: string;
   filter?: LogFilter;
+  path?: string;
+  write_mode?: "overwrite" | "append";
 }
 
 export interface ExportResult {

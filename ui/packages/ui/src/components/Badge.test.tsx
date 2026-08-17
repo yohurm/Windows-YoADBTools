@@ -13,4 +13,9 @@ describe("YBadge", () => {
     render(() => <YBadge text="成功" tone="success" />);
     expect(screen.getByText("成功").className).toContain("yovo-badge--success");
   });
+
+  it("文本同时作为 aria-label（UIA 可发现）", () => {
+    render(() => <YBadge text="通过" tone="success" />);
+    expect(screen.getByLabelText("通过")).toBeTruthy();
+  });
 });

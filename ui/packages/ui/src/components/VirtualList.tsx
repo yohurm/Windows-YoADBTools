@@ -32,8 +32,12 @@ export interface YVirtualListProps<T> {
   autoScrollToBottom?: Accessor<boolean>;
   /** 当前选中行 key（提供即开启单选选择模式；null = 未选中） */
   selectedKey?: Accessor<string | number | null>;
+  /** 多选 key 集（提供则优先于 selectedKey，listbox 为多选） */
+  selectedKeys?: Accessor<ReadonlySet<string | number>>;
   /** 选中变化回调（点击/键盘统一入口；由调用方更新 selectedKey） */
-  onSelectRow?: (item: T, key: string | number) => void;
+  onSelectRow?: (item: T, key: string | number, event?: MouseEvent | KeyboardEvent) => void;
+  /** 行右键（文件管理等） */
+  onRowContextMenu?: (item: T, key: string | number, event: MouseEvent) => void;
   /** 选择模式下 listbox 的无障碍名称 */
   ariaLabel?: string;
 }
@@ -66,7 +70,10 @@ export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
   const keyOf = (item: T, index: number): string | number =>
     props.getItemKey ? props.getItemKey(item, index) : index;
 
-  const selectable = (): boolean => props.selectedKey !== undefined && props.onSelectRow !== undefined;
+  const selectable = (): boolean =>
+    (props.selectedKey !== undefined || props.selectedKeys !== undefined) && props.onSelectRow !== undefined;
+
+  const isMulti = (): boolean => props.selectedKeys !== undefined;
 
   const visibleRows = (): { index: number; item: T; key: string | number }[] => {
     const items = props.items();
@@ -107,29 +114,34 @@ export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
     return null;
   };
 
-  const isSelected = (key: string | number): boolean => selectable() && props.selectedKey?.() === key;
+  const isSelected = (key: string | number): boolean => {
+    if (!selectable()) return false;
+    if (props.selectedKeys) return props.selectedKeys().has(key);
+    return props.selectedKey?.() === key;
+  };
 
   const rowTabIndex = (row: { index: number; key: string | number }): number | undefined => {
     if (!selectable()) return undefined;
-    const selected = props.selectedKey?.() ?? null;
-    if (selected === row.key) return 0;
-    if (selected === null || selected === undefined) {
+    if (isSelected(row.key)) return 0;
+    const selected = props.selectedKeys ? props.selectedKeys().size : props.selectedKey?.() ?? null;
+    const empty = props.selectedKeys ? props.selectedKeys().size === 0 : selected === null || selected === undefined;
+    if (empty) {
       const first = visibleRows()[0];
       if (first && first.key === row.key) return 0;
     }
     return -1;
   };
 
-  const selectAt = (index: number): void => {
+  const selectAt = (index: number, event?: MouseEvent | KeyboardEvent): void => {
     const item = props.items()[index];
     if (item === undefined || !props.onSelectRow) return;
-    props.onSelectRow(item, keyOf(item, index));
+    props.onSelectRow(item, keyOf(item, index), event);
   };
 
-  const handleRowClick = (index: number): void => {
+  const handleRowClick = (index: number, event: MouseEvent): void => {
     if (!selectable()) return;
-    pendingFocusKey = null; // 点击已自然聚焦，不强制滚动聚焦
-    selectAt(index);
+    pendingFocusKey = null;
+    selectAt(index, event);
   };
 
   const handleRowKeyDown = (index: number, event: KeyboardEvent): void => {
@@ -234,6 +246,7 @@ export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
       class="yovo-virtual-list"
       role={selectable() ? "listbox" : undefined}
       aria-label={selectable() ? props.ariaLabel : undefined}
+      aria-multiselectable={isMulti() ? true : undefined}
       onScroll={handleScroll}
     >
       <div class="yovo-virtual-list__inner" style={{ height: `${totalHeight()}px` }}>
@@ -253,7 +266,12 @@ export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
               role={selectable() ? "option" : undefined}
               aria-selected={selectable() ? isSelected(row.key) : undefined}
               tabIndex={rowTabIndex(row)}
-              onClick={() => handleRowClick(row.index)}
+              onClick={(event) => handleRowClick(row.index, event)}
+              onContextMenu={(event) => {
+                if (!props.onRowContextMenu) return;
+                event.preventDefault();
+                props.onRowContextMenu(row.item, row.key, event);
+              }}
               onKeyDown={(event) => handleRowKeyDown(row.index, event)}
             >
               {props.renderRow(row.item, row.index)}

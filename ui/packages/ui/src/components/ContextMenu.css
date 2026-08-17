@@ -1,0 +1,39 @@
+.yovo-context-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: calc(var(--yovo-space-xl) * 7);
+  padding: var(--yovo-space-xs) 0;
+  background: var(--yovo-surface);
+  border: 1px solid var(--yovo-border);
+  border-radius: var(--yovo-radius-sm);
+  box-shadow: var(--yovo-shadow-overlay);
+  box-sizing: border-box;
+}
+
+.yovo-context-menu__item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--yovo-control-height);
+  padding: 0 var(--yovo-space-md);
+  border: none;
+  background: transparent;
+  color: var(--yovo-fg);
+  font: inherit;
+  font-size: var(--yovo-font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.yovo-context-menu__item:hover:not(:disabled) {
+  background: var(--yovo-nav-hover);
+}
+
+.yovo-context-menu__item--danger {
+  color: var(--yovo-error);
+}
+
+.yovo-context-menu__item:disabled {
+  color: var(--yovo-disabled);
+  cursor: not-allowed;
+}

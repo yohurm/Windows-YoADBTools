@@ -11,7 +11,7 @@ pub mod parse;
 pub mod ring;
 
 pub use batch::Batcher;
-pub use capture::CaptureService;
+pub use capture::{CaptureService, LogError};
 pub use export::ExportService;
 pub use parse::parse_threadtime;
 pub use ring::RingBuffer;

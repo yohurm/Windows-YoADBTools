@@ -8,13 +8,13 @@ use crate::state::AppState;
 use yovo_protocol::{AppEvent, DeviceInfo, DeviceState, IpcError};
 
 /// `device.list`：最近一次扫描快照（不触发扫描）。
-#[tauri::command]
+#[tauri::command(rename = "device.list")]
 pub fn device_list(state: State<'_, AppState>) -> Vec<DeviceInfo> {
     state.last_devices.lock().expect("devices lock poisoned").clone()
 }
 
 /// `device.refresh`：立即 `devices -l` 扫描。
-#[tauri::command]
+#[tauri::command(rename = "device.refresh")]
 pub async fn device_refresh(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>, IpcError> {
     refresh_inner(&state).await.map_err(ipc)
 }

@@ -17,29 +17,53 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
         msg: raw.to_string(),
     };
 
-    // 时间戳固定 18 字符：`MM-DD HH:MM:SS.mmm`
+    // 跳过 logd 缓冲区头（`--------- beginning of main`）
+    let trimmed = raw.trim_start();
+    if trimmed.starts_with("---------") {
+        return fallback();
+    }
+
+    // 时间戳：`MM-DD HH:MM:SS.mmm`（usec 时小数更长，取到第一个空格前）
     if raw.len() < 18 || raw.as_bytes().get(2) != Some(&b'-') {
         return fallback();
     }
-    let ts = raw[..18].to_string();
-    let rest = raw[18..].trim_start();
+    let ts_end = raw.find(' ').and_then(|i| raw[i + 1..].find(' ').map(|j| i + 1 + j)).unwrap_or(18);
+    let ts = raw[..ts_end].to_string();
+    let rest = raw[ts_end..].trim_start();
     if rest.is_empty() {
         return fallback();
     }
 
-    // pid / tid / 「level + 剩余原文」：剩余部分必须保留（消息可含空格与冒号）
-    let mut fields = rest.split_whitespace();
-    let (pid, tid, level_tag) = match (fields.next(), fields.next(), fields.next()) {
-        (Some(pid_str), Some(tid_str), Some(level_first)) => {
-            let (Ok(pid), Ok(tid)) = (pid_str.parse::<u32>(), tid_str.parse::<u32>()) else {
-                return fallback();
-            };
-            let rest_tokens: Vec<&str> = fields.collect();
-            let level_tag = if rest_tokens.is_empty() {
-                level_first.to_string()
-            } else {
-                format!("{level_first} {}", rest_tokens.join(" "))
-            };
+    // pid / tid / 级别：可选 UID 列（Android 14+ `logcat -v threadtime,uid`）
+    let tokens: Vec<&str> = rest.split_whitespace().collect();
+    let is_level_token = |s: &str| -> bool {
+        matches!(s.as_bytes().first(), Some(b'V' | b'D' | b'I' | b'W' | b'E' | b'F' | b'v' | b'd' | b'i' | b'w' | b'e' | b'f'))
+    };
+    let (pid, tid, level_tag) = match tokens.as_slice() {
+        [_, pid_str, tid_str, level_first, rest @ ..]
+            if pid_str.parse::<u32>().is_ok()
+                && tid_str.parse::<u32>().is_ok()
+                && is_level_token(level_first) =>
+        {
+            let pid = pid_str.parse().unwrap_or(0);
+            let tid = tid_str.parse().unwrap_or(0);
+            let mut level_tag = (*level_first).to_string();
+            if !rest.is_empty() {
+                level_tag.push(' ');
+                level_tag.push_str(&rest.join(" "));
+            }
+            (pid, tid, level_tag)
+        }
+        [pid_str, tid_str, level_first, rest @ ..]
+            if pid_str.parse::<u32>().is_ok() && tid_str.parse::<u32>().is_ok() && is_level_token(level_first) =>
+        {
+            let pid = pid_str.parse().unwrap_or(0);
+            let tid = tid_str.parse().unwrap_or(0);
+            let mut level_tag = (*level_first).to_string();
+            if !rest.is_empty() {
+                level_tag.push(' ');
+                level_tag.push_str(&rest.join(" "));
+            }
             (pid, tid, level_tag)
         }
         _ => return fallback(),
@@ -99,5 +123,20 @@ mod tests {
         let line = parse_threadtime("01-02 03:04:05.678  100  200 W Net: http://a:8080 failed");
         assert_eq!(line.tag, "Net");
         assert_eq!(line.msg, "http://a:8080 failed");
+    }
+
+    #[test]
+    fn skips_buffer_header() {
+        let line = parse_threadtime("--------- beginning of main");
+        assert_eq!(line.level, '?');
+    }
+
+    #[test]
+    fn parses_optional_uid_column() {
+        let line = parse_threadtime("05-26 11:02:36.886  1000  5689  5689 D AndroidRuntime: CheckJNI is OFF");
+        assert_eq!(line.pid, 5689);
+        assert_eq!(line.tid, 5689);
+        assert_eq!(line.level, 'D');
+        assert_eq!(line.tag, "AndroidRuntime");
     }
 }

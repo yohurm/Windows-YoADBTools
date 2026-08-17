@@ -22,6 +22,7 @@
   flex-direction: column;
   max-width: calc(100% - var(--yovo-space-lg) * 2);
   max-height: calc(100% - var(--yovo-space-xl) * 2);
+  min-height: 0;
   border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
   background-color: var(--yovo-surface);

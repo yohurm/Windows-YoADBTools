@@ -70,6 +70,19 @@ impl SettingsStore {
                     _ => return Err("density 必须是 compact 或 comfortable".into()),
                 };
             }
+            SettingKey::ExportDefaultPath => {
+                s.export_default_path = value.as_str().ok_or("export.default_path 必须是字符串")?.to_string();
+            }
+            SettingKey::ExportAskEveryTime => {
+                s.export_ask_every_time = value.as_bool().ok_or("export.ask_every_time 必须是布尔值")?;
+            }
+            SettingKey::ExportWriteMode => {
+                s.export_write_mode = match value.as_str() {
+                    Some("overwrite") => yovo_protocol::ExportWriteMode::Overwrite,
+                    Some("append") => yovo_protocol::ExportWriteMode::Append,
+                    _ => return Err("export.write_mode 必须是 overwrite 或 append".into()),
+                };
+            }
         }
         *self.inner.write().expect("settings lock poisoned") = s.clone();
         self.save_atomic()?;

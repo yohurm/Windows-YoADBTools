@@ -18,6 +18,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   clear_device_on_start: true,
   theme: "light",
   density: "compact",
+  export_default_path: "",
+  export_ask_every_time: true,
+  export_write_mode: "overwrite",
 };
 
 /** 应用外观设置（主题 + 密度）。 */

@@ -22,11 +22,12 @@ describe("YTree", () => {
     expect(screen.queryByText("子1")).toBeNull();
   });
 
-  it("点击展开箭头显示子节点，点击节点触发 onSelect", () => {
+  it("点击展开箭头显示子节点并选中该目录", () => {
     const onSelect = vi.fn();
     render(() => <YTree data={DATA} onSelect={onSelect} />);
     fireEvent.click(screen.getByLabelText("expand"));
     expect(screen.getByText("子1")).toBeTruthy();
+    expect(onSelect).toHaveBeenCalledWith("root1", expect.objectContaining({ key: "root1" }));
     fireEvent.click(screen.getByText("子1"));
     expect(onSelect).toHaveBeenCalledWith("c1", expect.objectContaining({ key: "c1" }));
   });

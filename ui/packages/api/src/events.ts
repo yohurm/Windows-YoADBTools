@@ -12,11 +12,16 @@ function on<K extends AppEvent["kind"]>(
   kind: K,
   handler: (payload: Extract<AppEvent, { kind: K }>) => void,
 ): Promise<UnlistenFn> {
-  return listen<AppEvent>(name, (event) => {
-    const payload = event.payload;
-    if (payload && payload.kind === kind) {
-      handler(payload as Extract<AppEvent, { kind: K }>);
-    }
+  const attach = (): Promise<UnlistenFn> =>
+    listen<AppEvent>(name, (event) => {
+      const payload = event.payload;
+      if (payload && payload.kind === kind) {
+        handler(payload as Extract<AppEvent, { kind: K }>);
+      }
+    });
+  return attach().catch(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    return attach();
   });
 }
 

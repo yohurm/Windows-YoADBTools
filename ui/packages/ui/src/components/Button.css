@@ -38,7 +38,7 @@
 }
 
 .yovo-button--md {
-  height: calc(var(--yovo-space-lg) * 2);
+  height: var(--yovo-control-height);
   padding: 0 var(--yovo-space-md);
 }
 

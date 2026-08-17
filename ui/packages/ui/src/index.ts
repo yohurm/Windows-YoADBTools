@@ -29,8 +29,10 @@ export type {
 } from "./tokens";
 
 // —— icons ——
-export { Icon } from "./icons";
+export { Icon, ICON_NAMES } from "./icons";
 export type { IconName, IconProps } from "./icons";
+export { YFileIcon, fileGlyphFor } from "./file-icons";
+export type { YFileIconProps, FileGlyph, FileIconKind } from "./file-icons";
 
 // —— 组件 ——
 export { YButton } from "./components/Button";
@@ -75,8 +77,14 @@ export type { YVirtualListProps } from "./components/VirtualList";
 export { YTree } from "./components/Tree";
 export type { YTreeProps, TreeNode } from "./components/Tree";
 
+export { YColResizer } from "./components/ColResizer";
+export type { YColResizerProps } from "./components/ColResizer";
+
 export { YDialog } from "./components/Dialog";
 export type { YDialogProps } from "./components/Dialog";
+
+export { YContextMenu } from "./components/ContextMenu";
+export type { YContextMenuProps, YMenuItem } from "./components/ContextMenu";
 
 export { YToast, YToaster, createToaster } from "./components/Toast";
 export type { ToastItem, ToastTone, Toaster, YToastProps, YToasterProps } from "./components/Toast";

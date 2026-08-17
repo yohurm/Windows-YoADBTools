@@ -6,6 +6,8 @@
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 
+import { systemOpenPath } from "@yovo/api";
+import { save } from "@tauri-apps/plugin-dialog";
 import {
   Icon,
   YBadge,
@@ -15,13 +17,31 @@ import {
   YSelect,
   YTabs,
   YTextField,
+  YToaster,
   YToolbar,
   YVirtualList,
+  createToaster,
 } from "@yovo/ui";
+import { settingsStore } from "@yovo/app";
 
 import { LEVELS, levelRank, type SessionScope, type ViewRow } from "./pipeline";
 import { logStore } from "./store";
 import "./logs.css";
+
+const toaster = createToaster();
+
+function errorMessage(e: unknown): string {
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && "message" in e) {
+    const message = (e as { message: unknown }).message;
+    if (typeof message === "string" && message.length > 0) return message;
+  }
+  return String(e);
+}
+
+const beginCapture = (): void => {
+  void logStore.startCapture().catch((e) => toaster.show(errorMessage(e), "error"));
+};
 
 const LEVEL_OPTIONS = [
   { value: "", label: "全部" },
@@ -177,13 +197,17 @@ function SessionEmpty(props: { session: { minLevel: string | null; tagContains: 
         fallback={
           <YEmptyState
             icon="log"
-            title={logStore.state.capturing ? "等待设备输出…" : "无匹配日志"}
-            description={logStore.state.capturing ? "logcat 采集中，暂未收到行" : "调整过滤条件（级别/Tag/关键字）后重试"}
+            title={filterActive() ? "无匹配日志" : "等待设备输出…"}
+            description={
+              filterActive()
+                ? "调整过滤条件（级别/Tag/关键字）后重试"
+                : "logcat 采集中，暂未收到行"
+            }
           />
         }
       >
         <YEmptyState icon="log" title="未采集" description="点击「开始采集」拉取设备日志" />
-        <YButton onClick={() => void logStore.startCapture()}>开始采集</YButton>
+        <YButton onClick={beginCapture}>开始采集</YButton>
       </Show>
     </div>
   );
@@ -277,7 +301,27 @@ export function LogAnalyzerView() {
   const doExport = async (): Promise<void> => {
     const id = logStore.state.activeSessionId;
     if (id === null) return;
-    await logStore.exportSession(id);
+    try {
+      let dest: string | undefined;
+      if (settingsStore.state.export_ask_every_time) {
+        const picked = await save({
+          title: "导出日志",
+          defaultPath: settingsStore.state.export_default_path
+            ? `${settingsStore.state.export_default_path}\\logcat.txt`
+            : "logcat.txt",
+          filters: [{ name: "文本", extensions: ["txt"] }],
+        });
+        if (typeof picked !== "string") return;
+        dest = picked;
+      }
+      const path = await logStore.exportSession(id, dest);
+      if (path) {
+        toaster.show(`已导出: ${path}`, "success");
+        void systemOpenPath(path);
+      }
+    } catch (e) {
+      toaster.show(`导出失败: ${errorMessage(e)}`, "error");
+    }
   };
 
   const openMenu = (id: string, event: MouseEvent): void => {
@@ -295,7 +339,7 @@ export function LogAnalyzerView() {
   return (
     <div class="yovo-logs">
       <YToolbar>
-        <span class="yovo-logs__title">日志分析</span>
+        <span class="yovo-module-title">日志分析</span>
         <Show
           when={!logStore.state.capturing}
           fallback={
@@ -304,7 +348,7 @@ export function LogAnalyzerView() {
             </YButton>
           }
         >
-          <YButton onClick={() => void logStore.startCapture()}>开始</YButton>
+          <YButton onClick={beginCapture}>开始</YButton>
         </Show>
         <Show when={logStore.state.capturing}>
           <YButton
@@ -359,8 +403,8 @@ export function LogAnalyzerView() {
                 onChange={(v) => logStore.patchFilter(session.id, { minLevel: v === "" ? null : v })}
               />
               <YTextField
-                label="Tag"
-                placeholder="包含"
+                ariaLabel="Tag"
+                placeholder="Tag"
                 value={session.tagContains}
                 clearable
                 onInput={(v) => logStore.patchFilter(session.id, { tagContains: v })}
@@ -376,7 +420,7 @@ export function LogAnalyzerView() {
                   <Icon name="search" size={13} />
                 </span>
                 <YTextField
-                  label="关键字"
+                  ariaLabel="关键字"
                   placeholder="检索消息"
                   value={session.keyword}
                   clearable
@@ -395,7 +439,7 @@ export function LogAnalyzerView() {
             <div class="yovo-logs__list">
               <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} />}>
                 <YVirtualList<ViewRow>
-                  items={() => session.visible}
+                  items={() => logStore.state.sessions.find((s) => s.id === session.id)?.visible ?? []}
                   itemHeight={22}
                   getItemKey={rowKey}
                   autoScrollToBottom={() => session.autoScroll}
@@ -483,6 +527,8 @@ export function LogAnalyzerView() {
       >
         <YTextField label="会话标题" value={renameText()} onInput={setRenameText} />
       </YDialog>
+
+      <YToaster toaster={toaster} />
     </div>
   );
 }

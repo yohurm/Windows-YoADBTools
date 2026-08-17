@@ -1,13 +1,14 @@
 .yovo-panel {
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
   background-color: var(--yovo-surface);
   color: var(--yovo-fg);
   font-family: var(--yovo-font-sans);
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .yovo-panel__title {
@@ -19,9 +20,8 @@
 }
 
 .yovo-panel__body {
-  flex: 1;
+  flex: 1 0 auto;
   min-width: 0;
-  min-height: 0;
 }
 
 .yovo-panel--padding-none .yovo-panel__body {

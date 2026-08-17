@@ -8,19 +8,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.yovo-terminal__title {
-  font-size: var(--yovo-font-page-title);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
-  margin-right: var(--yovo-space-sm);
-}
-
-.yovo-terminal__devices {
-  margin-left: auto;
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-2);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .yovo-terminal__body {

@@ -4,10 +4,13 @@
   align-items: center;
   justify-content: center;
   gap: var(--yovo-space-sm);
+  flex: 1;
+  min-height: 0;
   padding: var(--yovo-space-xl);
   text-align: center;
   color: var(--yovo-fg-3);
   font-family: var(--yovo-font-sans);
+  box-sizing: border-box;
 }
 
 .yovo-empty-state__title {

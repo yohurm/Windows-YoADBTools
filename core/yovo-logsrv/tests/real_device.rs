@@ -159,7 +159,14 @@ async fn real_export_filtered_txt() {
     ));
     let export = yovo_logsrv::ExportService::new(exports_dir.clone());
     let result = export
-        .export(&serial, &ring, Some(&filter), ring.capacity())
+        .export(
+            &serial,
+            &ring,
+            Some(&filter),
+            ring.capacity(),
+            None,
+            yovo_protocol::ExportWriteMode::Overwrite,
+        )
         .expect("导出失败");
     eprintln!("[真机] 导出 {} 行 → {}", result.lines, result.path);
 

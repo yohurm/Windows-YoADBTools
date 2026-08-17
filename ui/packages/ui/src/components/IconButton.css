@@ -2,8 +2,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--yovo-space-xl) + var(--yovo-space-xs));
-  height: calc(var(--yovo-space-xl) + var(--yovo-space-xs));
+  width: var(--yovo-control-height);
+  height: var(--yovo-control-height);
   padding: 0;
   border: none;
   border-radius: var(--yovo-radius-sm);
@@ -29,4 +29,14 @@
 .yovo-icon-button:disabled {
   color: var(--yovo-disabled);
   cursor: not-allowed;
+}
+
+.yovo-icon-button--loading .yovo-icon {
+  animation: yovo-spin var(--yovo-dur-loop) linear infinite;
+}
+
+@keyframes yovo-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

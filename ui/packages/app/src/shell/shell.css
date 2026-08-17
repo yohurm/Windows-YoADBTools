@@ -5,9 +5,12 @@
 
 .yovo-layout {
   display: grid;
-  grid-template-rows: 1fr auto;
-  grid-template-columns: var(--yovo-shell-nav, 232px) 1fr;
-  height: 100vh;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: var(--yovo-shell-nav, 232px) minmax(0, 1fr);
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .yovo-layout__rail {
@@ -23,10 +26,20 @@
 .yovo-layout__content {
   grid-row: 1;
   grid-column: 2;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: var(--yovo-bg-base);
   padding: var(--yovo-space-md);
   box-sizing: border-box;
+}
+
+.yovo-layout__content > * {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
 }
 
 .yovo-layout > :last-child {
@@ -39,6 +52,9 @@
   font-weight: var(--yovo-font-weight-semibold);
   color: var(--yovo-fg);
   margin-right: var(--yovo-space-sm);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* ===== 设备栏（卡片式，§3） ===== */
@@ -49,6 +65,9 @@
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-sm);
   border-bottom: 1px solid var(--yovo-border);
+  flex: 0 1 auto;
+  max-height: 42%;
+  min-height: 0;
 }
 
 .yovo-device-rail__header {
@@ -57,8 +76,15 @@
   gap: var(--yovo-space-xs);
 }
 
-.yovo-device-rail__title {
+.yovo-device-rail__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--yovo-space-xs);
   flex: 1;
+  min-width: 0;
+}
+
+.yovo-device-rail__title {
   font-size: var(--yovo-font-body);
   font-weight: var(--yovo-font-weight-semibold);
   color: var(--yovo-fg);
@@ -200,11 +226,16 @@
   gap: var(--yovo-space-sm);
   /* §2.3：导航项行高 32 */
   min-height: 32px;
+  width: 100%;
   padding: 0 var(--yovo-space-sm);
+  border: none;
+  background: transparent;
   border-radius: var(--yovo-radius-sm);
   cursor: pointer;
   color: var(--yovo-fg);
+  font: inherit;
   font-size: var(--yovo-font-body);
+  text-align: left;
   transition:
     background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
     color var(--yovo-dur-fast) var(--yovo-ease-standard);
@@ -218,6 +249,16 @@
   background: var(--yovo-accent-soft);
   color: var(--yovo-accent);
   font-weight: var(--yovo-font-weight-semibold);
+}
+
+.yovo-nav__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--yovo-space-lg);
+  height: var(--yovo-space-lg);
+  flex-shrink: 0;
+  color: inherit;
 }
 
 .yovo-nav__item:focus-visible {

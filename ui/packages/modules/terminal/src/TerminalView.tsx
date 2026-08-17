@@ -44,9 +44,14 @@ function InputDialog(props: {
   });
 
   const submit = (): void => {
-    props.onSubmit(values());
+    const live = fieldsRoot
+      ? Array.from(fieldsRoot.querySelectorAll("input")).map((el) => (el as HTMLInputElement).value)
+      : values();
+    props.onSubmit(live.length > 0 ? live : values());
     props.onClose();
   };
+
+  let fieldsRoot: HTMLDivElement | undefined;
 
   return (
     <YDialog
@@ -63,7 +68,12 @@ function InputDialog(props: {
         </>
       }
     >
-      <div class="yovo-terminal__inputs">
+      <div
+        class="yovo-terminal__inputs"
+        ref={(el) => {
+          fieldsRoot = el;
+        }}
+      >
         <For each={props.command.inputs}>
           {(input, index) => (
             <YTextField
@@ -239,15 +249,13 @@ export function TerminalView() {
   return (
     <div class="yovo-terminal">
       <YToolbar>
-        <span class="yovo-terminal__title">ADB 命令终端</span>
+        <span class="yovo-module-title">ADB 命令终端</span>
         <YButton onClick={run} loading={running()} disabled={!selection()}>
           执行
         </YButton>
         <YButton variant="secondary" onClick={() => setManagerOpen(true)}>
           命令管理
         </YButton>
-        <YIconButton icon="refresh" title="重新加载命令库" onClick={() => void terminalStore.load()} />
-        <span class="yovo-terminal__devices">在线设备: {terminalStore.onlineCount()}</span>
       </YToolbar>
 
       <div class="yovo-terminal__body">

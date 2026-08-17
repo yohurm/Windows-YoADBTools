@@ -19,7 +19,7 @@ pub struct SystemInfo {
     pub settings: AppSettings,
 }
 
-#[tauri::command]
+#[tauri::command(rename = "system.info")]
 pub fn system_info(state: State<'_, AppState>) -> Result<SystemInfo, IpcError> {
     let adb_path = state
         .tool
@@ -41,7 +41,7 @@ pub fn system_info(state: State<'_, AppState>) -> Result<SystemInfo, IpcError> {
 }
 
 /// `system.openPath`：用资源管理器打开路径（导出的 txt 等）。
-#[tauri::command]
+#[tauri::command(rename = "system.openPath")]
 pub fn system_open_path(path: String) -> Result<(), IpcError> {
     #[cfg(windows)]
     {
@@ -59,7 +59,7 @@ pub fn system_open_path(path: String) -> Result<(), IpcError> {
 }
 
 /// `system.reportError`：前端全局错误上报（应用操作日志）。
-#[tauri::command]
+#[tauri::command(rename = "system.reportError")]
 pub fn system_report_error(state: State<'_, AppState>, message: String) {
     state.app_log.error(message);
 }

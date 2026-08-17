@@ -11,12 +11,11 @@ describe("YTextField", () => {
     expect(input.getAttribute("placeholder")).toBe("请输入");
   });
 
-  it("输入触发 onInput（携带新值）", () => {
+  it("change 事件也触发 onInput（UIA SetValue）", () => {
     const onInput = vi.fn();
     render(() => <YTextField label="关键字" value="" onInput={onInput} />);
-    fireEvent.input(screen.getByLabelText("关键字"), { target: { value: "hello" } });
-    expect(onInput).toHaveBeenCalledTimes(1);
-    expect(onInput.mock.calls[0][0]).toBe("hello");
+    fireEvent.change(screen.getByLabelText("关键字"), { target: { value: "uia" } });
+    expect(onInput).toHaveBeenCalledWith("uia", expect.anything());
   });
 
   it("clearable 且有值时显示清除按钮，点击清空", () => {
@@ -42,5 +41,10 @@ describe("YTextField", () => {
   it("disabled 时禁用输入框", () => {
     render(() => <YTextField label="只读" value="x" disabled />);
     expect((screen.getByLabelText("只读") as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("无 label 时使用 ariaLabel 作为无障碍名称", () => {
+    render(() => <YTextField ariaLabel="新目录名" placeholder="新目录名" />);
+    expect(screen.getByLabelText("新目录名")).toBeTruthy();
   });
 });

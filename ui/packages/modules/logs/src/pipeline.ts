@@ -185,6 +185,7 @@ export class RingMirror {
 
   clear(): void {
     this.buf = [];
+    this.lastSeq = -1;
   }
 
   size(): number {

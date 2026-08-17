@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { RemoteEntry } from "@yovo/api";
 
-import { fileCategory, formatSize, joinPath, parentOf, sortEntries, splitPath } from "./store";
+import { fileCategory, fileTypeLabel, formatSize, joinPath, parentOf, sortEntries, splitPath } from "./store";
 
 describe("joinPath", () => {
   it("根目录拼接", () => {
@@ -80,5 +80,15 @@ describe("fileCategory（扩展名分类色）", () => {
     expect(fileCategory("pack.zip")).toBe("archive");
     expect(fileCategory("unknown.xyz")).toBe("other");
     expect(fileCategory("noext")).toBe("other");
+  });
+});
+
+describe("fileTypeLabel（类型列）", () => {
+  it("目录/链接/扩展名/无扩展名", () => {
+    const base = { size: 0, permission: "-rw-r--r--" };
+    expect(fileTypeLabel({ ...base, name: "DCIM", kind: "dir" })).toBe("文件夹");
+    expect(fileTypeLabel({ ...base, name: "link", kind: "symlink" })).toBe("链接");
+    expect(fileTypeLabel({ ...base, name: "a.apk", kind: "file" })).toBe("APK");
+    expect(fileTypeLabel({ ...base, name: "README", kind: "file" })).toBe("文件");
   });
 });

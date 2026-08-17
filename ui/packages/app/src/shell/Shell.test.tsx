@@ -127,6 +127,9 @@ const DEFAULT_SETTINGS = {
   clear_device_on_start: true,
   theme: "light",
   density: "compact",
+  export_default_path: "",
+  export_ask_every_time: true,
+  export_write_mode: "overwrite",
 } as const;
 
 beforeEach(() => {
@@ -215,6 +218,15 @@ describe("NavList（§3 模块导航）", () => {
     expect(onNavigate).toHaveBeenCalledTimes(2);
   });
 
+  it("每个导航项都有独立图标（不因模块复用而消失）", () => {
+    const { container } = render(() => <NavList activeId="files" onNavigate={() => undefined} />);
+    const items = container.querySelectorAll(".yovo-nav__item");
+    expect(items.length).toBeGreaterThanOrEqual(4);
+    items.forEach((item) => {
+      expect(item.querySelector("svg.yovo-icon")).toBeTruthy();
+    });
+  });
+
   it("Planned 模块显示「开发中」徽章", () => {
     render(() => <NavList activeId="adb-terminal" onNavigate={() => undefined} />);
     expect(screen.getByText("开发中")).toBeTruthy();
@@ -243,6 +255,13 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     expect(screen.getAllByText("立即生效").length).toBeGreaterThan(0);
     expect(screen.getAllByText("重启生效").length).toBeGreaterThan(0);
     expect(screen.getAllByText("下次采集生效").length).toBeGreaterThan(0);
+  });
+
+  it("日志导出设置项可见（路径/每次询问/覆盖续写）", () => {
+    render(() => <SettingsView />);
+    expect(screen.getByText("默认导出路径")).toBeTruthy();
+    expect(screen.getByText("每次导出询问保存位置")).toBeTruthy();
+    expect(screen.getByText("导出写入方式")).toBeTruthy();
   });
 
   it("浏览按钮：选择 adb.exe 后写入 adb_path 并弹保存 toast", async () => {

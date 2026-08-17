@@ -74,9 +74,28 @@ export function createLogStore() {
   });
 
   const mirror = new RingMirror(settingsStore.state.buffer_capacity || 50_000);
+  let snapshotTimer: number | undefined;
 
   const focusSerial = (): string | null => deviceStore.state.focusSerial;
   const displayLimit = (): number => settingsStore.state.display_limit || 2_000;
+
+  const stopSnapshotLoop = (): void => {
+    if (snapshotTimer !== undefined) {
+      window.clearInterval(snapshotTimer);
+      snapshotTimer = undefined;
+    }
+  };
+
+  const startSnapshotLoop = (): void => {
+    stopSnapshotLoop();
+    snapshotTimer = window.setInterval(() => {
+      if (!state.capturing) {
+        stopSnapshotLoop();
+        return;
+      }
+      void pullSnapshot();
+    }, 400);
+  };
 
   const sessionIndex = (id: number): number =>
     state.sessions.findIndex((s) => s.id === id);
@@ -214,13 +233,39 @@ export function createLogStore() {
 
   async function startCapture(): Promise<void> {
     const serial = focusSerial();
-    if (!serial) return;
+    if (!serial) {
+      throw new Error("请先选择设备");
+    }
     ensureSession();
-    await logCaptureStart(serial);
-    setState("capturing", true);
+    mirror.clear();
+    setState({ bufferLines: 0, overflowed: false, capturing: true });
+    rebuildAll();
+    try {
+      await logCaptureStart(serial);
+      await pullSnapshot();
+      startSnapshotLoop();
+    } catch (e) {
+      stopSnapshotLoop();
+      setState("capturing", false);
+      throw e;
+    }
+  }
+
+  /** 用 core 环形缓冲快照填 UI（事件丢失或 Windows 管道延迟时仍能看见 logcat）。 */
+  async function pullSnapshot(): Promise<void> {
+    const serial = focusSerial();
+    if (!serial) return;
+    try {
+      const from = Math.max(0, mirror.lastSeqNumber() + 1);
+      const batch = await logReplay({ serial, from_seq: from, limit: 100_000 });
+      if (batch.lines.length > 0) onBatch(batch);
+    } catch (e) {
+      console.error("log.replay 快照失败", e);
+    }
   }
 
   async function stopCapture(): Promise<void> {
+    stopSnapshotLoop();
     const serial = focusSerial();
     if (!serial) return;
     await logCaptureStop(serial);
@@ -252,7 +297,7 @@ export function createLogStore() {
     rebuildAll();
   }
 
-  async function exportSession(id: number): Promise<string | null> {
+  async function exportSession(id: number, dest?: string): Promise<string | null> {
     const serial = focusSerial();
     if (!serial) return null;
     const session = state.sessions.find((s) => s.id === id);
@@ -265,7 +310,12 @@ export function createLogStore() {
       exact_pid: session.scope.kind === "pid" ? session.scope.pid : undefined,
       pid_set: f.pidSet,
     };
-    const result = await logExport({ serial, filter });
+    const result = await logExport({
+      serial,
+      filter,
+      path: dest,
+      write_mode: settingsStore.state.export_write_mode,
+    });
     return result.path;
   }
 
@@ -321,6 +371,7 @@ export function createLogStore() {
 
   function onOffline(serial: string): void {
     if (serial !== focusSerial()) return;
+    stopSnapshotLoop();
     setState("capturing", false);
     mirror.clear();
     setState("bufferLines", 0);
@@ -332,7 +383,11 @@ export function createLogStore() {
   void onLogOverflow((e) => void onOverflow(e.serial));
   void onProcessIndex((e) => onIndex(e));
   void onCaptureState((e) => {
-    if (e.serial === focusSerial()) setState("capturing", e.state === "running");
+    if (e.serial !== focusSerial()) return;
+    const running = e.state === "running";
+    setState("capturing", running);
+    if (running) startSnapshotLoop();
+    else stopSnapshotLoop();
   });
   void onDeviceOffline((e) => onOffline(e.serial));
 

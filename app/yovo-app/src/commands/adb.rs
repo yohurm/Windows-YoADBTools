@@ -8,7 +8,7 @@ use crate::state::AppState;
 use yovo_protocol::{AdbExecRequest, ExecOutcome, IpcError};
 
 /// `adb.exec`：短命令，返回原始结果（不判定成败，ADR-v6-009）。
-#[tauri::command]
+#[tauri::command(rename = "adb.exec")]
 pub async fn adb_exec(
     state: State<'_, AppState>,
     req: AdbExecRequest,

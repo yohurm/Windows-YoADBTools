@@ -1,10 +1,16 @@
-/* 设置页（UI设计系统-v6.md §4.4）：分组卡片内 label + 输入 + 生效徽章。 */
+/* 设置页（UI设计系统-v6.md §4.4）：页面滚动 + 分组卡片内 标签|控件 两列网格。 */
 
 .yovo-settings {
   display: flex;
   flex-direction: column;
-  gap: var(--yovo-space-md);
-  max-width: 760px;
+  gap: var(--yovo-space-lg);
+  width: 100%;
+  max-width: 920px;
+  height: 100%;
+  overflow: auto;
+  min-height: 0;
+  padding-right: var(--yovo-space-sm);
+  box-sizing: border-box;
 }
 
 .yovo-settings__title {
@@ -12,13 +18,24 @@
   font-size: var(--yovo-font-page-title);
   font-weight: var(--yovo-font-weight-semibold);
   color: var(--yovo-fg);
+  flex: 0 0 auto;
+}
+
+.yovo-settings .yovo-panel {
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .yovo-settings__item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--yovo-space-xs);
-  padding: var(--yovo-space-sm) 0;
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+  grid-template-areas:
+    "head control"
+    ". hint";
+  column-gap: var(--yovo-space-md);
+  row-gap: var(--yovo-space-xs);
+  align-items: center;
+  padding: var(--yovo-space-md) 0;
 }
 
 .yovo-settings__item + .yovo-settings__item {
@@ -26,9 +43,12 @@
 }
 
 .yovo-settings__item-head {
+  grid-area: head;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--yovo-space-sm);
+  gap: var(--yovo-space-xs);
+  min-width: 0;
 }
 
 .yovo-settings__item-label {
@@ -38,16 +58,28 @@
 }
 
 .yovo-settings__item-control {
+  grid-area: control;
   display: flex;
   align-items: center;
   gap: var(--yovo-space-sm);
+  min-width: 0;
+  width: 100%;
 }
 
-.yovo-settings__item-control .yovo-text-field {
+.yovo-settings__item-control .yovo-text-field,
+.yovo-settings__item-control .yovo-select {
   flex: 1;
+  width: 100%;
+  display: flex;
+  min-width: 0;
+}
+
+.yovo-settings__item-control .yovo-select__trigger {
+  width: 100%;
 }
 
 .yovo-settings__item-hint {
+  grid-area: hint;
   font-size: var(--yovo-font-caption);
   color: var(--yovo-fg-3);
 }

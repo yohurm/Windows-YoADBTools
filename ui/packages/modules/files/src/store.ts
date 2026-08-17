@@ -6,6 +6,7 @@ import { createStore } from "solid-js/store";
 
 import {
   filesCancel,
+  filesCreate,
   filesDelete,
   filesList,
   filesMkdir,
@@ -72,6 +73,15 @@ export function fileCategory(name: string): FileCategory {
   }
   if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archive";
   return "other";
+}
+
+/** 类型列文案。 */
+export function fileTypeLabel(entry: RemoteEntry): string {
+  if (entry.kind === "dir") return "文件夹";
+  if (entry.kind === "symlink") return "链接";
+  const ext = entry.name.split(".").pop();
+  if (ext && ext !== entry.name) return ext.toUpperCase();
+  return "文件";
 }
 
 export interface UiTransfer {
@@ -195,6 +205,19 @@ export function createFileStore() {
     await refresh();
   }
 
+  async function createFile(name: string): Promise<void> {
+    const serial = focusSerial();
+    if (!serial) return;
+    await filesCreate({ serial, path: joinPath(path.value, name) });
+    await refresh();
+  }
+
+  async function removeMany(names: string[]): Promise<void> {
+    for (const name of names) {
+      await remove(name);
+    }
+  }
+
   async function push(local: string, remoteName: string): Promise<void> {
     const serial = focusSerial();
     if (!serial) return;
@@ -230,6 +253,8 @@ export function createFileStore() {
     goTo,
     remove,
     mkdir,
+    createFile,
+    removeMany,
     push,
     pull,
     cancel,

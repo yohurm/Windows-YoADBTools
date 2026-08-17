@@ -188,6 +188,8 @@ export function YTree<T = unknown>(props: YTreeProps<T>): JSX.Element {
                   tabindex={-1}
                   onClick={(event) => {
                     event.stopPropagation();
+                    select(node);
+                    setFocusedKey(node.key);
                     toggle(node.key);
                   }}
                 >

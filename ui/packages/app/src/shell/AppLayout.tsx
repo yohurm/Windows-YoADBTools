@@ -10,7 +10,6 @@ import { modules } from "../registry";
 import { DeviceRail } from "./DeviceRail";
 import { NavList } from "./NavList";
 import { StatusBar } from "./StatusBar";
-import { SettingsView } from "../settings/SettingsView";
 
 /** 工作台壳（activeModuleId 由 App 持有）。 */
 export const AppLayout: Component<{
@@ -29,11 +28,7 @@ export const AppLayout: Component<{
         <Show when={current()} keyed>
           {(mod) => {
             const C = mod.Component;
-            return (
-              <Show when={mod.id === "settings" || mod.isPlanned} fallback={<C />}>
-                <SettingsView />
-              </Show>
-            );
+            return <C />;
           }}
         </Show>
       </main>

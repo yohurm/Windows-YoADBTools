@@ -1,0 +1,107 @@
+/* 命令管理：三栏（组 | 命令 | 编辑器），各自滚动，互不挤压。 */
+
+.yovo-dialog:has(.yovo-cm) .yovo-dialog__body {
+  display: flex;
+  overflow: hidden;
+  padding: 0;
+  min-height: 0;
+}
+
+.yovo-cm {
+  display: grid;
+  grid-template-columns: minmax(168px, 200px) minmax(188px, 228px) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.yovo-cm__groups,
+.yovo-cm__commands {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--yovo-border);
+  background: var(--yovo-surface-2);
+}
+
+.yovo-cm__groups .yovo-toolbar,
+.yovo-cm__commands .yovo-toolbar {
+  margin: 0;
+  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  border-bottom: 1px solid var(--yovo-border);
+}
+
+.yovo-cm__caption {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--yovo-font-caption);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg-2);
+}
+
+.yovo-cm__list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: var(--yovo-space-xs);
+}
+
+.yovo-cm__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yovo-space-sm);
+  min-height: var(--yovo-control-height);
+  padding: 0 var(--yovo-space-sm);
+  border-radius: var(--yovo-radius-sm);
+  cursor: pointer;
+  color: var(--yovo-fg);
+  font-size: var(--yovo-font-body);
+}
+
+.yovo-cm__item:hover {
+  background: var(--yovo-nav-hover);
+}
+
+.yovo-cm__item--active {
+  background: var(--yovo-accent-soft);
+  color: var(--yovo-accent);
+}
+
+.yovo-cm__item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yovo-cm__editor {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--yovo-space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--yovo-space-md);
+}
+
+.yovo-cm__editor .yovo-text-field {
+  display: flex;
+  width: 100%;
+}
+
+.yovo-cm__empty {
+  margin: auto;
+  color: var(--yovo-fg-3);
+  font-size: var(--yovo-font-caption);
+}
+
+.yovo-cm__error {
+  margin-right: auto;
+  color: var(--yovo-error);
+  font-size: var(--yovo-font-caption);
+}

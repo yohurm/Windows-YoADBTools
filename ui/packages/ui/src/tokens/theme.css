@@ -139,3 +139,15 @@
     animation: none;
   }
 }
+
+/* 壳层：视口锁死，滚动只发生在列表/设置页内部（禁止整窗出条） */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background-color: var(--yovo-bg-base);
+  font-family: var(--yovo-font-sans);
+  color: var(--yovo-fg);
+}

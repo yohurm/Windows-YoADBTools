@@ -102,3 +102,25 @@ impl AppEvent {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::LogBatch;
+
+    #[test]
+    fn log_batch_event_json_has_kind_and_batch() {
+        let event = AppEvent::LogBatch(LogBatchPayload {
+            batch: LogBatch {
+                serial: "s1".into(),
+                from_seq: 1,
+                lines: vec![],
+                truncated: false,
+            },
+        });
+        let v = serde_json::to_value(&event).expect("serialize");
+        assert_eq!(v["kind"], "logBatch");
+        assert_eq!(v["batch"]["serial"], "s1");
+        assert_eq!(v["batch"]["from_seq"], 1);
+    }
+}

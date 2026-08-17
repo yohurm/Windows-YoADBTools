@@ -18,6 +18,8 @@ export interface YTextFieldProps {
   onInput?: (value: string, event: InputEvent) => void;
   /** 占位文本 */
   placeholder?: string;
+  /** 无障碍名称（无 label 时使用） */
+  ariaLabel?: string;
   /** 禁用 */
   disabled?: boolean;
   /** 是否显示清除按钮 */
@@ -36,6 +38,12 @@ export function YTextField(props: YTextFieldProps): JSX.Element {
   const handleInput = (event: InputEvent): void => {
     const target = event.currentTarget as HTMLInputElement;
     props.onInput?.(target.value, event);
+  };
+
+  /** UIA ValuePattern.SetValue 有时只触发 change，不走 input。 */
+  const handleChange = (event: Event): void => {
+    const target = event.currentTarget as HTMLInputElement;
+    props.onInput?.(target.value, event as InputEvent);
   };
 
   const handleClear = (): void => {
@@ -63,8 +71,10 @@ export function YTextField(props: YTextFieldProps): JSX.Element {
           type={props.type ?? "text"}
           value={props.value ?? ""}
           placeholder={props.placeholder ?? ""}
+          aria-label={props.ariaLabel ?? props.label}
           disabled={props.disabled}
           onInput={handleInput}
+          onChange={handleChange}
         />
         {showClear() ? (
           <button

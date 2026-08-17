@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   gap: var(--yovo-space-xs);
-  height: calc(var(--yovo-space-lg) * 2);
+  height: var(--yovo-control-height);
   padding: 0 var(--yovo-space-sm);
   border: 1px solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);

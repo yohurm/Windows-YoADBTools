@@ -1,10 +1,12 @@
 # Yovo ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.1（2026-08-17，融合 HarmonyOS 设计语言）  
+> **状态：** v1.2（2026-08-17，壳/三模块底向上布局）  
 > **调研依据：** HarmonyOS 开发者文档设计规范（详见 `docs/architecture/harmonyos-design-notes.md`：宇宙蓝/圆角阶梯/时长分级/标准缓动）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yovo/ui`（token 单源 + 组件）+ `@yovo/app`（壳）+ `@yovo/modules/*`（三模块）。所有改动必须同步更新本文件。
 >
 > **v1.1 变更（HarmonyOS 融合）**：主强调色 → 宇宙蓝 `#0A59F7`（浅）/`#4C8DFF`（深）；语义色对齐鸿蒙（浅色取深色变体以保正文对比度 ≥4.5:1，由 WCAG 门禁测试强制）；圆角阶梯 → 4/8/16/20/32；动效 → 鸿蒙时长分级 100/160/300/350ms + 标准曲线 `cubic-bezier(0.4,0,0.2,1)`/减速 `(0,0,0.4,1)`。PC 桌面端遵循鸿蒙「PC 小 2vp、8vp 网格」原则做密度收敛。
+>
+> **v1.2 变更（底向上布局）**：设备数徽章紧跟「设备」标题；`YIconButton.loading` 走 `--yovo-dur-loop` 旋转；设置页两列网格 + 页面滚动（面板不裁切）；文件管理改为资源管理器四列 + 可收起预览 + `YContextMenu`/`YFileIcon`；命令管理三栏；日志采集从开始时刻清空缓冲并出流。
 
 ---
 
@@ -77,7 +79,7 @@ Component（组件级：--yovo-button-hover-bg / --yovo-log-level-w…，唯一�
 
 ### 2.3 密度模式
 
-- `--yovo-density`：`compact`（默认）| `comfortable`，切换：控件高 26/32、行高 22/26、面板内边距 10/14。
+- `--yovo-control-height`：compact 26px / comfortable 32px。按钮、输入框、图标按钮、路径栏、过滤栏控件统一走该变量，禁止各写一套高度。
 - 日志行高：compact 22px（当前值保持），设备列表行高 34，导航项 32。
 
 ### 2.4 动效
@@ -86,6 +88,14 @@ Component（组件级：--yovo-button-hover-bg / --yovo-log-level-w…，唯一�
 - 缓动：`--yovo-ease-standard: cubic-bezier(0.4,0,0.2,1)`（标准）、`--yovo-ease-decel: cubic-bezier(0,0,0.4,1)`（减速）、`--yovo-ease-loop: ease-in-out`（循环）
 - JS 消费侧经 `@yovo/ui` 导出 `MotionDuration` / `MotionEasing`（与 theme.css 契约测试强制一致）；动效时长硬编码由纪律 lint 拦截
 - 用途克制：下拉展开/淡入淡出/行高亮过渡；日志列表**不动效**（性能优先）。
+- **加载循环**：`YIconButton loading` 给图标加 `yovo-icon-button--loading`，按 `--yovo-dur-loop` 线性旋转；加载期间按钮 `disabled` + `aria-busy`。设备栏刷新、文件刷新等长操作必须走该入口，禁止模块自写 spinner。
+
+### 2.5 图标
+
+- **唯一入口**：`@yovo/ui` 的 `<Icon name size>`；模块注册表 `icon: IconName`；工具栏用 `YIconButton`（内部仍走 `Icon`）。
+- **文件类型图标**：`<YFileIcon name kind size>`（`file-icons.tsx` 工厂，Material Icon Theme 风格色块字形）。模块禁止内联文件 SVG；色值仅允许出现在该文件（纪律脚本豁免）。
+- **禁止**：模块内再写一份 SVG、emoji 当图标、静态对象缓存 JSX 节点（Solid 会把节点从导航挪到内容区）。
+- **风格**：24×24 viewBox、描边 2、`currentColor`；`play`/`pause` 实心。新增通用图标只改 `icons.tsx` 的 `ICON_GLYPHS`。
 
 ---
 
@@ -108,8 +118,8 @@ Component（组件级：--yovo-button-hover-bg / --yovo-log-level-w…，唯一�
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **设备栏**：设备卡片（型号一行 + serial 等宽一行 + 在线点 + 未授权徽章）；空态给引导文案；选中 = accent-soft 底 + 2px accent 左边条。
-- **导航**：图标 16px + 标题；激活项 accent 文字 + accent-soft 底；Planned 项「开发中」胶囊徽章。
+- **设备栏**：标题行 = 折叠钮 +「设备」+ 数量徽章（徽章紧跟标题，不推到最右）+ 刷新（`YIconButton loading` 旋转）；设备卡片（型号一行 + serial 等宽一行 + 在线点 + 未授权徽章）；空态给引导文案；选中 = accent-soft 底 + 2px accent 左边条。
+- **导航**：图标 16px（`<Icon>` 单源，currentColor）+ 标题；激活项 accent 文字 + accent-soft 底；Planned 项「开发中」胶囊徽章。图标节点每次渲染新建（禁止静态缓存 JSX，避免 Solid 把导航图标挪到模块里）。
 - **状态栏**：左版本/中留白/右「设备 · 任务 · 状态」；任务悬停显示明细。
 - **快捷键统一表（v6.1 目标）**：`Ctrl+K` 命令面板（模块跳转/刷新设备/开始采集…）；模块内快捷键不变。
 
@@ -126,24 +136,32 @@ Component（组件级：--yovo-button-hover-bg / --yovo-log-level-w…，唯一�
 - 会话 Tab：标题 + 采集绿点/信号红点 + 关闭 × + 新建 +；Tab 溢出可横向滚动；右键菜单（关闭其他/重命名/复制会话）。
 - 状态行：`采集指示（绿点/灰点）· 设备 · 缓冲 n · 可见 n · 信号 n · 进程索引 n s 前 · 滞后回补提示`。
 - 空态：未采集 → 插画图标 + 「点击开始采集」主按钮；采集中空 → 等待输出；过滤无命中 → 「无匹配日志，调整过滤条件」。
+- **采集可见性**：点「开始」先清空 UI 镜像与可见区，core 同步 `ring.clear()`，只展示启动之后的 logcat；失败 toast 出错误。
+- **导出**：设置项 `export.default_path` / `export.ask_every_time` / `export.write_mode`（覆盖|续写）。每次询问开 → 保存对话框；关 → 默认目录 `logcat-{serial}.txt`。
 
 ### 4.2 ADB 命令终端
 
-- 布局：工具栏 → 左侧命令库（树，可折叠分组） → 右侧结果区。
+- 布局：工具栏（标题 + 执行 + 命令管理）→ 左侧命令库（树，可折叠分组） → 右侧结果区。设备焦点以左侧设备栏为准，工具栏不重复「在线设备」与刷新。
+- 命令库树：组节点加命令数徽章；点击组行或展开箭头即选中该组（可直接「执行」组）；命令节点 hover 显示完整模板（title 提示）。
+- **命令管理**：`YDialog` 定高三栏（组列表 | 命令列表 | 单一编辑器）。点组只编辑组属性；点命令只编辑该命令（标题带所属组名）。打开时深拷贝快照，打开期间不因 store 变化重置草稿。
 - 结果区改为 **结构化卡片列表**：每条 = 头部行（设备徽章 + 命令名 + 通过/失败徽章 + 用时）+ 折叠输出区（stdout 等宽滚动，默认展开失败项输出）。
 - 设备维度分组：多设备执行时按设备分组展示（组头 = 设备 + 汇总徽章）。
-- 命令库树：组节点加命令数徽章；命令节点 hover 显示完整模板（title 提示）。
 
 ### 4.3 文件管理
 
-- 布局：工具栏（上传/新建目录/刷新）→ 路径栏（面包屑化：`sdcard ▸ DCIM ▸ Camera`，逐级可点 + 根 `/` + 上级按钮）→ 双栏（目录列表 | 文件列表）。
-- 目录列表：仅目录（当前目录子目录，点击下钻；符号链接标注「链接」徽章）；文件列表：当前目录文件（名称/大小/修改时间，等宽右对齐；悬停行显操作按钮）。
-- 文件图标：按扩展名分类色（媒体/文档/APK/归档/其他）。
+- 布局：工具栏（上传 / 刷新 / 预览开关）→ 路径栏（面包屑：`/ ▸ sdcard ▸ DCIM`，逐级可点 + 上级按钮）→ 资源管理器主区（四列清单 + 可收起预览）→ 传输面板。
+- **四列清单**：名称（默认约 168px，不过分抢宽）/ 类型 / 大小 / 修改时间（末列吃剩余）；表头 `YColResizer` 可拖拽列宽。目录与文件同一列表，目录优先；双击目录下钻。无独立「目录栏」。
+- **预览窗**：右侧，默认收起（`flex-basis: 0`）；打开后约 240px，展示图标 + 名称 + 元数据。类 Windows 资源管理器预览。
+- **右键菜单**（`YContextMenu`，按模块给清单）：文件管理当前为 新建文件 / 新建目录 / 删除。删除走二次确认对话框；支持 Ctrl/Shift 多选。行内无删除图标；路径栏无「新建目录」。
 - 传输面板：卡片式（方向图标 + 文件名 + 进度条 + 速度 + 取消）；完成 3s 后淡出（动画经动效 token，终态由 store 移除）。
 
 ### 4.4 设置
 
-- 分组卡片（工具链 / 日志 / 外观）；每项 label + 输入 + 生效说明（「立即生效」「重启生效」徽章）；保存成功 toast；`adb.path` 旁「浏览」按钮。
+- **页面是滚动容器**（`height: 100%; overflow: auto`）；`YPanel` 内容尺寸、`overflow: visible`、`flex-shrink: 0`，禁止用面板裁切表单项。
+- 壳层 `html/body/#root` 与模块根 `overflow: hidden`：整窗不出滚动条；仅列表、设置页、结果区内部滚动。
+- **项布局**：两列网格 `标签+生效徽章 | 全宽控件`，hint 落在控件列下方。控件（`YTextField`/`YSelect`）在设置页必须 `width: 100%`。
+- 分组卡片（工具链 / 日志分析 / 外观）；保存成功 toast；路径项旁浏览按钮（ADB 文件 / 导出目录）。
+- 日志导出：默认路径、每次询问开关、覆盖/续写。
 
 ---
 
@@ -154,8 +172,10 @@ Component（组件级：--yovo-button-hover-bg / --yovo-log-level-w…，唯一�
 | YDialog | Esc 关；焦点陷阱；打开后聚焦面板；关闭后还原焦点 | `role=dialog aria-modal` |
 | YTabs | ←/→ 切换；Home/End；Delete 关闭（可关时）；Ctrl+Tab 循环 | `role=tablist/tab/tabpanel` |
 | YSelect/YComboBox | 展开后 ↑/↓ 选项；Enter 选；Esc 关；可搜索时输入过滤 | `role=combobox aria-expanded aria-activedescendant` |
-| YTree | ↑/↓ 移动；→ 展开/← 收起；Enter 选中 | `role=tree/treeitem aria-expanded` |
-| YVirtualList | 选择模式：行可聚焦（roving tabindex）+ ↑/↓/Home/End/Enter/Space | 选择模式 `role=listbox/option` + `aria-selected`（单选）；非选择模式无列表语义（性能路径） |
+| YTree | ↑/↓ 移动；→ 展开/← 收起；Enter 选中；展开箭头同时选中该节点 | `role=tree/treeitem aria-expanded` |
+| YVirtualList | 选择模式：行可聚焦（roving tabindex）+ ↑/↓/Home/End/Enter/Space；`selectedKeys` 为多选 | 选择模式 `role=listbox/option` + `aria-selected` + 多选时 `aria-multiselectable`；非选择模式无列表语义（性能路径） |
+| YContextMenu | Esc 关闭；点击项执行；点击外部关闭 | `role=menu/menuitem` |
+| YIconButton | 激活执行；`loading` 时不可激活 | `aria-label`（title）+ `aria-busy` |
 
 ---
 

@@ -1,0 +1,7 @@
+/* 图标槽：所有模块/壳只消费 <Icon>，禁止再内联一份 SVG。 */
+.yovo-icon {
+  display: block;
+  flex-shrink: 0;
+  color: inherit;
+  pointer-events: none;
+}

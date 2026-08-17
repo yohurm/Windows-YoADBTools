@@ -10,7 +10,7 @@ use yovo_domain::CommandLibrary;
 use yovo_protocol::{CommandLibraryDto, IpcError, IpcErrorCode};
 
 /// `commandlib.load`：加载命令库（缺失→写默认库；损坏/旧 schema→备份并重建默认库）。
-#[tauri::command]
+#[tauri::command(rename = "commandlib.load")]
 pub fn commandlib_load(state: State<'_, AppState>) -> Result<CommandLibraryDto, IpcError> {
     let file = state.paths.library_file();
 
@@ -50,7 +50,7 @@ fn write_default(file: &std::path::Path) -> Result<CommandLibrary, IpcError> {
 }
 
 /// `commandlib.save`：校验 → 全量提交（原子写）。取消零污染由 UI 深拷贝保证。
-#[tauri::command]
+#[tauri::command(rename = "commandlib.save")]
 pub fn commandlib_save(state: State<'_, AppState>, dto: CommandLibraryDto) -> Result<(), IpcError> {
     let library = CommandLibrary::from_dto(&dto);
     library.validate().map_err(|e| ipc_code(IpcErrorCode::InvalidArgs, e.to_string()))?;

@@ -44,14 +44,16 @@ export const DeviceRail: Component = () => {
           title={expanded() ? "折叠设备列表" : "展开设备列表"}
           onClick={() => setExpanded((v) => !v)}
         />
-        <span class="yovo-device-rail__title">设备</span>
-        <Show when={deviceStore.state.devices.length > 0}>
-          <YBadge text={String(deviceStore.state.devices.length)} tone="neutral" />
-        </Show>
+        <div class="yovo-device-rail__heading">
+          <span class="yovo-device-rail__title">设备</span>
+          <Show when={deviceStore.state.devices.length > 0}>
+            <YBadge text={String(deviceStore.state.devices.length)} tone="neutral" />
+          </Show>
+        </div>
         <YIconButton
           icon="refresh"
           title="刷新设备"
-          disabled={deviceStore.state.refreshing}
+          loading={deviceStore.state.refreshing}
           onClick={() => void deviceStore.refresh()}
         />
       </div>

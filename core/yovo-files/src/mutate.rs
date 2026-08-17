@@ -66,4 +66,33 @@ impl FileMutator {
         }
         Ok(())
     }
+
+    /// 新建空文件（`touch`；已存在则只更新时间）。
+    pub async fn create_file(
+        &self,
+        serial: &str,
+        path: &str,
+        cancel: CancellationToken,
+    ) -> Result<(), FileError> {
+        let normalized = self
+            .safety
+            .check(path)
+            .map_err(|e| FileError::OutsideRoot(e.to_string()))?;
+        let out = self
+            .adb
+            .run(
+                serial,
+                &["shell".into(), "touch".into(), normalized.as_str().into()],
+                Some(15_000),
+                cancel,
+            )
+            .await?;
+        if out.exit_code != 0 {
+            return Err(FileError::Adb(yovo_adb::AdbError::BadExit {
+                exit_code: out.exit_code,
+                stderr: out.stderr,
+            }));
+        }
+        Ok(())
+    }
 }

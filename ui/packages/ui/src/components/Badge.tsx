@@ -19,7 +19,11 @@ export interface YBadgeProps {
  */
 export function YBadge(props: YBadgeProps): JSX.Element {
   return (
-    <span class="yovo-badge" classList={{ [`yovo-badge--${props.tone ?? "neutral"}`]: true }}>
+    <span
+      class="yovo-badge"
+      classList={{ [`yovo-badge--${props.tone ?? "neutral"}`]: true }}
+      aria-label={props.text}
+    >
       {props.text}
     </span>
   );

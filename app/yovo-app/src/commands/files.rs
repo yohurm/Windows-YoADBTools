@@ -10,7 +10,7 @@ use yovo_protocol::{
 };
 
 /// `files.list`：浏览设备目录。
-#[tauri::command]
+#[tauri::command(rename = "files.list")]
 pub async fn files_list(
     state: State<'_, AppState>,
     serial: String,
@@ -20,7 +20,7 @@ pub async fn files_list(
 }
 
 /// `files.push`：本机 → 设备（异步传输，进度经 `transfer.progress` 事件）。
-#[tauri::command]
+#[tauri::command(rename = "files.push")]
 pub async fn files_push(
     state: State<'_, AppState>,
     app: AppHandle,
@@ -30,7 +30,7 @@ pub async fn files_push(
 }
 
 /// `files.pull`：设备 → 本机。
-#[tauri::command]
+#[tauri::command(rename = "files.pull")]
 pub async fn files_pull(
     state: State<'_, AppState>,
     app: AppHandle,
@@ -82,7 +82,7 @@ fn spawn_transfer(
 }
 
 /// `files.cancel`：取消传输。
-#[tauri::command]
+#[tauri::command(rename = "files.cancel")]
 pub fn files_cancel(state: State<'_, AppState>, id: u32) -> Result<(), IpcError> {
     let cancel = state.transfer_cancels.lock().expect("transfer lock poisoned").get(&id).cloned();
     match cancel {
@@ -95,7 +95,7 @@ pub fn files_cancel(state: State<'_, AppState>, id: u32) -> Result<(), IpcError>
 }
 
 /// `files.delete`：删除（core 侧 SafetyRoot 强制校验，ADR-v6-013）。
-#[tauri::command]
+#[tauri::command(rename = "files.delete")]
 pub async fn files_delete(
     state: State<'_, AppState>,
     req: PathOpRequest,
@@ -104,10 +104,23 @@ pub async fn files_delete(
 }
 
 /// `files.mkdir`：新建目录。
-#[tauri::command]
+#[tauri::command(rename = "files.mkdir")]
 pub async fn files_mkdir(
     state: State<'_, AppState>,
     req: PathOpRequest,
 ) -> Result<(), IpcError> {
     state.mutator.mkdir(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc)
+}
+
+/// `files.create`：新建空文件（SafetyRoot 校验）。
+#[tauri::command(rename = "files.create")]
+pub async fn files_create(
+    state: State<'_, AppState>,
+    req: PathOpRequest,
+) -> Result<(), IpcError> {
+    state
+        .mutator
+        .create_file(&req.serial, &req.path, CancellationToken::new())
+        .await
+        .map_err(ipc)
 }

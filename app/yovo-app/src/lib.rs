@@ -32,6 +32,14 @@ use crate::state::AppState;
 use crate::tasks::TaskCenter;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+    // WebView2 默认不挂无障碍树；UIA 联调与读屏都需要强制打开。
+    // 必须在创建 WebView 之前设置（进程级环境变量）。
+    if std::env::var_os("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").is_none() {
+        std::env::set_var(
+            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+            "--force-renderer-accessibility",
+        );
+    }
     // 诊断日志：release（windows_subsystem）无控制台 → 落盘 logs/app.log（滚动 1MB×3）
     // 与设备日志严格分离（ADR-v6-010）；AppLog 内存环仍不落盘。
     let logs_dir = AppPaths::local_root().join("logs");
@@ -156,6 +164,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::files::files_cancel,
             commands::files::files_delete,
             commands::files::files_mkdir,
+            commands::files::files_create,
             commands::log::log_capture_start,
             commands::log::log_capture_stop,
             commands::log::log_clear,

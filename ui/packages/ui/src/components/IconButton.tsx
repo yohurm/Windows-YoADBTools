@@ -13,6 +13,8 @@ export interface YIconButtonProps {
   title?: string;
   /** 禁用 */
   disabled?: boolean;
+  /** 加载中：图标按 `--yovo-dur-loop` 旋转（UI设计系统 §2.4） */
+  loading?: boolean;
   /** 图标尺寸（px） */
   size?: number;
   /** 点击回调 */
@@ -27,9 +29,11 @@ export function YIconButton(props: YIconButtonProps): JSX.Element {
     <button
       type="button"
       class="yovo-icon-button"
+      classList={{ "yovo-icon-button--loading": !!props.loading }}
       title={props.title}
       aria-label={props.title}
-      disabled={props.disabled}
+      aria-busy={props.loading}
+      disabled={props.disabled || props.loading}
       onClick={props.onClick}
     >
       <Icon name={props.icon} size={props.size} />

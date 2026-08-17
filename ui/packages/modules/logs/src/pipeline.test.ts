@@ -174,4 +174,13 @@ describe("RingMirror 共享缓冲镜像", () => {
     const out = m.replay((l) => l.level === "E", 2);
     expect(out.map((l) => l.seq)).toEqual([2, 4]);
   });
+
+  it("clear 重置 lastSeq，允许再次接收", () => {
+    const m = new RingMirror(10);
+    m.pushBatch({ serial: "s", from_seq: 0, truncated: false, lines: [line({ seq: 9 })] });
+    m.clear();
+    expect(m.size()).toBe(0);
+    expect(m.lastSeqNumber()).toBe(-1);
+    expect(m.pushBatch({ serial: "s", from_seq: 0, truncated: false, lines: [line({ seq: 0 })] })).toBe(1);
+  });
 });

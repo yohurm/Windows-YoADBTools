@@ -110,8 +110,8 @@ export function createTerminalStore() {
       serial: e.serial,
       title: e.name ?? "组内命令",
       ok: e.ok,
-      message: e.message ?? "",
-      stdout: "",
+      message: e.ok ? "" : (e.message ?? ""),
+      stdout: e.message ?? "",
       durationMs: e.duration_ms,
     });
   });

@@ -20,6 +20,15 @@ pub enum Density {
     Comfortable,
 }
 
+/// 日志导出写入方式。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ExportWriteMode {
+    #[default]
+    Overwrite,
+    Append,
+}
+
 /// 全部设置项（JSON 文件全量序列化；字段级缺省回落到 [`AppSettings::default`]）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -46,6 +55,15 @@ pub struct AppSettings {
     /// 界面密度（compact/comfortable；立即生效）
     #[serde(default)]
     pub density: Density,
+    /// 日志导出默认目录；空 = 应用 exports 目录
+    #[serde(default)]
+    pub export_default_path: String,
+    /// 每次导出弹出保存对话框
+    #[serde(default = "default_export_ask")]
+    pub export_ask_every_time: bool,
+    /// 覆盖或续写
+    #[serde(default)]
+    pub export_write_mode: ExportWriteMode,
 }
 
 fn default_buffer_capacity() -> usize {
@@ -55,6 +73,9 @@ fn default_display_limit() -> usize {
     2_000
 }
 fn default_clear_device() -> bool {
+    true
+}
+fn default_export_ask() -> bool {
     true
 }
 
@@ -69,6 +90,9 @@ impl Default for AppSettings {
             clear_device_on_start: default_clear_device(),
             theme: Theme::Light,
             density: Density::Compact,
+            export_default_path: String::new(),
+            export_ask_every_time: default_export_ask(),
+            export_write_mode: ExportWriteMode::Overwrite,
         }
     }
 }
@@ -85,6 +109,9 @@ pub enum SettingKey {
     ClearDeviceOnStart,
     Theme,
     Density,
+    ExportDefaultPath,
+    ExportAskEveryTime,
+    ExportWriteMode,
 }
 
 impl SettingKey {
@@ -99,6 +126,9 @@ impl SettingKey {
             SettingKey::ClearDeviceOnStart => "clear.device.on.start",
             SettingKey::Theme => "theme",
             SettingKey::Density => "density",
+            SettingKey::ExportDefaultPath => "export.default_path",
+            SettingKey::ExportAskEveryTime => "export.ask_every_time",
+            SettingKey::ExportWriteMode => "export.write_mode",
         }
     }
 }
@@ -115,6 +145,9 @@ mod tests {
         assert_eq!(s.buffer_capacity, 50_000);
         assert_eq!(s.display_limit, 2_000);
         assert!(s.clear_device_on_start);
+        assert!(s.export_ask_every_time);
+        assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
+        assert!(s.export_default_path.is_empty());
     }
 
     #[test]
@@ -132,6 +165,8 @@ mod tests {
         let s: AppSettings = serde_json::from_str(json).expect("旧文件应可反序列化");
         assert_eq!(s.theme, Theme::Dark);
         assert_eq!(s.density, Density::Compact);
+        assert!(s.export_ask_every_time);
+        assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
     }
 
     #[test]

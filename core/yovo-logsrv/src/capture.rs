@@ -85,7 +85,10 @@ impl CaptureService {
         }
 
         if clear_device {
-            self.adb.clear_log(serial, CancellationToken::new()).await?;
+            // OEM 上 logcat -c 可能非 0；失败不得阻断采集（Android Studio 亦以跟流为主）
+            if let Err(e) = self.adb.clear_log(serial, CancellationToken::new()).await {
+                tracing::warn!("logcat -c 失败，继续采集: {e}");
+            }
         }
 
         let generation = {
@@ -96,6 +99,7 @@ impl CaptureService {
         let cancel = CancellationToken::new();
 
         let ring = self.ring(serial);
+        ring.clear();
         let (batcher, _batch_handle) = Batcher::spawn(
             serial.to_string(),
             self.sink.clone(),
@@ -113,11 +117,33 @@ impl CaptureService {
         let my_generation = task_generation.load(Ordering::Relaxed);
         let handle = tokio::spawn(async move {
             let (line_tx, mut line_rx) = mpsc::channel::<String>(1024);
+            let lines_seen = Arc::new(AtomicU64::new(0));
             let stream = tokio::spawn({
                 let adb = Arc::clone(&adb);
                 let cancel = capture_cancel.clone();
                 let serial_for_stream = serial_owned.clone();
+                let seen = Arc::clone(&lines_seen);
                 async move {
+                    // exec-out：raw 模式，避免 Windows 上 adb.exe 管道块缓冲导致 UI 一直空
+                    // （GUI 无控制台；`adb logcat` 在部分 OEM/platform-tools 上只在 TTY 及时刷行）
+                    let started = tokio::time::Instant::now();
+                    let first = adb
+                        .stream_lines(
+                            &serial_for_stream,
+                            &["exec-out".into(), "logcat".into(), "-v".into(), "threadtime".into()],
+                            cancel.clone(),
+                            line_tx.clone(),
+                        )
+                        .await;
+                    if cancel.is_cancelled() {
+                        return first;
+                    }
+                    let quick_empty = started.elapsed() < Duration::from_secs(2)
+                        && seen.load(Ordering::Relaxed) == 0;
+                    if !quick_empty {
+                        return first;
+                    }
+                    tracing::warn!("exec-out logcat 未产出，回退 adb logcat: {first:?}");
                     adb.stream_lines(
                         &serial_for_stream,
                         &["logcat".into(), "-v".into(), "threadtime".into()],
@@ -130,6 +156,10 @@ impl CaptureService {
 
             // 泵取循环：raw 行 → 解析 → 环形缓冲 → 批量器
             while let Some(raw) = line_rx.recv().await {
+                lines_seen.fetch_add(1, Ordering::Relaxed);
+                if raw.trim_start().starts_with("---------") {
+                    continue;
+                }
                 let line = parse_threadtime(&raw);
                 ring.push(line.clone());
                 if batcher.feed(line).await.is_err() {

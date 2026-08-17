@@ -9,17 +9,13 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.yovo-logs__title {
-  font-size: var(--yovo-font-page-title);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
-  margin-right: var(--yovo-space-sm);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .yovo-logs__tabs {
   margin-bottom: var(--yovo-space-sm);
+  flex-shrink: 0;
 }
 
 .yovo-logs__session {
@@ -41,7 +37,12 @@
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
   border-bottom: 1px solid var(--yovo-border);
-  flex-wrap: wrap;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.yovo-logs__filter .yovo-text-field {
+  width: calc(var(--yovo-space-xl) * 7);
 }
 
 /* 检索框：放大镜图标 + 过滤生效 accent 边框 */

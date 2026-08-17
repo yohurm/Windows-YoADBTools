@@ -2,13 +2,14 @@
  * 命令管理窗口：快照编辑（深拷贝 draft）、全量提交、取消零污染。
  */
 
-import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 import { createStore } from "solid-js/store";
 
 import { YBadge, YButton, YCheckbox, YDialog, YIconButton, YPanel, YTextField, YToolbar } from "@yovo/ui";
 
-import type { CommandDto, CommandGroupDto, CommandLibraryDto } from "@yovo/api";
+import type { CommandLibraryDto } from "@yovo/api";
 import { terminalStore } from "./store";
+import "./command-manager.css";
 
 /** 编辑器使用的草稿命令（inputs 以文本行编辑，提交时拆分）。 */
 interface DraftCommand {
@@ -111,15 +112,17 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
     const snapshot = structuredClone(toDraft(terminalStore.library));
     setDraft({ groups: snapshot.groups });
     setSelectedGroupId(snapshot.groups[0]?.id ?? null);
-    setSelectedCommandId(snapshot.groups[0]?.commands[0]?.id ?? null);
+    setSelectedCommandId(null);
     setError("");
   };
 
-  createEffect(() => {
-    if (props.open()) {
-      openDraft();
+  createEffect((wasOpen?: boolean) => {
+    const open = props.open();
+    if (open && !wasOpen) {
+      untrack(openDraft);
     }
-  });
+    return open;
+  }, false);
 
   const updateCommand = (patch: Partial<DraftCommand>): void => {
     const gid = selectedGroupId();
@@ -179,6 +182,7 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
       open={props.open}
       title="命令管理"
       width={960}
+      height={560}
       onClose={props.onClose}
       footer={
         <>
@@ -209,10 +213,10 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
                   classList={{ "yovo-cm__item--active": group.id === selectedGroupId() }}
                   onClick={() => {
                     setSelectedGroupId(group.id);
-                    setSelectedCommandId(group.commands[0]?.id ?? null);
+                    setSelectedCommandId(null);
                   }}
                 >
-                  {group.name || "（未命名）"}
+                  <span class="yovo-cm__item-name">{group.name || "（未命名）"}</span>
                   <YBadge text={String(group.commands.length)} tone="neutral" />
                 </li>
               )}
@@ -234,7 +238,7 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
                   classList={{ "yovo-cm__item--active": command.id === selectedCommandId() }}
                   onClick={() => setSelectedCommandId(command.id)}
                 >
-                  {command.name || "（未命名）"}
+                  <span class="yovo-cm__item-name">{command.name || "（未命名）"}</span>
                 </li>
               )}
             </For>
@@ -242,29 +246,33 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
         </div>
 
         <div class="yovo-cm__editor">
-          <Show when={selectedGroup()}>
-            {(group) => (
-              <YPanel title="组属性">
-                <YTextField
-                  label="组名称"
-                  value={group().name}
-                  onInput={(v) =>
-                    setDraft("groups", (g) => g.id === group().id, "name", v)
-                  }
-                />
-                <YTextField
-                  label="标签（逗号分隔）"
-                  value={group().tagsText}
-                  onInput={(v) =>
-                    setDraft("groups", (g) => g.id === group().id, "tagsText", v)
-                  }
-                />
-              </YPanel>
-            )}
-          </Show>
-          <Show when={selectedCommand()} keyed>
+          <Show
+            when={selectedCommand()}
+            keyed
+            fallback={
+              <Show
+                when={selectedGroup()}
+                fallback={<p class="yovo-cm__empty">选择左侧命令组，或新建一组</p>}
+              >
+                {(group) => (
+                  <YPanel title="组属性">
+                    <YTextField
+                      label="组名称"
+                      value={group().name}
+                      onInput={(v) => setDraft("groups", (g) => g.id === group().id, "name", v)}
+                    />
+                    <YTextField
+                      label="标签（逗号分隔）"
+                      value={group().tagsText}
+                      onInput={(v) => setDraft("groups", (g) => g.id === group().id, "tagsText", v)}
+                    />
+                  </YPanel>
+                )}
+              </Show>
+            }
+          >
             {(command) => (
-              <YPanel title="命令属性">
+              <YPanel title={`命令属性 · ${selectedGroup()?.name || "未命名组"}`}>
                 <YTextField label="命令名称" value={command.name} onInput={(v) => updateCommand({ name: v })} />
                 <YTextField
                   label="命令行（占位符 {0} {1}…）"

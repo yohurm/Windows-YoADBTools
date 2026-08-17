@@ -20,6 +20,8 @@ export interface YDialogProps {
   title?: string;
   /** 面板宽度（px），默认 560 */
   width?: number;
+  /** 面板高度（px）；不设则随内容，受 max-height 约束 */
+  height?: number;
   /** 关闭回调（Esc 触发） */
   onClose: () => void;
   /** 底部按钮区 */
@@ -106,7 +108,10 @@ export function YDialog(props: YDialogProps): JSX.Element {
           ref={(el) => {
             panel = el;
           }}
-          style={{ width: `${props.width ?? 560}px` }}
+          style={{
+            width: `${props.width ?? 560}px`,
+            height: props.height !== undefined ? `${props.height}px` : undefined,
+          }}
         >
           {props.title ? <h3 class="yovo-dialog__title">{props.title}</h3> : null}
           <div class="yovo-dialog__body">{props.children}</div>

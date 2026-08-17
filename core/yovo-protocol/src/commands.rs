@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Direction, LogFilter};
+use crate::{Direction, ExportWriteMode, LogFilter};
 
 /// `adb.exec` 请求。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -31,6 +31,11 @@ pub struct ExportRequest {
     pub serial: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filter: Option<LogFilter>,
+    /// 目标文件；空 = 按设置目录生成
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(default)]
+    pub write_mode: ExportWriteMode,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

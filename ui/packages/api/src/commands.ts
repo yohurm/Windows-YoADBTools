@@ -1,5 +1,9 @@
 /**
  * @yovo/api — 类型化 invoke 命令封装（与 core/yovo-app/src/commands/* 一一对应）。
+ *
+ * 命令名是架构文档的点分名（`device.refresh`）。必须用 `cargo tauri build` 打包：
+ * Rust 侧 `#[tauri::command(rename = "device.refresh")]` 只在 tauri-cli 生产构建中生效；
+ * 裸 `cargo build --release` 仍注册函数名，不能用来验收桌面 IPC。
  */
 
 import { invoke } from "@tauri-apps/api/core";
@@ -72,6 +76,8 @@ export const filesCancel = (id: number) => invoke<void>("files.cancel", { id });
 export const filesDelete = (req: PathOpRequest) => invoke<void>("files.delete", { req });
 
 export const filesMkdir = (req: PathOpRequest) => invoke<void>("files.mkdir", { req });
+
+export const filesCreate = (req: PathOpRequest) => invoke<void>("files.create", { req });
 
 // ===== log =====
 

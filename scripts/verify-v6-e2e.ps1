@@ -1,5 +1,5 @@
 ﻿# Yovo ADB Tools v6 — 无真机端到端联调（Windows UIA 驱动 WebView2 无障碍树 + fake-adb 模拟设备）
-# 用法（应用需关闭；需先 cargo build --workspace 与 cargo build --release -p yovo-app）：
+# 用法（应用需关闭；需先 cargo build --workspace 与 cargo tauri build --no-bundle）：
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-e2e.ps1
 # 覆盖：设备扫描（假设备在线）/ 终端（库加载/执行判定）/ 文件（浏览列表）/
 #       日志（开始采集/行渲染/关键字过滤/信号徽章）。
@@ -29,16 +29,49 @@ function Set-ReaderFlag([bool]$on) {
     [SysParam]::SystemParametersInfo(0x0046, [uint32]$(if ($on) { 1 } else { 0 }), [IntPtr]::Zero, 0) | Out-Null
 }
 
-function Wait-AppRoot([int]$procId, [int]$timeoutSec = 20) {
+function Wait-AppRoot([int]$procId, [int]$timeoutSec = 30) {
     $deadline = (Get-Date).AddSeconds($timeoutSec)
     while ((Get-Date) -lt $deadline) {
         $root = [System.Windows.Automation.AutomationElement]::RootElement
-        $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $procId)
-        $app = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $cond)
-        if ($app) { return $app }
+        $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+        foreach ($e in $all) {
+            if ($e.Current.ControlType.ProgrammaticName -eq "ControlType.Document" -and $e.Current.Name -eq "Yovo ADB Tools") {
+                return $e
+            }
+        }
         Start-Sleep -Milliseconds 500
     }
-    throw "窗口未出现"
+    throw "WebView2 document not found"
+}
+
+function Find-Button($scope, [string]$name, [int]$timeoutSec = 10) {
+    $deadline = (Get-Date).AddSeconds($timeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        $all = $scope.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+        foreach ($e in $all) {
+            if ($e.Current.Name -eq $name -and $e.Current.ControlType.ProgrammaticName -eq "ControlType.Button") {
+                return $e
+            }
+        }
+        Start-Sleep -Milliseconds 350
+    }
+    return $null
+}
+
+function Find-Edit($scope, [string]$name, [bool]$contains = $false, [int]$timeoutSec = 8) {
+    $deadline = (Get-Date).AddSeconds($timeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        $all = $scope.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+        foreach ($e in $all) {
+            if ($e.Current.ControlType.ProgrammaticName -ne "ControlType.Edit") { continue }
+            $n = $e.Current.Name
+            if (-not $n) { continue }
+            if ($contains -and $n.Contains($name)) { return $e }
+            if (-not $contains -and $n -eq $name) { return $e }
+        }
+        Start-Sleep -Milliseconds 350
+    }
+    return $null
 }
 
 function Find-ByName($scope, [string]$name, [bool]$contains = $false, [int]$timeoutSec = 10) {
@@ -97,7 +130,7 @@ function Assert($name, [bool]$ok) {
 function Restore-Settings {
     $settingsDir = Join-Path $env:LOCALAPPDATA "YovoAdbTools\settings"
     New-Item -ItemType Directory -Force $settingsDir | Out-Null
-    @{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light" } |
+    @{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
         ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
 }
 
@@ -112,14 +145,14 @@ Copy-Item (Join-Path $PSScriptRoot "..\tools\fake-adb\device-profile.json") (Joi
 
 $settingsDir = Join-Path $env:LOCALAPPDATA "YovoAdbTools\settings"
 New-Item -ItemType Directory -Force $settingsDir | Out-Null
-@{ adb_path = $fakeExe; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light" } |
+@{ adb_path = $fakeExe; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
     ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
 
 # ===== 2. 启动应用 + 激活无障碍树 =====
 Set-ReaderFlag $true
 $app = Start-Process -FilePath $Exe -PassThru
 $appRoot = Wait-AppRoot $app.Id
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 12
 
 try {
     # ===== 3. 设备栏：假设备在线 =====
@@ -127,7 +160,8 @@ try {
     Assert "设备栏出现假设备（Yovo Phone）" ($null -ne $model)
 
     # ===== 4. 终端：导航 → 树 → 执行「型号」→ 通过判定 =====
-    $navTerminal = Find-ByName $appRoot "ADB 命令终端" $false 10
+    $navTerminal = Find-Button $appRoot "ADB 命令终端" 10
+    if (-not $navTerminal) { $navTerminal = Find-ByName $appRoot "ADB 命令终端" $false 4 }
     if ($navTerminal) { Invoke-Click $navTerminal; Start-Sleep -Seconds 1 }
     $treeCmd = Find-ByName $appRoot "型号" $true 10
     Assert "命令库树出现「型号」" ($null -ne $treeCmd)
@@ -139,13 +173,15 @@ try {
     Assert "终端执行出现「通过」判定" ($passed.Count -ge 1)
 
     # ===== 5. 文件：导航 → 列表出现 DCIM =====
-    $navFiles = Find-ByName $appRoot "文件管理" $false 10
+    $navFiles = Find-Button $appRoot "文件管理" 10
+    if (-not $navFiles) { $navFiles = Find-ByName $appRoot "文件管理" $false 4 }
     if ($navFiles) { Invoke-Click $navFiles; Start-Sleep -Seconds 2 }
     $dcim = Find-ByName $appRoot "DCIM" $true 10
     Assert "文件列表出现 DCIM" ($null -ne $dcim)
 
     # ===== 6. 日志：导航 → 开始采集 → 行渲染 → 关键字过滤 → 信号 =====
-    $navLogs = Find-ByName $appRoot "日志分析" $false 10
+    $navLogs = Find-Button $appRoot "日志分析" 10
+    if (-not $navLogs) { $navLogs = Find-ByName $appRoot "日志分析" $false 4 }
     if ($navLogs) { Invoke-Click $navLogs; Start-Sleep -Seconds 2 }
     $startBtn = Find-ByName $appRoot "开始" $false 10
     Assert "开始按钮存在" ($null -ne $startBtn)
@@ -154,7 +190,9 @@ try {
     Assert "logcat 行渲染（TestTag 出现）" ($null -ne $logTag)
 
     # 关键字过滤：检索框输入 keyword-match-here
-    $kw = Find-ByName $appRoot "检索消息" $false 5
+    $kw = Find-Edit $appRoot "关键字" $false 5
+    if (-not $kw) { $kw = Find-Edit $appRoot "检索消息" $true 3 }
+    if (-not $kw) { $kw = Find-ByName $appRoot "检索消息" $false 3 }
     if ($kw) {
         Set-Value $kw "keyword-match-here"
         Start-Sleep -Seconds 2
