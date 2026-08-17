@@ -4,7 +4,6 @@
 //! 运行方式：`cargo test -p yovo-adb --test real_device -- --nocapture`
 
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::sync::mpsc;

@@ -4,7 +4,7 @@
 
 import { Component, For, Show, createSignal } from "solid-js";
 
-import { YIconButton } from "@yovo/ui";
+import { YButton, YIconButton } from "@yovo/ui";
 
 import { deviceStore } from "../stores";
 
@@ -55,7 +55,22 @@ export const DeviceRail: Component = () => {
           </For>
         </ul>
         <Show when={deviceStore.state.devices.length === 0}>
-          <div class="yovo-device-rail__empty">无设备</div>
+          <div class="yovo-device-rail__empty">
+            <div class="yovo-device-rail__empty-title">无设备</div>
+            <Show when={deviceStore.state.lastError}>
+              <div class="yovo-device-rail__empty-error" title={deviceStore.state.lastError}>
+                {deviceStore.state.lastError}
+              </div>
+            </Show>
+            <Show when={!deviceStore.state.lastError}>
+              <div class="yovo-device-rail__empty-hint">
+                请用 USB 连接设备并确认已授权（adb devices 可见）
+              </div>
+            </Show>
+            <YButton size="sm" variant="secondary" onClick={() => void deviceStore.refresh()}>
+              重试扫描
+            </YButton>
+          </div>
         </Show>
       </Show>
     </div>

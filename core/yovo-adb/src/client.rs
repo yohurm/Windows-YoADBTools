@@ -2,6 +2,7 @@
 //!
 //! 职责边界：本层只做「调用 adb + 解析输出」，**不判定成败**（ADR-v6-009）。
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -84,11 +85,55 @@ impl AdbClient {
 
     /// 扫描设备。
     pub async fn devices(&self, cancel: CancellationToken) -> Result<Vec<DeviceInfo>, AdbError> {
-        let out = self.run("", &["devices".into(), "-l".into()], Some(10_000), cancel).await?;
-        if out.exit_code != 0 {
-            return Err(AdbError::BadExit { exit_code: out.exit_code, stderr: out.stderr });
+        let (devices, _used) = self.devices_resilient(cancel).await?;
+        Ok(devices)
+    }
+
+    /// 自愈式设备扫描：按候选顺序尝试不同 adb（用户设置 → 资源目录 → 数据目录）。
+    ///
+    /// 任一候选「进程可启动且退出码 0」即采信其结果；失败的候选仅记录并尝试下一个。
+    /// 全部失败时返回带明细的错误。返回 (设备列表, 实际使用的 adb 路径)。
+    pub async fn devices_resilient(
+        &self,
+        cancel: CancellationToken,
+    ) -> Result<(Vec<DeviceInfo>, PathBuf), AdbError> {
+        let candidates = self.tool.candidates();
+        if candidates.is_empty() {
+            return Err(AdbError::ToolUnavailable(self.tool.unavailable_hint()));
         }
-        Ok(devices_parse::parse_devices_list(&out.stdout))
+        let mut failures: Vec<String> = Vec::new();
+        for adb in &candidates {
+            let result = self
+                .runner
+                .run_capture(
+                    adb,
+                    &["devices".into(), "-l".into()],
+                    Some(Duration::from_secs(10)),
+                    cancel.clone(),
+                )
+                .await;
+            match result {
+                Ok(out) if out.exit_code == 0 => {
+                    return Ok((devices_parse::parse_devices_list(&out.stdout), adb.clone()));
+                }
+                Ok(out) => {
+                    failures.push(format!("{} (退出码 {})", out.stderr.trim(), out.exit_code));
+                    tracing::warn!("adb 候选失败 {}: {}", adb.display(), failures.last().unwrap_or(&String::new()));
+                }
+                Err(e) => {
+                    failures.push(e.to_string());
+                    tracing::warn!("adb 候选不可用 {}: {e}", adb.display());
+                }
+            }
+        }
+        Err(AdbError::BadExit {
+            exit_code: -1,
+            stderr: format!(
+                "全部 adb 候选扫描失败（{} 个）: {}",
+                candidates.len(),
+                failures.join("；")
+            ),
+        })
     }
 
     /// 清设备日志缓冲（`logcat -c`）。

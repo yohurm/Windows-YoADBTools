@@ -14,6 +14,8 @@ pub struct SystemInfo {
     pub version: String,
     pub data_root: String,
     pub adb_path: String,
+    /// 最近一次设备扫描实际使用的 adb（诊断「cmd 有设备、应用没有」类问题）
+    pub adb_in_use: Option<String>,
     pub settings: AppSettings,
 }
 
@@ -24,10 +26,16 @@ pub fn system_info(state: State<'_, AppState>) -> Result<SystemInfo, IpcError> {
         .resolve()
         .map(|p| p.to_string_lossy().into_owned())
         .unwrap_or_default();
+    let adb_in_use = state
+        .adb_in_use
+        .lock()
+        .expect("adb_in_use lock poisoned")
+        .clone();
     Ok(SystemInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         data_root: state.paths.data_root.to_string_lossy().into_owned(),
         adb_path,
+        adb_in_use,
         settings: state.settings.snapshot(),
     })
 }

@@ -41,6 +41,8 @@ pub struct AppState {
     // ===== 运行期状态（短临界区，std Mutex） =====
     /// 最近一次设备扫描快照
     pub last_devices: Mutex<Vec<DeviceInfo>>,
+    /// 最近一次扫描实际使用的 adb 路径（诊断）
+    pub adb_in_use: Mutex<Option<String>>,
     /// 全局设备焦点
     pub focus: Mutex<DeviceFocus>,
     /// 命令组运行（run_id → 取消令牌）

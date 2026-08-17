@@ -98,6 +98,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             event_tx: event_tx.clone(),
             root_cancel: root_cancel.clone(),
             last_devices: std::sync::Mutex::new(Vec::new()),
+            adb_in_use: std::sync::Mutex::new(None),
             focus: std::sync::Mutex::new(yovo_domain::DeviceFocus::default()),
             group_runs: std::sync::Mutex::new(std::collections::HashMap::new()),
             group_next: std::sync::atomic::AtomicU32::new(0),

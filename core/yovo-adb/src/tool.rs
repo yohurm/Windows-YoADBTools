@@ -32,29 +32,43 @@ impl ToolResolver {
         *self.user_path.write().expect("tool lock poisoned") = path;
     }
 
-    /// 解析可用 adb.exe。
+    /// 解析可用 adb.exe（首个候选）。
     pub fn resolve(&self) -> Result<PathBuf, AdbError> {
+        self.candidates()
+            .into_iter()
+            .next()
+            .ok_or_else(|| AdbError::ToolUnavailable(self.unavailable_hint()))
+    }
+
+    /// 候选 adb 路径（去重，仅存在的文件）：
+    /// 用户设置 → 应用旁/资源目录 → DataRoot 解压目录。
+    pub fn candidates(&self) -> Vec<PathBuf> {
+        let mut out: Vec<PathBuf> = Vec::new();
+        let mut push = |p: PathBuf| {
+            if p.is_file() && !out.contains(&p) {
+                out.push(p);
+            }
+        };
         if let Some(p) = self.user_path.read().expect("tool lock poisoned").clone() {
             if p.is_file() {
-                return Ok(p);
+                push(p);
+            } else {
+                tracing::warn!("adb.path 指向的文件不存在: {}", p.display());
             }
-            tracing::warn!("adb.path 指向的文件不存在: {}", p.display());
         }
-        let adjacent = self.resource_dir.join("adb.exe");
-        if adjacent.is_file() {
-            return Ok(adjacent);
+        push(self.resource_dir.join("adb.exe"));
+        if self.ensure_extracted().is_ok() {
+            push(self.data_tools_dir.join("adb.exe"));
         }
-        self.ensure_extracted()?;
-        let extracted = self.data_tools_dir.join("adb.exe");
-        if extracted.is_file() {
-            Ok(extracted)
-        } else {
-            Err(AdbError::ToolUnavailable(format!(
-                "资源目录与数据目录均无 adb.exe: {} / {}",
-                self.resource_dir.display(),
-                self.data_tools_dir.display()
-            )))
-        }
+        out
+    }
+
+    pub fn unavailable_hint(&self) -> String {
+        format!(
+            "资源目录与数据目录均无 adb.exe: {} / {}",
+            self.resource_dir.display(),
+            self.data_tools_dir.display()
+        )
     }
 
     /// 从资源目录复制三件套到数据目录（幂等）。

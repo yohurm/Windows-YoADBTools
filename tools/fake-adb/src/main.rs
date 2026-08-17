@@ -24,6 +24,11 @@ use std::time::Duration;
 struct Script {
     #[serde(default)]
     devices: Vec<String>,
+    /// devices 分支退出码（默认 0；模拟损坏 adb 时用非 0）
+    #[serde(default)]
+    devices_exit_code: i32,
+    #[serde(default)]
+    devices_stderr: String,
     #[serde(default)]
     logcat_lines: Vec<String>,
     #[serde(default = "default_delay")]
@@ -58,12 +63,15 @@ fn main() {
     let mut out = stdout.lock();
 
     if args.first().map(|s| s.as_str()) == Some("devices") {
+        if !script.devices_stderr.is_empty() {
+            eprintln!("{}", script.devices_stderr);
+        }
         writeln!(out, "List of devices attached").ok();
         for device in &script.devices {
             writeln!(out, "{device}").ok();
         }
         out.flush().ok();
-        std::process::exit(0);
+        std::process::exit(script.devices_exit_code);
     }
 
     if joined.contains("logcat -c") {

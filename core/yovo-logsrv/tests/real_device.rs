@@ -63,7 +63,7 @@ async fn real_capture_stream_batch_and_ring() {
 
     // 真实设备通常持续输出日志；等待批量事件（解析+聚合+推送全链路）
     let lines = collect_events(&mut rx, 5, Duration::from_secs(30)).await;
-    assert!(lines.len() >= 1, "真实 logcat 应产出日志行");
+    assert!(!lines.is_empty(), "真实 logcat 应产出日志行");
     let ring = service.ring(&serial);
     assert!(ring.len() >= lines.len(), "环形缓冲应含全部批次行");
     let sample = &lines[0];
@@ -101,7 +101,7 @@ async fn real_capture_with_clear_device() {
     // 开采前 logcat -c：start(clear_device=true) 内部执行
     service.start(&serial, true).await.expect("开始采集（先清设备缓冲）");
     let lines = collect_events(&mut rx, 3, Duration::from_secs(30)).await;
-    assert!(lines.len() >= 1, "清缓冲后仍应采集到新日志");
+    assert!(!lines.is_empty(), "清缓冲后仍应采集到新日志");
     eprintln!("[真机] 清缓冲重采 {} 行", lines.len());
 
     service.stop(&serial).await;
