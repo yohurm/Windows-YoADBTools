@@ -14,6 +14,9 @@ pub struct TaskInfo {
     pub name: String,
     #[serde(rename = "active")]
     pub active: bool,
+    /// 悬停明细（如「3 台设备 · 5 条命令」；状态栏 title 提示）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
 }
 
 /// 命令组进度（每命令完成一条）。

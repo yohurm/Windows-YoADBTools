@@ -1,5 +1,7 @@
 /**
- * 模块导航：来自注册表的模块列表（含 Planned「开发中」徽章）。
+ * 模块导航（UI设计系统-v6.md §3）：来自注册表的模块列表（含 Planned「开发中」徽章）。
+ * 激活项 = accent 文字 + accent-soft 底；图标 16px；
+ * 键盘：roving tabindex（激活项 0）+ Enter/Space 导航 + aria-current。
  */
 
 import { Component, For } from "solid-js";
@@ -10,23 +12,38 @@ import { modules } from "../registry";
 
 export const NavList: Component<{ activeId: string; onNavigate: (id: string) => void }> = (
   props,
-) => (
-  <nav class="yovo-nav">
-    <div class="yovo-nav__caption">模块</div>
-    <ul class="yovo-nav__list">
-      <For each={[...modules()]}>
-        {(mod) => (
-          <li
-            class="yovo-nav__item"
-            classList={{ "yovo-nav__item--active": mod.id === props.activeId }}
-            onClick={() => props.onNavigate(mod.id)}
-          >
-            <Icon name={mod.icon as IconName} size={15} />
-            <span class="yovo-nav__title">{mod.title}</span>
-            {mod.isPlanned && <span class="yovo-nav__planned">开发中</span>}
-          </li>
-        )}
-      </For>
-    </ul>
-  </nav>
-);
+) => {
+  const onItemKeyDown = (id: string, event: KeyboardEvent): void => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      props.onNavigate(id);
+    }
+  };
+
+  return (
+    <nav class="yovo-nav" aria-label="模块导航">
+      <div class="yovo-nav__caption">模块</div>
+      <ul class="yovo-nav__list">
+        <For each={[...modules()]}>
+          {(mod) => {
+            const active = () => mod.id === props.activeId;
+            return (
+              <li
+                class="yovo-nav__item"
+                classList={{ "yovo-nav__item--active": active() }}
+                tabIndex={active() ? 0 : -1}
+                aria-current={active() ? "page" : undefined}
+                onClick={() => props.onNavigate(mod.id)}
+                onKeyDown={(event) => onItemKeyDown(mod.id, event)}
+              >
+                <Icon name={mod.icon as IconName} size={16} />
+                <span class="yovo-nav__title">{mod.title}</span>
+                {mod.isPlanned && <span class="yovo-nav__planned">开发中</span>}
+              </li>
+            );
+          }}
+        </For>
+      </ul>
+    </nav>
+  );
+};

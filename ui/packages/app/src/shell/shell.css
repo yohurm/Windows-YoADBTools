@@ -1,3 +1,8 @@
+/* ============================================================================
+ * 工作台壳布局（UI设计系统-v6.md §3）。
+ * 仅引用 Semantic/Component 层 token（--yovo-fg/--yovo-surface/--yovo-accent…）。
+ * ========================================================================== */
+
 .yovo-layout {
   display: grid;
   grid-template-rows: 1fr auto;
@@ -11,15 +16,15 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--yovo-nav-bg);
-  border-right: 1px solid var(--yovo-panel-border);
+  background: var(--yovo-surface-2);
+  border-right: 1px solid var(--yovo-border);
 }
 
 .yovo-layout__content {
   grid-row: 1;
   grid-column: 2;
   overflow: auto;
-  background: var(--yovo-content-bg);
+  background: var(--yovo-bg-base);
   padding: var(--yovo-space-md);
   box-sizing: border-box;
 }
@@ -31,35 +36,41 @@
 
 .yovo-module-title {
   font-size: var(--yovo-font-page-title);
-  font-weight: 600;
-  color: var(--yovo-text-primary);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
   margin-right: var(--yovo-space-sm);
 }
 
-/* ===== 设备栏 ===== */
+/* ===== 设备栏（卡片式，§3） ===== */
+
 .yovo-device-rail {
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid var(--yovo-panel-border);
+  gap: var(--yovo-space-sm);
+  padding: var(--yovo-space-sm);
+  border-bottom: 1px solid var(--yovo-border);
 }
 
 .yovo-device-rail__header {
   display: flex;
   align-items: center;
   gap: var(--yovo-space-xs);
-  padding: var(--yovo-space-sm) var(--yovo-space-md);
 }
 
 .yovo-device-rail__title {
   flex: 1;
-  font-weight: 600;
-  color: var(--yovo-text-primary);
+  font-size: var(--yovo-font-body);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
 }
 
 .yovo-device-rail__list {
   list-style: none;
   margin: 0;
-  padding: 0 var(--yovo-space-sm) var(--yovo-space-sm);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--yovo-space-xs);
   overflow: auto;
 }
 
@@ -67,22 +78,38 @@
   display: flex;
   align-items: center;
   gap: var(--yovo-space-sm);
+  /* §2.3：设备列表行高 34 */
+  min-height: 34px;
   padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  border: 1px solid var(--yovo-border);
+  /* 选中态 2px accent 左边条（透明占位防布局抖动） */
+  border-left: 2px solid transparent;
   border-radius: var(--yovo-radius-sm);
+  background: var(--yovo-surface);
   cursor: pointer;
+  box-sizing: border-box;
+  transition:
+    background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
+    border-color var(--yovo-dur-fast) var(--yovo-ease-standard);
 }
 
 .yovo-device-rail__item:hover {
-  background: var(--yovo-nav-hover);
+  border-color: var(--yovo-border-strong);
 }
 
 .yovo-device-rail__item--active {
-  background: var(--yovo-accent-bg);
+  background: var(--yovo-accent-soft);
+  border-left-color: var(--yovo-accent);
+}
+
+.yovo-device-rail__item:focus-visible {
+  outline: 2px solid var(--yovo-focus-ring);
+  outline-offset: 1px;
 }
 
 .yovo-device-rail__dot {
-  width: 8px;
-  height: 8px;
+  width: var(--yovo-space-sm);
+  height: var(--yovo-space-sm);
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -99,11 +126,13 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
 .yovo-device-rail__model {
-  font-weight: 600;
-  color: var(--yovo-text-primary);
+  font-weight: var(--yovo-font-weight-semibold);
+  font-size: var(--yovo-font-body);
+  color: var(--yovo-fg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -112,23 +141,37 @@
 .yovo-device-rail__serial {
   font-family: var(--yovo-font-mono);
   font-size: var(--yovo-font-caption);
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.yovo-device-rail__badge {
-  margin-left: auto;
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-warn);
-  flex-shrink: 0;
-}
-
+/* 空态引导卡片 */
 .yovo-device-rail__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--yovo-space-xs);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
+  border: 1px dashed var(--yovo-border);
+  border-radius: var(--yovo-radius-sm);
   font-size: var(--yovo-font-caption);
-  color: var(--yovo-text-tertiary);
+  color: var(--yovo-fg-3);
 }
 
-/* ===== 模块导航 ===== */
+.yovo-device-rail__empty-title {
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
+}
+
+.yovo-device-rail__empty-error {
+  color: var(--yovo-error);
+  word-break: break-all;
+}
+
+/* ===== 模块导航（§3） ===== */
+
 .yovo-nav {
   flex: 1;
   overflow: auto;
@@ -136,25 +179,35 @@
 }
 
 .yovo-nav__caption {
-  font-weight: 600;
-  color: var(--yovo-text-primary);
-  margin-bottom: var(--yovo-space-xs);
+  font-weight: var(--yovo-font-weight-semibold);
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-fg-3);
+  margin: var(--yovo-space-sm) 0 var(--yovo-space-xs);
 }
 
 .yovo-nav__list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .yovo-nav__item {
   display: flex;
   align-items: center;
   gap: var(--yovo-space-sm);
-  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  /* §2.3：导航项行高 32 */
+  min-height: 32px;
+  padding: 0 var(--yovo-space-sm);
   border-radius: var(--yovo-radius-sm);
   cursor: pointer;
-  color: var(--yovo-text-primary);
+  color: var(--yovo-fg);
+  font-size: var(--yovo-font-body);
+  transition:
+    background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
+    color var(--yovo-dur-fast) var(--yovo-ease-standard);
 }
 
 .yovo-nav__item:hover {
@@ -162,9 +215,14 @@
 }
 
 .yovo-nav__item--active {
-  background: var(--yovo-accent-bg);
+  background: var(--yovo-accent-soft);
   color: var(--yovo-accent);
-  font-weight: 600;
+  font-weight: var(--yovo-font-weight-semibold);
+}
+
+.yovo-nav__item:focus-visible {
+  outline: 2px solid var(--yovo-focus-ring);
+  outline-offset: -2px;
 }
 
 .yovo-nav__title {
@@ -172,25 +230,43 @@
 }
 
 .yovo-nav__planned {
+  margin-left: auto;
   font-size: var(--yovo-font-caption);
   background: var(--yovo-offline);
-  color: var(--yovo-panel-bg);
+  color: var(--yovo-surface);
   padding: 1px var(--yovo-space-xs);
   border-radius: var(--yovo-radius-sm);
 }
 
-/* ===== 状态栏 ===== */
+/* ===== 状态栏（§3：左版本 · 中留白 · 右设备/任务） ===== */
+
+.yovo-status__version {
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-fg-3);
+}
+
+.yovo-status__right {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--yovo-space-md);
+}
+
+.yovo-status__device {
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-fg-2);
+}
+
 .yovo-status__tasks {
-  margin-right: var(--yovo-space-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--yovo-space-xs);
   font-size: var(--yovo-font-caption);
   color: var(--yovo-warn);
 }
 
 .yovo-status__task {
-  margin-left: var(--yovo-space-xs);
-}
-
-.yovo-status__device {
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-text-secondary);
+  max-width: calc(var(--yovo-space-xl) * 10);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

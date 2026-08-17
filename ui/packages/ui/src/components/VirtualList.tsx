@@ -86,7 +86,11 @@ export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
   const indexOfKey = (key: string | number): number => {
     const items = props.items();
     for (let i = 0; i < items.length; i++) {
-      if (keyOf(items[i], i) === key) {
+      const item = items[i];
+      if (item === undefined) {
+        break;
+      }
+      if (keyOf(item, i) === key) {
         return i;
       }
     }

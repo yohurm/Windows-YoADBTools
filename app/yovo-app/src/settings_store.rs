@@ -63,6 +63,13 @@ impl SettingsStore {
                     _ => return Err("theme 必须是 light 或 dark".into()),
                 };
             }
+            SettingKey::Density => {
+                s.density = match value.as_str() {
+                    Some("compact") => yovo_protocol::Density::Compact,
+                    Some("comfortable") => yovo_protocol::Density::Comfortable,
+                    _ => return Err("density 必须是 compact 或 comfortable".into()),
+                };
+            }
         }
         *self.inner.write().expect("settings lock poisoned") = s.clone();
         self.save_atomic()?;

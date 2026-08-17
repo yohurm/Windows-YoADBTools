@@ -13,10 +13,20 @@ export {
   Spacing,
   SpacingBase,
   Radius,
+  MotionDuration,
+  MotionEasing,
   setTheme,
   getTheme,
+  setDensity,
+  getDensity,
 } from "./tokens";
-export type { SemanticColorName, ThemeName } from "./tokens";
+export type {
+  SemanticColorName,
+  ThemeName,
+  DensityName,
+  MotionDurationName,
+  MotionEasingName,
+} from "./tokens";
 
 // —— icons ——
 export { Icon } from "./icons";

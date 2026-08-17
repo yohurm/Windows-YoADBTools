@@ -1,0 +1,53 @@
+/* 设置页（UI设计系统-v6.md §4.4）：分组卡片内 label + 输入 + 生效徽章。 */
+
+.yovo-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--yovo-space-md);
+  max-width: 760px;
+}
+
+.yovo-settings__title {
+  margin: 0;
+  font-size: var(--yovo-font-page-title);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
+}
+
+.yovo-settings__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--yovo-space-xs);
+  padding: var(--yovo-space-sm) 0;
+}
+
+.yovo-settings__item + .yovo-settings__item {
+  border-top: 1px solid var(--yovo-border);
+}
+
+.yovo-settings__item-head {
+  display: flex;
+  align-items: center;
+  gap: var(--yovo-space-sm);
+}
+
+.yovo-settings__item-label {
+  font-size: var(--yovo-font-body);
+  font-weight: var(--yovo-font-weight-semibold);
+  color: var(--yovo-fg);
+}
+
+.yovo-settings__item-control {
+  display: flex;
+  align-items: center;
+  gap: var(--yovo-space-sm);
+}
+
+.yovo-settings__item-control .yovo-text-field {
+  flex: 1;
+}
+
+.yovo-settings__item-hint {
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-fg-3);
+}

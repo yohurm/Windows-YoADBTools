@@ -20,12 +20,12 @@ impl TaskCenter {
         Self { inner: Mutex::new(HashMap::new()), next: AtomicU32::new(1), sink }
     }
 
-    /// 登记一个活动任务，返回任务 id。
-    pub fn register(&self, name: String) -> u32 {
+    /// 登记一个活动任务（name 展示名，detail 悬停明细），返回任务 id。
+    pub fn register(&self, name: String, detail: String) -> u32 {
         let id = self.next.fetch_add(1, Ordering::Relaxed);
         self.inner.lock().expect("tasks lock poisoned").insert(
             id,
-            TaskInfo { id, name, active: true },
+            TaskInfo { id, name, active: true, detail: Some(detail) },
         );
         self.emit();
         id

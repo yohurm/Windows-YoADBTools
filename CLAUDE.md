@@ -20,7 +20,7 @@
 2. **ADB 命令终端** — 命令库/命令组（占位符 `{0}{1}`）/多设备并行/组编排（顺序、延时、失败中断）；成败判定在 core 领域层 `CommandEvaluator`（**失败正则 → 成功正则 → 退出码**，ADR-v6-009）；命令管理窗口（深拷贝编辑、全量提交、取消零污染）
 3. **文件管理** — `ls` 浏览、push/pull（`transfer.progress` 事件 200ms 节流 + 可取消）、删除/新建目录；**core 侧 SafetyRoot 强制校验**（`/sdcard`、`/storage` 子路径，拒绝 `..`，不信任 UI，ADR-v6-013）
 4. **日志分析** — core 单流采集（`adb logcat -v threadtime`）+ 设备级共享环形缓冲（`buffer.capacity` 默认 50000）；**会话/过滤在 UI 消费端**（ADR-v6-006）：多会话 Tab 按包名/PID/全部划分；进程索引（`ps` 2.5s 周期）+ 包名 PID 自动重绑（历史 PID 集上限 8）；AS 风格过滤栏（级别含以上/包名含子进程开关/精确 PID/Tag/关键字，无正则）；每会话独立暂停/滚底/信号计数/清空；清设备缓冲 = `logcat -c` + 清共享缓冲；导出 txt 走 core（`log.export`，持有全量缓冲）；快捷键 Space/Ctrl+L/Ctrl+F/Ctrl+T/Ctrl+W/Ctrl+Tab；掉线/切换停采并清缓冲（防串设备）
-5. **设置面板** — `adb.path`（立即）/`data.root`（重启）/`devices.autoRefresh`（重启）/`buffer.capacity`（下次采集）/`display.limit`（立即）/`clear.device.on.start`（下次采集）/`theme`（立即）；设置根固定 `%LOCALAPPDATA%\YovoAdbTools\settings\`
+5. **设置面板** — `adb.path`（立即）/`data.root`（重启）/`devices.autoRefresh`（重启）/`buffer.capacity`（下次采集）/`display.limit`（立即）/`clear.device.on.start`（下次采集）/`theme`（立即）/`density`（立即）；设置根固定 `%LOCALAPPDATA%\YovoAdbTools\settings\`
 
 ## 架构约定（v6，ADR 全量见架构文档 §14）
 - **依赖方向**：`UI → @yovo/api → IPC ← commands ← core crates`；core crates 间 `yovo-{adb,logsrv,files} → yovo-domain → yovo-protocol`；禁止 core 引用 Tauri、UI 模块互 import（depcheck 强制）、跨层绕过 IPC
@@ -101,7 +101,10 @@ cargo tauri build
 - **体积优化**：release profile 启用 lto + codegen-units=1 + strip + panic=abort → exe 6.4 MB
 - **NSIS 安装包已打通**：`cargo tauri build` 产出 **5.80 MB**（≤12 MB 达标；含 sidecar adb 内嵌 + WebView2 embedBootstrapper 引导）；原生 tauri-cli（cargo install）；tauri.conf 路径约定（frontendDist 相对 config 目录、beforeX 命令 cwd=app/）；NSIS 工具链离线缓存方案（winget NSIS → `%LOCALAPPDATA%\tauri\nsis-3.11`）；scripts/build-release.ps1 全流程封装
 - **fake-adb 集成测试已落地**：tools/fake-adb（脚本化假 adb，零共享状态：测试拷贝 exe + 同名 json 到独立临时目录）；yovo-logsrv 集成测试 7 用例（单流采集/解析/批量/停止保留缓冲/幂等/掉线 Stopped/取消终止进程树/切换清缓冲）；期间修复两个真实缺陷：run_capture 关闭通道忙循环（饿死 stderr 读任务）与 Batcher 生产端结束丢尾部批次（现冲刷 flush）
-- **验收现状**：`cargo build --workspace && cargo test --workspace` 全绿（含 7 集成）、clippy -D warnings 通过、Vitest **96** 用例全绿、tsc -b 0 错误、`pnpm lint`（ADR-v6-011 token 纪律，scripts/check-ui-tokens.mjs）通过、**verify-v6-smoke.ps1 已实际跑通**（进程存活/无 panic/sidecar 解压/默认命令库写入；期间修复 events.rs 必须在 tauri 异步运行时 spawn 的启动崩溃）
+- **真机测试已落地**（motorola edge 60 pro，自动跳过无设备环境）：yovo-adb 6 用例（扫描/型号/进程/组命令端到端）、yovo-logsrv 4 用例（采集 1000 行/导出/清缓冲/导出过滤）、yovo-files 3 用例（浏览/push-pull/传输中途取消）；yovo-adb 另含 3 用例自愈式扫描（fallback.rs）
+- **Phase A/B UI 打磨已落地**：三层 token + 双主题语义板 + 密度变量 + 级别板 + 动效 token（HarmonyOS 100/160/300/350ms + 标准/减速曲线，motion.ts ↔ theme.css 契约测试，lint 扩展动效时长纪律）；YDialog/YSelect/YTabs/YTree 键盘/ARIA 补全；YVirtualList 选择模式（roving tabindex + ↑/↓/Home/End/Enter/Space + listbox/option 语义）；Dialog/Toast 入场动画（prefers-reduced-motion 降级）
+- **Phase C 壳重绘已落地**：设备卡片化（surface 卡片 + 选中 accent-soft 底 + 2px accent 左边条 + listbox/option 键盘选择）；导航键盘可达（aria-current + Enter/Space）；状态栏任务悬停明细（TaskInfo.detail，core 任务中心扩展）；设置页分组卡片 + 生效徽章（立即/重启/下次采集）+ 保存 toast + adb.path 浏览按钮 + density 设置（core 全链路：protocol → settings_store → settings.get/set → UI 应用 data-density）；壳组件测试 11 用例（vi.mock @yovo/api + plugin-dialog）
+- **验收现状**：`cargo build --workspace && cargo test --workspace` 全绿（含 7 集成 + 4 设置契约 + 13 真机）、clippy -D warnings 通过、Vitest **157** 用例全绿（含壳组件 11）、tsc -b 0 错误、`pnpm lint`（ADR-v6-011 token 纪律 + 动效时长纪律，scripts/check-ui-tokens.mjs）通过、**verify-v6-smoke.ps1 已实际跑通**（进程存活/无 panic/sidecar 解压/默认命令库写入；期间修复 events.rs 必须在 tauri 异步运行时 spawn 的启动崩溃）
 - 待续（S5，需设备，脚本已备）：安装包安装冒烟、全功能联调、日志性能验收、产线镜像预置 WebView2、旧版下线
 - **v5 遗留**：全部 C#/WPF 代码、旧测试与 v5 联调脚本已移至 `old/`（`old/src`、`old/tests`、`old/YovoAdbTools.sln`、`old/scripts`），仅存档参考，不作为 v6 实现依据；S5 随新架构全功能验收后彻底移除
 - **sidecar 二进制**：`tools/adb.exe` 等被 .gitignore 排除（不入库）；新机器构建前运行 `scripts/setup-adb.ps1` 从 `old/src/Yovo.Platform/Tools/` 拷贝

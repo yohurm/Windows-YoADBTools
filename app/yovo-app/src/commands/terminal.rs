@@ -68,7 +68,10 @@ pub async fn group_run(
     let cancel = CancellationToken::new();
     state.group_runs.lock().expect("group lock poisoned").insert(run_id, cancel.clone());
 
-    let task_id = state.tasks.register(format!("命令组: {}", group.name));
+    let task_id = state.tasks.register(
+        format!("命令组: {}", group.name),
+        format!("{} 台设备 · {} 条命令", req.serials.len(), group.commands.len()),
+    );
     let (tx, mut rx) = mpsc::channel::<yovo_domain::GroupRunEvent>(64);
     let sink = state.event_tx.clone();
     let serials = req.serials.clone();

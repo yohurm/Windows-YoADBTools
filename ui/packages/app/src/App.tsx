@@ -5,7 +5,7 @@
 import { Component, createSignal, onMount } from "solid-js";
 
 import { systemReportError } from "@yovo/api";
-import { setTheme } from "@yovo/ui";
+import { setDensity, setTheme } from "@yovo/ui";
 
 import { registerModule } from "./registry";
 import { AppLayout } from "./shell/AppLayout";
@@ -28,9 +28,13 @@ export const App: Component = () => {
   const [activeModuleId, setActiveModuleId] = createSignal("adb-terminal");
 
   onMount(() => {
-    // 主题跟随设置
+    // 外观跟随设置（加载前先用当前快照兜底）
     setTheme(settingsStore.state.theme);
-    void settingsStore.load().then(() => setTheme(settingsStore.state.theme));
+    setDensity(settingsStore.state.density);
+    void settingsStore.load().then(() => {
+      setTheme(settingsStore.state.theme);
+      setDensity(settingsStore.state.density);
+    });
     void deviceStore.refresh();
 
     // 前端全局错误上报（应用操作日志，与设备日志分离）

@@ -1,11 +1,13 @@
 /**
  * 设置 store：启动加载全量快照；set 后回写并应用立即生效语义（由 core 负责）。
+ * 外观项（theme/density）在加载与变更后同步到 documentElement（data-theme/data-density）。
  */
 
 import { createStore } from "solid-js/store";
 
 import { settingsSet, systemInfo } from "@yovo/api";
 import type { AppSettings, SettingKey } from "@yovo/api";
+import { setDensity, setTheme } from "@yovo/ui";
 
 const DEFAULT_SETTINGS: AppSettings = {
   adb_path: "",
@@ -15,7 +17,14 @@ const DEFAULT_SETTINGS: AppSettings = {
   display_limit: 2000,
   clear_device_on_start: true,
   theme: "light",
+  density: "compact",
 };
+
+/** 应用外观设置（主题 + 密度）。 */
+function applyAppearance(settings: AppSettings): void {
+  setTheme(settings.theme);
+  setDensity(settings.density);
+}
 
 export function createSettingsStore() {
   const [state, setState] = createStore<AppSettings>({ ...DEFAULT_SETTINGS });
@@ -24,6 +33,7 @@ export function createSettingsStore() {
     try {
       const info = await systemInfo();
       setState(info.settings);
+      applyAppearance(info.settings);
     } catch (e) {
       console.error("system.info 失败", e);
     }
@@ -32,6 +42,7 @@ export function createSettingsStore() {
   async function set(key: SettingKey, value: unknown): Promise<void> {
     const updated = await settingsSet(key, value);
     setState(updated);
+    applyAppearance(updated);
   }
 
   return { state, load, set };

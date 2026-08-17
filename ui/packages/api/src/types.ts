@@ -68,6 +68,8 @@ export interface ExecOutcome {
 
 export type Theme = "light" | "dark";
 
+export type Density = "compact" | "comfortable";
+
 export interface AppSettings {
   adb_path: string;
   data_root: string;
@@ -76,6 +78,7 @@ export interface AppSettings {
   display_limit: number;
   clear_device_on_start: boolean;
   theme: Theme;
+  density: Density;
 }
 
 export type SettingKey =
@@ -85,7 +88,8 @@ export type SettingKey =
   | "buffer_capacity"
   | "display_limit"
   | "clear_device_on_start"
-  | "theme";
+  | "theme"
+  | "density";
 
 // ===== transfer =====
 
@@ -186,6 +190,8 @@ export interface TaskInfo {
   id: number;
   name: string;
   active: boolean;
+  /** 悬停明细（状态栏 title 提示） */
+  detail?: string;
 }
 
 export interface GroupProgress {

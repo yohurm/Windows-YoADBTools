@@ -32,7 +32,7 @@ pub async fn log_capture_start(
         index_cancel,
     ));
 
-    let task_id = state.tasks.register(format!("logcat 采集: {serial}"));
+    let task_id = state.tasks.register(format!("logcat 采集: {serial}"), format!("设备 {serial}"));
     state.capture_tasks.lock().expect("capture lock poisoned").insert(serial, task_id);
     Ok(())
 }

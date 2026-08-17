@@ -1,15 +1,40 @@
 /**
- * 设备栏：在线状态点 + 型号/序列号 + 刷新 + 折叠 + 焦点选择。
+ * 设备栏（UI设计系统-v6.md §3）：卡片式设备列表。
+ * 设备卡片：在线点 + 型号一行 + serial 等宽一行 + 未授权徽章；
+ * 选中 = accent-soft 底 + 2px accent 左边条；空态引导 + 错误明细 + 重试。
+ * 键盘：roving tabindex（选中行 0）+ Enter/Space 选择，role=listbox/option。
  */
 
 import { Component, For, Show, createSignal } from "solid-js";
 
-import { YButton, YIconButton } from "@yovo/ui";
+import { YBadge, YButton, YIconButton } from "@yovo/ui";
+import type { DeviceInfo } from "@yovo/api";
 
 import { deviceStore } from "../stores";
 
+/** 设备状态可读文本（title 提示）。 */
+function stateText(state: DeviceInfo["state"]): string {
+  switch (state) {
+    case "online":
+      return "在线";
+    case "unauthorized":
+      return "未授权";
+    case "offline":
+      return "离线";
+  }
+}
+
 export const DeviceRail: Component = () => {
   const [expanded, setExpanded] = createSignal(true);
+
+  const select = (serial: string): void => deviceStore.setFocus(serial);
+
+  const onItemKeyDown = (serial: string, event: KeyboardEvent): void => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      select(serial);
+    }
+  };
 
   return (
     <div class="yovo-device-rail">
@@ -20,6 +45,9 @@ export const DeviceRail: Component = () => {
           onClick={() => setExpanded((v) => !v)}
         />
         <span class="yovo-device-rail__title">设备</span>
+        <Show when={deviceStore.state.devices.length > 0}>
+          <YBadge text={String(deviceStore.state.devices.length)} tone="neutral" />
+        </Show>
         <YIconButton
           icon="refresh"
           title="刷新设备"
@@ -28,37 +56,46 @@ export const DeviceRail: Component = () => {
         />
       </div>
       <Show when={expanded()}>
-        <ul class="yovo-device-rail__list">
+        <ul class="yovo-device-rail__list" role="listbox" aria-label="设备列表">
           <For each={deviceStore.state.devices}>
-            {(device) => (
-              <li
-                class="yovo-device-rail__item"
-                classList={{ "yovo-device-rail__item--active": deviceStore.state.focusSerial === device.serial }}
-                onClick={() => deviceStore.setFocus(device.serial)}
-              >
-                <span
-                  class="yovo-device-rail__dot"
-                  classList={{
-                    "yovo-device-rail__dot--online": device.state === "online",
-                    "yovo-device-rail__dot--off": device.state !== "online",
-                  }}
-                />
-                <span class="yovo-device-rail__info">
-                  <span class="yovo-device-rail__model">{device.model ?? device.serial}</span>
-                  <span class="yovo-device-rail__serial">{device.serial}</span>
-                </span>
-                <Show when={device.state === "unauthorized"}>
-                  <span class="yovo-device-rail__badge">未授权</span>
-                </Show>
-              </li>
-            )}
+            {(device, index) => {
+              const active = () => deviceStore.state.focusSerial === device.serial;
+              return (
+                <li
+                  class="yovo-device-rail__item"
+                  classList={{ "yovo-device-rail__item--active": active() }}
+                  role="option"
+                  aria-selected={active()}
+                  tabIndex={active() || (deviceStore.state.focusSerial === null && index() === 0) ? 0 : -1}
+                  title={`${device.model ?? device.serial} · ${device.serial} · ${stateText(device.state)}`}
+                  onClick={() => select(device.serial)}
+                  onKeyDown={(event) => onItemKeyDown(device.serial, event)}
+                >
+                  <span
+                    class="yovo-device-rail__dot"
+                    classList={{
+                      "yovo-device-rail__dot--online": device.state === "online",
+                      "yovo-device-rail__dot--off": device.state !== "online",
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span class="yovo-device-rail__info">
+                    <span class="yovo-device-rail__model">{device.model ?? device.serial}</span>
+                    <span class="yovo-device-rail__serial">{device.serial}</span>
+                  </span>
+                  <Show when={device.state === "unauthorized"}>
+                    <YBadge text="未授权" tone="warn" />
+                  </Show>
+                </li>
+              );
+            }}
           </For>
         </ul>
         <Show when={deviceStore.state.devices.length === 0}>
           <div class="yovo-device-rail__empty">
             <div class="yovo-device-rail__empty-title">无设备</div>
             <Show when={deviceStore.state.lastError}>
-              <div class="yovo-device-rail__empty-error" title={deviceStore.state.lastError}>
+              <div class="yovo-device-rail__empty-error" role="status" title={deviceStore.state.lastError}>
                 {deviceStore.state.lastError}
               </div>
             </Show>

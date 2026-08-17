@@ -49,10 +49,16 @@ fn spawn_transfer(
     let cancel = CancellationToken::new();
     state.transfer_cancels.lock().expect("transfer lock poisoned").insert(id, cancel.clone());
 
-    let task_id = state.tasks.register(match direction {
-        Direction::Push => format!("上传: {}", req.remote),
-        Direction::Pull => format!("下载: {}", req.local),
-    });
+    let task_id = state.tasks.register(
+        match direction {
+            Direction::Push => format!("上传: {}", req.remote),
+            Direction::Pull => format!("下载: {}", req.local),
+        },
+        match direction {
+            Direction::Push => format!("{} → {}", req.local, req.remote),
+            Direction::Pull => format!("{} → {}", req.remote, req.local),
+        },
+    );
 
     let transfers = state.transfers.clone();
     let sink = state.event_tx.clone();

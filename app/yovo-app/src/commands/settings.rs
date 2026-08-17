@@ -20,6 +20,7 @@ pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::
         SettingKey::DisplayLimit => serde_json::json!(s.display_limit),
         SettingKey::ClearDeviceOnStart => serde_json::json!(s.clear_device_on_start),
         SettingKey::Theme => serde_json::json!(s.theme),
+        SettingKey::Density => serde_json::json!(s.density),
     }
 }
 
