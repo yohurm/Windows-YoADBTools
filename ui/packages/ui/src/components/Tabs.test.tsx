@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { createSignal } from "solid-js";
 import { YTabs } from "./Tabs";
 
 const TABS = [
@@ -43,5 +44,53 @@ describe("YTabs", () => {
     render(() => <YTabs tabs={TABS} activeId="a" />);
     expect(screen.queryByLabelText("close")).toBeNull();
     expect(screen.queryByLabelText("new tab")).toBeNull();
+  });
+
+  it("roving tabindex：仅激活 tab 在 Tab 序中（可达性）", () => {
+    render(() => <YTabs tabs={TABS} activeId="a" />);
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0]!.getAttribute("tabindex")).toBe("0");
+    expect(tabs[1]!.getAttribute("tabindex")).toBe("-1");
+    expect(tabs[2]!.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("键盘 →/← 循环切换并激活", () => {
+    const [active, setActive] = createSignal("a");
+    const { container } = render(() => (
+      <YTabs
+        tabs={TABS}
+        activeId={active()}
+        onActivate={(id) => setActive(id)}
+      />
+    ));
+    const tablist = container.querySelector(".yovo-tabs") as HTMLElement;
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
+    expect(active()).toBe("b");
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
+    expect(active()).toBe("c");
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
+    expect(active()).toBe("a"); // 循环回首位
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
+    expect(active()).toBe("c"); // 反向循环
+  });
+
+  it("键盘 Home/End 跳转首尾", () => {
+    const [active, setActive] = createSignal("b");
+    const { container } = render(() => (
+      <YTabs tabs={TABS} activeId={active()} onActivate={setActive} />
+    ));
+    const tablist = container.querySelector(".yovo-tabs") as HTMLElement;
+    fireEvent.keyDown(tablist, { key: "Home" });
+    expect(active()).toBe("a");
+    fireEvent.keyDown(tablist, { key: "End" });
+    expect(active()).toBe("c");
+  });
+
+  it("键盘 Delete 关闭当前 tab", () => {
+    const onClose = vi.fn();
+    const { container } = render(() => <YTabs tabs={TABS} activeId="b" onClose={onClose} />);
+    const tablist = container.querySelector(".yovo-tabs") as HTMLElement;
+    fireEvent.keyDown(tablist, { key: "Delete" });
+    expect(onClose).toHaveBeenCalledWith("b");
   });
 });

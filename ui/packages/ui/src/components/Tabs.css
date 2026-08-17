@@ -21,11 +21,20 @@
   white-space: nowrap;
   user-select: none;
   box-sizing: border-box;
+  transition:
+    background-color var(--yovo-dur-fast) var(--yovo-ease),
+    color var(--yovo-dur-fast) var(--yovo-ease),
+    border-bottom-color var(--yovo-dur-fast) var(--yovo-ease);
 }
 
 .yovo-tabs__tab:hover {
   background-color: var(--yovo-nav-hover);
   color: var(--yovo-text-primary);
+}
+
+.yovo-tabs__tab:focus-visible {
+  outline: 2px solid var(--yovo-focus-ring);
+  outline-offset: -2px;
 }
 
 .yovo-tabs__tab--active {
