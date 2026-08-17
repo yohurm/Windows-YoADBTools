@@ -1,95 +1,168 @@
 /**
- * 语义色常量（浅色主题基准值）。
+ * 色彩 token（三层架构，见 docs/architecture/UI设计系统-v6.md §2）：
+ *   Primitive（原始板，仅本文件使用）
+ * → Semantic（语义板：Colors=浅色 / DarkColors=深色）
+ * → Component（级别板 LogLevel* / FocusRing，供组件直接消费）
  *
- * 延续旧架构 ThemeTokens 的设计思想：色彩以「语义」命名而非具体色值命名，
- * 组件样式 100% 引用这些语义 token（或对应 CSS 变量 `--yovo-*`），
- * 禁止在组件文件内出现裸色值。
- *
- * 浅色基准值同时注入到 `theme.css` 的 `:root`（`--yovo-*` 变量），
- * 深色覆盖值见 `theme.css` 的 `[data-theme="dark"]` 与 `DarkColors`。
+ * 组件与模块样式 100% 引用语义/组件层（CSS 变量 `--yovo-*`），禁止裸色值。
+ * 纪律由 scripts/check-ui-tokens.mjs + 单测共同强制。
  */
+
+// ===== Primitive 层（原始板：仅 tokens 内部引用） =====
+
+export const Primitive = {
+  // 中性灰阶
+  gray0: "#FFFFFF",
+  gray50: "#F5F6F8",
+  gray100: "#F0F2F5",
+  gray200: "#D9DEE6",
+  gray300: "#B7BFCB",
+  gray400: "#8A919C",
+  gray500: "#565D68",
+  gray600: "#1B1D22",
+  // 主题底
+  darkBase: "#17181C",
+  darkSurface: "#1F2127",
+  darkSurface2: "#262930",
+  darkBorder: "#333844",
+  darkBorderStrong: "#454B58",
+  darkFg: "#E8EAEF",
+  darkFg2: "#A6ADBB",
+  darkFg3: "#6E7686",
+  // 强调
+  blue600: "#1456A8",
+  blueSoft: "#DCE9FA",
+  darkBlue: "#6EA8E8",
+  darkBlueSoft: "#22334D",
+  // 语义色
+  green: "#1F7A33",
+  greenSoft: "#E3F2E4",
+  darkGreen: "#57B96B",
+  amber: "#9A6A00",
+  amberSoft: "#FCF1DD",
+  darkAmber: "#D9A43C",
+  red: "#C22929",
+  redSoft: "#FDEBEA",
+  darkRed: "#E86A6A",
+} as const;
+
+// ===== Semantic 层（浅色主题） =====
+
 export const Colors = {
-  /** 左侧导航背景 */
-  NavBg: "#E9EDF1",
-  /** 内容区背景 */
-  ContentBg: "#FBFCFD",
-  /** 面板背景 */
-  PanelBg: "#FFFFFF",
-  /** 面板边框 */
-  PanelBorder: "#C9D2DA",
-  /** 列表背景 */
-  ListBg: "#F7F9FA",
-  /** 列表边框 */
-  ListBorder: "#D5DBE1",
-  /** 主文字 */
-  TextPrimary: "#1A1A1A",
-  /** 次级文字 */
-  TextSecondary: "#5A5A5A",
-  /** 三级文字 */
-  TextTertiary: "#8A8A8A",
-  /** 强调色 */
-  Accent: "#0F3C74",
-  /** 强调色背景 */
-  AccentBg: "#D6E4F7",
-  /** 强调色 hover（加深） */
-  AccentHover: "#0B2D56",
-  /** 成功 */
-  Success: "#2E7D32",
-  /** 成功背景 */
-  SuccessBg: "#E3F2E4",
-  /** 错误 */
-  Error: "#C62828",
-  /** 警告 */
-  Warn: "#C77700",
-  /** 警告背景 */
-  WarnBg: "#FCF1DD",
-  /** 离线 / 置灰 */
-  Offline: "#9E9E9E",
-  /** 导航 hover */
+  /** 窗口底色 */
+  BgBase: Primitive.gray50,
+  /** 面板/卡片表面 */
+  Surface: Primitive.gray0,
+  /** 次级表面（列表头/输入底） */
+  Surface2: Primitive.gray100,
+  /** 主文本 */
+  Fg: Primitive.gray600,
+  /** 次要文本 */
+  Fg2: Primitive.gray500,
+  /** 弱化文本/占位 */
+  Fg3: Primitive.gray400,
+  /** 常规边框 */
+  Border: Primitive.gray200,
+  /** 强调边框/分割 */
+  BorderStrong: Primitive.gray300,
+  /** 主强调/选中 */
+  Accent: Primitive.blue600,
+  /** 选中底/高亮底 */
+  AccentSoft: Primitive.blueSoft,
+  /** 成功/在线/通过 */
+  Success: Primitive.green,
+  SuccessBg: Primitive.greenSoft,
+  /** 警告/执行中 */
+  Warn: Primitive.amber,
+  WarnBg: Primitive.amberSoft,
+  /** 失败/崩溃 */
+  Error: Primitive.red,
+  /** 信号行底色 */
+  SignalBg: Primitive.redSoft,
+  /** 离线/禁用 */
+  Offline: Primitive.gray400,
+  /** 键盘焦点环 */
+  FocusRing: "rgba(20,86,168,0.45)",
+  // ===== 兼容别名（旧组件/模块迁移前使用，Phase C/D 逐步移除） =====
+  NavBg: Primitive.gray100,
+  ContentBg: Primitive.gray50,
+  PanelBg: Primitive.gray0,
+  PanelBorder: Primitive.gray200,
+  ListBg: Primitive.gray100,
+  ListBorder: Primitive.gray200,
+  TextPrimary: Primitive.gray600,
+  TextSecondary: Primitive.gray500,
+  TextTertiary: Primitive.gray400,
+  AccentBg: Primitive.blueSoft,
+  AccentHover: "#0E4A8F",
   NavHover: "#E8EEF6",
-  /** 标签 */
   Tag: "#8A5A00",
-  /** 分隔条 */
-  Splitter: "#B9C2CC",
-  /** 分隔条 hover */
+  Splitter: Primitive.gray300,
   SplitterHover: "#6E7680",
-  /** 禁用 */
   Disabled: "#A8A8A8",
-  /** 信号背景（也用作错误类徽章的浅色底） */
-  SignalBg: "#FDEBEA",
 } as const;
 
 /** 语义色名联合类型 */
 export type SemanticColorName = keyof typeof Colors;
 
-/**
- * 深色主题语义色覆盖值。
- * 与 `theme.css` 的 `[data-theme="dark"]` 一一对应；键名与 `Colors` 保持一致，
- * 保证两种主题下语义 token 齐全、层级感一致。
- */
+// ===== Semantic 层（深色主题） =====
+
 export const DarkColors: Record<SemanticColorName, string> = {
-  NavBg: "#1F2429",
-  ContentBg: "#262B30",
-  PanelBg: "#2E343B",
-  PanelBorder: "#3A4148",
-  ListBg: "#2A3037",
-  ListBorder: "#3A4148",
-  TextPrimary: "#E6E6E6",
-  TextSecondary: "#A6A6A6",
-  TextTertiary: "#7A7A7A",
-  Accent: "#5B93D6",
-  AccentBg: "#2A3B52",
-  AccentHover: "#6FA3E8",
-  Success: "#6FBF73",
+  BgBase: Primitive.darkBase,
+  Surface: Primitive.darkSurface,
+  Surface2: Primitive.darkSurface2,
+  Fg: Primitive.darkFg,
+  Fg2: Primitive.darkFg2,
+  Fg3: Primitive.darkFg3,
+  Border: Primitive.darkBorder,
+  BorderStrong: Primitive.darkBorderStrong,
+  Accent: Primitive.darkBlue,
+  AccentSoft: Primitive.darkBlueSoft,
+  Success: Primitive.darkGreen,
   SuccessBg: "#24351F",
-  Error: "#EF6A6A",
-  Warn: "#E0A33A",
+  Warn: Primitive.darkAmber,
   WarnBg: "#3A2E1A",
-  Offline: "#6E6E6E",
-  NavHover: "#343B42",
+  Error: Primitive.darkRed,
+  SignalBg: "#4A2A28",
+  Offline: Primitive.darkFg3,
+  FocusRing: "rgba(110,168,232,0.5)",
+  NavBg: Primitive.darkSurface2,
+  ContentBg: Primitive.darkBase,
+  PanelBg: Primitive.darkSurface,
+  PanelBorder: Primitive.darkBorder,
+  ListBg: Primitive.darkSurface2,
+  ListBorder: Primitive.darkBorder,
+  TextPrimary: Primitive.darkFg,
+  TextSecondary: Primitive.darkFg2,
+  TextTertiary: Primitive.darkFg3,
+  AccentBg: Primitive.darkBlueSoft,
+  AccentHover: "#7FB2EE",
+  NavHover: "#2A313B",
   Tag: "#C99A3D",
-  Splitter: "#3A4148",
+  Splitter: Primitive.darkBorderStrong,
   SplitterHover: "#9AA3AD",
   Disabled: "#555555",
-  SignalBg: "#4A2A28",
 };
+
+// ===== Component 层：logcat 级别板（双主题） =====
+
+export const LogLevelLight = {
+  v: "#6E7686",
+  d: "#3D6E9E",
+  i: "#1F7A33",
+  w: "#9A6A00",
+  e: "#C22929",
+  f: "#FFFFFF",
+  /** Fatal 反色块底色 */
+  fBg: "#C22929",
+} as const;
+
+export const LogLevelDark = {
+  v: "#8A93A6",
+  d: "#7FA8CE",
+  i: "#57B96B",
+  w: "#D9A43C",
+  e: "#E86A6A",
+  f: "#1B1D22",
+  fBg: "#E86A6A",
+} as const;

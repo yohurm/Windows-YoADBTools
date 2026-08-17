@@ -1,88 +1,129 @@
 /* ============================================================================
- * @yovo/ui 主题变量（token 单源）
- * 浅色默认值注入 `:root`，深色覆盖注入 `[data-theme="dark"]`。
- * 主题切换由 tokens/index.ts 的 `setTheme(theme)` 在 <html data-theme=...> 上完成。
- * 浅色色值与 colors.ts 的 `Colors` 一一对应；深色色值与 `DarkColors` 对应。
+ * @yovo/ui 主题变量（token 单源，三层架构 — UI设计系统-v6.md §2）
+ * 浅色注入 `:root`，深色覆盖注入 `[data-theme="dark"]`；
+ * 主题切换由 tokens/index.ts 的 setTheme/getTheme 完成。
+ * 浅色与 colors.ts `Colors` 对应；深色与 `DarkColors` 对应；级别板见 LogLevel*。
  * ========================================================================== */
 
 :root {
-  /* —— 色板（语义色，浅色） —— */
-  --yovo-nav-bg: #E9EDF1;
-  --yovo-content-bg: #FBFCFD;
-  --yovo-panel-bg: #FFFFFF;
-  --yovo-panel-border: #C9D2DA;
-  --yovo-list-bg: #F7F9FA;
-  --yovo-list-border: #D5DBE1;
-  --yovo-text-primary: #1A1A1A;
-  --yovo-text-secondary: #5A5A5A;
-  --yovo-text-tertiary: #8A8A8A;
-  --yovo-accent: #0F3C74;
-  --yovo-accent-bg: #D6E4F7;
-  --yovo-accent-hover: #0B2D56;
-  --yovo-success: #2E7D32;
+  /* —— Semantic 层（浅色） —— */
+  --yovo-bg-base: #F5F6F8;
+  --yovo-surface: #FFFFFF;
+  --yovo-surface-2: #F0F2F5;
+  --yovo-fg: #1B1D22;
+  --yovo-fg-2: #565D68;
+  --yovo-fg-3: #8A919C;
+  --yovo-border: #D9DEE6;
+  --yovo-border-strong: #B7BFCB;
+  --yovo-accent: #1456A8;
+  --yovo-accent-soft: #DCE9FA;
+  --yovo-success: #1F7A33;
+  --yovo-warn: #9A6A00;
+  --yovo-error: #C22929;
+  --yovo-offline: #8A919C;
+  --yovo-focus-ring: rgba(20, 86, 168, 0.45);
+
+  /* —— Component 层：logcat 级别板（浅色） —— */
+  --yovo-level-v: #6E7686;
+  --yovo-level-d: #3D6E9E;
+  --yovo-level-i: #1F7A33;
+  --yovo-level-w: #9A6A00;
+  --yovo-level-e: #C22929;
+  --yovo-level-f: #FFFFFF;
+  --yovo-level-f-bg: #C22929;
+
+  /* —— 兼容别名（旧组件/模块迁移前使用；Phase C/D 移除） —— */
+  --yovo-nav-bg: var(--yovo-surface-2);
+  --yovo-content-bg: var(--yovo-bg-base);
+  --yovo-panel-bg: var(--yovo-surface);
+  --yovo-panel-border: var(--yovo-border);
+  --yovo-list-bg: var(--yovo-surface-2);
+  --yovo-list-border: var(--yovo-border);
+  --yovo-text-primary: var(--yovo-fg);
+  --yovo-text-secondary: var(--yovo-fg-2);
+  --yovo-text-tertiary: var(--yovo-fg-3);
+  --yovo-accent-bg: var(--yovo-accent-soft);
+  --yovo-accent-hover: #0E4A8F;
   --yovo-success-bg: #E3F2E4;
-  --yovo-error: #C62828;
-  --yovo-warn: #C77700;
   --yovo-warn-bg: #FCF1DD;
-  --yovo-offline: #9E9E9E;
   --yovo-nav-hover: #E8EEF6;
   --yovo-tag: #8A5A00;
-  --yovo-splitter: #B9C2CC;
+  --yovo-splitter: var(--yovo-border-strong);
   --yovo-splitter-hover: #6E7680;
   --yovo-disabled: #A8A8A8;
   --yovo-signal-bg: #FDEBEA;
 
-  /* —— 字号 —— */
+  /* —— 排版 —— */
   --yovo-font-caption: 11px;
-  --yovo-font-body: 13px;
-  --yovo-font-body-strong: 14px;
-  --yovo-font-subtitle: 17px;
-  --yovo-font-page-title: 20px;
-
-  /* —— 字体栈 —— */
-  --yovo-font-sans: "Microsoft YaHei", "Microsoft YaHei UI", "PingFang SC", "Segoe UI", sans-serif;
-  --yovo-font-mono: "Consolas", "Cascadia Code", "Courier New", monospace;
-
-  /* —— 字重 —— */
+  --yovo-font-body: 12.5px;
+  --yovo-font-body-strong: 13.5px;
+  --yovo-font-subtitle: 15px;
+  --yovo-font-page-title: 18px;
+  --yovo-font-sans: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  --yovo-font-mono: "Cascadia Mono", "Consolas", "Courier New", monospace;
   --yovo-font-weight-regular: 400;
   --yovo-font-weight-semibold: 600;
 
-  /* —— 间距 —— */
+  /* —— 间距 / 圆角 —— */
   --yovo-space-xs: 4px;
   --yovo-space-sm: 8px;
   --yovo-space-md: 12px;
   --yovo-space-lg: 16px;
   --yovo-space-xl: 24px;
-
-  /* —— 圆角 —— */
   --yovo-radius-sm: 4px;
   --yovo-radius-md: 6px;
+
+  /* —— 密度（compact 默认） —— */
+  --yovo-density: compact;
+  --yovo-control-height: 26px;
+  --yovo-row-height: 22px;
+
+  /* —— 动效 —— */
+  --yovo-dur-fast: 100ms;
+  --yovo-dur-normal: 160ms;
+  --yovo-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 [data-theme="dark"] {
-  /* —— 色板（深色覆盖，保持层级感） —— */
-  --yovo-nav-bg: #1F2429;
-  --yovo-content-bg: #262B30;
-  --yovo-panel-bg: #2E343B;
-  --yovo-panel-border: #3A4148;
-  --yovo-list-bg: #2A3037;
-  --yovo-list-border: #3A4148;
-  --yovo-text-primary: #E6E6E6;
-  --yovo-text-secondary: #A6A6A6;
-  --yovo-text-tertiary: #7A7A7A;
-  --yovo-accent: #5B93D6;
-  --yovo-accent-bg: #2A3B52;
-  --yovo-accent-hover: #6FA3E8;
-  --yovo-success: #6FBF73;
+  /* —— Semantic 层（深色） —— */
+  --yovo-bg-base: #17181C;
+  --yovo-surface: #1F2127;
+  --yovo-surface-2: #262930;
+  --yovo-fg: #E8EAEF;
+  --yovo-fg-2: #A6ADBB;
+  --yovo-fg-3: #6E7686;
+  --yovo-border: #333844;
+  --yovo-border-strong: #454B58;
+  --yovo-accent: #6EA8E8;
+  --yovo-accent-soft: #22334D;
+  --yovo-success: #57B96B;
+  --yovo-warn: #D9A43C;
+  --yovo-error: #E86A6A;
+  --yovo-offline: #6E7686;
+  --yovo-focus-ring: rgba(110, 168, 232, 0.5);
+
+  /* —— Component 层：logcat 级别板（深色） —— */
+  --yovo-level-v: #8A93A6;
+  --yovo-level-d: #7FA8CE;
+  --yovo-level-i: #57B96B;
+  --yovo-level-w: #D9A43C;
+  --yovo-level-e: #E86A6A;
+  --yovo-level-f: #1B1D22;
+  --yovo-level-f-bg: #E86A6A;
+
+  /* —— 兼容别名（深色） —— */
+  --yovo-accent-hover: #7FB2EE;
   --yovo-success-bg: #24351F;
-  --yovo-error: #EF6A6A;
-  --yovo-warn: #E0A33A;
   --yovo-warn-bg: #3A2E1A;
-  --yovo-offline: #6E6E6E;
-  --yovo-nav-hover: #343B42;
+  --yovo-nav-hover: #2A313B;
   --yovo-tag: #C99A3D;
-  --yovo-splitter: #3A4148;
   --yovo-splitter-hover: #9AA3AD;
   --yovo-disabled: #555555;
   --yovo-signal-bg: #4A2A28;
+}
+
+/* 密度切换（comfortable：控件/行高/面板内边距放宽） */
+[data-density="comfortable"] {
+  --yovo-control-height: 32px;
+  --yovo-row-height: 26px;
 }

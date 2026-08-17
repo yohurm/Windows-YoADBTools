@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { Colors, DarkColors } from "./colors";
+import { Colors, DarkColors, LogLevelDark, LogLevelLight } from "./colors";
 
 /**
  * 读取 theme.css 内容。
@@ -23,53 +23,134 @@ function loadThemeCss(): string {
 
 const themeCss = loadThemeCss();
 
-/** 规范要求的浅色基准值（必须完全一致） */
+/** 规范要求的浅色语义基准值（UI设计系统-v6.md §2.1；必须完全一致） */
 const EXPECTED_LIGHT: Record<string, string> = {
-  NavBg: "#E9EDF1",
-  ContentBg: "#FBFCFD",
-  PanelBg: "#FFFFFF",
-  PanelBorder: "#C9D2DA",
-  ListBg: "#F7F9FA",
-  ListBorder: "#D5DBE1",
-  TextPrimary: "#1A1A1A",
-  TextSecondary: "#5A5A5A",
-  TextTertiary: "#8A8A8A",
-  Accent: "#0F3C74",
-  AccentBg: "#D6E4F7",
-  AccentHover: "#0B2D56",
-  Success: "#2E7D32",
-  SuccessBg: "#E3F2E4",
-  Error: "#C62828",
-  Warn: "#C77700",
-  WarnBg: "#FCF1DD",
-  Offline: "#9E9E9E",
-  NavHover: "#E8EEF6",
-  Tag: "#8A5A00",
-  Splitter: "#B9C2CC",
-  SplitterHover: "#6E7680",
-  Disabled: "#A8A8A8",
-  SignalBg: "#FDEBEA",
+  BgBase: "#F5F6F8",
+  Surface: "#FFFFFF",
+  Surface2: "#F0F2F5",
+  Fg: "#1B1D22",
+  Fg2: "#565D68",
+  Fg3: "#8A919C",
+  Border: "#D9DEE6",
+  BorderStrong: "#B7BFCB",
+  Accent: "#1456A8",
+  AccentSoft: "#DCE9FA",
+  Success: "#1F7A33",
+  Warn: "#9A6A00",
+  Error: "#C22929",
+  Offline: "#8A919C",
 };
 
 function kebab(name: string): string {
-  return name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([a-z])([0-9])/g, "$1-$2")
+    .toLowerCase();
 }
 
-describe("tokens/colors 颜色常量", () => {
+// ===== WCAG 对比度工具（P5：对比度达标质量门禁） =====
+
+function srgbToLinear(c: number): number {
+  const s = c / 255;
+  return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+function luminance(hex: string): number {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) throw new Error(`非 #RRGGBB: ${hex}`);
+  const [, raw] = m;
+  const r = srgbToLinear(Number.parseInt(raw.slice(0, 2), 16));
+  const g = srgbToLinear(Number.parseInt(raw.slice(2, 4), 16));
+  const b = srgbToLinear(Number.parseInt(raw.slice(4, 6), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrast(fg: string, bg: string): number {
+  const l1 = luminance(fg);
+  const l2 = luminance(bg);
+  const [hi, lo] = l1 > l2 ? [l1, l2] : [l2, l1];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+describe("tokens/colors 语义色常量", () => {
   it("浅色语义色常量与规范完全一致", () => {
     for (const [name, value] of Object.entries(EXPECTED_LIGHT)) {
       expect((Colors as Record<string, string>)[name], `Colors.${name}`).toBe(value);
     }
-    // 不应有超出预期的浅色 key
-    expect(Object.keys(Colors).sort()).toEqual(Object.keys(EXPECTED_LIGHT).sort());
   });
 
-  it("深色色板键名与浅色一致（主题语义齐全）", () => {
-    expect(Object.keys(DarkColors).sort()).toEqual(Object.keys(Colors).sort());
-    // 深色必须覆盖全部语义，且值非空
-    for (const [name, value] of Object.entries(DarkColors)) {
-      expect(value, `DarkColors.${name}`).toMatch(/^#[0-9A-Fa-f]{6}$/);
+  it("深色色板覆盖全部语义键", () => {
+    for (const name of Object.keys(Colors)) {
+      expect(DarkColors[name], `DarkColors.${name}`).toBeTruthy();
     }
+  });
+});
+
+describe("WCAG 对比度门禁（P5）", () => {
+  const pairs: Array<[string, string, string]> = [
+    // [主题, 前景键, 背景键]
+    ["浅色", "Fg", "Surface"],
+    ["浅色", "Fg2", "Surface"],
+    ["浅色", "Accent", "Surface"],
+    ["浅色", "Success", "Surface"],
+    ["浅色", "Warn", "Surface"],
+    ["浅色", "Error", "Surface"],
+    ["深色", "Fg", "Surface"],
+    ["深色", "Fg2", "Surface"],
+    ["深色", "Accent", "Surface"],
+    ["深色", "Success", "Surface"],
+    ["深色", "Warn", "Surface"],
+    ["深色", "Error", "Surface"],
+  ];
+
+  for (const [theme, fgKey, bgKey] of pairs) {
+    it(`${theme} ${fgKey}/${bgKey} ≥ 4.5:1`, () => {
+      const palette = theme === "浅色" ? Colors : DarkColors;
+      const fg = palette[fgKey as keyof typeof Colors] as string;
+      const bg = palette[bgKey as keyof typeof Colors] as string;
+      expect(contrast(fg, bg), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+
+  it("次级文本（Fg3）对表面 ≥ 3:1（大字/图标级别）", () => {
+    expect(contrast(Colors.Fg3, Colors.Surface)).toBeGreaterThanOrEqual(3);
+    expect(contrast(DarkColors.Fg3, DarkColors.Surface)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("logcat 级别板对比度门禁（P5）", () => {
+  const lightSurface = Colors.Surface;
+  const darkSurface = DarkColors.Surface;
+
+  const lightLevels: Array<[string, string]> = [
+    ["v", LogLevelLight.v],
+    ["d", LogLevelLight.d],
+    ["i", LogLevelLight.i],
+    ["w", LogLevelLight.w],
+    ["e", LogLevelLight.e],
+  ];
+  const darkLevels: Array<[string, string]> = [
+    ["v", LogLevelDark.v],
+    ["d", LogLevelDark.d],
+    ["i", LogLevelDark.i],
+    ["w", LogLevelDark.w],
+    ["e", LogLevelDark.e],
+  ];
+
+  for (const [name, color] of lightLevels) {
+    it(`浅色级别 ${name} 对表面 ≥ 4.5:1`, () => {
+      expect(contrast(color, lightSurface), color).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+  for (const [name, color] of darkLevels) {
+    it(`深色级别 ${name} 对表面 ≥ 4.5:1`, () => {
+      expect(contrast(color, darkSurface), color).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+
+  it("Fatal 反色块前景对底色 ≥ 4.5:1", () => {
+    expect(contrast(LogLevelLight.f, LogLevelLight.fBg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(LogLevelDark.f, LogLevelDark.fBg)).toBeGreaterThanOrEqual(4.5);
   });
 });
 
@@ -79,19 +160,32 @@ describe("theme.css 变量", () => {
     expect(themeCss).toContain('[data-theme="dark"]');
   });
 
-  it("浅色变量与 Colors 常量一致（token 单源校验）", () => {
-    for (const [name, value] of Object.entries(Colors)) {
+  it("浅色语义变量与 Colors 常量一致（token 单源校验）", () => {
+    for (const [name, value] of Object.entries(EXPECTED_LIGHT)) {
       const varName = `--yovo-${kebab(name)}`;
       expect(themeCss, varName).toContain(`${varName}: ${value}`);
     }
   });
 
-  it("深色变量已全部覆盖（每个浅色变量都有深色同名变量）", () => {
-    for (const name of Object.keys(Colors)) {
+  it("深色语义变量已全部覆盖", () => {
+    for (const name of Object.keys(EXPECTED_LIGHT)) {
       const varName = `--yovo-${kebab(name)}`;
-      // 深色块中应存在同名变量（出现在 [data-theme="dark"] 之后）
       const darkBlock = themeCss.slice(themeCss.indexOf('[data-theme="dark"]'));
       expect(darkBlock, varName).toContain(`${varName}:`);
     }
+  });
+
+  it("级别板变量齐备（浅色+深色+反色块）", () => {
+    for (const name of ["v", "d", "i", "w", "e", "f", "f-bg"]) {
+      expect(themeCss).toContain(`--yovo-level-${name}:`);
+    }
+  });
+
+  it("密度与动效 token 已定义", () => {
+    expect(themeCss).toContain("--yovo-density:");
+    expect(themeCss).toContain("--yovo-control-height:");
+    expect(themeCss).toContain("--yovo-row-height:");
+    expect(themeCss).toContain("--yovo-dur-fast:");
+    expect(themeCss).toContain("--yovo-ease:");
   });
 });
