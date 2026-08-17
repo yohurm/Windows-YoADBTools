@@ -237,4 +237,43 @@ mod tests {
         drop(batcher);
         let _ = handle.await;
     }
+
+    /// 性能回归（架构文档 §12 自动化子集）：50k 行 → 50 批（每批 1000），
+    /// 零丢行且聚合耗时满足 ADR-v6-007 批量预算（16ms/批；debug 构建留 2.5x 余量）。
+    #[tokio::test]
+    async fn perf_50k_lines_within_batch_budget() {
+        const BATCH_LINES: usize = 1000;
+        const TOTAL: u64 = 50_000;
+        let (sink, mut sink_rx) = mpsc::channel::<AppEvent>(64);
+        let (batcher, handle) = Batcher::spawn(
+            "s1".into(),
+            sink,
+            Duration::from_millis(150),
+            BATCH_LINES,
+            512 * 1024,
+            CancellationToken::new(),
+        );
+        let started = std::time::Instant::now();
+        for i in 0..TOTAL {
+            batcher.feed(line(i)).await.unwrap();
+        }
+        drop(batcher);
+        let _ = handle.await;
+        let elapsed = started.elapsed();
+
+        let mut batches = 0u32;
+        let mut lines = 0usize;
+        while let Ok(event) = sink_rx.try_recv() {
+            if let AppEvent::LogBatch(LogBatchPayload { batch }) = event {
+                batches += 1;
+                lines += batch.lines.len();
+            }
+        }
+        assert_eq!(batches, 50, "50k 行应恰好 50 批（每批 1000 行）");
+        assert_eq!(lines, TOTAL as usize, "零丢行");
+        assert!(
+            elapsed.as_millis() < 2000,
+            "50 批聚合耗时超预算（16ms/批 → 800ms，余量 2.5x）: {elapsed:?}"
+        );
+    }
 }
