@@ -44,7 +44,7 @@ pub(crate) async fn refresh_inner(state: &AppState) -> Result<Vec<DeviceInfo>, S
     for old in &previous {
         if old.state == DeviceState::Online && !serials.contains(&old.serial) {
             tracing::info!("设备掉线: {}", old.serial);
-            crate::commands::log::cancel_index(state, &old.serial);
+            state.finish_capture_task(&old.serial);
             let _ = state.event_tx.try_send(AppEvent::DeviceOffline { serial: old.serial.clone() });
             state.capture.detach_device(&old.serial).await;
         }

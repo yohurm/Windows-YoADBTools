@@ -65,6 +65,24 @@ impl RingBuffer {
             .collect()
     }
 
+    /// 从 `from_seq` 取至多 `limit` 行；`truncated` 表示环内还有更大 seq。
+    pub fn snapshot_page(&self, from_seq: u64, limit: usize) -> (Vec<LogLine>, bool) {
+        let state = self.inner.lock().expect("ring lock poisoned");
+        let lines: Vec<LogLine> = state
+            .buf
+            .iter()
+            .filter(|l| l.seq >= from_seq)
+            .take(limit)
+            .cloned()
+            .collect();
+        let ring_last = state.buf.back().map(|l| l.seq);
+        let truncated = match (lines.last(), ring_last) {
+            (Some(last), Some(newest)) => last.seq < newest,
+            _ => false,
+        };
+        (lines, truncated)
+    }
+
     /// 清空缓冲（用户清空 / 设备切换 / 掉线）。
     pub fn clear(&self) {
         let mut state = self.inner.lock().expect("ring lock poisoned");
@@ -101,6 +119,7 @@ mod tests {
             ts: "01-01 00:00:00.000".into(),
             pid: 1,
             tid: 1,
+            uid: None,
             level: 'I',
             tag: "T".into(),
             msg: format!("m{seq_hint}"),
@@ -136,8 +155,14 @@ mod tests {
         let from_two = ring.snapshot(2, 10);
         assert_eq!(from_two.len(), 3);
 
-        let filter = LogFilter { exact_pid: Some(1), ..Default::default() };
+        let filter = LogFilter {
+            scope: yovo_protocol::LogScope::Pid { pid: 1 },
+            ..Default::default()
+        };
         assert_eq!(ring.snapshot_filtered(&filter, 100).len(), 5);
+        let (page, truncated) = ring.snapshot_page(0, 2);
+        assert_eq!(page.len(), 2);
+        assert!(truncated);
     }
 
     #[test]

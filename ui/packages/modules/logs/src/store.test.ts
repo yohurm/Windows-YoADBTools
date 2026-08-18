@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   logClearDevice: vi.fn(),
   logReplay: vi.fn(),
   logExport: vi.fn(),
+  logProcessSnapshot: vi.fn(),
   logBatchHandlers: [] as ((e: { batch: LogBatch }) => void)[],
   logOverflowHandlers: [] as ((e: { serial: string }) => void)[],
   processIndexHandlers: [] as ((e: unknown) => void)[],
@@ -54,6 +55,8 @@ vi.mock("@yovo/api", () => {
     logClearDevice: (...a: unknown[]) => mocks.logClearDevice(...a),
     logReplay: (...a: unknown[]) => mocks.logReplay(...a),
     logExport: (...a: unknown[]) => mocks.logExport(...a),
+    logProcessSnapshot: (...a: unknown[]) => mocks.logProcessSnapshot(...a),
+    logDump: notConfigured,
     onDevicesChanged: (h: (e: { devices: unknown[] }) => void): void => {
       mocks.devicesChangedHandlers.push(h);
     },
@@ -91,6 +94,7 @@ vi.mock("@yovo/api", () => {
   };
 });
 
+import { pidSetOf } from "./pipeline";
 import { createLogStore } from "./store";
 import type { LogStoreApi } from "./store";
 
@@ -112,10 +116,10 @@ const batch = (serial: string, lines: LogLine[]): LogBatch => ({
   truncated: false,
 });
 
-/** 新建独立 store 并让设备 S1 在线（focusSerial = S1）。 */
+/** 新建独立 store 并绑定设备 S1。 */
 function wiredStore(): LogStoreApi {
-  mocks.devicesChangedHandlers.at(-1)?.({ devices: [{ serial: "S1", model: "M", state: "online", connection: "usb" }] });
   const store = createLogStore();
+  store.bindSerial("S1");
   store.ensureSession();
   return store;
 }
@@ -127,6 +131,7 @@ const push = (serial: string, lines: LogLine[]): void => {
 beforeEach(() => {
   mocks.logReplay.mockResolvedValue({ serial: "S1", from_seq: 0, lines: [], truncated: false });
   mocks.logExport.mockResolvedValue({ path: "x.txt", lines: 0 });
+  mocks.logProcessSnapshot.mockResolvedValue([]);
 });
 
 describe("logStore 会话生命周期", () => {
@@ -179,7 +184,7 @@ describe("logStore 会话生命周期", () => {
 });
 
 describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => {
-  it("级别含以上 + 堆叠折叠 + 信号计数 + 缓冲行数", () => {
+  it("级别含以上 + 堆叠折叠 + 信号计数 + 镜像行数", () => {
     const store = wiredStore();
     const id = store.state.sessions[0]!.id;
     store.patchFilter(id, { minLevel: "W" });
@@ -195,7 +200,7 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     expect(session.visible[1]!.collapsedAfter).toBe(1);
     expect(session.visible[2]!.signal).toBe("crash");
     expect(session.signalCount).toBe(1);
-    expect(store.state.bufferLines).toBe(5);
+    expect(store.mirror.size()).toBe(5);
   });
 
   it("关键字/Tag 过滤与信号行标记", () => {
@@ -211,13 +216,13 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     const session = store.state.sessions[0]!;
     expect(session.visible.map((r) => r.line.seq)).toEqual([0]);
     expect(session.visible[0]!.signal).toBeUndefined();
-    expect(store.state.bufferLines).toBe(4);
+    expect(store.mirror.size()).toBe(4);
   });
 
   it("非焦点设备批次忽略（防串设备）", () => {
     const store = wiredStore();
     push("OTHER", [mk(0)]);
-    expect(store.state.bufferLines).toBe(0);
+    expect(store.mirror.size()).toBe(0);
     expect(store.state.sessions[0]!.visible).toHaveLength(0);
   });
 
@@ -244,12 +249,12 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
   it("掉线：清缓冲、清可见区、停采", () => {
     const store = wiredStore();
     push("S1", [mk(0)]);
-    expect(store.state.bufferLines).toBe(1);
+    expect(store.mirror.size()).toBe(1);
     mocks.captureStateHandlers.at(-1)?.({ serial: "S1", state: "running" });
     expect(store.state.capturing).toBe(true);
     mocks.deviceOfflineHandlers.at(-1)?.({ serial: "S1" });
     expect(store.state.capturing).toBe(false);
-    expect(store.state.bufferLines).toBe(0);
+    expect(store.mirror.size()).toBe(0);
     expect(store.state.sessions[0]!.visible).toHaveLength(0);
   });
 
@@ -266,9 +271,9 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
   it("startCapture 清空镜像，只保留启动后的行", async () => {
     const store = wiredStore();
     push("S1", [mk(0)]);
-    expect(store.state.bufferLines).toBe(1);
+    expect(store.mirror.size()).toBe(1);
     await store.startCapture();
-    expect(store.state.bufferLines).toBe(0);
+    expect(store.mirror.size()).toBe(0);
     expect(store.state.sessions[0]!.visible).toHaveLength(0);
     push("S1", [mk(1, { msg: "after-start" })]);
     expect(store.state.sessions[0]!.visible).toHaveLength(1);
@@ -281,17 +286,80 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     const store = wiredStore();
     await store.startCapture();
     expect(mocks.logReplay).toHaveBeenCalledWith({ serial: "S1", from_seq: 0, limit: 100_000 });
-    expect(store.state.bufferLines).toBe(1);
+    expect(store.mirror.size()).toBe(1);
     expect(store.state.sessions[0]!.visible[0]!.line.msg).toBe("from-replay");
     await store.stopCapture();
   });
 
-  it("exportSession 带出 write_mode", async () => {
+  it("exportSession 带出 write_mode 与 All 作用域", async () => {
     const store = wiredStore();
     const id = store.state.sessions[0]!.id;
-    await store.exportSession(id, "D:\\out.txt");
+    await store.exportSession(id, "D:\\out.txt", "overwrite");
     expect(mocks.logExport).toHaveBeenCalledWith(
-      expect.objectContaining({ path: "D:\\out.txt", write_mode: "overwrite" }),
+      expect.objectContaining({
+        path: "D:\\out.txt",
+        write_mode: "overwrite",
+        filter: expect.objectContaining({ scope: { kind: "all" } }),
+      }),
     );
+  });
+
+  it("exportSession 包名空 pids 原样下发（无命中）", async () => {
+    const store = wiredStore();
+    const id = store.createSession({ kind: "package", pkg: "com.none", includeChild: false }, "none");
+    await store.exportSession(id, "D:\\out.txt", "overwrite");
+    expect(mocks.logExport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: expect.objectContaining({ scope: { kind: "package", pids: [] } }),
+      }),
+    );
+  });
+
+  it("bindSerial 等待停采后再切设备", async () => {
+    const store = wiredStore();
+    await store.startCapture();
+    let release!: () => void;
+    mocks.logCaptureStop.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+    );
+    const pending = store.bindSerial("S2");
+    expect(store.state.serial).toBe("S1");
+    release();
+    await pending;
+    expect(mocks.logCaptureStop).toHaveBeenCalledWith("S1");
+    expect(store.state.serial).toBe("S2");
+    expect(store.state.capturing).toBe(false);
+  });
+
+  it("包名会话创建时立即用进程索引绑定并重放历史行", () => {
+    const store = wiredStore();
+    push("S1", [
+      mk(0, { pid: 10, msg: "foo" }),
+      mk(1, { pid: 99, msg: "other" }),
+    ]);
+    mocks.processIndexHandlers.at(-1)?.({
+      serial: "S1",
+      entries: [{ pid: 10, name: "com.foo" }],
+      degraded: false,
+    });
+    const id = store.createSession({ kind: "package", pkg: "com.foo", includeChild: false }, "com.foo");
+    const session = store.state.sessions.find((s) => s.id === id)!;
+    expect(session.visible.map((r) => r.line.seq)).toEqual([0]);
+    expect(pidSetOf(session.binding)).toEqual([10]);
+  });
+
+  it("进程索引更新后重建包名会话可见区", () => {
+    const store = wiredStore();
+    push("S1", [mk(0, { pid: 42, msg: "after-rebind" })]);
+    const id = store.createSession({ kind: "package", pkg: "com.foo", includeChild: false }, "com.foo");
+    expect(store.state.sessions.find((s) => s.id === id)!.visible).toHaveLength(0);
+    mocks.processIndexHandlers.at(-1)?.({
+      serial: "S1",
+      entries: [{ pid: 42, name: "com.foo" }],
+      degraded: false,
+    });
+    expect(store.state.sessions.find((s) => s.id === id)!.visible.map((r) => r.line.msg)).toEqual(["after-rebind"]);
   });
 });

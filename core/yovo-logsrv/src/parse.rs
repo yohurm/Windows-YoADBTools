@@ -12,6 +12,7 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
         ts: String::new(),
         pid: 0,
         tid: 0,
+        uid: None,
         level: '?',
         tag: String::new(),
         msg: raw.to_string(),
@@ -39,12 +40,14 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
     let is_level_token = |s: &str| -> bool {
         matches!(s.as_bytes().first(), Some(b'V' | b'D' | b'I' | b'W' | b'E' | b'F' | b'v' | b'd' | b'i' | b'w' | b'e' | b'f'))
     };
-    let (pid, tid, level_tag) = match tokens.as_slice() {
-        [_, pid_str, tid_str, level_first, rest @ ..]
-            if pid_str.parse::<u32>().is_ok()
+    let (pid, tid, uid, level_tag) = match tokens.as_slice() {
+        [uid_str, pid_str, tid_str, level_first, rest @ ..]
+            if uid_str.parse::<u32>().is_ok()
+                && pid_str.parse::<u32>().is_ok()
                 && tid_str.parse::<u32>().is_ok()
                 && is_level_token(level_first) =>
         {
+            let uid = uid_str.parse().ok();
             let pid = pid_str.parse().unwrap_or(0);
             let tid = tid_str.parse().unwrap_or(0);
             let mut level_tag = (*level_first).to_string();
@@ -52,7 +55,7 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
                 level_tag.push(' ');
                 level_tag.push_str(&rest.join(" "));
             }
-            (pid, tid, level_tag)
+            (pid, tid, uid, level_tag)
         }
         [pid_str, tid_str, level_first, rest @ ..]
             if pid_str.parse::<u32>().is_ok() && tid_str.parse::<u32>().is_ok() && is_level_token(level_first) =>
@@ -64,7 +67,7 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
                 level_tag.push(' ');
                 level_tag.push_str(&rest.join(" "));
             }
-            (pid, tid, level_tag)
+            (pid, tid, None, level_tag)
         }
         _ => return fallback(),
     };
@@ -84,7 +87,7 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
         None => (String::new(), after_level.trim_start().to_string()),
     };
 
-    LogLine { seq: 0, ts, pid, tid, level, tag, msg }
+    LogLine { seq: 0, ts, pid, tid, uid, level, tag, msg }
 }
 
 #[cfg(test)]
@@ -134,6 +137,7 @@ mod tests {
     #[test]
     fn parses_optional_uid_column() {
         let line = parse_threadtime("05-26 11:02:36.886  1000  5689  5689 D AndroidRuntime: CheckJNI is OFF");
+        assert_eq!(line.uid, Some(1000));
         assert_eq!(line.pid, 5689);
         assert_eq!(line.tid, 5689);
         assert_eq!(line.level, 'D');

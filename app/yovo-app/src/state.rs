@@ -50,8 +50,6 @@ pub struct AppState {
     pub group_next: AtomicU32,
     /// 已加载命令库缓存
     pub library: Mutex<CommandLibrary>,
-    /// 进程索引取消令牌（serial → token）
-    pub index_cancels: Mutex<HashMap<String, CancellationToken>>,
     /// 采集任务登记（serial → 任务 id）
     pub capture_tasks: Mutex<HashMap<String, u32>>,
     /// 传输取消令牌（transfer id → token）
@@ -59,4 +57,18 @@ pub struct AppState {
     pub transfer_next: AtomicU32,
     /// 当前目录列举取消令牌（新 list 取消上一趟，防过期结果覆盖）
     pub browse_cancel: Mutex<CancellationToken>,
+}
+
+impl AppState {
+    /// 采集任务随 CaptureState::Stopped 收敛；重复调用幂等。
+    pub fn finish_capture_task(&self, serial: &str) {
+        if let Some(task_id) = self
+            .capture_tasks
+            .lock()
+            .expect("capture lock poisoned")
+            .remove(serial)
+        {
+            self.tasks.finish(task_id);
+        }
+    }
 }

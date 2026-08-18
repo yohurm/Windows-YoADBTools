@@ -187,7 +187,7 @@
   flex-shrink: 0;
 }
 
-/* ===== 会话状态行（采集指示·设备·缓冲·可见·信号·进程索引·滞后回补） ===== */
+/* ===== 会话状态行（采集指示·设备·行数·信号·滞后回补） ===== */
 
 .yovo-logs__status {
   display: flex;
@@ -226,7 +226,7 @@
   font-weight: var(--yovo-font-weight-semibold);
 }
 
-/* ===== 空态 / 会话菜单 / 新建会话 ===== */
+/* ===== 空态 / 新建会话表单 ===== */
 
 .yovo-logs__empty {
   display: flex;
@@ -237,42 +237,33 @@
   height: 100%;
 }
 
-.yovo-logs__menu {
-  position: fixed;
-  z-index: 1200;
-  display: flex;
-  flex-direction: column;
-  min-width: 120px;
-  padding: var(--yovo-space-xs);
-  background: var(--yovo-surface);
-  border: 1px solid var(--yovo-border);
-  border-radius: var(--yovo-radius-sm);
-  box-shadow: var(--yovo-shadow-overlay);
-}
-
-.yovo-logs__menu-item {
-  border: none;
-  background: transparent;
-  color: var(--yovo-fg);
-  text-align: left;
-  padding: var(--yovo-space-xs) var(--yovo-space-sm);
-  border-radius: var(--yovo-radius-xs);
-  cursor: pointer;
-  font-size: var(--yovo-font-body);
-  font-family: var(--yovo-font-sans);
-}
-
-.yovo-logs__menu-item:hover {
-  background: var(--yovo-nav-hover);
-}
-
-.yovo-logs__menu-item:focus-visible {
-  outline: 2px solid var(--yovo-focus-ring);
-  outline-offset: -1px;
-}
-
 .yovo-logs__new {
   display: flex;
   flex-direction: column;
+  gap: var(--yovo-space-md);
+}
+
+.yovo-logs__field {
+  display: flex;
+  flex-direction: column;
   gap: var(--yovo-space-sm);
+}
+
+.yovo-logs__label {
+  font-size: var(--yovo-font-caption);
+  color: var(--yovo-fg-2);
+}
+
+.yovo-logs__new-hint,
+.yovo-logs__new-error {
+  margin: 0;
+  font-size: var(--yovo-font-caption);
+}
+
+.yovo-logs__new-hint {
+  color: var(--yovo-fg-2);
+}
+
+.yovo-logs__new-error {
+  color: var(--yovo-error);
 }

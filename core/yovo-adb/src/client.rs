@@ -147,6 +147,29 @@ impl AdbClient {
         Ok(())
     }
 
+    /// 一次性转储设备 logcat 缓冲（`logcat -d`），不跟流。
+    ///
+    /// 预留给后续「拉历史缓冲」能力；当前 UI 不调用。
+    pub async fn dump_log(&self, serial: &str, cancel: CancellationToken) -> Result<Vec<String>, AdbError> {
+        let out = self
+            .run(
+                serial,
+                &["logcat".into(), "-d".into(), "-v".into(), "threadtime,uid".into()],
+                Some(30_000),
+                cancel,
+            )
+            .await?;
+        if out.exit_code != 0 {
+            return Err(AdbError::BadExit { exit_code: out.exit_code, stderr: out.stderr });
+        }
+        Ok(out
+            .stdout
+            .lines()
+            .filter(|line| !line.is_empty())
+            .map(str::to_string)
+            .collect())
+    }
+
     /// 浏览设备目录。
     pub async fn ls(
         &self,

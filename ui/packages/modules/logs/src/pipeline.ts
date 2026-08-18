@@ -4,7 +4,7 @@
  * + 信号扫描（崩溃/ANR）+ 堆叠折叠（显示层）。
  */
 
-import type { LogBatch, LogLine, ProcessEntry } from "@yovo/api";
+import type { LogBatch, LogFilter, LogLine, ProcessEntry } from "@yovo/api";
 
 // ===== 级别 =====
 
@@ -33,7 +33,7 @@ export interface SessionFilter {
   pidSet: number[];
 }
 
-/** 单行匹配（与 core yovo-protocol::LogFilter 语义一致）。 */
+/** 单行匹配（与 core yovo-protocol::LogFilter 语义一致：空 package pids = 无命中）。 */
 export function matchesLine(line: LogLine, f: SessionFilter): boolean {
   if (f.minLevel !== null && levelRank(line.level) < levelRank(f.minLevel)) {
     return false;
@@ -61,40 +61,84 @@ export function matchesLine(line: LogLine, f: SessionFilter): boolean {
 
 export const HISTORY_PID_CAP = 8;
 
-export class PidBinding {
-  private current: number[] = [];
-  private history: number[] = [];
+/** 包名会话的 PID 绑定（纯数据；历史集上限默认 8）。 */
+export interface PidBinding {
+  current: number[];
+  history: number[];
+}
 
-  constructor(private readonly historyCap: number = HISTORY_PID_CAP) {}
+export function emptyBinding(): PidBinding {
+  return { current: [], history: [] };
+}
 
-  /** 用进程索引重绑；返回新的 pidSet（current ∪ history）。 */
-  rebind(index: readonly ProcessEntry[], pkg: string, includeChild: boolean): number[] {
-    this.current = index
-      .filter((e) =>
-        includeChild ? e.name === pkg || e.name.startsWith(`${pkg}:`) : e.name === pkg,
-      )
-      .map((e) => e.pid);
-    for (const pid of this.current) {
-      if (!this.history.includes(pid)) this.history.push(pid);
-    }
-    if (this.history.length > this.historyCap) {
-      this.history = this.history.slice(this.history.length - this.historyCap);
-    }
-    return this.pidSet();
+export function copyBinding(binding: PidBinding): PidBinding {
+  return { current: [...binding.current], history: [...binding.history] };
+}
+
+/** 用进程索引重绑；current ∪ history，历史只保留最近 cap 个。 */
+export function rebindPids(
+  prev: PidBinding,
+  index: readonly ProcessEntry[],
+  pkg: string,
+  includeChild: boolean,
+  historyCap: number = HISTORY_PID_CAP,
+): PidBinding {
+  const current = index
+    .filter((e) => (includeChild ? e.name === pkg || e.name.startsWith(`${pkg}:`) : e.name === pkg))
+    .map((e) => e.pid);
+  let history = [...prev.history];
+  for (const pid of current) {
+    if (!history.includes(pid)) history.push(pid);
   }
-
-  pidSet(): number[] {
-    return [...new Set([...this.current, ...this.history])];
+  if (history.length > historyCap) {
+    history = history.slice(history.length - historyCap);
   }
+  return { current, history };
+}
 
-  /** 当前绑定的 PID（无历史）。 */
-  currentPids(): number[] {
-    return [...this.current];
-  }
+export function pidSetOf(binding: PidBinding): number[] {
+  return [...new Set([...binding.current, ...binding.history])];
+}
 
-  clear(): void {
-    this.current = [];
-    this.history = [];
+export function toSessionFilter(input: {
+  minLevel: string | null;
+  tagContains: string;
+  keyword: string;
+  scope: SessionScope;
+  binding: PidBinding;
+}): SessionFilter {
+  return {
+    minLevel: input.minLevel,
+    tagContains: input.tagContains,
+    keyword: input.keyword,
+    scope: input.scope,
+    pidSet: pidSetOf(input.binding),
+  };
+}
+
+/** 导出/回补用的 wire 过滤：空 package pids = 无命中。 */
+export function toWireFilter(input: {
+  minLevel: string | null;
+  tagContains: string;
+  keyword: string;
+  scope: SessionScope;
+  binding: PidBinding;
+}): LogFilter {
+  const min_level = input.minLevel ?? undefined;
+  const tag_contains = input.tagContains || undefined;
+  const message_contains = input.keyword || undefined;
+  switch (input.scope.kind) {
+    case "all":
+      return { min_level, tag_contains, message_contains, scope: { kind: "all" } };
+    case "pid":
+      return { min_level, tag_contains, message_contains, scope: { kind: "pid", pid: input.scope.pid } };
+    case "package":
+      return {
+        min_level,
+        tag_contains,
+        message_contains,
+        scope: { kind: "package", pids: pidSetOf(input.binding) },
+      };
   }
 }
 
@@ -156,7 +200,7 @@ export class RingMirror {
   private buf: LogLine[] = [];
   private lastSeq = -1;
 
-  constructor(private readonly capacity: number) {}
+  constructor(private capacity: number) {}
 
   /** 合并一个批次（按 seq 去重，容忍乱序重放）。 */
   pushBatch(batch: LogBatch): number {
@@ -194,5 +238,12 @@ export class RingMirror {
 
   lastSeqNumber(): number {
     return this.lastSeq;
+  }
+
+  setCapacity(capacity: number): void {
+    this.capacity = Math.max(1, capacity);
+    if (this.buf.length > this.capacity) {
+      this.buf.splice(0, this.buf.length - this.capacity);
+    }
   }
 }

@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { AppEvent, LogLine, RemoteEntry } from "./types";
+import type { AppEvent, LogFilter, LogLine, RemoteEntry, TransferRequest } from "./types";
 
 describe("wire 契约：与 yovo-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -26,6 +26,31 @@ describe("wire 契约：与 yovo-protocol serde 输出一致", () => {
       level: "I",
       tag: "T",
       msg: "m",
+    });
+  });
+
+  it("LogLine.uid 缺省时不出现在 JSON", () => {
+    const withUid: LogLine = {
+      seq: 1,
+      ts: "01-02 03:04:05.678",
+      pid: 1234,
+      tid: 5678,
+      uid: 1000,
+      level: "I",
+      tag: "T",
+      msg: "m",
+    };
+    expect(JSON.parse(JSON.stringify(withUid)).uid).toBe(1000);
+  });
+
+  it("LogFilter.scope 内部 tag 为 camelCase kind", () => {
+    const filter: LogFilter = {
+      min_level: "W",
+      scope: { kind: "package", pids: [1, 2] },
+    };
+    expect(JSON.parse(JSON.stringify(filter))).toEqual({
+      min_level: "W",
+      scope: { kind: "package", pids: [1, 2] },
     });
   });
 
@@ -64,6 +89,15 @@ describe("wire 契约：与 yovo-protocol serde 输出一致", () => {
       serial: "s1",
       entries: [{ pid: 123, name: "com.foo" }],
       degraded: false,
+    });
+  });
+
+  it("TransferRequest 无 id/direction", () => {
+    const req: TransferRequest = { serial: "S", local: "C:/a.bin", remote: "/sdcard/a.bin" };
+    expect(JSON.parse(JSON.stringify(req))).toEqual({
+      serial: "S",
+      local: "C:/a.bin",
+      remote: "/sdcard/a.bin",
     });
   });
 });

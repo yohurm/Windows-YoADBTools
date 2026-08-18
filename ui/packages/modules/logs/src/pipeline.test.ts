@@ -3,13 +3,16 @@ import { describe, expect, it } from "vitest";
 import type { LogLine } from "@yovo/api";
 
 import {
-  PidBinding,
   RingMirror,
   SessionFilter,
   collapseStack,
+  emptyBinding,
   levelRank,
   matchesLine,
+  pidSetOf,
+  rebindPids,
   scanSignal,
+  toWireFilter,
 } from "./pipeline";
 
 const line = (over: Partial<LogLine>): LogLine => ({
@@ -76,39 +79,61 @@ describe("PidBinding 包名重绑（含历史集）", () => {
   ];
 
   it("精确进程名（不含子进程）", () => {
-    const b = new PidBinding();
-    expect(b.rebind(index, "com.foo", false)).toEqual([10]);
+    const b = rebindPids(emptyBinding(), index, "com.foo", false);
+    expect(pidSetOf(b)).toEqual([10]);
   });
 
   it("包含子进程前缀匹配", () => {
-    const b = new PidBinding();
-    expect(b.rebind(index, "com.foo", true)).toEqual([10, 11]);
+    const b = rebindPids(emptyBinding(), index, "com.foo", true);
+    expect(pidSetOf(b)).toEqual([10, 11]);
   });
 
   it("崩溃重启后保留历史 PID（当前在前，历史在后）", () => {
-    const b = new PidBinding();
-    b.rebind(index, "com.foo", false);
-    b.rebind([{ pid: 99, name: "com.foo" }], "com.foo", false);
-    expect(b.pidSet()).toEqual([99, 10]);
-    expect(b.currentPids()).toEqual([99]);
+    const first = rebindPids(emptyBinding(), index, "com.foo", false);
+    const b = rebindPids(first, [{ pid: 99, name: "com.foo" }], "com.foo", false);
+    expect(pidSetOf(b)).toEqual([99, 10]);
+    expect(b.current).toEqual([99]);
   });
 
   it("历史集上限", () => {
-    const b = new PidBinding(3);
+    let b = emptyBinding();
     for (let pid = 1; pid <= 10; pid++) {
-      b.rebind([{ pid, name: "com.foo" }], "com.foo", false);
+      b = rebindPids(b, [{ pid, name: "com.foo" }], "com.foo", false, 3);
     }
-    const set = b.pidSet();
+    const set = pidSetOf(b);
     expect(set).toHaveLength(3);
-    expect(set[0]).toBe(10); // 当前 PID 恒在最前
-    expect(set.slice(1).sort()).toEqual([8, 9]); // 历史仅保留最近 2 个
+    expect(set[0]).toBe(10);
+    expect(set.slice(1).sort()).toEqual([8, 9]);
   });
 
-  it("clear 清空", () => {
-    const b = new PidBinding();
-    b.rebind(index, "com.foo", true);
-    b.clear();
-    expect(b.pidSet()).toEqual([]);
+  it("空绑定无命中", () => {
+    expect(pidSetOf(emptyBinding())).toEqual([]);
+  });
+
+  it("toWireFilter：空 package pids 与 pid 作用域", () => {
+    expect(
+      toWireFilter({
+        minLevel: "W",
+        tagContains: "",
+        keyword: "",
+        scope: { kind: "package", pkg: "com.none", includeChild: false },
+        binding: emptyBinding(),
+      }),
+    ).toEqual({
+      min_level: "W",
+      tag_contains: undefined,
+      message_contains: undefined,
+      scope: { kind: "package", pids: [] },
+    });
+    expect(
+      toWireFilter({
+        minLevel: null,
+        tagContains: "",
+        keyword: "",
+        scope: { kind: "pid", pid: 42 },
+        binding: emptyBinding(),
+      }).scope,
+    ).toEqual({ kind: "pid", pid: 42 });
   });
 });
 
@@ -182,5 +207,18 @@ describe("RingMirror 共享缓冲镜像", () => {
     expect(m.size()).toBe(0);
     expect(m.lastSeqNumber()).toBe(-1);
     expect(m.pushBatch({ serial: "s", from_seq: 0, truncated: false, lines: [line({ seq: 0 })] })).toBe(1);
+  });
+
+  it("setCapacity 裁剪过长缓冲", () => {
+    const m = new RingMirror(10);
+    m.pushBatch({
+      serial: "s",
+      from_seq: 0,
+      truncated: false,
+      lines: [0, 1, 2, 3, 4].map((seq) => line({ seq })),
+    });
+    m.setCapacity(2);
+    expect(m.size()).toBe(2);
+    expect(m.replay(() => true, 10).map((l) => l.seq)).toEqual([3, 4]);
   });
 });

@@ -20,6 +20,7 @@ import type {
   GroupRunRequest,
   LogBatch,
   PathOpRequest,
+  ProcessEntry,
   ReplayRequest,
   RemoteEntry,
   SettingKey,
@@ -95,6 +96,12 @@ export const logClearDevice = (serial: string) =>
 export const logReplay = (req: ReplayRequest) => invoke<LogBatch>("log.replay", { req });
 
 export const logExport = (req: ExportRequest) => invoke<ExportResult>("log.export", { req });
+
+export const logProcessSnapshot = (serial: string) =>
+  invoke<ProcessEntry[]>("log.processSnapshot", { serial });
+
+/** 预留：把设备 logcat 缓冲写入 core 环。功能面板不调用。 */
+export const logDump = (serial: string) => invoke<number>("log.dump", { serial });
 
 // ===== settings =====
 

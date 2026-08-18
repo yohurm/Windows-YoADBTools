@@ -142,6 +142,7 @@ mod tests {
             ts: "01-01 00:00:00.000".into(),
             pid: 1,
             tid: 1,
+            uid: None,
             level: 'I',
             tag: "T".into(),
             msg: format!("line {i}"),

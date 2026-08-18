@@ -48,6 +48,8 @@ vi.mock("@yovo/api", () => {
     logClearDevice: notConfigured,
     logReplay: notConfigured,
     logExport: notConfigured,
+    logProcessSnapshot: notConfigured,
+    logDump: notConfigured,
     onDevicesChanged: noop,
     onDeviceOffline: noop,
     onLogBatch: noop,

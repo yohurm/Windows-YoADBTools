@@ -1,9 +1,10 @@
 //! 事件分发：core 事件 → Tauri emit（事件名由 AppEvent::name() 决定）。
 
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
 
-use yovo_protocol::AppEvent;
+use crate::state::AppState;
+use yovo_protocol::{AppEvent, CaptureState};
 
 /// 启动分发循环（app 层唯一的事件出口）。
 ///
@@ -16,6 +17,11 @@ pub fn spawn_dispatcher(
     tauri::async_runtime::spawn(async move {
         let mut rx = rx;
         while let Some(event) = rx.recv().await {
+            if let AppEvent::CaptureState { serial, state: CaptureState::Stopped } = &event {
+                if let Some(app_state) = app.try_state::<AppState>() {
+                    app_state.finish_capture_task(serial);
+                }
+            }
             let name = event.name();
             let _ = app.emit(name, &event);
         }

@@ -69,6 +69,13 @@ const THREE_LINES_SCRIPT: &str = r#"{
     "logcat_delay_ms": 5
 }"#;
 
+async fn wait_ring_lines(service: &Arc<CaptureService>, serial: &str, want: usize) {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
+    while service.ring(serial).len() < want && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
 async fn collect_lines(rx: &mut mpsc::Receiver<AppEvent>, want: usize) -> Vec<yovo_protocol::LogLine> {
     let mut lines = Vec::new();
     let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
@@ -112,7 +119,7 @@ async fn stop_keeps_ring_and_clear_empties() {
     let (service, _rx) = build_service(isolated_fake_adb(THREE_LINES_SCRIPT));
 
     service.start("R58M1234A", false).await.expect("开始采集");
-    tokio::time::sleep(Duration::from_millis(300)).await;
+    wait_ring_lines(&service, "R58M1234A", 1).await;
     service.stop("R58M1234A").await;
     assert!(!service.is_capturing("R58M1234A"));
 
@@ -124,11 +131,29 @@ async fn stop_keeps_ring_and_clear_empties() {
 }
 
 #[tokio::test]
-async fn start_is_idempotent_per_device() {
+async fn start_rejects_while_live() {
     let (service, _rx) = build_service(isolated_fake_adb(THREE_LINES_SCRIPT));
     service.start("R58M1234A", false).await.expect("首次开始");
     let err = service.start("R58M1234A", false).await;
     assert!(err.is_err(), "同设备重复开始应被拒绝");
+    service.stop("R58M1234A").await;
+}
+
+#[tokio::test]
+async fn start_after_follow_ends_opens_new_stream() {
+    let (service, _rx) = build_service(isolated_fake_adb(THREE_LINES_SCRIPT));
+    service.start("R58M1234A", false).await.expect("首次开始");
+    wait_ring_lines(&service, "R58M1234A", 3).await;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
+    while service.is_capturing("R58M1234A") && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(!service.is_capturing("R58M1234A"), "流自然结束后槽位必须释放");
+    service
+        .start("R58M1234A", false)
+        .await
+        .expect("流结束后应能再次开始");
+    assert!(service.is_capturing("R58M1234A"));
     service.stop("R58M1234A").await;
 }
 
@@ -177,7 +202,7 @@ async fn cancel_stops_long_running_stream() {
     let (service, _rx) = build_service(exe);
 
     service.start("R58M1234A", false).await.expect("开始采集");
-    tokio::time::sleep(Duration::from_millis(150)).await;
+    wait_ring_lines(&service, "R58M1234A", 1).await;
     assert!(service.is_capturing("R58M1234A"));
 
     service.stop("R58M1234A").await;
@@ -189,11 +214,40 @@ async fn cancel_stops_long_running_stream() {
 async fn detach_device_stops_and_clears() {
     let (service, _rx) = build_service(isolated_fake_adb(THREE_LINES_SCRIPT));
     service.start("R58M1234A", false).await.expect("开始采集");
-    tokio::time::sleep(Duration::from_millis(300)).await;
+    wait_ring_lines(&service, "R58M1234A", 1).await;
 
     service.detach_device("R58M1234A").await;
     assert!(!service.is_capturing("R58M1234A"));
     assert!(service.ring("R58M1234A").is_empty(), "切换/掉线清缓冲（防串设备）");
+}
+
+#[tokio::test]
+async fn process_snapshot_reads_ps() {
+    let exe = isolated_fake_adb(
+        r#"{ "ps": "PID NAME\n1234 com.yovo.app\n5678 com.yovo.app:core\n" }"#,
+    );
+    let (service, _rx) = build_service(exe);
+    let entries = service.process_snapshot("R58M1234A").await.expect("ps");
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0].pid, 1234);
+    assert_eq!(entries[0].name, "com.yovo.app");
+}
+
+#[tokio::test]
+async fn dump_into_ring_ingests_logcat_d() {
+    let (service, _rx) = build_service(isolated_fake_adb(
+        r#"{
+            "logcat_lines": [
+                "--------- beginning of main",
+                "01-02 03:04:05.678  1234  5678 I TestTag: dumped"
+            ],
+            "logcat_delay_ms": 0
+        }"#,
+    ));
+    let added = service.dump_into_ring("R58M1234A").await.expect("dump");
+    assert_eq!(added, 1);
+    let snap = service.ring("R58M1234A").snapshot(0, 10);
+    assert_eq!(snap[0].msg, "dumped");
 }
 
 #[tokio::test]
