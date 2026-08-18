@@ -11,7 +11,7 @@
   height: var(--yovo-control-height);
   min-width: calc(var(--yovo-space-xl) * 5);
   padding: 0 var(--yovo-space-sm);
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
   background-color: var(--yovo-surface);
   color: var(--yovo-fg);
@@ -23,11 +23,6 @@
 
 .yovo-select__trigger:not(:disabled):hover {
   border-color: var(--yovo-splitter-hover);
-}
-
-.yovo-select__trigger:focus-visible {
-  outline: 2px solid var(--yovo-focus-ring);
-  outline-offset: 1px;
 }
 
 .yovo-select__value {
@@ -51,7 +46,7 @@
   margin: var(--yovo-space-xs) 0 0;
   padding: var(--yovo-space-xs) 0;
   list-style: none;
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
   background-color: var(--yovo-surface);
   max-height: calc(var(--yovo-space-xl) * 10);
@@ -68,17 +63,8 @@
   text-overflow: ellipsis;
 }
 
-.yovo-select__option:hover {
-  background-color: var(--yovo-nav-hover);
-}
-
 .yovo-select__option--selected {
   color: var(--yovo-accent);
-  background-color: var(--yovo-accent-soft);
-}
-
-.yovo-select__option--active {
-  background-color: var(--yovo-nav-hover);
 }
 
 .yovo-select--disabled .yovo-select__trigger {

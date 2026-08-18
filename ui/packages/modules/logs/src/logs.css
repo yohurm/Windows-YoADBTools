@@ -24,7 +24,7 @@
   flex: 1;
   min-height: 0;
   background: var(--yovo-surface);
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
   overflow: hidden;
 }
@@ -36,7 +36,7 @@
   align-items: center;
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
-  border-bottom: 1px solid var(--yovo-border);
+  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
   flex-shrink: 0;
   min-width: 0;
 }
@@ -75,16 +75,25 @@
   font-size: var(--yovo-font-caption);
   color: var(--yovo-accent);
   background: var(--yovo-accent-soft);
-  padding: 2px var(--yovo-space-sm);
+  padding: var(--yovo-space-2xs) var(--yovo-space-sm);
   border-radius: var(--yovo-radius-sm);
 }
 
 /* ===== 虚拟化日志列表 ===== */
 
 .yovo-logs__list {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+/* 离开底部：只计数不跟滚（Entangle jump-to-bottom / Qovery new-logs） */
+.yovo-logs__pending {
+  position: absolute;
+  right: var(--yovo-space-md);
+  bottom: var(--yovo-space-md);
+  z-index: 1;
 }
 
 .yovo-logs__row {
@@ -96,18 +105,13 @@
   font-family: var(--yovo-font-mono);
   font-size: var(--yovo-font-caption);
   font-variant-numeric: tabular-nums;
-  border-bottom: 1px solid var(--yovo-border);
-  border-left: 3px solid transparent;
+  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  border-left: var(--yovo-stroke-emphasis) solid transparent;
   white-space: nowrap;
   box-sizing: border-box;
 }
 
-/* 行交互：hover 弱强调底（accent-soft 稀释）；日志行不动效 */
-.yovo-logs__row:hover {
-  background-color: color-mix(in srgb, var(--yovo-accent-soft) 40%, transparent);
-}
-
-/* 信号行（崩溃/ANR）：信号底色 + Error 左条 */
+/* 信号行（崩溃/ANR）：信号底色 + Error 左条；行 hover/选中由 YoVirtualList.yovo-interactive 承担 */
 .yovo-logs__row--signal {
   background-color: var(--yovo-signal-bg);
   border-left-color: var(--yovo-error);
@@ -130,13 +134,13 @@
 
 .yovo-logs__row-pid {
   color: var(--yovo-fg-2);
-  min-width: 48px;
+  min-width: 5ch;
   text-align: right;
   flex-shrink: 0;
 }
 
 .yovo-logs__row-level {
-  min-width: 14px;
+  min-width: 2ch;
   font-weight: var(--yovo-font-weight-semibold);
   flex-shrink: 0;
   text-align: center;
@@ -153,8 +157,8 @@
 .yovo-logs__level--f {
   color: var(--yovo-level-f);
   background-color: var(--yovo-level-f-bg);
-  border-radius: 2px;
-  padding: 0 2px;
+  border-radius: var(--yovo-radius-2xs);
+  padding: 0 var(--yovo-space-2xs);
 }
 
 .yovo-logs__level--dim { color: var(--yovo-fg-3); }
@@ -177,8 +181,8 @@
 .yovo-logs__mark {
   background: var(--yovo-warn-bg);
   color: var(--yovo-fg);
-  border-radius: 2px;
-  padding: 0 2px;
+  border-radius: var(--yovo-radius-2xs);
+  padding: 0 var(--yovo-space-2xs);
 }
 
 .yovo-logs__row-fold {
@@ -194,7 +198,7 @@
   align-items: center;
   gap: var(--yovo-space-md);
   padding: var(--yovo-space-xs) var(--yovo-space-md);
-  border-top: 1px solid var(--yovo-border);
+  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
   font-size: var(--yovo-font-caption);
   color: var(--yovo-fg-2);
 }
@@ -208,7 +212,7 @@
 .yovo-logs__status-dot {
   width: var(--yovo-space-sm);
   height: var(--yovo-space-sm);
-  border-radius: 50%;
+  border-radius: var(--yovo-radius-full);
   background: var(--yovo-offline);
 }
 

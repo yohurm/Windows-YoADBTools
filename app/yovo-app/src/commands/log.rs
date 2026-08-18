@@ -11,7 +11,9 @@ use yovo_protocol::{
 
 #[tauri::command(rename = "log.capture.start")]
 pub async fn log_capture_start(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
-    let clear = state.settings.snapshot().clear_device_on_start;
+    let snap = state.settings.snapshot();
+    state.capture.set_ring_capacity(snap.buffer_capacity);
+    let clear = snap.clear_device_on_start;
     match state.capture.start(&serial, clear).await {
         Ok(()) => {}
         Err(LogError::AlreadyRunning) => {

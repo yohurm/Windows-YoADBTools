@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
-import { YSelect } from "./Select";
+import { YoSelect } from "./Select";
 
 const OPTIONS = [
   { value: "a", label: "选项A" },
@@ -8,10 +8,10 @@ const OPTIONS = [
   { value: "c", label: "选项C" },
 ];
 
-describe("YSelect", () => {
+describe("YoSelect", () => {
   it("点击展开并选择选项（onChange + 关闭）", () => {
     const onChange = vi.fn();
-    render(() => <YSelect options={OPTIONS} placeholder="请选择" onChange={onChange} />);
+    render(() => <YoSelect options={OPTIONS} placeholder="请选择" onChange={onChange} />);
     fireEvent.click(screen.getByRole("button", { name: /请选择/ }));
     expect(screen.getByRole("listbox")).toBeTruthy();
     fireEvent.click(screen.getByText("选项B"));
@@ -20,12 +20,12 @@ describe("YSelect", () => {
   });
 
   it("显示当前选中值", () => {
-    render(() => <YSelect options={OPTIONS} value="c" />);
+    render(() => <YoSelect options={OPTIONS} value="c" />);
     expect(screen.getByText("选项C")).toBeTruthy();
   });
 
   it("Esc 关闭下拉", () => {
-    render(() => <YSelect options={OPTIONS} placeholder="请选择" />);
+    render(() => <YoSelect options={OPTIONS} placeholder="请选择" />);
     fireEvent.click(screen.getByRole("button"));
     expect(screen.getByRole("listbox")).toBeTruthy();
     fireEvent.keyDown(document, { key: "Escape" });
@@ -33,7 +33,7 @@ describe("YSelect", () => {
   });
 
   it("点击外部关闭下拉", () => {
-    render(() => <YSelect options={OPTIONS} placeholder="请选择" />);
+    render(() => <YoSelect options={OPTIONS} placeholder="请选择" />);
     fireEvent.click(screen.getByRole("button"));
     expect(screen.getByRole("listbox")).toBeTruthy();
     fireEvent.mouseDown(document.body);
@@ -42,7 +42,7 @@ describe("YSelect", () => {
 
   it("键盘：Enter 展开，↓ 移动活动项，Enter 提交", () => {
     const onChange = vi.fn();
-    render(() => <YSelect options={OPTIONS} value="a" placeholder="请选择" onChange={onChange} />);
+    render(() => <YoSelect options={OPTIONS} value="a" placeholder="请选择" onChange={onChange} />);
     const trigger = screen.getByRole("button");
     trigger.focus();
     fireEvent.keyDown(trigger, { key: "Enter" });
@@ -56,7 +56,7 @@ describe("YSelect", () => {
   });
 
   it("键盘：闭合态 ↓ 直接展开；Esc 关闭并回焦触发钮", () => {
-    render(() => <YSelect options={OPTIONS} placeholder="请选择" />);
+    render(() => <YoSelect options={OPTIONS} placeholder="请选择" />);
     const trigger = screen.getByRole("button");
     trigger.focus();
     fireEvent.keyDown(trigger, { key: "ArrowDown" });
@@ -67,7 +67,7 @@ describe("YSelect", () => {
   });
 
   it("键盘：Home/End 跳到首尾活动项", () => {
-    render(() => <YSelect options={OPTIONS} placeholder="请选择" />);
+    render(() => <YoSelect options={OPTIONS} placeholder="请选择" />);
     const trigger = screen.getByRole("button");
     trigger.focus();
     fireEvent.keyDown(trigger, { key: "ArrowDown" });

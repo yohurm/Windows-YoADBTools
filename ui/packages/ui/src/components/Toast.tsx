@@ -1,5 +1,5 @@
 /**
- * YToast / YToaster —— 轻量消息提示。
+ * YoToast / YoToaster —— 轻量消息提示。
  * `createToaster()` 工厂返回 `{ toasts, show }`；每条 toast 自动 2.5s 消失。
  * tone 决定左边框颜色：success=Success、error=Error、info=Accent。
  */
@@ -49,7 +49,7 @@ export function createToaster(): Toaster {
   return { toasts, show };
 }
 
-export interface YToastProps {
+export interface YoToastProps {
   /** 单条消息数据 */
   toast: ToastItem;
 }
@@ -57,7 +57,7 @@ export interface YToastProps {
 /**
  * 渲染单条 toast。
  */
-export function YToast(props: YToastProps): JSX.Element {
+export function YoToast(props: YoToastProps): JSX.Element {
   return (
     <div class="yovo-toast" classList={{ [`yovo-toast--${props.toast.tone}`]: true }} role="status">
       {props.toast.text}
@@ -65,7 +65,7 @@ export function YToast(props: YToastProps): JSX.Element {
   );
 }
 
-export interface YToasterProps {
+export interface YoToasterProps {
   /** toaster 实例 */
   toaster: Toaster;
 }
@@ -73,10 +73,10 @@ export interface YToasterProps {
 /**
  * 渲染 toaster 消息堆栈（右上角）。
  */
-export function YToaster(props: YToasterProps): JSX.Element {
+export function YoToaster(props: YoToasterProps): JSX.Element {
   return (
     <div class="yovo-toaster" role="region" aria-label="notifications">
-      <For each={props.toaster.toasts()}>{(toast) => <YToast toast={toast} />}</For>
+      <For each={props.toaster.toasts()}>{(toast) => <YoToast toast={toast} />}</For>
     </div>
   );
 }

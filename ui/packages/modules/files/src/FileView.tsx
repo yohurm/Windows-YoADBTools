@@ -6,7 +6,7 @@ import { For, Show, createEffect, createSignal } from "solid-js";
 
 import { open, save } from "@tauri-apps/plugin-dialog";
 import type { DeviceSession } from "@yovo/api";
-import { YButton, YContextMenu, YDialog, YEmptyState, YIconButton, YTextField, YToolbar, type YMenuItem } from "@yovo/ui";
+import { YoButton, YoContextMenu, YoDialog, YoEmptyState, YoIconButton, YoTextField, YoToolbar, type YoMenuItem } from "@yovo/ui";
 
 import { FileTable } from "./FileTable";
 import { PreviewPane } from "./PreviewPane";
@@ -29,7 +29,7 @@ function Breadcrumb() {
                   ▸
                 </span>
               </Show>
-              <button type="button" class="yovo-files__crumb" title={target()} onClick={() => void fileStore.goTo(target())}>
+              <button type="button" class="yovo-files__crumb yovo-interactive yovo-focus-ring" title={target()} onClick={() => void fileStore.goTo(target())}>
                 {segment}
               </button>
             </>
@@ -101,7 +101,7 @@ export function FileView(props: DeviceSession) {
     else void fileStore.createFile(name);
   };
 
-  const menuItems = (): YMenuItem[] => [
+  const menuItems = (): YoMenuItem[] => [
     { id: "new-file", label: "新建文件" },
     { id: "new-dir", label: "新建目录" },
     { id: "download", label: "下载", disabled: fileStore.singleFile() === undefined },
@@ -110,22 +110,22 @@ export function FileView(props: DeviceSession) {
 
   return (
     <div class="yovo-files">
-      <YToolbar>
+      <YoToolbar>
         <span class="yovo-module-title">文件管理</span>
-        <YButton onClick={() => void onUpload()}>上传</YButton>
-        <YButton variant="secondary" disabled={fileStore.singleFile() === undefined} onClick={() => void onDownload()}>
+        <YoButton onClick={() => void onUpload()}>上传</YoButton>
+        <YoButton variant="secondary" disabled={fileStore.singleFile() === undefined} onClick={() => void onDownload()}>
           下载
-        </YButton>
-        <YIconButton
+        </YoButton>
+        <YoIconButton
           icon="refresh"
           title="刷新"
           loading={fileStore.session.loading}
           onClick={() => void fileStore.refresh()}
         />
-        <YButton variant="ghost" onClick={() => fileStore.togglePreview()}>
+        <YoButton variant="ghost" onClick={() => fileStore.togglePreview()}>
           {fileStore.ui.previewOpen ? "收起预览" : "预览"}
-        </YButton>
-      </YToolbar>
+        </YoButton>
+      </YoToolbar>
 
       <Show when={fileStore.session.error}>
         <div class="yovo-files__error" role="alert">
@@ -134,7 +134,7 @@ export function FileView(props: DeviceSession) {
       </Show>
 
       <div class="yovo-files__path">
-        <YIconButton
+        <YoIconButton
           icon="chevron-up"
           title="上级目录"
           disabled={parentWithinSafety(fileStore.session.path) === null}
@@ -146,7 +146,7 @@ export function FileView(props: DeviceSession) {
       <div class="yovo-files__body">
         <Show
           when={props.focusSerial !== null}
-          fallback={<YEmptyState icon="folder" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
+          fallback={<YoEmptyState icon="folder" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
         >
           <div class="yovo-files__explorer">
             <FileTable onContextMenu={(x, y) => setMenu({ x, y })} />
@@ -156,7 +156,7 @@ export function FileView(props: DeviceSession) {
         <TransferPanel />
       </div>
 
-      <YContextMenu
+      <YoContextMenu
         open={menu() !== null}
         x={menu()?.x ?? 0}
         y={menu()?.y ?? 0}
@@ -171,44 +171,44 @@ export function FileView(props: DeviceSession) {
         }}
       />
 
-      <YDialog
+      <YoDialog
         open={() => deleteNames().length > 0}
         title="确认删除"
         width={420}
         onClose={() => setDeleteNames([])}
         footer={
           <>
-            <YButton variant="ghost" onClick={() => setDeleteNames([])}>
+            <YoButton variant="ghost" onClick={() => setDeleteNames([])}>
               取消
-            </YButton>
-            <YButton variant="danger" onClick={confirmDelete}>
+            </YoButton>
+            <YoButton variant="danger" onClick={confirmDelete}>
               删除
-            </YButton>
+            </YoButton>
           </>
         }
       >
         <p class="yovo-files__confirm">
           确定删除 <strong>{deleteNames().join("、")}</strong> 吗？该操作不可恢复。
         </p>
-      </YDialog>
+      </YoDialog>
 
-      <YDialog
+      <YoDialog
         open={() => createKind() !== null}
         title={createKind() === "dir" ? "新建目录" : "新建文件"}
         width={420}
         onClose={() => setCreateKind(null)}
         footer={
           <>
-            <YButton variant="ghost" onClick={() => setCreateKind(null)}>
+            <YoButton variant="ghost" onClick={() => setCreateKind(null)}>
               取消
-            </YButton>
-            <YButton onClick={confirmCreate} disabled={fileStore.session.mutating}>
+            </YoButton>
+            <YoButton onClick={confirmCreate} disabled={fileStore.session.mutating}>
               创建
-            </YButton>
+            </YoButton>
           </>
         }
       >
-        <YTextField
+        <YoTextField
           label="名称"
           value={createName()}
           onInput={(v) => {
@@ -220,7 +220,7 @@ export function FileView(props: DeviceSession) {
         <Show when={createError()}>
           <div class="yovo-files__error">{createError()}</div>
         </Show>
-      </YDialog>
+      </YoDialog>
     </div>
   );
 }

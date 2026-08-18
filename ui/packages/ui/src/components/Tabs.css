@@ -2,7 +2,7 @@
   display: flex;
   align-items: stretch;
   gap: var(--yovo-space-xs);
-  border-bottom: 1px solid var(--yovo-border);
+  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
   font-family: var(--yovo-font-sans);
   overflow-x: auto;
   box-sizing: border-box;
@@ -13,28 +13,15 @@
   align-items: center;
   gap: var(--yovo-space-xs);
   padding: 0 var(--yovo-space-md);
-  height: calc(var(--yovo-space-xl) + var(--yovo-space-sm));
-  border-bottom: 2px solid transparent;
+  height: var(--yovo-row-height-nav);
+  border-bottom: var(--yovo-stroke-accent) solid transparent;
   color: var(--yovo-fg-2);
   font-size: var(--yovo-font-body);
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
   box-sizing: border-box;
-  transition:
-    background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
-    color var(--yovo-dur-fast) var(--yovo-ease-standard),
-    border-bottom-color var(--yovo-dur-fast) var(--yovo-ease-standard);
-}
-
-.yovo-tabs__tab:hover {
-  background-color: var(--yovo-nav-hover);
-  color: var(--yovo-fg);
-}
-
-.yovo-tabs__tab:focus-visible {
-  outline: 2px solid var(--yovo-focus-ring);
-  outline-offset: -2px;
+  --yovo-ripple-inset: 0 0 var(--yovo-stroke-accent);
 }
 
 .yovo-tabs__tab--active {
@@ -52,7 +39,7 @@
   flex: none;
   width: var(--yovo-space-sm);
   height: var(--yovo-space-sm);
-  border-radius: 50%;
+  border-radius: var(--yovo-radius-full);
 }
 
 .yovo-tabs__dot--neutral {
@@ -75,42 +62,37 @@
   background-color: var(--yovo-error);
 }
 
-.yovo-tabs__close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
-  height: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
-  padding: 0;
-  border: none;
-  border-radius: var(--yovo-radius-sm);
-  background: transparent;
-  color: var(--yovo-fg-3);
-  cursor: pointer;
-}
-
-.yovo-tabs__close:hover {
-  background-color: var(--yovo-signal-bg);
-  color: var(--yovo-error);
-}
-
+.yovo-tabs__close,
 .yovo-tabs__new {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: center;
-  width: calc(var(--yovo-space-xl) + var(--yovo-space-xs));
-  height: calc(var(--yovo-space-xl) + var(--yovo-space-xs));
-  margin-left: var(--yovo-space-xs);
   padding: 0;
   border: none;
   border-radius: var(--yovo-radius-sm);
   background: transparent;
-  color: var(--yovo-fg-2);
   cursor: pointer;
+  --yovo-ripple-inset: 0;
+}
+
+.yovo-tabs__close {
+  width: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
+  height: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
+  color: var(--yovo-fg-3);
+}
+
+.yovo-tabs__close:hover {
+  color: var(--yovo-error);
+}
+
+.yovo-tabs__new {
+  align-self: center;
+  width: calc(var(--yovo-space-xl) + var(--yovo-space-xs));
+  height: calc(var(--yovo-space-xl) + var(--yovo-space-xs));
+  margin-left: var(--yovo-space-xs);
+  color: var(--yovo-fg-2);
 }
 
 .yovo-tabs__new:hover {
-  background-color: var(--yovo-nav-hover);
   color: var(--yovo-accent);
 }

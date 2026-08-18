@@ -1,5 +1,5 @@
 /**
- * YDialog —— 模态对话框（对齐 Kobalte Dialog 可达性模型）。
+ * YoDialog —— 模态对话框（对齐 Kobalte Dialog 可达性模型）。
  *
  * 可达性：
  * - `role=dialog aria-modal`；打开后焦点移入面板（优先首个可聚焦元素）
@@ -13,7 +13,7 @@ import { Show, createEffect, onCleanup } from "solid-js";
 import type { Accessor, JSX } from "solid-js";
 import "./Dialog.css";
 
-export interface YDialogProps {
+export interface YoDialogProps {
   /** 是否打开（布尔值或响应式访问器） */
   open: boolean | Accessor<boolean>;
   /** 标题 */
@@ -41,7 +41,7 @@ function focusables(container: HTMLElement): HTMLElement[] {
 /**
  * 渲染一个带遮罩的模态对话框。
  */
-export function YDialog(props: YDialogProps): JSX.Element {
+export function YoDialog(props: YoDialogProps): JSX.Element {
   const isOpen = (): boolean => (typeof props.open === "function" ? props.open() : props.open);
 
   let panel: HTMLDivElement | undefined;

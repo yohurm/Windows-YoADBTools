@@ -5,7 +5,7 @@
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { YBadge, YButton, YCheckbox, YDialog, YIconButton, YPanel, YTextField, YToolbar } from "@yovo/ui";
+import { YoBadge, YoButton, YoCheckbox, YoDialog, YoIconButton, YoPanel, YoTextField, YoToolbar } from "@yovo/ui";
 
 import type { CommandLibraryDto } from "@yovo/api";
 import { terminalStore } from "./store";
@@ -178,7 +178,7 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
   };
 
   return (
-    <YDialog
+    <YoDialog
       open={props.open}
       title="命令管理"
       width={960}
@@ -189,35 +189,38 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
           <Show when={error()}>
             <span class="yovo-cm__error">{error()}</span>
           </Show>
-          <YButton variant="ghost" onClick={props.onClose} disabled={saving()}>
+          <YoButton variant="ghost" onClick={props.onClose} disabled={saving()}>
             取消
-          </YButton>
-          <YButton onClick={() => void save()} loading={saving()}>
+          </YoButton>
+          <YoButton onClick={() => void save()} loading={saving()}>
             保存
-          </YButton>
+          </YoButton>
         </>
       }
     >
       <div class="yovo-cm">
         <div class="yovo-cm__groups">
-          <YToolbar>
+          <YoToolbar>
             <span class="yovo-cm__caption">命令组</span>
-            <YIconButton icon="plus" title="新增组" onClick={addGroup} />
-            <YIconButton icon="trash" title="删除组" onClick={removeGroup} />
-          </YToolbar>
+            <YoIconButton icon="plus" title="新增组" onClick={addGroup} />
+            <YoIconButton icon="trash" title="删除组" onClick={removeGroup} />
+          </YoToolbar>
           <ul class="yovo-cm__list">
             <For each={draft.groups}>
               {(group) => (
                 <li
-                  class="yovo-cm__item"
-                  classList={{ "yovo-cm__item--active": group.id === selectedGroupId() }}
+                  class="yovo-cm__item yovo-interactive"
+                  classList={{
+                    "yovo-cm__item--active": group.id === selectedGroupId(),
+                    "yovo-interactive--selected": group.id === selectedGroupId(),
+                  }}
                   onClick={() => {
                     setSelectedGroupId(group.id);
                     setSelectedCommandId(null);
                   }}
                 >
                   <span class="yovo-cm__item-name">{group.name || "（未命名）"}</span>
-                  <YBadge text={String(group.commands.length)} tone="neutral" />
+                  <YoBadge text={String(group.commands.length)} tone="neutral" />
                 </li>
               )}
             </For>
@@ -225,17 +228,20 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
         </div>
 
         <div class="yovo-cm__commands">
-          <YToolbar>
+          <YoToolbar>
             <span class="yovo-cm__caption">命令</span>
-            <YIconButton icon="plus" title="新增命令" onClick={addCommand} />
-            <YIconButton icon="trash" title="删除命令" onClick={removeCommand} />
-          </YToolbar>
+            <YoIconButton icon="plus" title="新增命令" onClick={addCommand} />
+            <YoIconButton icon="trash" title="删除命令" onClick={removeCommand} />
+          </YoToolbar>
           <ul class="yovo-cm__list">
             <For each={selectedGroup()?.commands ?? []}>
               {(command) => (
                 <li
-                  class="yovo-cm__item"
-                  classList={{ "yovo-cm__item--active": command.id === selectedCommandId() }}
+                  class="yovo-cm__item yovo-interactive"
+                  classList={{
+                    "yovo-cm__item--active": command.id === selectedCommandId(),
+                    "yovo-interactive--selected": command.id === selectedCommandId(),
+                  }}
                   onClick={() => setSelectedCommandId(command.id)}
                 >
                   <span class="yovo-cm__item-name">{command.name || "（未命名）"}</span>
@@ -255,46 +261,46 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
                 fallback={<p class="yovo-cm__empty">选择左侧命令组，或新建一组</p>}
               >
                 {(group) => (
-                  <YPanel title="组属性">
-                    <YTextField
+                  <YoPanel title="组属性">
+                    <YoTextField
                       label="组名称"
                       value={group().name}
                       onInput={(v) => setDraft("groups", (g) => g.id === group().id, "name", v)}
                     />
-                    <YTextField
+                    <YoTextField
                       label="标签（逗号分隔）"
                       value={group().tagsText}
                       onInput={(v) => setDraft("groups", (g) => g.id === group().id, "tagsText", v)}
                     />
-                  </YPanel>
+                  </YoPanel>
                 )}
               </Show>
             }
           >
             {(command) => (
-              <YPanel title={`命令属性 · ${selectedGroup()?.name || "未命名组"}`}>
-                <YTextField label="命令名称" value={command.name} onInput={(v) => updateCommand({ name: v })} />
-                <YTextField
+              <YoPanel title={`命令属性 · ${selectedGroup()?.name || "未命名组"}`}>
+                <YoTextField label="命令名称" value={command.name} onInput={(v) => updateCommand({ name: v })} />
+                <YoTextField
                   label="命令行（占位符 {0} {1}…）"
                   value={command.template}
                   onInput={(v) => updateCommand({ template: v })}
                 />
-                <YTextField
+                <YoTextField
                   label="输入框提示（每行一个，与占位符数量一致）"
                   value={command.inputsText}
                   onInput={(v) => updateCommand({ inputsText: v })}
                 />
-                <YTextField
+                <YoTextField
                   label="失败正则（命中即失败，留空不启用）"
                   value={command.failure_regex}
                   onInput={(v) => updateCommand({ failure_regex: v })}
                 />
-                <YTextField
+                <YoTextField
                   label="成功正则（命中即成功，留空看退出码）"
                   value={command.success_regex}
                   onInput={(v) => updateCommand({ success_regex: v })}
                 />
-                <YTextField
+                <YoTextField
                   label="组内延时（毫秒）"
                   type="number"
                   value={String(command.delay_ms)}
@@ -303,16 +309,16 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
                     if (!Number.isNaN(n) && n >= 0) updateCommand({ delay_ms: n });
                   }}
                 />
-                <YCheckbox
+                <YoCheckbox
                   label="失败中断组执行"
                   checked={command.abort_on_fail}
                   onChange={(v) => updateCommand({ abort_on_fail: v })}
                 />
-              </YPanel>
+              </YoPanel>
             )}
           </Show>
         </div>
       </div>
-    </YDialog>
+    </YoDialog>
   );
 }

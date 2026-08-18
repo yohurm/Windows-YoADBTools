@@ -39,6 +39,10 @@ pub fn settings_set(
         .set(key, &value)
         .map_err(|e| ipc_code(IpcErrorCode::InvalidArgs, e))?;
 
+    if key == SettingKey::BufferCapacity {
+        state.capture.set_ring_capacity(updated.buffer_capacity);
+    }
+
     // 立即生效项
     if key == SettingKey::AdbPath {
         let path = (!updated.adb_path.is_empty()).then(|| PathBuf::from(&updated.adb_path));

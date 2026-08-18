@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
-import { YVirtualList } from "./VirtualList";
+import { YoVirtualList } from "./VirtualList";
 
 // jsdom 未实现 scrollIntoView（键盘导航滚入视野依赖它）
 const scrollIntoViewMock = vi.fn();
@@ -20,7 +20,7 @@ function SelectionHarness(props: { count?: number }) {
   const [selected, setSelected] = createSignal<string | number | null>(null);
   const items = makeItems(props.count ?? 60);
   return (
-    <YVirtualList
+    <YoVirtualList
       items={() => items}
       itemHeight={22}
       ariaLabel="测试列表"
@@ -35,11 +35,11 @@ function options(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll('[role="option"]'));
 }
 
-describe("YVirtualList", () => {
+describe("YoVirtualList", () => {
   it("虚拟化：仅渲染可视区（含 overscan）内的行", () => {
     const items = makeItems(100);
     const { container } = render(() => (
-      <YVirtualList items={() => items} itemHeight={22} renderRow={(item) => <span>{item}</span>} />
+      <YoVirtualList items={() => items} itemHeight={22} renderRow={(item) => <span>{item}</span>} />
     ));
     const rows = container.querySelectorAll(".yovo-virtual-list__row");
     expect(rows.length).toBeGreaterThan(0);
@@ -51,7 +51,7 @@ describe("YVirtualList", () => {
   it("getItemKey 写入 data-key", () => {
     const items = makeItems(20);
     const { container } = render(() => (
-      <YVirtualList
+      <YoVirtualList
         items={() => items}
         itemHeight={22}
         getItemKey={(item) => `key-${item}`}
@@ -65,7 +65,7 @@ describe("YVirtualList", () => {
   it("autoScrollToBottom 时追加数据自动滚底", async () => {
     const [items, setItems] = createSignal<string[]>(["a"]);
     const { container } = render(() => (
-      <YVirtualList
+      <YoVirtualList
         items={items}
         itemHeight={22}
         autoScrollToBottom={() => true}
@@ -79,10 +79,33 @@ describe("YVirtualList", () => {
     expect(list.scrollTop).toBe(22000);
   });
 
+  it("离开底部 onAtBottomChange(false)，回到底部时 true", () => {
+    const onAtBottom = vi.fn();
+    const items = makeItems(100);
+    const { container } = render(() => (
+      <YoVirtualList
+        items={() => items}
+        itemHeight={22}
+        onAtBottomChange={onAtBottom}
+        renderRow={(item) => <span>{item}</span>}
+      />
+    ));
+    const list = container.querySelector(".yovo-virtual-list") as HTMLElement;
+    Object.defineProperty(list, "clientHeight", { value: 200, configurable: true });
+    Object.defineProperty(list, "scrollHeight", { value: 2200, configurable: true });
+    Object.defineProperty(list, "scrollTop", { value: 0, configurable: true, writable: true });
+    fireEvent.scroll(list);
+    expect(onAtBottom).toHaveBeenCalledWith(false);
+
+    Object.defineProperty(list, "scrollTop", { value: 2000, configurable: true, writable: true });
+    fireEvent.scroll(list);
+    expect(onAtBottom).toHaveBeenCalledWith(true);
+  });
+
   it("未开启选择模式时无 listbox 语义、行不参与焦点序列", () => {
     const items = makeItems(30);
     const { container } = render(() => (
-      <YVirtualList items={() => items} itemHeight={22} renderRow={(item) => <span>{item}</span>} />
+      <YoVirtualList items={() => items} itemHeight={22} renderRow={(item) => <span>{item}</span>} />
     ));
     expect(container.querySelector(".yovo-virtual-list")?.getAttribute("role")).toBeNull();
     expect(container.querySelector(".yovo-virtual-list__row")?.hasAttribute("tabindex")).toBe(false);
@@ -95,6 +118,7 @@ describe("YVirtualList", () => {
     const rows = options(container);
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0]?.getAttribute("role")).toBe("option");
+    expect(rows[0]?.classList.contains("yovo-interactive")).toBe(true);
     expect(rows[0]?.getAttribute("aria-selected")).toBe("false");
     expect(rows[0]?.getAttribute("tabindex")).toBe("0");
     expect(rows[1]?.getAttribute("tabindex")).toBe("-1");
@@ -106,6 +130,7 @@ describe("YVirtualList", () => {
     fireEvent.click(rows[2] as HTMLElement);
     await Promise.resolve();
     expect(rows[2]?.getAttribute("aria-selected")).toBe("true");
+    expect(rows[2]?.classList.contains("yovo-interactive--selected")).toBe(true);
     expect(rows[2]?.getAttribute("tabindex")).toBe("0");
     expect(rows[0]?.getAttribute("tabindex")).toBe("-1");
     expect(rows[0]?.getAttribute("aria-selected")).toBe("false");

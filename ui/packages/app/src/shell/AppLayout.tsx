@@ -4,7 +4,7 @@
 
 import { type Component, type JSX, Show } from "solid-js";
 
-import { YBadge, YToolbar } from "@yovo/ui";
+import { YoBadge, YoToolbar } from "@yovo/ui";
 
 import { modules } from "../registry";
 import { deviceStore } from "../stores";
@@ -44,13 +44,13 @@ export const ModuleToolbar: Component<{
   badge?: string;
   children?: JSX.Element;
 }> = (props) => (
-  <YToolbar>
+  <YoToolbar>
     <span class="yovo-module-title">{props.title}</span>
     <Show when={props.badge}>
-      <YBadge text={props.badge!} tone="neutral" />
+      <YoBadge text={props.badge!} tone="neutral" />
     </Show>
     {props.children}
-  </YToolbar>
+  </YoToolbar>
 );
 
 // 布局样式（token 引用见 @yovo/ui theme.css；此处仅结构性布局）

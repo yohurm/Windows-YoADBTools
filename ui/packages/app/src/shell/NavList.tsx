@@ -1,6 +1,6 @@
 /**
  * 模块导航（UI设计系统-v6.md §3）：来自注册表的模块列表（含 Planned「开发中」徽章）。
- * 激活项 = accent 文字 + accent-soft 底；图标 16px；
+ * 激活项 = `.yovo-interactive--selected` + accent 文字；图标走 token。
  * 键盘：roving tabindex（激活项 0）+ Enter/Space 导航 + aria-current。
  */
 
@@ -31,8 +31,11 @@ export const NavList: Component<{ activeId: string; onNavigate: (id: string) => 
               <li>
                 <button
                   type="button"
-                  class="yovo-nav__item"
-                  classList={{ "yovo-nav__item--active": active() }}
+                  class="yovo-nav__item yovo-interactive yovo-focus-ring--inset"
+                  classList={{
+                    "yovo-nav__item--active": active(),
+                    "yovo-interactive--selected": active(),
+                  }}
                   tabIndex={active() ? 0 : -1}
                   aria-current={active() ? "page" : undefined}
                   onClick={() => props.onNavigate(mod.id)}

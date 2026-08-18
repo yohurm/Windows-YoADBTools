@@ -1,5 +1,5 @@
 /**
- * YTabs —— 多会话标签页（对齐 Kobalte Tabs 可达性模型）。
+ * YoTabs —— 多会话标签页（对齐 Kobalte Tabs 可达性模型）。
  *
  * 可达性：
  * - `role=tablist/tab` + `aria-selected` + **roving tabindex**（仅激活 tab 在 Tab 序中）
@@ -14,25 +14,25 @@ import { Icon } from "../icons";
 import "./Tabs.css";
 
 /** 圆点色调 */
-export type YTabDotTone = "neutral" | "accent" | "success" | "warn" | "error";
+export type YoTabDotTone = "neutral" | "accent" | "success" | "warn" | "error";
 
-export interface YTabDot {
+export interface YoTabDot {
   /** 圆点语义色调 */
-  tone: YTabDotTone;
+  tone: YoTabDotTone;
 }
 
-export interface YTabItem {
+export interface YoTabItem {
   /** 标签唯一 id */
   id: string;
   /** 标签标题 */
   title: string;
   /** 状态圆点 */
-  dot?: YTabDot;
+  dot?: YoTabDot;
 }
 
-export interface YTabsProps {
+export interface YoTabsProps {
   /** 标签列表 */
-  tabs: YTabItem[];
+  tabs: YoTabItem[];
   /** 激活标签 id */
   activeId?: string | null;
   /** 激活回调 */
@@ -48,7 +48,7 @@ export interface YTabsProps {
 /**
  * 渲染一条多会话标签页栏。
  */
-export function YTabs(props: YTabsProps): JSX.Element {
+export function YoTabs(props: YoTabsProps): JSX.Element {
   const [focusedId, setFocusedId] = createSignal<string | null>(null);
   let tablistRef: HTMLDivElement | undefined;
 
@@ -123,7 +123,7 @@ export function YTabs(props: YTabsProps): JSX.Element {
           return (
             <div
               data-tab-id={tab.id}
-              class="yovo-tabs__tab"
+              class="yovo-tabs__tab yovo-interactive yovo-focus-ring--inset"
               classList={{ "yovo-tabs__tab--active": active() }}
               role="tab"
               aria-selected={active()}
@@ -141,7 +141,7 @@ export function YTabs(props: YTabsProps): JSX.Element {
               {props.onClose ? (
                 <button
                   type="button"
-                  class="yovo-tabs__close"
+                  class="yovo-tabs__close yovo-interactive yovo-focus-ring"
                   aria-label="close"
                   onClick={(event) => handleClose(tab.id, event)}
                 >
@@ -153,7 +153,7 @@ export function YTabs(props: YTabsProps): JSX.Element {
         }}
       </For>
       {props.onNew ? (
-        <button type="button" class="yovo-tabs__new" aria-label="new tab" onClick={props.onNew}>
+        <button type="button" class="yovo-tabs__new yovo-interactive yovo-focus-ring" aria-label="new tab" onClick={props.onNew}>
           <Icon name="plus" size={14} />
         </button>
       ) : null}

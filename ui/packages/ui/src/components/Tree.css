@@ -16,12 +16,7 @@
   box-sizing: border-box;
 }
 
-.yovo-tree__row:hover {
-  background-color: var(--yovo-nav-hover);
-}
-
 .yovo-tree__row--selected {
-  background-color: var(--yovo-accent-soft);
   color: var(--yovo-accent);
 }
 

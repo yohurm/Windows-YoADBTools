@@ -1,5 +1,5 @@
 /**
- * YVirtualList —— 定高行虚拟列表（自实现虚拟化）。
+ * YoVirtualList —— 定高行虚拟列表（自实现虚拟化）。
  *
  * 泛型组件：外层滚动容器占满父高，内部以总高度撑起滚动区，
  * 仅绝对定位渲染可见行（含 overscan 缓冲），底部自动跟随滚动。
@@ -17,7 +17,7 @@ import { For, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type { Accessor, JSX } from "solid-js";
 import "./VirtualList.css";
 
-export interface YVirtualListProps<T> {
+export interface YoVirtualListProps<T> {
   /** 数据源（响应式访问器） */
   items: Accessor<T[]>;
   /** 行高（px），默认 22 */
@@ -30,6 +30,12 @@ export interface YVirtualListProps<T> {
   renderRow: (item: T, index: number) => JSX.Element;
   /** 是否自动跟随滚动到底部（响应式访问器） */
   autoScrollToBottom?: Accessor<boolean>;
+  /**
+   * 贴底状态变化（由实时滚动度量驱动，不是镜像状态）。
+   * 离开底部 → false；滚回底部（阈值内）→ true。
+   * 程序化滚底不会误报离开。
+   */
+  onAtBottomChange?: (atBottom: boolean) => void;
   /** 当前选中行 key（提供即开启单选选择模式；null = 未选中） */
   selectedKey?: Accessor<string | number | null>;
   /** 多选 key 集（提供则优先于 selectedKey，listbox 为多选） */
@@ -45,7 +51,7 @@ export interface YVirtualListProps<T> {
 /**
  * 渲染一个定高行虚拟列表。
  */
-export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
+export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
   const itemHeight = (): number => props.itemHeight ?? 22;
   const overscan = (): number => props.overscan ?? 10;
 
@@ -57,6 +63,41 @@ export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
   /** 键盘导航目标 key（非响应式，防点击误触发聚焦） */
   let pendingFocusKey: string | number | null = null;
   let focusAttempts = 0;
+  /** 与 Entangle useFollowTail 一致：程序化滚底不视为手势离开 */
+  let isAutoScrolling = false;
+  let autoScrollReset = 0;
+  /** 默认视为贴底，避免挂载瞬间误报 detach */
+  let lastAtBottom = true;
+  const STICK_THRESHOLD = 32;
+
+  const measureAtBottom = (): boolean => {
+    if (!container) return true;
+    return container.scrollHeight - container.clientHeight - container.scrollTop <= STICK_THRESHOLD;
+  };
+
+  const emitAtBottom = (): void => {
+    if (!props.onAtBottomChange) return;
+    const atBottom = measureAtBottom();
+    if (atBottom === lastAtBottom) return;
+    lastAtBottom = atBottom;
+    props.onAtBottomChange(atBottom);
+  };
+
+  const snapToBottom = (): void => {
+    if (!container) return;
+    isAutoScrolling = true;
+    container.scrollTop = container.scrollHeight;
+    setScrollTop(container.scrollTop);
+    if (typeof requestAnimationFrame === "function") {
+      if (autoScrollReset !== 0) cancelAnimationFrame(autoScrollReset);
+      autoScrollReset = requestAnimationFrame(() => {
+        autoScrollReset = 0;
+        isAutoScrolling = false;
+      });
+    } else {
+      isAutoScrolling = false;
+    }
+  };
 
   const totalHeight = (): number => props.items().length * itemHeight();
 
@@ -210,33 +251,42 @@ export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
   });
 
   const handleScroll = (): void => {
-    if (container) {
-      setScrollTop(container.scrollTop);
-      setViewportHeight(container.clientHeight);
-    }
+    if (!container) return;
+    setScrollTop(container.scrollTop);
+    setViewportHeight(container.clientHeight);
+    if (isAutoScrolling) return;
+    emitAtBottom();
   };
 
   onMount(() => {
     if (container) {
       setViewportHeight(container.clientHeight);
       if (props.autoScrollToBottom?.()) {
-        container.scrollTop = container.scrollHeight;
+        snapToBottom();
       }
       if (typeof ResizeObserver !== "undefined") {
         const observer = new ResizeObserver(() => {
-          if (container) setViewportHeight(container.clientHeight);
+          if (container) {
+            setViewportHeight(container.clientHeight);
+            if (props.autoScrollToBottom?.()) snapToBottom();
+          }
         });
         observer.observe(container);
         onCleanup(() => observer.disconnect());
       }
     }
+    onCleanup(() => {
+      if (autoScrollReset !== 0 && typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(autoScrollReset);
+      }
+    });
   });
 
-  // 数据追加时若处于「跟随底部」模式，自动滚底。
+  // 数据追加时若处于「跟随底部」模式，自动滚底（Entangle：entryCount 变化才 snap）。
   createEffect(() => {
     const length = props.items().length;
-    if (container && props.autoScrollToBottom?.()) {
-      container.scrollTop = container.scrollHeight;
+    if (container && props.autoScrollToBottom?.() && length >= 0) {
+      snapToBottom();
     }
   });
 
@@ -254,7 +304,12 @@ export function YVirtualList<T>(props: YVirtualListProps<T>): JSX.Element {
           {(row) => (
             <div
               class="yovo-virtual-list__row"
-              classList={{ "yovo-virtual-list__row--selected": isSelected(row.key) }}
+              classList={{
+                "yovo-interactive": selectable(),
+                "yovo-interactive--selected": selectable() && isSelected(row.key),
+                "yovo-focus-ring--inset": selectable(),
+                "yovo-virtual-list__row--selected": isSelected(row.key),
+              }}
               style={{
                 position: "absolute",
                 top: `${row.index * itemHeight()}px`,

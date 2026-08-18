@@ -12,19 +12,33 @@ use yovo_protocol::{LogFilter, LogLine};
 struct State {
     buf: VecDeque<LogLine>,
     next_seq: u64,
+    capacity: usize,
 }
 
 /// 设备级共享环形缓冲。
 pub struct RingBuffer {
     inner: Mutex<State>,
-    capacity: usize,
 }
 
 impl RingBuffer {
     pub fn new(capacity: usize) -> Self {
+        let capacity = capacity.max(1);
         Self {
-            inner: Mutex::new(State { buf: VecDeque::with_capacity(capacity.min(4096)), next_seq: 0 }),
-            capacity: capacity.max(1),
+            inner: Mutex::new(State {
+                buf: VecDeque::with_capacity(capacity.min(4096)),
+                next_seq: 0,
+                capacity,
+            }),
+        }
+    }
+
+    /// 下次写入起生效；已超出的旧行立即从头部淘汰。
+    pub fn set_capacity(&self, capacity: usize) {
+        let capacity = capacity.max(1);
+        let mut state = self.inner.lock().expect("ring lock poisoned");
+        state.capacity = capacity;
+        while state.buf.len() > state.capacity {
+            state.buf.pop_front();
         }
     }
 
@@ -34,7 +48,7 @@ impl RingBuffer {
         let seq = state.next_seq;
         line.seq = seq;
         state.buf.push_back(line);
-        while state.buf.len() > self.capacity {
+        while state.buf.len() > state.capacity {
             state.buf.pop_front();
         }
         state.next_seq += 1;
@@ -105,7 +119,7 @@ impl RingBuffer {
     }
 
     pub fn capacity(&self) -> usize {
-        self.capacity
+        self.inner.lock().expect("ring lock poisoned").capacity
     }
 }
 
@@ -173,5 +187,19 @@ mod tests {
         assert!(ring.is_empty());
         // 清空后 seq 继续递增，不回退
         assert_eq!(ring.push(line(0)), 1);
+    }
+
+    #[test]
+    fn set_capacity_trims_oldest() {
+        let ring = RingBuffer::new(5);
+        for _ in 0..5 {
+            ring.push(line(0));
+        }
+        ring.set_capacity(2);
+        assert_eq!(ring.capacity(), 2);
+        assert_eq!(ring.len(), 2);
+        let snap = ring.snapshot(0, 10);
+        assert_eq!(snap[0].seq, 3);
+        assert_eq!(snap[1].seq, 4);
     }
 }

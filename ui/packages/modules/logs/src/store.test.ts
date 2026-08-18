@@ -226,6 +226,35 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     expect(store.state.sessions[0]!.visible).toHaveLength(0);
   });
 
+  it("离开底部只计数不跟滚；resumeFollow 从镜像重建可见区", () => {
+    const store = wiredStore();
+    const id = store.state.sessions[0]!.id;
+    push("S1", [mk(0), mk(1)]);
+    expect(store.state.sessions[0]!.visible).toHaveLength(2);
+    store.detachFollow(id);
+    expect(store.state.sessions[0]!.following).toBe(false);
+    push("S1", [mk(2), mk(3)]);
+    expect(store.state.sessions[0]!.visible.map((r) => r.line.seq)).toEqual([0, 1]);
+    expect(store.state.sessions[0]!.pendingCount).toBe(2);
+    expect(store.mirror.size()).toBe(4);
+    store.resumeFollow(id);
+    expect(store.state.sessions[0]!.following).toBe(true);
+    expect(store.state.sessions[0]!.pendingCount).toBe(0);
+    expect(store.state.sessions[0]!.visible.map((r) => r.line.seq)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("paused 不增加 pending；恢复后 patchFilter 重建可见区", () => {
+    const store = wiredStore();
+    const id = store.state.sessions[0]!.id;
+    store.detachFollow(id);
+    store.patchFilter(id, { paused: true });
+    push("S1", [mk(0, { level: "E", msg: "e0" })]);
+    expect(store.state.sessions[0]!.pendingCount).toBe(0);
+    expect(store.state.sessions[0]!.visible).toHaveLength(0);
+    store.patchFilter(id, { paused: false, minLevel: "E" });
+    expect(store.state.sessions[0]!.visible.map((r) => r.line.seq)).toEqual([0]);
+  });
+
   it("paused 会话不追加；恢复后 patchFilter 重建可见区", () => {
     const store = wiredStore();
     const id = store.state.sessions[0]!.id;

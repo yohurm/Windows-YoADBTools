@@ -124,7 +124,7 @@ const DEFAULT_SETTINGS = {
   adb_path: "",
   data_root: "",
   devices_auto_refresh: 0,
-  buffer_capacity: 50000,
+  buffer_capacity: 10000,
   display_limit: 2000,
   clear_device_on_start: true,
   theme: "light",
@@ -293,7 +293,7 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
   it("保存失败弹错误 toast", async () => {
     mocks.settingsSet.mockRejectedValueOnce("disk full");
     render(() => <SettingsView />);
-    fireEvent.click(screen.getByRole("button", { name: "浅色" }));
+    fireEvent.click(screen.getByRole("button", { name: /浅色|跟随系统|深色/ }));
     fireEvent.click(screen.getByText("深色"));
     await waitFor(() => {
       expect(screen.getByText(/保存失败/)).toBeTruthy();

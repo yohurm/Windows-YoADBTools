@@ -5,7 +5,7 @@
 //! 跟流始终 `ring.clear()`；`dump_into_ring` 只追加、不跟流。
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -58,7 +58,7 @@ struct Inner {
 pub struct CaptureService {
     adb: Arc<AdbClient>,
     sink: mpsc::Sender<AppEvent>,
-    ring_capacity: usize,
+    ring_capacity: AtomicUsize,
     inner: Mutex<Inner>,
 }
 
@@ -168,7 +168,7 @@ impl CaptureService {
         Arc::new(Self {
             adb,
             sink,
-            ring_capacity: ring_capacity.max(1),
+            ring_capacity: AtomicUsize::new(ring_capacity.max(1)),
             inner: Mutex::new(Inner {
                 rings: HashMap::new(),
                 captures: HashMap::new(),
@@ -177,12 +177,17 @@ impl CaptureService {
         })
     }
 
+    pub fn set_ring_capacity(&self, capacity: usize) {
+        self.ring_capacity.store(capacity.max(1), Ordering::Relaxed);
+    }
+
     pub fn ring(self: &Arc<Self>, serial: &str) -> Arc<RingBuffer> {
+        let cap = self.ring_capacity.load(Ordering::Relaxed);
         let mut inner = self.inner.lock().expect("capture lock poisoned");
         inner
             .rings
             .entry(serial.to_string())
-            .or_insert_with(|| Arc::new(RingBuffer::new(self.ring_capacity)))
+            .or_insert_with(|| Arc::new(RingBuffer::new(cap)))
             .clone()
     }
 
@@ -215,6 +220,7 @@ impl CaptureService {
         }
 
         let ring = self.ring(serial);
+        ring.set_capacity(self.ring_capacity.load(Ordering::Relaxed));
         ring.clear();
         let (batcher, _batch_handle) = Batcher::spawn(
             serial.to_string(),

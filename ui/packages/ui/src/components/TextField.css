@@ -16,7 +16,7 @@
   gap: var(--yovo-space-xs);
   height: var(--yovo-control-height);
   padding: 0 var(--yovo-space-sm);
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
   background-color: var(--yovo-surface);
   box-sizing: border-box;
@@ -58,7 +58,7 @@
 }
 
 .yovo-text-field__clear:hover {
-  background-color: var(--yovo-nav-hover);
+  background-color: var(--yovo-state-hover);
   color: var(--yovo-fg);
 }
 

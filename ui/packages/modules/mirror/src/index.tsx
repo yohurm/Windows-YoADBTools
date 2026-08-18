@@ -3,7 +3,7 @@
  */
 
 import { registerModule } from "@yovo/app";
-import { YEmptyState } from "@yovo/ui";
+import { YoEmptyState } from "@yovo/ui";
 
 registerModule({
   id: "screen-mirror",
@@ -12,6 +12,6 @@ registerModule({
   selectionMode: "none",
   isPlanned: true,
   Component: () => (
-    <YEmptyState icon="mirror" title="投屏显示" description="模块开发中，敬请期待" />
+    <YoEmptyState icon="mirror" title="投屏显示" description="模块开发中，敬请期待" />
   ),
 });

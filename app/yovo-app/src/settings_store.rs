@@ -60,7 +60,8 @@ impl SettingsStore {
                 s.theme = match value.as_str() {
                     Some("light") => yovo_protocol::Theme::Light,
                     Some("dark") => yovo_protocol::Theme::Dark,
-                    _ => return Err("theme 必须是 light 或 dark".into()),
+                    Some("system") => yovo_protocol::Theme::System,
+                    _ => return Err("theme 必须是 light、dark 或 system".into()),
                 };
             }
             SettingKey::Density => {

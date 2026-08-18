@@ -1,11 +1,11 @@
 /**
- * YProgressBar —— 进度条。
+ * YoProgressBar —— 进度条。
  * value(0-100) 确定态；indeterminate 时为不定态动画。
  */
 import type { JSX } from "solid-js";
 import "./ProgressBar.css";
 
-export interface YProgressBarProps {
+export interface YoProgressBarProps {
   /** 进度值 0-100 */
   value?: number;
   /** 不定态 */
@@ -21,7 +21,7 @@ function clampValue(value: number): number {
 /**
  * 渲染一个确定态或不定态进度条。
  */
-export function YProgressBar(props: YProgressBarProps): JSX.Element {
+export function YoProgressBar(props: YoProgressBarProps): JSX.Element {
   const width = (): string => `${clampValue(props.value ?? 0)}%`;
   return (
     <div

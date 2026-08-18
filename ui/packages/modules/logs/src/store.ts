@@ -22,10 +22,10 @@ export function createLogStore() {
     activeSessionId: null,
     processEntries: [] as ProcessEntry[],
     indexDegraded: false,
-    displayLimit: 2_000,
+    bufferCapacity: 10_000,
   });
 
-  const mirror = new RingMirror(50_000);
+  const mirror = new RingMirror(10_000);
   const workspace = createWorkspace(state, setState, mirror);
   const capture = createCapture(state, setState, mirror, workspace);
 

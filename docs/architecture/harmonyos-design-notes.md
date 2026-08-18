@@ -488,7 +488,7 @@ HarmonyOS Symbol 以**描边（线性）**为主，几何型塑造，避免尖�
 
 | HarmonyOS 值 | 建议映射到 @yovo/ui |
 |---------------|---------------------|
-| 宇宙蓝 `#0A59F7`（light）/`#317AF7`（dark） | 可作为 `--yovo-accent` 的备选强调色（现 `#1456A8`/`#6EA8E8` 更偏深蓝，二者可择一） |
+| 宇宙蓝 `#0A59F7`（light）/`#317AF7`（dark） | 已落地为 `--yovo-accent`（深色取 `#4C8DFF` 以保对比度） |
 | 语义色 warning `#E84026` / alert `#ED6F21` / confirm `#64BB5C` | 对照 `--yovo-error / --yovo-warn / --yovo-success`，注意 HarmonyOS 用橙做「二级警示」，本项目用琥珀做「执行中」 |
 | 文本四档 90/60/40/20% | 对照 `--yovo-fg / fg-2 / fg-3` 透明度阶梯思路一致 |
 | 交互态 hover 5% / pressed 10% / select 20% | 可作为组件态透明度基准 |

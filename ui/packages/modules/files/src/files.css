@@ -33,7 +33,7 @@
   padding: 0 var(--yovo-space-sm);
   height: var(--yovo-control-height);
   background: var(--yovo-surface);
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
   box-sizing: border-box;
 }
@@ -47,20 +47,14 @@
   cursor: pointer;
   padding: 0 var(--yovo-space-xs);
   border-radius: var(--yovo-radius-xs);
-  max-width: 160px;
+  max-width: var(--yovo-layout-crumb-max);
+  --yovo-ripple-radius: var(--yovo-radius-xs);
+  --yovo-ripple-inset: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.yovo-files__crumb:hover {
-  background: var(--yovo-nav-hover);
-}
-
-.yovo-files__crumb:focus-visible {
-  outline: 2px solid var(--yovo-focus-ring);
-  outline-offset: 1px;
-}
 
 .yovo-files__crumb-sep {
   color: var(--yovo-fg-3);
@@ -83,7 +77,7 @@
   min-height: 0;
   min-width: 0;
   background: var(--yovo-surface);
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
   overflow: hidden;
 }
@@ -106,9 +100,9 @@
 
 .yovo-files__cols--head {
   flex-shrink: 0;
-  height: 28px;
+  height: var(--yovo-row-height-header);
   background: var(--yovo-surface-2);
-  border-bottom: 1px solid var(--yovo-border);
+  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
   font-size: var(--yovo-font-caption);
   font-weight: var(--yovo-font-weight-regular);
   color: var(--yovo-fg-2);
@@ -131,17 +125,17 @@
 .yovo-files__col:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 6px;
+  top: var(--yovo-space-sm);
   right: 0;
-  bottom: 6px;
-  width: 1px;
+  bottom: var(--yovo-space-sm);
+  width: var(--yovo-stroke-hairline);
   background: var(--yovo-border);
   pointer-events: none;
 }
 
 .yovo-files__col:hover {
   color: var(--yovo-fg);
-  background: var(--yovo-nav-hover);
+  background: var(--yovo-state-hover);
 }
 
 .yovo-files__col[aria-sort="ascending"] .yovo-files__sort-label,
@@ -157,7 +151,7 @@
 .yovo-files__sort {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--yovo-space-2xs);
   width: 100%;
   min-width: 0;
   height: 100%;
@@ -182,17 +176,12 @@
 }
 
 .yovo-files__sort-icon {
-  flex: 0 0 12px;
-  width: 12px;
-  height: 12px;
+  flex: 0 0 var(--yovo-layout-icon-tiny);
+  width: var(--yovo-layout-icon-tiny);
+  height: var(--yovo-layout-icon-tiny);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.yovo-files__sort:focus-visible {
-  outline: 2px solid var(--yovo-focus-ring);
-  outline-offset: -2px;
 }
 
 .yovo-files__table-list {
@@ -248,9 +237,9 @@
 }
 
 .yovo-files__preview--open {
-  flex-basis: 240px;
-  width: 240px;
-  border-left: 1px solid var(--yovo-border);
+  flex-basis: var(--yovo-layout-preview);
+  width: var(--yovo-layout-preview);
+  border-left: var(--yovo-stroke-hairline) solid var(--yovo-border);
 }
 
 .yovo-files__preview-head {
@@ -261,7 +250,7 @@
   font-weight: var(--yovo-font-weight-semibold);
   font-size: var(--yovo-font-caption);
   background: var(--yovo-surface-2);
-  border-bottom: 1px solid var(--yovo-border);
+  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
 }
 
 .yovo-files__preview-empty {
@@ -311,7 +300,7 @@
 
 .yovo-files__transfers {
   flex: none;
-  border-top: 1px solid var(--yovo-border);
+  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
   padding-top: var(--yovo-space-sm);
 }
 
@@ -331,14 +320,14 @@
   display: flex;
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
   background: var(--yovo-surface);
   margin-bottom: var(--yovo-space-xs);
 }
 
 .yovo-files__transfer--failed {
-  border-left: 3px solid var(--yovo-error);
+  border-left: var(--yovo-stroke-emphasis) solid var(--yovo-error);
 }
 
 /* 终态：2.5s 后开始淡出，3s 时由 store 移除 */
@@ -412,7 +401,7 @@
   padding: var(--yovo-space-xs) var(--yovo-space-sm);
   color: var(--yovo-error);
   background: var(--yovo-surface-2);
-  border: 1px solid var(--yovo-error);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-error);
   border-radius: var(--yovo-radius-sm);
   font-size: var(--yovo-font-caption);
 }

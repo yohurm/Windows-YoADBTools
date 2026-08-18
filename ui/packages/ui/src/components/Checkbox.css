@@ -8,12 +8,13 @@
 }
 
 .yovo-checkbox__box {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
   height: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-sm);
   background-color: var(--yovo-surface);
   color: var(--yovo-surface);
@@ -21,6 +22,18 @@
   transition:
     background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
     border-color var(--yovo-dur-fast) var(--yovo-ease-standard);
+}
+
+.yovo-checkbox__input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.yovo-checkbox--disabled .yovo-checkbox__input {
+  cursor: not-allowed;
 }
 
 .yovo-checkbox__box:hover {

@@ -9,19 +9,19 @@ import type { DeviceSession } from "@yovo/api";
 import { settingsGet, systemOpenPath } from "@yovo/api";
 import {
   Icon,
-  YBadge,
-  YButton,
-  YContextMenu,
-  YDialog,
-  YEmptyState,
-  YSelect,
-  YTabs,
-  YTextField,
-  YToaster,
-  YToolbar,
-  YVirtualList,
+  YoBadge,
+  YoButton,
+  YoContextMenu,
+  YoDialog,
+  YoEmptyState,
+  YoSelect,
+  YoTabs,
+  YoTextField,
+  YoToaster,
+  YoToolbar,
+  YoVirtualList,
   createToaster,
-  type YMenuItem,
+  type YoMenuItem,
 } from "@yovo/ui";
 
 import { LEVELS, type ViewRow } from "./pipeline";
@@ -81,7 +81,7 @@ function SessionEmpty(props: { session: { minLevel: string | null; tagContains: 
       <Show
         when={!logStore.state.capturing && !filterActive()}
         fallback={
-          <YEmptyState
+          <YoEmptyState
             icon="log"
             title={filterActive() ? "无匹配日志" : "等待设备输出…"}
             description={
@@ -90,8 +90,8 @@ function SessionEmpty(props: { session: { minLevel: string | null; tagContains: 
           />
         }
       >
-        <YEmptyState icon="log" title="未采集" description="点击「开始采集」拉取设备日志" />
-        <YButton onClick={beginCapture}>开始采集</YButton>
+        <YoEmptyState icon="log" title="未采集" description="点击「开始采集」拉取设备日志" />
+        <YoButton onClick={beginCapture}>开始采集</YoButton>
       </Show>
     </div>
   );
@@ -207,7 +207,7 @@ export function LogAnalyzerView(props: DeviceSession) {
     }
   };
 
-  const menuItems = (): YMenuItem[] => [
+  const menuItems = (): YoMenuItem[] => [
     { id: "rename", label: "重命名" },
     { id: "duplicate", label: "复制会话" },
     { id: "close-others", label: "关闭其他" },
@@ -215,22 +215,22 @@ export function LogAnalyzerView(props: DeviceSession) {
 
   return (
     <div class="yovo-logs">
-      <YToolbar>
+      <YoToolbar>
         <span class="yovo-module-title">日志分析</span>
         <Show
           when={!logStore.state.capturing}
           fallback={
-            <YButton variant="secondary" onClick={() => void logStore.stopCapture()}>
+            <YoButton variant="secondary" onClick={() => void logStore.stopCapture()}>
               停止
-            </YButton>
+            </YoButton>
           }
         >
-          <YButton onClick={beginCapture} disabled={props.focusSerial === null}>
+          <YoButton onClick={beginCapture} disabled={props.focusSerial === null}>
             开始
-          </YButton>
+          </YoButton>
         </Show>
         <Show when={logStore.state.capturing}>
-          <YButton
+          <YoButton
             variant="secondary"
             onClick={() => {
               const id = logStore.state.activeSessionId;
@@ -239,9 +239,9 @@ export function LogAnalyzerView(props: DeviceSession) {
             }}
           >
             {active()?.paused ? "继续" : "暂停"}
-          </YButton>
+          </YoButton>
         </Show>
-        <YButton
+        <YoButton
           variant="secondary"
           onClick={() => {
             const id = logStore.state.activeSessionId;
@@ -249,24 +249,24 @@ export function LogAnalyzerView(props: DeviceSession) {
           }}
         >
           清空
-        </YButton>
-        <YButton variant="secondary" onClick={() => void logStore.clearDevice()} disabled={props.focusSerial === null}>
+        </YoButton>
+        <YoButton variant="secondary" onClick={() => void logStore.clearDevice()} disabled={props.focusSerial === null}>
           清设备缓冲
-        </YButton>
-        <YButton variant="secondary" onClick={() => void doExport()}>
+        </YoButton>
+        <YoButton variant="secondary" onClick={() => void doExport()}>
           导出
-        </YButton>
+        </YoButton>
         <Show when={logStore.state.overflowed}>
-          <YBadge text="缓冲滞后（已回补）" tone="warn" />
+          <YoBadge text="缓冲滞后（已回补）" tone="warn" />
         </Show>
-      </YToolbar>
+      </YoToolbar>
 
       <Show
         when={props.focusSerial !== null}
-        fallback={<YEmptyState icon="log" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
+        fallback={<YoEmptyState icon="log" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
       >
         <div class="yovo-logs__tabs">
-          <YTabs
+          <YoTabs
             tabs={tabs()}
             activeId={logStore.state.activeSessionId !== null ? String(logStore.state.activeSessionId) : null}
             onActivate={(id) => logStore.setActive(Number(id))}
@@ -283,12 +283,12 @@ export function LogAnalyzerView(props: DeviceSession) {
           {(session) => (
             <div class="yovo-logs__session">
               <div class="yovo-logs__filter">
-                <YSelect
+                <YoSelect
                   options={LEVEL_OPTIONS}
                   value={session.minLevel ?? ""}
                   onChange={(v) => logStore.patchFilter(session.id, { minLevel: v === "" ? null : v })}
                 />
-                <YTextField
+                <YoTextField
                   ariaLabel="Tag"
                   placeholder="Tag"
                   value={session.tagContains}
@@ -305,7 +305,7 @@ export function LogAnalyzerView(props: DeviceSession) {
                   <span class="yovo-logs__search-icon" aria-hidden="true">
                     <Icon name="search" size={13} />
                   </span>
-                  <YTextField
+                  <YoTextField
                     ariaLabel="关键字"
                     placeholder="检索消息"
                     value={session.keyword}
@@ -318,11 +318,15 @@ export function LogAnalyzerView(props: DeviceSession) {
 
               <div class="yovo-logs__list">
                 <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} />}>
-                  <YVirtualList<ViewRow>
+                  <YoVirtualList<ViewRow>
                     items={() => logStore.state.sessions.find((s) => s.id === session.id)?.visible ?? []}
                     itemHeight={22}
                     getItemKey={rowKey}
-                    autoScrollToBottom={() => session.autoScroll}
+                    autoScrollToBottom={() => session.following && !session.paused}
+                    onAtBottomChange={(atBottom) => {
+                      if (atBottom) logStore.resumeFollow(session.id);
+                      else logStore.detachFollow(session.id);
+                    }}
                     ariaLabel="日志列表"
                     selectedKey={selectedKey}
                     onSelectRow={(row) => setSelectedKey(rowKey(row))}
@@ -350,6 +354,13 @@ export function LogAnalyzerView(props: DeviceSession) {
                     )}
                   />
                 </Show>
+                <Show when={session.pendingCount > 0}>
+                  <div class="yovo-logs__pending">
+                    <YoButton variant="secondary" onClick={() => logStore.resumeFollow(session.id)}>
+                      {session.pendingCount} 条新日志
+                    </YoButton>
+                  </div>
+                </Show>
               </div>
 
               <div class="yovo-logs__status">
@@ -376,7 +387,7 @@ export function LogAnalyzerView(props: DeviceSession) {
 
       <NewSessionDialog open={newOpen} onClose={() => setNewOpen(false)} />
 
-      <YContextMenu
+      <YoContextMenu
         open={menu() !== null}
         x={menu()?.x ?? 0}
         y={menu()?.y ?? 0}
@@ -398,17 +409,17 @@ export function LogAnalyzerView(props: DeviceSession) {
         }}
       />
 
-      <YDialog
+      <YoDialog
         open={() => renameTarget() !== null}
         title="重命名会话"
         width={400}
         onClose={() => setRenameTarget(null)}
         footer={
           <>
-            <YButton variant="ghost" onClick={() => setRenameTarget(null)}>
+            <YoButton variant="ghost" onClick={() => setRenameTarget(null)}>
               取消
-            </YButton>
-            <YButton
+            </YoButton>
+            <YoButton
               onClick={() => {
                 const id = renameTarget();
                 if (id !== null) logStore.renameSession(id, renameText());
@@ -416,14 +427,14 @@ export function LogAnalyzerView(props: DeviceSession) {
               }}
             >
               确定
-            </YButton>
+            </YoButton>
           </>
         }
       >
-        <YTextField label="会话标题" value={renameText()} onInput={setRenameText} />
-      </YDialog>
+        <YoTextField label="会话标题" value={renameText()} onInput={setRenameText} />
+      </YoDialog>
 
-      <YToaster toaster={toaster} />
+      <YoToaster toaster={toaster} />
     </div>
   );
 }

@@ -16,14 +16,13 @@
     color var(--yovo-dur-fast) var(--yovo-ease-standard);
 }
 
-.yovo-icon-button:focus-visible {
-  outline: 2px solid var(--yovo-accent);
-  outline-offset: 1px;
+.yovo-icon-button:not(:disabled):hover {
+  background-color: var(--yovo-state-hover);
+  color: var(--yovo-fg);
 }
 
-.yovo-icon-button:not(:disabled):hover {
-  background-color: var(--yovo-nav-hover);
-  color: var(--yovo-fg);
+.yovo-icon-button:not(:disabled):active {
+  background-color: var(--yovo-state-pressed);
 }
 
 .yovo-icon-button:disabled {

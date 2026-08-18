@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--yovo-space-xs);
-  border: 1px solid transparent;
+  border: var(--yovo-stroke-hairline) solid transparent;
   border-radius: var(--yovo-radius-sm);
   font-family: var(--yovo-font-sans);
   font-size: var(--yovo-font-body);
@@ -19,11 +19,6 @@
     color var(--yovo-dur-fast) var(--yovo-ease-standard);
 }
 
-.yovo-button:focus-visible {
-  outline: 2px solid var(--yovo-accent);
-  outline-offset: 1px;
-}
-
 .yovo-button:disabled {
   cursor: not-allowed;
   background-color: var(--yovo-disabled);
@@ -32,7 +27,7 @@
 }
 
 .yovo-button--sm {
-  height: calc(var(--yovo-space-md) * 2);
+  height: var(--yovo-control-height-sm);
   padding: 0 var(--yovo-space-sm);
   font-size: var(--yovo-font-caption);
 }
@@ -51,6 +46,10 @@
   background-color: var(--yovo-accent-hover);
 }
 
+.yovo-button--primary:not(:disabled):active {
+  background-color: var(--yovo-accent-pressed);
+}
+
 .yovo-button--secondary {
   background-color: var(--yovo-surface);
   color: var(--yovo-fg);
@@ -58,7 +57,11 @@
 }
 
 .yovo-button--secondary:not(:disabled):hover {
-  background-color: var(--yovo-surface-2);
+  background-color: var(--yovo-state-hover);
+}
+
+.yovo-button--secondary:not(:disabled):active {
+  background-color: var(--yovo-state-pressed);
 }
 
 .yovo-button--ghost {
@@ -67,8 +70,12 @@
 }
 
 .yovo-button--ghost:not(:disabled):hover {
-  background-color: var(--yovo-nav-hover);
+  background-color: var(--yovo-state-hover);
   color: var(--yovo-fg);
+}
+
+.yovo-button--ghost:not(:disabled):active {
+  background-color: var(--yovo-state-pressed);
 }
 
 .yovo-button--danger {
@@ -77,15 +84,19 @@
 }
 
 .yovo-button--danger:not(:disabled):hover {
-  filter: brightness(0.92);
+  background-color: color-mix(in srgb, var(--yovo-error) 88%, var(--yovo-fg));
+}
+
+.yovo-button--danger:not(:disabled):active {
+  background-color: color-mix(in srgb, var(--yovo-error) 76%, var(--yovo-fg));
 }
 
 .yovo-button__spinner {
   width: 1em;
   height: 1em;
-  border: 2px solid currentColor;
+  border: var(--yovo-stroke-accent) solid currentColor;
   border-top-color: transparent;
-  border-radius: 50%;
+  border-radius: var(--yovo-radius-full);
   box-sizing: border-box;
   animation: yovo-spin var(--yovo-dur-loop) linear infinite;
 }

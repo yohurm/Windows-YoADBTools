@@ -1,5 +1,5 @@
 /**
- * YTextField —— 单行输入框。
+ * YoTextField —— 单行输入框。
  * 受控组件（value + onInput），focus 时边框高亮 Accent；
  * clearable 时右侧显示清除按钮。
  * 采用受控 value 绑定，SolidJS 原生处理输入法组合（IME 安全）。
@@ -9,7 +9,7 @@ import type { JSX } from "solid-js";
 import { Icon } from "../icons";
 import "./TextField.css";
 
-export interface YTextFieldProps {
+export interface YoTextFieldProps {
   /** 标签 */
   label?: string;
   /** 受控值 */
@@ -31,7 +31,7 @@ export interface YTextFieldProps {
 /**
  * 渲染一个带标签与可选清除按钮的受控输入框。
  */
-export function YTextField(props: YTextFieldProps): JSX.Element {
+export function YoTextField(props: YoTextFieldProps): JSX.Element {
   const id = createUniqueId();
   let inputRef: HTMLInputElement | undefined;
 
@@ -63,7 +63,7 @@ export function YTextField(props: YTextFieldProps): JSX.Element {
           {props.label}
         </label>
       ) : null}
-      <div class="yovo-text-field__control">
+      <div class="yovo-text-field__control yovo-focus-host">
         <input
           ref={(el) => (inputRef = el)}
           id={id}
@@ -79,7 +79,7 @@ export function YTextField(props: YTextFieldProps): JSX.Element {
         {showClear() ? (
           <button
             type="button"
-            class="yovo-text-field__clear"
+            class="yovo-text-field__clear yovo-focus-ring"
             aria-label="clear"
             onClick={handleClear}
           >

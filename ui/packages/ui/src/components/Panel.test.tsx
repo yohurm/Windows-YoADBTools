@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@solidjs/testing-library";
-import { YPanel } from "./Panel";
+import { YoPanel } from "./Panel";
 
-describe("YPanel", () => {
+describe("YoPanel", () => {
   it("渲染标题与内容，默认 md 内边距", () => {
-    const { container } = render(() => <YPanel title="面板标题">内容</YPanel>);
+    const { container } = render(() => <YoPanel title="面板标题">内容</YoPanel>);
     expect(screen.getByText("面板标题")).toBeTruthy();
     expect(screen.getByText("内容")).toBeTruthy();
     expect(container.querySelector(".yovo-panel--padding-md")).toBeTruthy();
   });
 
   it("支持自定义 padding", () => {
-    const { container } = render(() => <YPanel padding="lg">内容</YPanel>);
+    const { container } = render(() => <YoPanel padding="lg">内容</YoPanel>);
     expect(container.querySelector(".yovo-panel--padding-lg")).toBeTruthy();
   });
 });

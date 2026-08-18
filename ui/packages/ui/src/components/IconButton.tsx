@@ -1,12 +1,12 @@
 /**
- * YIconButton —— 图标按钮。
- * 透明底，hover 显示 NavHover；通过 title 提供悬浮提示。
+ * YoIconButton —— 图标按钮。
+ * 透明底，hover / pressed 走 --yovo-state-*；通过 title 提供悬浮提示。
  */
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
 import "./IconButton.css";
 
-export interface YIconButtonProps {
+export interface YoIconButtonProps {
   /** 图标名 */
   icon: IconName;
   /** 悬浮提示（同时作为 aria-label） */
@@ -24,11 +24,11 @@ export interface YIconButtonProps {
 /**
  * 渲染一个透明底的图标按钮。
  */
-export function YIconButton(props: YIconButtonProps): JSX.Element {
+export function YoIconButton(props: YoIconButtonProps): JSX.Element {
   return (
     <button
       type="button"
-      class="yovo-icon-button"
+      class="yovo-icon-button yovo-focus-ring"
       classList={{ "yovo-icon-button--loading": !!props.loading }}
       title={props.title}
       aria-label={props.title}

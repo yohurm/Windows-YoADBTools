@@ -15,8 +15,8 @@
   pointer-events: auto;
   max-width: calc(var(--yovo-space-xl) * 14);
   padding: var(--yovo-space-sm) var(--yovo-space-md);
-  border: 1px solid var(--yovo-border);
-  border-left: 3px solid var(--yovo-accent);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  border-left: var(--yovo-stroke-emphasis) solid var(--yovo-accent);
   border-radius: var(--yovo-radius-sm);
   background-color: var(--yovo-surface);
   color: var(--yovo-fg);

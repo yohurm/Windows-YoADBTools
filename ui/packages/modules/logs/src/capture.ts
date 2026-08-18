@@ -38,7 +38,6 @@ type CaptureState = LogUiState;
 
 export type CaptureApi = {
   bindSerial: (next: string | null) => Promise<void>;
-  setDisplayLimit: (limit: number) => void;
   setBufferCapacity: (capacity: number) => void;
   startCapture: () => Promise<void>;
   stopCapture: () => Promise<void>;
@@ -48,7 +47,7 @@ export type CaptureApi = {
   refreshProcesses: () => Promise<void>;
   exportSession: (id: number, dest: string | undefined, writeMode: ExportWriteMode) => Promise<string | null>;
   serial: () => string | null;
-  displayLimit: () => number;
+  bufferCapacity: () => number;
 };
 
 export function createCapture(
@@ -61,7 +60,7 @@ export function createCapture(
   let bindGen = 0;
 
   const serial = (): string | null => state.serial;
-  const displayLimit = (): number => state.displayLimit;
+  const bufferCapacity = (): number => state.bufferCapacity;
 
   const sessionIndex = (id: number): number => state.sessions.findIndex((s) => s.id === id);
 
@@ -83,21 +82,16 @@ export function createCapture(
     }, 400);
   };
 
-  function setDisplayLimit(limit: number): void {
-    const next = Math.max(1, limit);
-    if (next === state.displayLimit) return;
-    setState("displayLimit", next);
-    workspace.rebuildAll();
-  }
-
   function setBufferCapacity(capacity: number): void {
-    mirror.setCapacity(capacity);
+    const next = Math.max(1, capacity);
+    mirror.setCapacity(next);
+    if (next === state.bufferCapacity) return;
+    setState("bufferCapacity", next);
+    workspace.rebuildAll();
   }
 
   async function pullSettings(): Promise<void> {
     try {
-      const limit = await settingsGet("display_limit");
-      if (typeof limit === "number") setDisplayLimit(limit);
       const cap = await settingsGet("buffer_capacity");
       if (typeof cap === "number") setBufferCapacity(cap);
     } catch {
@@ -139,6 +133,9 @@ export function createCapture(
     workspace.ensureSession();
     mirror.clear();
     setState({ overflowed: false, capturing: true });
+    state.sessions.forEach((s) => {
+      if (!s.following) workspace.resumeFollow(s.id);
+    });
     workspace.rebuildAll();
     try {
       await logCaptureStart(current);
@@ -174,7 +171,7 @@ export function createCapture(
   async function clearVisible(id: number): Promise<void> {
     const idx = sessionIndex(id);
     if (idx >= 0) {
-      setState("sessions", idx, { visible: [], signalCount: 0 });
+      setState("sessions", idx, { visible: [], signalCount: 0, pendingCount: 0 });
     }
   }
 
@@ -239,10 +236,18 @@ export function createCapture(
       const matched = batch.lines.filter((line) => matchesLine(line, filter));
       if (matched.length === 0) return;
       const idx = sessionIndex(session.id);
+      const signals = matched.reduce((acc, l) => acc + (scanSignal(l) ? 1 : 0), 0);
+      if (!session.following) {
+        setState("sessions", idx, {
+          pendingCount: session.pendingCount + matched.length,
+          signalCount: session.signalCount + signals,
+        });
+        return;
+      }
+      const cap = bufferCapacity();
       const current = state.sessions[idx]!.visible;
       const merged = [...current, ...collapseStack(matched)];
-      const trimmed = merged.length > displayLimit() ? merged.slice(merged.length - displayLimit()) : merged;
-      const signals = matched.reduce((acc, l) => acc + (scanSignal(l) ? 1 : 0), 0);
+      const trimmed = merged.length > cap ? merged.slice(merged.length - cap) : merged;
       setState("sessions", idx, {
         visible: trimmed,
         signalCount: session.signalCount + signals,
@@ -282,7 +287,7 @@ export function createCapture(
 
   void pullSettings();
   void onSettingsChanged((e) => {
-    if (e.key === "display_limit" || e.key === "buffer_capacity") {
+    if (e.key === "buffer.capacity" || e.key === "buffer_capacity") {
       void pullSettings();
     }
   });
@@ -300,7 +305,6 @@ export function createCapture(
 
   return {
     bindSerial,
-    setDisplayLimit,
     setBufferCapacity,
     startCapture,
     stopCapture,
@@ -310,6 +314,6 @@ export function createCapture(
     refreshProcesses,
     exportSession,
     serial,
-    displayLimit,
+    bufferCapacity,
   };
 }

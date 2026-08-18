@@ -2,13 +2,14 @@
 
 use serde::{Deserialize, Serialize};
 
-/// 主题。
+/// 主题（默认跟随系统，P7）。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
-    #[default]
     Light,
     Dark,
+    #[default]
+    System,
 }
 
 /// 界面密度（UI设计系统-v6.md §2.3；立即生效）。
@@ -41,10 +42,10 @@ pub struct AppSettings {
     /// 设备自动刷新间隔（秒），0 = 关
     #[serde(default)]
     pub devices_auto_refresh: u32,
-    /// logcat 共享环形缓冲行数（下次采集生效）
+    /// 设备共享环形缓冲行数（core 环 + UI 镜像 + 可见区同一上限；采集环下次启动生效）
     #[serde(default = "default_buffer_capacity")]
     pub buffer_capacity: usize,
-    /// 每会话可见行上限
+    /// 历史字段：不再参与实时路径；旧设置文件反序列化保留
     #[serde(default = "default_display_limit")]
     pub display_limit: usize,
     /// 开始采集前执行 `adb logcat -c`
@@ -67,7 +68,7 @@ pub struct AppSettings {
 }
 
 fn default_buffer_capacity() -> usize {
-    50_000
+    10_000
 }
 fn default_display_limit() -> usize {
     2_000
@@ -88,7 +89,7 @@ impl Default for AppSettings {
             buffer_capacity: default_buffer_capacity(),
             display_limit: default_display_limit(),
             clear_device_on_start: default_clear_device(),
-            theme: Theme::Light,
+            theme: Theme::System,
             density: Density::Compact,
             export_default_path: String::new(),
             export_ask_every_time: default_export_ask(),
@@ -138,11 +139,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn defaults_are_compact_light_and_sane() {
+    fn defaults_are_compact_system_and_sane() {
         let s = AppSettings::default();
-        assert_eq!(s.theme, Theme::Light);
+        assert_eq!(s.theme, Theme::System);
         assert_eq!(s.density, Density::Compact);
-        assert_eq!(s.buffer_capacity, 50_000);
+        assert_eq!(s.buffer_capacity, 10_000);
         assert_eq!(s.display_limit, 2_000);
         assert!(s.clear_device_on_start);
         assert!(s.export_ask_every_time);
@@ -183,5 +184,25 @@ mod tests {
     fn density_serializes_lowercase() {
         assert_eq!(serde_json::to_value(Density::Compact).unwrap(), serde_json::json!("compact"));
         assert_eq!(serde_json::to_value(Density::Comfortable).unwrap(), serde_json::json!("comfortable"));
+    }
+
+    #[test]
+    fn theme_serializes_lowercase_including_system() {
+        assert_eq!(serde_json::to_value(Theme::Light).unwrap(), serde_json::json!("light"));
+        assert_eq!(serde_json::to_value(Theme::Dark).unwrap(), serde_json::json!("dark"));
+        assert_eq!(serde_json::to_value(Theme::System).unwrap(), serde_json::json!("system"));
+    }
+
+    #[test]
+    fn missing_theme_field_deserializes_to_system() {
+        let json = r#"{
+            "adb_path": "",
+            "data_root": "",
+            "devices_auto_refresh": 0,
+            "buffer_capacity": 10000,
+            "clear_device_on_start": true
+        }"#;
+        let s: AppSettings = serde_json::from_str(json).expect("缺 theme 应回落默认");
+        assert_eq!(s.theme, Theme::System);
     }
 }

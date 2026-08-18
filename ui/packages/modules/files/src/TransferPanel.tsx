@@ -1,6 +1,6 @@
 import { For, Show } from "solid-js";
 
-import { Icon, YBadge, YIconButton, YProgressBar } from "@yovo/ui";
+import { Icon, YoBadge, YoIconButton, YoProgressBar } from "@yovo/ui";
 
 import { formatSize } from "./model";
 import { fileStore } from "./store";
@@ -27,7 +27,7 @@ export function TransferPanel() {
                   <span class="yovo-files__transfer-name" title={transfer.name}>
                     {transfer.name}
                   </span>
-                  <YBadge
+                  <YoBadge
                     text={
                       transfer.state === "running"
                         ? "传输中"
@@ -48,10 +48,10 @@ export function TransferPanel() {
                     }
                   />
                   <Show when={transfer.state === "running"}>
-                    <YIconButton icon="close" title="取消传输" onClick={() => void fileStore.cancel(transfer.id)} />
+                    <YoIconButton icon="close" title="取消传输" onClick={() => void fileStore.cancel(transfer.id)} />
                   </Show>
                 </div>
-                <YProgressBar
+                <YoProgressBar
                   value={transfer.total ? (transfer.bytes / transfer.total) * 100 : undefined}
                   indeterminate={transfer.state === "running" && transfer.total === undefined}
                 />

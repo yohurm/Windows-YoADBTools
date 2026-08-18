@@ -5,7 +5,7 @@
   gap: var(--yovo-space-md);
   padding: var(--yovo-space-xs) var(--yovo-space-md);
   background-color: var(--yovo-surface-2);
-  border-top: 1px solid var(--yovo-border);
+  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
   color: var(--yovo-fg-2);
   font-family: var(--yovo-font-sans);
   font-size: var(--yovo-font-caption);

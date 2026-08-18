@@ -1,8 +1,8 @@
 .yovo-col-resizer {
   position: absolute;
   top: 0;
-  right: -3px;
-  width: 6px;
+  right: calc(var(--yovo-layout-hit-nudge) * -1);
+  width: var(--yovo-layout-hit-splitter);
   height: 100%;
   padding: 0;
   border: none;

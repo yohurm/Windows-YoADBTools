@@ -1,5 +1,5 @@
 /**
- * YTree —— 泛型树（对齐 Kobalte/WAI-ARIA Tree 可达性模型）。
+ * YoTree —— 泛型树（对齐 Kobalte/WAI-ARIA Tree 可达性模型）。
  *
  * 键盘：
  * - ↑/↓ 在可见节点间移动焦点；→ 展开（有子节点时，否则移到下一节点）；← 收起（已展开时，否则移到父节点）
@@ -30,7 +30,7 @@ export interface TreeNode<T = unknown> {
   title?: string;
 }
 
-export interface YTreeProps<T = unknown> {
+export interface YoTreeProps<T = unknown> {
   /** 树数据 */
   data: TreeNode<T>[];
   /** 受控展开 key（提供时为受控模式） */
@@ -46,7 +46,7 @@ export interface YTreeProps<T = unknown> {
 /**
  * 渲染一棵可展开/选中的树。
  */
-export function YTree<T = unknown>(props: YTreeProps<T>): JSX.Element {
+export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
   const rowHeight = (): number => props.rowHeight ?? 30;
   const controlled = (): boolean => props.expandedKeys !== undefined;
 
@@ -165,8 +165,11 @@ export function YTree<T = unknown>(props: YTreeProps<T>): JSX.Element {
           return (
             <div
               data-tree-key={node.key}
-              class="yovo-tree__row"
-              classList={{ "yovo-tree__row--selected": selected() === node.key }}
+              class="yovo-tree__row yovo-interactive yovo-focus-ring--inset"
+              classList={{
+                "yovo-tree__row--selected": selected() === node.key,
+                "yovo-interactive--selected": selected() === node.key,
+              }}
               role="treeitem"
               aria-expanded={hasChildren ? expandedNow : undefined}
               aria-selected={selected() === node.key}

@@ -28,7 +28,9 @@ export interface LogSessionState {
   tagContains: string;
   keyword: string;
   paused: boolean;
-  autoScroll: boolean;
+  /** 贴底跟滚；离开底部后冻结可见区，只累计 pendingCount */
+  following: boolean;
+  pendingCount: number;
   signalCount: number;
   visible: ViewRow[];
   binding: PidBinding;
@@ -42,7 +44,8 @@ export interface LogUiState {
   activeSessionId: number | null;
   processEntries: ProcessEntry[];
   indexDegraded: boolean;
-  displayLimit: number;
+  /** 与 core `buffer.capacity` 对齐：镜像与可见区同一上限 */
+  bufferCapacity: number;
 }
 
 export type WorkspaceApi = {
@@ -56,6 +59,9 @@ export type WorkspaceApi = {
   patchFilter: (id: number, patch: Partial<LogSessionState>) => void;
   rebuildAll: () => void;
   bindPackageSessions: () => void;
+  setFollowing: (id: number, following: boolean) => void;
+  resumeFollow: (id: number) => void;
+  detachFollow: (id: number) => void;
 };
 
 let nextSessionId = 1;
@@ -66,7 +72,7 @@ export function createWorkspace(
   mirror: RingMirror,
 ): WorkspaceApi {
   const sessionIndex = (id: number): number => state.sessions.findIndex((s) => s.id === id);
-  const displayLimit = (): number => state.displayLimit;
+  const bufferCapacity = (): number => state.bufferCapacity;
 
   function makeSession(scope: SessionScope, title: string): LogSessionState {
     const session: LogSessionState = {
@@ -77,7 +83,8 @@ export function createWorkspace(
       tagContains: "",
       keyword: "",
       paused: false,
-      autoScroll: true,
+      following: true,
+      pendingCount: 0,
       signalCount: 0,
       visible: [],
       binding: emptyBinding(),
@@ -93,10 +100,10 @@ export function createWorkspace(
     if (idx < 0) return;
     const session = state.sessions[idx]!;
     const filter = toSessionFilter(session);
-    const lines = mirror.replay((line) => matchesLine(line, filter), displayLimit());
+    const lines = mirror.replay((line) => matchesLine(line, filter), bufferCapacity());
     const visible = collapseStack(lines);
     const signalCount = lines.reduce((acc, l) => acc + (scanSignal(l) ? 1 : 0), 0);
-    setState("sessions", idx, { visible, signalCount });
+    setState("sessions", idx, { visible, signalCount, pendingCount: 0 });
   }
 
   function rebuildAll(): void {
@@ -169,7 +176,7 @@ export function createWorkspace(
     copy.tagContains = src.tagContains;
     copy.keyword = src.keyword;
     copy.paused = src.paused;
-    copy.autoScroll = src.autoScroll;
+    copy.following = src.following;
     copy.binding = copyBinding(src.binding);
     setState("sessions", (s) => [...s, copy]);
     setState("activeSessionId", copy.id);
@@ -196,6 +203,19 @@ export function createWorkspace(
     rebuildSession(id);
   }
 
+  function setFollowing(id: number, following: boolean): void {
+    const idx = sessionIndex(id);
+    if (idx < 0) return;
+    const session = state.sessions[idx]!;
+    if (session.following === following) return;
+    if (following) {
+      setState("sessions", idx, { following: true, pendingCount: 0 });
+      rebuildSession(id);
+      return;
+    }
+    setState("sessions", idx, { following: false });
+  }
+
   return {
     ensureSession,
     createSession,
@@ -207,5 +227,8 @@ export function createWorkspace(
     patchFilter,
     rebuildAll,
     bindPackageSessions,
+    setFollowing,
+    resumeFollow: (id) => setFollowing(id, true),
+    detachFollow: (id) => setFollowing(id, false),
   };
 }

@@ -9,7 +9,7 @@
 
 .yovo-cm {
   display: grid;
-  grid-template-columns: minmax(168px, 200px) minmax(188px, 228px) minmax(0, 1fr);
+  grid-template-columns: minmax(var(--yovo-layout-cm-group-min), var(--yovo-layout-cm-group-max)) minmax(var(--yovo-layout-cm-cmd-min), var(--yovo-layout-cm-cmd-max)) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -22,7 +22,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border-right: 1px solid var(--yovo-border);
+  border-right: var(--yovo-stroke-hairline) solid var(--yovo-border);
   background: var(--yovo-surface-2);
 }
 
@@ -30,7 +30,7 @@
 .yovo-cm__commands .yovo-toolbar {
   margin: 0;
   padding: var(--yovo-space-xs) var(--yovo-space-sm);
-  border-bottom: 1px solid var(--yovo-border);
+  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
 }
 
 .yovo-cm__caption {
@@ -57,18 +57,12 @@
   gap: var(--yovo-space-sm);
   min-height: var(--yovo-control-height);
   padding: 0 var(--yovo-space-sm);
-  border-radius: var(--yovo-radius-sm);
   cursor: pointer;
   color: var(--yovo-fg);
   font-size: var(--yovo-font-body);
 }
 
-.yovo-cm__item:hover {
-  background: var(--yovo-nav-hover);
-}
-
 .yovo-cm__item--active {
-  background: var(--yovo-accent-soft);
   color: var(--yovo-accent);
 }
 

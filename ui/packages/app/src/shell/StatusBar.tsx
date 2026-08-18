@@ -5,7 +5,7 @@
 
 import { Component, For, Show } from "solid-js";
 
-import { YStatusBar } from "@yovo/ui";
+import { YoStatusBar } from "@yovo/ui";
 
 import { deviceStore, taskStore } from "../stores";
 
@@ -13,7 +13,7 @@ export const StatusBar: Component = () => {
   const activeTasks = () => taskStore.state.tasks.filter((t) => t.active);
 
   return (
-    <YStatusBar
+    <YoStatusBar
       left={<span class="yovo-status__version">Yovo ADB Tools v0.1.0</span>}
       right={
         <span class="yovo-status__right">

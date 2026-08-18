@@ -5,7 +5,7 @@
   flex-direction: column;
   gap: var(--yovo-space-lg);
   width: 100%;
-  max-width: 920px;
+  max-width: var(--yovo-layout-settings-max);
   height: 100%;
   overflow: auto;
   min-height: 0;
@@ -28,7 +28,7 @@
 
 .yovo-settings__item {
   display: grid;
-  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+  grid-template-columns: minmax(var(--yovo-layout-settings-label-min), var(--yovo-layout-settings-label-max)) minmax(0, 1fr);
   grid-template-areas:
     "head control"
     ". hint";
@@ -39,7 +39,7 @@
 }
 
 .yovo-settings__item + .yovo-settings__item {
-  border-top: 1px solid var(--yovo-border);
+  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
 }
 
 .yovo-settings__item-head {

@@ -1,11 +1,11 @@
 /**
- * YColResizer —— 表头列宽拖拽（资源管理器式）。
+ * YoColResizer —— 表头列宽拖拽（资源管理器式）。
  * 按下后 pointer capture，把水平位移交给调用方累加到列宽。
  */
 import type { JSX } from "solid-js";
 import "./ColResizer.css";
 
-export interface YColResizerProps {
+export interface YoColResizerProps {
   /** 列宽增量（px，可负） */
   onResize: (deltaX: number) => void;
   /** 无障碍名称 */
@@ -15,7 +15,7 @@ export interface YColResizerProps {
 /**
  * 渲染一个位于列右缘的拖拽条。
  */
-export function YColResizer(props: YColResizerProps): JSX.Element {
+export function YoColResizer(props: YoColResizerProps): JSX.Element {
   let originX = 0;
 
   const onPointerDown = (event: PointerEvent): void => {

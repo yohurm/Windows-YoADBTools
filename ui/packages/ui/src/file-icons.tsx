@@ -1,7 +1,7 @@
 /**
  * 文件/目录图标（Material Icon Theme 风格子集，MIT：
  * https://github.com/material-extensions/vscode-material-icon-theme ）。
- * 工厂函数每次渲染新节点；模块只消费 YFileIcon，不内联 SVG。
+ * 工厂函数每次渲染新节点；模块只消费 YoFileIcon，不内联 SVG。
  */
 import type { JSX } from "solid-js";
 import "./file-icons.css";
@@ -114,13 +114,13 @@ export function fileGlyphFor(name: string, kind: FileIconKind): FileGlyph {
   return "file";
 }
 
-export interface YFileIconProps {
+export interface YoFileIconProps {
   name: string;
   kind: FileIconKind;
   size?: number;
 }
 
-export function YFileIcon(props: YFileIconProps): JSX.Element {
+export function YoFileIcon(props: YoFileIconProps): JSX.Element {
   const glyph = () => fileGlyphFor(props.name, props.kind);
   const size = () => props.size ?? 16;
   return (

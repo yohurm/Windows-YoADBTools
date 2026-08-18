@@ -7,14 +7,14 @@
 import { For, Show, createEffect, createMemo, createSignal, onMount } from "solid-js";
 
 import {
-  YBadge,
-  YButton,
-  YDialog,
-  YEmptyState,
-  YIconButton,
-  YTextField,
-  YToolbar,
-  YTree,
+  YoBadge,
+  YoButton,
+  YoDialog,
+  YoEmptyState,
+  YoIconButton,
+  YoTextField,
+  YoToolbar,
+  YoTree,
 } from "@yovo/ui";
 import type { TreeNode } from "@yovo/ui";
 import type { CommandDto, CommandGroupDto } from "@yovo/api";
@@ -54,17 +54,17 @@ function InputDialog(props: {
   let fieldsRoot: HTMLDivElement | undefined;
 
   return (
-    <YDialog
+    <YoDialog
       open={props.open}
       title={`执行: ${props.command.name}`}
       width={520}
       onClose={props.onClose}
       footer={
         <>
-          <YButton variant="ghost" onClick={props.onClose}>
+          <YoButton variant="ghost" onClick={props.onClose}>
             取消
-          </YButton>
-          <YButton onClick={submit}>执行</YButton>
+          </YoButton>
+          <YoButton onClick={submit}>执行</YoButton>
         </>
       }
     >
@@ -76,7 +76,7 @@ function InputDialog(props: {
       >
         <For each={props.command.inputs}>
           {(input, index) => (
-            <YTextField
+            <YoTextField
               label={input.placeholder || `参数 ${index() + 1}`}
               value={values()[index()] ?? ""}
               onInput={(v) => setValues((vs) => vs.map((old, i) => (i === index() ? v : old)))}
@@ -84,7 +84,7 @@ function InputDialog(props: {
           )}
         </For>
       </div>
-    </YDialog>
+    </YoDialog>
   );
 }
 
@@ -105,14 +105,14 @@ function ResultCard(props: {
   return (
     <div class="yovo-terminal__result" classList={{ "yovo-terminal__result--fail": !props.entry.ok }}>
       <div
-        class="yovo-terminal__result-head"
+        class="yovo-terminal__result-head yovo-interactive yovo-focus-ring--inset"
         role="button"
         tabIndex={0}
         aria-expanded={props.open}
         onClick={props.onToggle}
         onKeyDown={onHeadKeyDown}
       >
-        <YIconButton
+        <YoIconButton
           icon={props.open ? "chevron-down" : "chevron-right"}
           title={props.open ? "收起输出" : "展开输出"}
           onClick={(event) => {
@@ -121,7 +121,7 @@ function ResultCard(props: {
           }}
         />
         <Show when={props.showSerial}>
-          <YBadge text={props.entry.serial} tone="neutral" />
+          <YoBadge text={props.entry.serial} tone="neutral" />
         </Show>
         <span class="yovo-terminal__result-title">{props.entry.title}</span>
         <Show when={props.entry.message}>
@@ -135,7 +135,7 @@ function ResultCard(props: {
           </Show>
           <span class="yovo-terminal__result-time">{props.entry.time}</span>
         </span>
-        <YBadge text={props.entry.ok ? "通过" : "失败"} tone={props.entry.ok ? "success" : "error"} />
+        <YoBadge text={props.entry.ok ? "通过" : "失败"} tone={props.entry.ok ? "success" : "error"} />
       </div>
       <Show when={props.open}>
         <Show when={props.entry.stdout}>
@@ -248,25 +248,25 @@ export function TerminalView() {
 
   return (
     <div class="yovo-terminal">
-      <YToolbar>
+      <YoToolbar>
         <span class="yovo-module-title">ADB 命令终端</span>
-        <YButton onClick={run} loading={running()} disabled={!selection()}>
+        <YoButton onClick={run} loading={running()} disabled={!selection()}>
           执行
-        </YButton>
-        <YButton variant="secondary" onClick={() => setManagerOpen(true)}>
+        </YoButton>
+        <YoButton variant="secondary" onClick={() => setManagerOpen(true)}>
           命令管理
-        </YButton>
-      </YToolbar>
+        </YoButton>
+      </YoToolbar>
 
       <div class="yovo-terminal__body">
         <div class="yovo-terminal__library">
           <Show
             when={treeData().length > 0}
             fallback={
-              <YEmptyState icon="terminal" title="命令库为空" description="点击「命令管理」添加命令" />
+              <YoEmptyState icon="terminal" title="命令库为空" description="点击「命令管理」添加命令" />
             }
           >
-            <YTree
+            <YoTree
               data={treeData()}
               defaultExpandedKeys={terminalStore.library.groups.map((g) => `g:${g.id}`)}
               onSelect={(key) => setSelectedKey(key)}
@@ -278,7 +278,7 @@ export function TerminalView() {
           <div class="yovo-terminal__results-head">
             <span>执行结果</span>
             <Show when={running()}>
-              <YBadge text="执行中" tone="warn" />
+              <YoBadge text="执行中" tone="warn" />
             </Show>
           </div>
           <div
@@ -290,7 +290,7 @@ export function TerminalView() {
             <Show
               when={grouped().length > 0}
               fallback={
-                <YEmptyState icon="terminal" title="暂无执行结果" description="选择命令库中的命令或命令组后点击「执行」" />
+                <YoEmptyState icon="terminal" title="暂无执行结果" description="选择命令库中的命令或命令组后点击「执行」" />
               }
             >
               <For each={grouped()}>
@@ -301,12 +301,12 @@ export function TerminalView() {
                     <div class="yovo-terminal__group">
                       <Show when={multiDevice()}>
                         <div class="yovo-terminal__group-head">
-                          <YBadge text={serial === "-" ? "无设备" : serial} tone="neutral" />
+                          <YoBadge text={serial === "-" ? "无设备" : serial} tone="neutral" />
                           <Show when={pass() > 0}>
-                            <YBadge text={`${pass()} 通过`} tone="success" />
+                            <YoBadge text={`${pass()} 通过`} tone="success" />
                           </Show>
                           <Show when={fail() > 0}>
-                            <YBadge text={`${fail()} 失败`} tone="error" />
+                            <YoBadge text={`${fail()} 失败`} tone="error" />
                           </Show>
                         </div>
                       </Show>

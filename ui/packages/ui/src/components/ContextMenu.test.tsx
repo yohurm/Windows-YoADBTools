@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
-import { YContextMenu } from "./ContextMenu";
+import { YoContextMenu } from "./ContextMenu";
 
-describe("YContextMenu", () => {
+describe("YoContextMenu", () => {
   it("打开时渲染条目，点击触发 onSelect 并关闭", () => {
     const onSelect = vi.fn();
     const onClose = vi.fn();
     render(() => (
-      <YContextMenu
+      <YoContextMenu
         open
         x={10}
         y={20}
@@ -24,7 +24,7 @@ describe("YContextMenu", () => {
   it("Esc 关闭", () => {
     const onClose = vi.fn();
     render(() => (
-      <YContextMenu open x={0} y={0} items={[{ id: "a", label: "A" }]} onSelect={() => undefined} onClose={onClose} />
+      <YoContextMenu open x={0} y={0} items={[{ id: "a", label: "A" }]} onSelect={() => undefined} onClose={onClose} />
     ));
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import { Show } from "solid-js";
 
-import { YFileIcon } from "@yovo/ui";
+import { YoFileIcon } from "@yovo/ui";
 
 import { fileTypeLabel, formatSize } from "./model";
 import { fileStore } from "./store";
@@ -17,7 +17,7 @@ export function PreviewPane() {
       <Show when={preview()} fallback={<div class="yovo-files__preview-empty">选择一个项目以预览</div>}>
         {(entry) => (
           <div class="yovo-files__preview-body">
-            <YFileIcon name={entry().name} kind={entry().kind} size={48} />
+            <YoFileIcon name={entry().name} kind={entry().kind} size={48} />
             <div class="yovo-files__preview-name" title={entry().name}>
               {entry().name}
             </div>

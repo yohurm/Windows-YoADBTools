@@ -23,7 +23,15 @@ export const FontWeights = {
   Semibold: 600,
 } as const;
 
-/** 字体栈 */
+/** comfortable 字号：compact 各 +1（§2.2）。 */
+export const FontSizesComfortable = {
+  Caption: FontSizes.Caption + 1,
+  Body: FontSizes.Body + 1,
+  BodyStrong: FontSizes.BodyStrong + 1,
+  Subtitle: FontSizes.Subtitle + 1,
+  PageTitle: FontSizes.PageTitle + 1,
+} as const;
+
 export const FontFamilies = {
   /** 界面正文（西文优先 Segoe UI，中文回退雅黑） */
   Sans: '"Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif',

@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@solidjs/testing-library";
-import { YBadge } from "./Badge";
+import { YoBadge } from "./Badge";
 
-describe("YBadge", () => {
+describe("YoBadge", () => {
   it("渲染文本与默认 neutral 色调", () => {
-    render(() => <YBadge text="默认" />);
+    render(() => <YoBadge text="默认" />);
     const badge = screen.getByText("默认");
     expect(badge.className).toContain("yovo-badge--neutral");
   });
 
   it("应用指定色调", () => {
-    render(() => <YBadge text="成功" tone="success" />);
+    render(() => <YoBadge text="成功" tone="success" />);
     expect(screen.getByText("成功").className).toContain("yovo-badge--success");
   });
 
   it("文本同时作为 aria-label（UIA 可发现）", () => {
-    render(() => <YBadge text="通过" tone="success" />);
+    render(() => <YoBadge text="通过" tone="success" />);
     expect(screen.getByLabelText("通过")).toBeTruthy();
   });
 });

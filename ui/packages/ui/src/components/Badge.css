@@ -3,8 +3,8 @@
   align-items: center;
   padding: 0 var(--yovo-space-sm);
   height: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
-  border-radius: calc(var(--yovo-radius-md) * 2);
-  border: 1px solid transparent;
+  border-radius: var(--yovo-radius-pill);
+  border: var(--yovo-stroke-hairline) solid transparent;
   font-family: var(--yovo-font-sans);
   font-size: var(--yovo-font-caption);
   font-weight: var(--yovo-font-weight-semibold);

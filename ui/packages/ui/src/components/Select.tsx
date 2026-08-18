@@ -1,5 +1,5 @@
 /**
- * YSelect —— 自绘下拉选择框（对齐 Kobalte Select 可达性模型）。
+ * YoSelect —— 自绘下拉选择框（对齐 Kobalte Select 可达性模型）。
  *
  * 交互：
  * - 点击展开、点击外部关闭、Esc 关闭（逐层退出）
@@ -12,16 +12,16 @@ import type { JSX } from "solid-js";
 import { Icon } from "../icons";
 import "./Select.css";
 
-export interface YSelectOption {
+export interface YoSelectOption {
   /** 选项值 */
   value: string;
   /** 选项显示文本 */
   label: string;
 }
 
-export interface YSelectProps {
+export interface YoSelectProps {
   /** 选项列表 */
-  options: YSelectOption[];
+  options: YoSelectOption[];
   /** 当前值 */
   value?: string | null;
   /** 选择回调 */
@@ -35,13 +35,13 @@ export interface YSelectProps {
 /**
  * 渲染一个自绘下拉选择框。
  */
-export function YSelect(props: YSelectProps): JSX.Element {
+export function YoSelect(props: YoSelectProps): JSX.Element {
   const [open, setOpen] = createSignal(false);
   const [activeIndex, setActiveIndex] = createSignal(-1);
   let rootRef: HTMLDivElement | undefined;
   let triggerRef: HTMLButtonElement | undefined;
 
-  const selected = (): YSelectOption | undefined => props.options.find((o) => o.value === props.value);
+  const selected = (): YoSelectOption | undefined => props.options.find((o) => o.value === props.value);
 
   /** 当前活动选项值（用于 aria-activedescendant；索引为 -1 时回退选中项）。 */
   const activeValue = (): string => {
@@ -145,7 +145,7 @@ export function YSelect(props: YSelectProps): JSX.Element {
       <button
         ref={(el) => (triggerRef = el)}
         type="button"
-        class="yovo-select__trigger"
+        class="yovo-select__trigger yovo-focus-ring"
         disabled={props.disabled}
         aria-haspopup="listbox"
         aria-expanded={open()}
@@ -167,10 +167,11 @@ export function YSelect(props: YSelectProps): JSX.Element {
             {(option, index) => (
               <li
                 id={`yovo-option-${option.value}`}
-                class="yovo-select__option"
+                class="yovo-select__option yovo-interactive"
                 classList={{
                   "yovo-select__option--selected": option.value === props.value,
-                  "yovo-select__option--active": index() === activeIndex(),
+                  "yovo-interactive--selected": option.value === props.value,
+                  "yovo-interactive--active": index() === activeIndex(),
                 }}
                 role="option"
                 aria-selected={option.value === props.value}

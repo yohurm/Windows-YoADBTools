@@ -1,28 +1,28 @@
 /**
- * YContextMenu —— 模块右键菜单（UI设计系统-v6.md §5）。
+ * YoContextMenu —— 模块右键菜单（UI设计系统-v6.md §5）。
  * 定位到指针处；Esc / 点击外侧关闭；条目由调用方按模块给出。
  */
 import { For, Show, onCleanup, onMount } from "solid-js";
 import type { JSX } from "solid-js";
 import "./ContextMenu.css";
 
-export interface YMenuItem {
+export interface YoMenuItem {
   id: string;
   label: string;
   danger?: boolean;
   disabled?: boolean;
 }
 
-export interface YContextMenuProps {
+export interface YoContextMenuProps {
   open: boolean;
   x: number;
   y: number;
-  items: YMenuItem[];
+  items: YoMenuItem[];
   onClose: () => void;
   onSelect: (id: string) => void;
 }
 
-export function YContextMenu(props: YContextMenuProps): JSX.Element {
+export function YoContextMenu(props: YoContextMenuProps): JSX.Element {
   let root: HTMLDivElement | undefined;
 
   const onDoc = (event: MouseEvent): void => {
@@ -58,7 +58,7 @@ export function YContextMenu(props: YContextMenuProps): JSX.Element {
             <button
               type="button"
               role="menuitem"
-              class="yovo-context-menu__item"
+              class="yovo-context-menu__item yovo-interactive yovo-focus-ring--inset"
               classList={{ "yovo-context-menu__item--danger": !!item.danger }}
               disabled={item.disabled}
               onClick={() => {

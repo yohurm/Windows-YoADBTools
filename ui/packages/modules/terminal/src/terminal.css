@@ -14,7 +14,7 @@
 
 .yovo-terminal__body {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: var(--yovo-layout-sidebar) 1fr;
   gap: var(--yovo-space-md);
   flex: 1;
   min-height: 0;
@@ -23,7 +23,7 @@
 .yovo-terminal__library {
   overflow: auto;
   background: var(--yovo-surface);
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
   padding: var(--yovo-space-sm);
 }
@@ -33,7 +33,7 @@
   flex-direction: column;
   min-height: 0;
   background: var(--yovo-surface);
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
   overflow: hidden;
 }
@@ -45,7 +45,7 @@
   padding: var(--yovo-space-sm) var(--yovo-space-md);
   font-weight: var(--yovo-font-weight-semibold);
   color: var(--yovo-fg);
-  border-bottom: 1px solid var(--yovo-border);
+  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
 }
 
 .yovo-terminal__results-list {
@@ -71,8 +71,8 @@
 /* ===== 结果卡片 ===== */
 
 .yovo-terminal__result {
-  border: 1px solid var(--yovo-border);
-  border-left: 3px solid var(--yovo-success);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  border-left: var(--yovo-stroke-emphasis) solid var(--yovo-success);
   margin-bottom: var(--yovo-space-sm);
   background: var(--yovo-surface);
   border-radius: var(--yovo-radius-sm);
@@ -97,14 +97,6 @@
   box-sizing: border-box;
 }
 
-.yovo-terminal__result-head:hover {
-  background: var(--yovo-nav-hover);
-}
-
-.yovo-terminal__result-head:focus-visible {
-  outline: 2px solid var(--yovo-focus-ring);
-  outline-offset: -2px;
-}
 
 .yovo-terminal__result-title {
   font-weight: var(--yovo-font-weight-semibold);
@@ -146,7 +138,7 @@
 .yovo-terminal__result-out {
   margin: 0;
   padding: var(--yovo-space-xs) var(--yovo-space-sm);
-  max-height: 260px;
+  max-height: var(--yovo-layout-output-max);
   overflow: auto;
   font-family: var(--yovo-font-mono);
   font-size: var(--yovo-font-caption);
@@ -154,7 +146,7 @@
   word-break: break-all;
   background: var(--yovo-surface-2);
   color: var(--yovo-fg);
-  border-top: 1px solid var(--yovo-border);
+  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
 }
 
 .yovo-terminal__result-out--empty {

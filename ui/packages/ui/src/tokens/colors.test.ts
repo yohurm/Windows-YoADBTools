@@ -35,6 +35,8 @@ const EXPECTED_LIGHT: Record<string, string> = {
   BorderStrong: "#B7BFCB",
   Accent: "#0A59F7",
   AccentSoft: "#D9E7FF",
+  AccentHover: "#094DDB",
+  AccentPressed: "#0740C4",
   Success: "#2C7A38",
   Warn: "#A35200",
   Error: "#CC2B1B",

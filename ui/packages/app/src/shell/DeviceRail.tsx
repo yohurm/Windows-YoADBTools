@@ -1,13 +1,13 @@
 /**
  * 设备栏（UI设计系统-v6.md §3）：卡片式设备列表。
  * 设备卡片：在线点 + 型号一行 + serial 等宽一行 + 未授权徽章；
- * 选中 = accent-soft 底 + 2px accent 左边条；空态引导 + 错误明细 + 重试。
+ * 选中 = `.yovo-interactive--selected`（accent-soft 片）+ stroke-accent 左边条；空态引导 + 错误明细 + 重试。
  * 键盘：roving tabindex（选中行 0）+ Enter/Space 选择，role=listbox/option。
  */
 
 import { Component, For, Show, createSignal } from "solid-js";
 
-import { YBadge, YButton, YIconButton } from "@yovo/ui";
+import { YoBadge, YoButton, YoIconButton } from "@yovo/ui";
 import type { DeviceInfo } from "@yovo/api";
 
 import { deviceStore } from "../stores";
@@ -39,7 +39,7 @@ export const DeviceRail: Component = () => {
   return (
     <div class="yovo-device-rail">
       <div class="yovo-device-rail__header">
-        <YIconButton
+        <YoIconButton
           icon={expanded() ? "chevron-down" : "chevron-right"}
           title={expanded() ? "折叠设备列表" : "展开设备列表"}
           onClick={() => setExpanded((v) => !v)}
@@ -47,10 +47,10 @@ export const DeviceRail: Component = () => {
         <div class="yovo-device-rail__heading">
           <span class="yovo-device-rail__title">设备</span>
           <Show when={deviceStore.state.devices.length > 0}>
-            <YBadge text={String(deviceStore.state.devices.length)} tone="neutral" />
+            <YoBadge text={String(deviceStore.state.devices.length)} tone="neutral" />
           </Show>
         </div>
-        <YIconButton
+        <YoIconButton
           icon="refresh"
           title="刷新设备"
           loading={deviceStore.state.refreshing}
@@ -64,8 +64,11 @@ export const DeviceRail: Component = () => {
               const active = () => deviceStore.state.focusSerial === device.serial;
               return (
                 <li
-                  class="yovo-device-rail__item"
-                  classList={{ "yovo-device-rail__item--active": active() }}
+                  class="yovo-device-rail__item yovo-interactive yovo-focus-ring"
+                  classList={{
+                    "yovo-device-rail__item--active": active(),
+                    "yovo-interactive--selected": active(),
+                  }}
                   role="option"
                   aria-selected={active()}
                   tabIndex={active() || (deviceStore.state.focusSerial === null && index() === 0) ? 0 : -1}
@@ -86,7 +89,7 @@ export const DeviceRail: Component = () => {
                     <span class="yovo-device-rail__serial">{device.serial}</span>
                   </span>
                   <Show when={device.state === "unauthorized"}>
-                    <YBadge text="未授权" tone="warn" />
+                    <YoBadge text="未授权" tone="warn" />
                   </Show>
                 </li>
               );
@@ -106,9 +109,9 @@ export const DeviceRail: Component = () => {
                 请用 USB 连接设备并确认已授权（adb devices 可见）
               </div>
             </Show>
-            <YButton size="sm" variant="secondary" onClick={() => void deviceStore.refresh()}>
+            <YoButton size="sm" variant="secondary" onClick={() => void deviceStore.refresh()}>
               重试扫描
-            </YButton>
+            </YoButton>
           </div>
         </Show>
       </Show>

@@ -4,7 +4,7 @@
 
 import { For, Show } from "solid-js";
 
-import { Icon, YColResizer, YEmptyState, YFileIcon, YVirtualList } from "@yovo/ui";
+import { Icon, YoColResizer, YoEmptyState, YoFileIcon, YoVirtualList } from "@yovo/ui";
 import type { RemoteEntry } from "@yovo/api";
 
 import {
@@ -31,7 +31,7 @@ function ColHead(props: { col: FileColumnSpec; index: number }) {
     >
       <button
         type="button"
-        class="yovo-files__sort"
+        class="yovo-files__sort yovo-focus-ring--inset"
         onClick={() => fileStore.setSort(props.col.key)}
         title={props.col.sortTitle}
       >
@@ -43,7 +43,7 @@ function ColHead(props: { col: FileColumnSpec; index: number }) {
         </span>
       </button>
       <Show when={!props.col.flex}>
-        <YColResizer label={props.col.resizeLabel} onResize={(dx) => fileStore.resizeCol(props.index, dx)} />
+        <YoColResizer label={props.col.resizeLabel} onResize={(dx) => fileStore.resizeCol(props.index, dx)} />
       </Show>
     </span>
   );
@@ -57,7 +57,7 @@ function FileCell(props: { entry: RemoteEntry; col: FileColumnSpec }) {
     case "name":
       return (
         <span class="yovo-files__name">
-          <YFileIcon name={props.entry.name} kind={props.entry.kind} size={16} />
+          <YoFileIcon name={props.entry.name} kind={props.entry.kind} size={16} />
           <span class="yovo-files__name-text" title={props.entry.name}>
             {props.entry.name}
           </span>
@@ -104,8 +104,8 @@ export function FileTable(props: { onContextMenu: (x: number, y: number) => void
           props.onContextMenu(event.clientX, event.clientY);
         }}
       >
-        <Show when={entries().length > 0} fallback={<YEmptyState icon="folder" title="此文件夹为空" />}>
-          <YVirtualList<RemoteEntry>
+        <Show when={entries().length > 0} fallback={<YoEmptyState icon="folder" title="此文件夹为空" />}>
+          <YoVirtualList<RemoteEntry>
             items={entries}
             itemHeight={28}
             getItemKey={(entry) => entry.name}

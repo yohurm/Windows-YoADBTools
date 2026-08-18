@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@solidjs/testing-library";
-import { YFileIcon, fileGlyphFor } from "./file-icons";
+import { YoFileIcon, fileGlyphFor } from "./file-icons";
 
 describe("fileGlyphFor", () => {
   it("目录与常见扩展名", () => {
@@ -14,12 +14,12 @@ describe("fileGlyphFor", () => {
   });
 });
 
-describe("YFileIcon", () => {
+describe("YoFileIcon", () => {
   it("同一字形可同时出现多份", () => {
     const { container } = render(() => (
       <>
-        <YFileIcon name="a" kind="dir" />
-        <YFileIcon name="b" kind="dir" />
+        <YoFileIcon name="a" kind="dir" />
+        <YoFileIcon name="b" kind="dir" />
       </>
     ));
     expect(container.querySelectorAll("svg[data-file-icon=folder]")).toHaveLength(2);

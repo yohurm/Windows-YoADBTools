@@ -23,7 +23,7 @@
   max-width: calc(100% - var(--yovo-space-lg) * 2);
   max-height: calc(100% - var(--yovo-space-xl) * 2);
   min-height: 0;
-  border: 1px solid var(--yovo-border);
+  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
   border-radius: var(--yovo-radius-md);
   background-color: var(--yovo-surface);
   color: var(--yovo-fg);
@@ -55,7 +55,7 @@
 .yovo-dialog__title {
   margin: 0;
   padding: var(--yovo-space-md) var(--yovo-space-lg);
-  border-bottom: 1px solid var(--yovo-border);
+  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
   font-size: var(--yovo-font-subtitle);
   font-weight: var(--yovo-font-weight-semibold);
 }
@@ -74,5 +74,5 @@
   justify-content: flex-end;
   gap: var(--yovo-space-sm);
   padding: var(--yovo-space-md) var(--yovo-space-lg);
-  border-top: 1px solid var(--yovo-border);
+  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
 }

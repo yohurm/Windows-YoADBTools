@@ -17,14 +17,3 @@
   box-sizing: border-box;
   overflow: hidden;
 }
-
-/* 选择模式：选中行高亮（日志/文件列表行选中态，UI设计系统-v6.md §4.1） */
-.yovo-virtual-list__row--selected {
-  background-color: var(--yovo-accent-soft);
-}
-
-/* roving tabindex 焦点环（内描边不挤压行布局） */
-.yovo-virtual-list__row:focus-visible {
-  outline: 2px solid var(--yovo-focus-ring);
-  outline-offset: -2px;
-}

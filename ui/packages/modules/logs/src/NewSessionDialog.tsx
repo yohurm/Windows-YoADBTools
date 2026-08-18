@@ -4,7 +4,7 @@
 
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
 
-import { YButton, YCheckbox, YDialog, YSelect, YTextField } from "@yovo/ui";
+import { YoButton, YoCheckbox, YoDialog, YoSelect, YoTextField } from "@yovo/ui";
 
 import type { SessionScope } from "./pipeline";
 import { logStore } from "./store";
@@ -75,19 +75,19 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
   };
 
   return (
-    <YDialog
+    <YoDialog
       open={props.open}
       title="新建日志会话"
       width={480}
       onClose={props.onClose}
       footer={
         <>
-          <YButton variant="ghost" onClick={props.onClose}>
+          <YoButton variant="ghost" onClick={props.onClose}>
             取消
-          </YButton>
-          <YButton onClick={create} disabled={!canCreate()}>
+          </YoButton>
+          <YoButton onClick={create} disabled={!canCreate()}>
             创建
-          </YButton>
+          </YoButton>
         </>
       }
     >
@@ -97,7 +97,7 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
         </Show>
         <div class="yovo-logs__field">
           <span class="yovo-logs__label">划分方式</span>
-          <YSelect
+          <YoSelect
             options={[
               { value: "package", label: "按包名" },
               { value: "pid", label: "按 PID" },
@@ -113,13 +113,13 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
         <Show when={mode() === "package"}>
           <div class="yovo-logs__field">
             <span class="yovo-logs__label">包名</span>
-            <YSelect
+            <YoSelect
               options={packageOptions()}
               value={pkg() || null}
               onChange={setPkg}
               placeholder={loading() ? "正在读取进程…" : "从进程列表选择"}
             />
-            <YTextField
+            <YoTextField
               label="或手动输入"
               value={pkg()}
               onInput={(v) => {
@@ -128,14 +128,14 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
               }}
               placeholder="com.example.app"
             />
-            <YCheckbox label="包含子进程（pkg:xxx）" checked={includeChild()} onChange={setIncludeChild} />
+            <YoCheckbox label="包含子进程（pkg:xxx）" checked={includeChild()} onChange={setIncludeChild} />
           </div>
         </Show>
 
         <Show when={mode() === "pid"}>
           <div class="yovo-logs__field">
             <span class="yovo-logs__label">进程</span>
-            <YSelect
+            <YoSelect
               options={pidOptions()}
               value={pidText() || null}
               onChange={(v) => {
@@ -144,7 +144,7 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
               }}
               placeholder={loading() ? "正在读取进程…" : "从进程列表选择"}
             />
-            <YTextField
+            <YoTextField
               label="或输入 PID"
               value={pidText()}
               onInput={(v) => {
@@ -163,6 +163,6 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
           <p class="yovo-logs__new-error">{error()}</p>
         </Show>
       </div>
-    </YDialog>
+    </YoDialog>
   );
 }
