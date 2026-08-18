@@ -1,0 +1,34 @@
+import { describe, expect, it } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+function loadStatesCss(): string {
+  const candidates = [
+    resolve(process.cwd(), "src/tokens/states.css"),
+    resolve(process.cwd(), "packages/ui/src/tokens/states.css"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return readFileSync(candidate, "utf-8");
+    }
+  }
+  return "";
+}
+
+const statesCss = loadStatesCss();
+
+describe("yohu-interactive 叠层契约", () => {
+  it("states.css 可读取", () => {
+    expect(statesCss.length).toBeGreaterThan(0);
+  });
+
+  it("选中片 ::before 使用负 z-index，避免盖住流内文本节点", () => {
+    const block = statesCss.match(/\.yohu-interactive::before\s*\{[^}]+\}/);
+    expect(block?.[0]).toMatch(/z-index:\s*-1/);
+  });
+
+  it("元素子节点抬到选中片之上（> * { z-index: 1 }）", () => {
+    const block = statesCss.match(/\.yohu-interactive > \*\s*\{[^}]+\}/);
+    expect(block?.[0]).toMatch(/z-index:\s*1/);
+  });
+});

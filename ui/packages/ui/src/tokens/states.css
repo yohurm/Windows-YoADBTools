@@ -17,7 +17,9 @@
   background: var(--yohu-state-hover);
   opacity: 0;
   pointer-events: none;
-  z-index: 0;
+  /* 必须 < 0：z-index:0 的绝对定位层会盖住流内文本节点（YoSelect / 面包屑等）。
+     isolation:isolate 把负层锁在本元素内，不会漏到父级背后。 */
+  z-index: -1;
 }
 
 .yohu-interactive > * {

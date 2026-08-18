@@ -32,6 +32,9 @@ export interface YoSelectProps {
   placeholder?: string;
 }
 
+/** 空字符串 value（如级别「全部」）不能生成 `yohu-option-` 这种残缺 id。 */
+const optionDomId = (value: string): string => `yohu-option-${value === "" ? "empty" : value}`;
+
 /**
  * 渲染一个自绘下拉选择框。
  */
@@ -149,7 +152,7 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
         disabled={props.disabled}
         aria-haspopup="listbox"
         aria-expanded={open()}
-        aria-activedescendant={open() ? `yohu-option-${activeValue()}` : undefined}
+        aria-activedescendant={open() ? optionDomId(activeValue()) : undefined}
         onClick={openMenu}
         onKeyDown={onTriggerKeyDown}
       >
@@ -166,7 +169,7 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
           <For each={props.options}>
             {(option, index) => (
               <li
-                id={`yohu-option-${option.value}`}
+                id={optionDomId(option.value)}
                 class="yohu-select__option yohu-interactive"
                 classList={{
                   "yohu-select__option--selected": option.value === props.value,
@@ -178,7 +181,8 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
                 onMouseEnter={() => setActiveIndex(index())}
                 onClick={() => handleSelect(option.value)}
               >
-                {option.label}
+                {/* 包一层元素：.yohu-interactive > * 才能抬到选中片之上 */}
+                <span class="yohu-select__option-label">{option.label}</span>
               </li>
             )}
           </For>

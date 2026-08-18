@@ -66,6 +66,32 @@ describe("YoSelect", () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it("展开后选中项标签可见且带 selected 态（含空字符串 value）", () => {
+    const levels = [
+      { value: "", label: "全部" },
+      { value: "V", label: "V" },
+      { value: "E", label: "E" },
+    ];
+    render(() => <YoSelect options={levels} value="" />);
+    fireEvent.click(screen.getByRole("button", { name: /全部/ }));
+    const selected = screen.getByRole("option", { name: "全部" });
+    expect(selected.textContent).toBe("全部");
+    expect(selected.getAttribute("aria-selected")).toBe("true");
+    expect(selected.classList.contains("yohu-interactive--selected")).toBe(true);
+    expect(selected.classList.contains("yohu-select__option--selected")).toBe(true);
+    expect(selected.querySelector(".yohu-select__option-label")?.textContent).toBe("全部");
+    expect(screen.getByRole("button").getAttribute("aria-activedescendant")).toBe("yohu-option-empty");
+  });
+
+  it("非空 value 的选中项同样标签可见且带 selected 态", () => {
+    render(() => <YoSelect options={OPTIONS} value="c" />);
+    fireEvent.click(screen.getByRole("button", { name: /选项C/ }));
+    const selected = screen.getByRole("option", { name: "选项C" });
+    expect(selected.textContent).toBe("选项C");
+    expect(selected.getAttribute("aria-selected")).toBe("true");
+    expect(selected.classList.contains("yohu-interactive--selected")).toBe(true);
+  });
+
   it("键盘：Home/End 跳到首尾活动项", () => {
     render(() => <YoSelect options={OPTIONS} placeholder="请选择" />);
     const trigger = screen.getByRole("button");

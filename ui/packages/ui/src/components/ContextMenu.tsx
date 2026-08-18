@@ -67,7 +67,7 @@ export function YoContextMenu(props: YoContextMenuProps): JSX.Element {
                 props.onClose();
               }}
             >
-              {item.label}
+              <span>{item.label}</span>
             </button>
           )}
         </For>
