@@ -7,6 +7,7 @@ import { type Component, type JSX, Show } from "solid-js";
 import { YBadge, YToolbar } from "@yovo/ui";
 
 import { modules } from "../registry";
+import { deviceStore } from "../stores";
 import { DeviceRail } from "./DeviceRail";
 import { NavList } from "./NavList";
 import { StatusBar } from "./StatusBar";
@@ -28,7 +29,7 @@ export const AppLayout: Component<{
         <Show when={current()} keyed>
           {(mod) => {
             const C = mod.Component;
-            return <C />;
+            return <C focusSerial={deviceStore.state.focusSerial} />;
           }}
         </Show>
       </main>

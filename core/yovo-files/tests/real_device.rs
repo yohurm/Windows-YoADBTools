@@ -126,6 +126,8 @@ async fn real_safety_root_rejects_dangerous_path() {
     assert!(result.is_err(), "安全根外删除必须被 core 拒绝");
     let result = mutator.delete(&serial, "/sdcard/../data/x", CancellationToken::new()).await;
     assert!(result.is_err(), "路径穿越必须被 core 拒绝");
+    let result = mutator.delete(&serial, "/sdcard", CancellationToken::new()).await;
+    assert!(result.is_err(), "禁止删除安全根本身");
     eprintln!("[真机] SafetyRoot 拒绝危险路径验证通过");
 }
 

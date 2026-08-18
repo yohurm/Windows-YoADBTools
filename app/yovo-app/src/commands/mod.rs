@@ -13,6 +13,7 @@ pub mod system;
 pub mod terminal;
 
 use yovo_adb::AdbError;
+use yovo_files::FileError;
 use yovo_protocol::{IpcError, IpcErrorCode};
 
 /// core 错误 → IPC 错误（前端按 code 处理）。
@@ -38,4 +39,15 @@ pub fn ipc_adb(e: AdbError) -> IpcError {
 /// 构造一个简单 IPC 错误。
 pub fn ipc_code(code: IpcErrorCode, message: impl Into<String>) -> IpcError {
     IpcError { code, message: message.into() }
+}
+
+/// 文件模块错误 → IPC（路径/安全根走 InvalidArgs，取消保留语义）。
+pub fn ipc_file(e: FileError) -> IpcError {
+    match e {
+        FileError::Path(message) | FileError::OutsideRoot(message) => {
+            ipc_code(IpcErrorCode::InvalidArgs, message)
+        }
+        FileError::LocalNotFound(message) => ipc_code(IpcErrorCode::NotFound, message),
+        FileError::Adb(adb) => ipc_adb(adb),
+    }
 }

@@ -1,5 +1,6 @@
 /**
- * 文件模块 store：设备目录浏览 + 传输管理（进度经 transfer.progress 事件回流）。
+ * 文件模块 ViewModel：会话由壳注入，本文件只依赖 @yovo/api。
+ * 浏览世代令牌丢弃过期 list；危险路径/空名在 childPath 拦截，core 再强制。
  */
 
 import { createStore } from "solid-js/store";
@@ -15,74 +16,31 @@ import {
   onTransferProgress,
 } from "@yovo/api";
 import type { RemoteEntry, TransferProgress, TransferState } from "@yovo/api";
-import { deviceStore } from "@yovo/app";
 
-/** 路径辅助（纯函数，可单测）。 */
-export function joinPath(dir: string, name: string): string {
-  if (dir === "/") return `/${name}`;
-  return `${dir.replace(/\/+$/, "")}/${name}`;
-}
+import {
+  DEFAULT_SORT_DIR,
+  FILE_COLUMNS,
+  childPath,
+  errorText,
+  isCancelledError,
+  parentWithinSafety,
+  sortEntries,
+  type SortDir,
+  type SortKey,
+} from "./model";
 
-/** 上级目录（根目录返回 null）。 */
-export function parentOf(path: string): string | null {
-  const trimmed = path.replace(/\/+$/, "");
-  if (trimmed === "" || trimmed === "/") return null;
-  const idx = trimmed.lastIndexOf("/");
-  if (idx <= 0) return "/";
-  return trimmed.slice(0, idx);
-}
-
-/** 目录优先 + 名称排序。 */
-export function sortEntries(entries: RemoteEntry[]): RemoteEntry[] {
-  return [...entries].sort((a, b) => {
-    const kindRank = (k: RemoteEntry["kind"]): number => (k === "dir" ? 0 : 1);
-    const rankDiff = kindRank(a.kind) - kindRank(b.kind);
-    if (rankDiff !== 0) return rankDiff;
-    return a.name.localeCompare(b.name);
-  });
-}
-
-/** 人类可读大小。 */
-export function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  const mb = kb / 1024;
-  if (mb < 1024) return `${mb.toFixed(1)} MB`;
-  return `${(mb / 1024).toFixed(2)} GB`;
-}
-
-/** 面包屑分段：`/storage/emulated/0` → ["storage","emulated","0"]（根路径为 []）。 */
-export function splitPath(path: string): string[] {
-  return path.split("/").filter((segment) => segment.length > 0);
-}
-
-/** 文件扩展名分类（§4.3 分类色图标）。 */
-export type FileCategory = "apk" | "media" | "doc" | "archive" | "other";
-
-export function fileCategory(name: string): FileCategory {
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  if (ext === "apk" || ext === "aab") return "apk";
-  if (
-    ["png", "jpg", "jpeg", "gif", "webp", "bmp", "mp3", "mp4", "mkv", "avi", "flac", "ogg", "wav", "webm"].includes(ext)
-  ) {
-    return "media";
-  }
-  if (["txt", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "md", "json", "xml", "log", "csv"].includes(ext)) {
-    return "doc";
-  }
-  if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archive";
-  return "other";
-}
-
-/** 类型列文案。 */
-export function fileTypeLabel(entry: RemoteEntry): string {
-  if (entry.kind === "dir") return "文件夹";
-  if (entry.kind === "symlink") return "链接";
-  const ext = entry.name.split(".").pop();
-  if (ext && ext !== entry.name) return ext.toUpperCase();
-  return "文件";
-}
+export type { SortDir, SortKey } from "./model";
+export {
+  DEFAULT_SORT_DIR,
+  fileCategory,
+  fileTypeLabel,
+  formatSize,
+  joinPath,
+  parentOf,
+  sortEntries,
+  splitPath,
+  validateEntryName,
+} from "./model";
 
 export interface UiTransfer {
   id: number;
@@ -92,23 +50,49 @@ export interface UiTransfer {
   total?: number;
   state: TransferState;
   message?: string;
-  /** 最近采样速率（bytes/s） */
   speed?: number;
 }
 
-/** 终态传输在面板保留时长（ms），配合淡出动画。 */
 const TERMINAL_KEEP_MS = 3000;
+const COL_DEFAULT = FILE_COLUMNS.map((col) => col.defaultWidth);
+const COL_MIN = FILE_COLUMNS.map((col) => col.minWidth);
 
 export function createFileStore() {
   const [entries, setEntries] = createStore<RemoteEntry[]>([]);
   const [transfers, setTransfers] = createStore<UiTransfer[]>([]);
-  const [path, setPath] = createStore({ value: "/sdcard" });
-  const [loading, setLoading] = createStore({ value: false });
+  const [session, setSession] = createStore({
+    serial: null as string | null,
+    path: "/sdcard",
+    loading: false,
+    mutating: false,
+    error: "",
+  });
+  const [sort, setSortState] = createStore<{ key: SortKey; dir: SortDir }>({
+    key: "name",
+    dir: "asc",
+  });
+  const [selection, setSelection] = createStore({
+    names: [] as string[],
+    pivot: null as string | null,
+  });
+  const [ui, setUi] = createStore({
+    previewOpen: false,
+    colWidths: [...COL_DEFAULT],
+  });
 
-  const focusSerial = (): string | null => deviceStore.state.focusSerial;
-
-  /** 速率采样基准（id → 上次 bytes/时间戳）。 */
+  let listGen = 0;
   const speedBase = new Map<number, { bytes: number; ts: number }>();
+  const fadeTimers = new Map<number, number>();
+
+  const serial = (): string | null => session.serial;
+
+  function clearSelection(): void {
+    setSelection({ names: [], pivot: null });
+  }
+
+  function setError(message: string): void {
+    setSession("error", message);
+  }
 
   function upsertTransfer(progress: TransferProgress, name?: string): void {
     const now = Date.now();
@@ -139,128 +123,260 @@ export function createFileStore() {
     } else {
       setTransfers(index, name !== undefined ? { ...patch, name } : patch);
     }
-    // 终态：3s 后从面板移除（视图侧同步淡出）
     if (progress.state !== "running") {
       speedBase.delete(progress.id);
-      window.setTimeout(() => {
-        setTransfers((ts) => ts.filter((t) => t.id !== progress.id));
-      }, TERMINAL_KEEP_MS);
+      const prev = fadeTimers.get(progress.id);
+      if (prev !== undefined) window.clearTimeout(prev);
+      fadeTimers.set(
+        progress.id,
+        window.setTimeout(() => {
+          fadeTimers.delete(progress.id);
+          setTransfers((ts) => ts.filter((t) => t.id !== progress.id));
+        }, TERMINAL_KEEP_MS),
+      );
     }
   }
 
-  /** 传输名回填（invoke 返回 id 后；进度事件可能先到）。 */
   function setTransferName(id: number, name: string): void {
     const index = transfers.findIndex((t) => t.id === id);
     if (index >= 0) setTransfers(index, { name });
   }
 
   async function refresh(): Promise<void> {
-    const serial = focusSerial();
-    if (!serial) {
+    const current = serial();
+    if (!current) {
       setEntries([]);
       return;
     }
-    setLoading("value", true);
+    const gen = ++listGen;
+    setSession("loading", true);
     try {
-      const list = await filesList(serial, path.value);
-      setEntries(sortEntries(list));
+      const list = await filesList(current, session.path);
+      if (gen !== listGen) return;
+      setEntries(sortEntries(list, sort.key, sort.dir));
+      setError("");
+      const alive = new Set(list.map((e) => e.name));
+      setSelection("names", selection.names.filter((n) => alive.has(n)));
     } catch (e) {
+      if (gen !== listGen || isCancelledError(e)) return;
       setEntries([]);
-      console.error("files.list 失败", e);
+      setError(errorText(e));
     } finally {
-      setLoading("value", false);
+      if (gen === listGen) setSession("loading", false);
     }
+  }
+
+  /** 壳注入焦点。serial 变化时清列表并重扫；同一设备重复绑定仍刷新（模块切回）。 */
+  function bindSerial(next: string | null): void {
+    const changed = next !== session.serial;
+    setSession("serial", next);
+    if (!next) {
+      listGen += 1;
+      setEntries([]);
+      setError("");
+      clearSelection();
+      setSession("loading", false);
+      return;
+    }
+    if (changed) {
+      setSession("path", "/sdcard");
+      clearSelection();
+    }
+    void refresh();
+  }
+
+  async function navigate(target: string): Promise<void> {
+    setSession("path", target || "/");
+    clearSelection();
+    await refresh();
   }
 
   async function enterDirectory(name: string): Promise<void> {
-    setPath("value", joinPath(path.value, name));
-    await refresh();
+    try {
+      await navigate(childPath(session.path, name));
+    } catch (e) {
+      setError(errorText(e));
+    }
   }
 
   async function goUp(): Promise<void> {
-    const parent = parentOf(path.value);
-    if (parent !== null) {
-      setPath("value", parent);
-      await refresh();
-    }
+    const parent = parentWithinSafety(session.path);
+    if (parent !== null) await navigate(parent);
   }
 
-  /** 面包屑直达（跳转任意上级路径）。 */
   async function goTo(target: string): Promise<void> {
-    setPath("value", target);
-    await refresh();
+    await navigate(target.startsWith("/") ? target : `/${target}`);
   }
 
-  async function remove(name: string): Promise<void> {
-    const serial = focusSerial();
-    if (!serial) return;
-    await filesDelete({ serial, path: joinPath(path.value, name) });
-    await refresh();
-  }
-
-  async function mkdir(name: string): Promise<void> {
-    const serial = focusSerial();
-    if (!serial) return;
-    await filesMkdir({ serial, path: joinPath(path.value, name) });
-    await refresh();
-  }
-
-  async function createFile(name: string): Promise<void> {
-    const serial = focusSerial();
-    if (!serial) return;
-    await filesCreate({ serial, path: joinPath(path.value, name) });
-    await refresh();
+  async function withSerial(op: (serial: string) => Promise<void>): Promise<void> {
+    const current = serial();
+    if (!current) {
+      setError("未选择设备");
+      return;
+    }
+    setSession("mutating", true);
+    try {
+      await op(current);
+      setError("");
+      await refresh();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setSession("mutating", false);
+    }
   }
 
   async function removeMany(names: string[]): Promise<void> {
-    for (const name of names) {
-      await remove(name);
-    }
+    const unique = [...new Set(names.map((n) => n.trim()).filter(Boolean))];
+    if (unique.length === 0) return;
+    await withSerial(async (current) => {
+      const failures: string[] = [];
+      for (const name of unique) {
+        try {
+          await filesDelete({ serial: current, path: childPath(session.path, name) });
+        } catch (e) {
+          failures.push(`${name}: ${errorText(e)}`);
+        }
+      }
+      if (failures.length > 0) throw new Error(failures.join("；"));
+    });
+    clearSelection();
+  }
+
+  async function mkdir(name: string): Promise<void> {
+    await withSerial(async (current) => {
+      await filesMkdir({ serial: current, path: childPath(session.path, name.trim()) });
+    });
+  }
+
+  async function createFile(name: string): Promise<void> {
+    await withSerial(async (current) => {
+      await filesCreate({ serial: current, path: childPath(session.path, name.trim()) });
+    });
   }
 
   async function push(local: string, remoteName: string): Promise<void> {
-    const serial = focusSerial();
-    if (!serial) return;
-    const id = await filesPush({ serial, direction: "push", local, remote: joinPath(path.value, remoteName) });
-    setTransferName(id, remoteName);
-    upsertTransfer({ id, direction: "push", bytes: 0, state: "running" }, remoteName);
+    const current = serial();
+    if (!current) {
+      setError("未选择设备");
+      return;
+    }
+    try {
+      const remote = childPath(session.path, remoteName);
+      const id = await filesPush({ serial: current, local, remote });
+      setTransferName(id, remoteName);
+      upsertTransfer({ id, direction: "push", bytes: 0, state: "running" }, remoteName);
+      setError("");
+    } catch (e) {
+      setError(errorText(e));
+    }
   }
 
   async function pull(remoteName: string, local: string): Promise<void> {
-    const serial = focusSerial();
-    if (!serial) return;
-    const id = await filesPull({ serial, direction: "pull", local, remote: joinPath(path.value, remoteName) });
-    setTransferName(id, remoteName);
-    upsertTransfer({ id, direction: "pull", bytes: 0, state: "running" }, remoteName);
+    const current = serial();
+    if (!current) {
+      setError("未选择设备");
+      return;
+    }
+    try {
+      const remote = childPath(session.path, remoteName);
+      const id = await filesPull({ serial: current, local, remote });
+      setTransferName(id, remoteName);
+      upsertTransfer({ id, direction: "pull", bytes: 0, state: "running" }, remoteName);
+      setError("");
+    } catch (e) {
+      setError(errorText(e));
+    }
   }
 
   async function cancel(id: number): Promise<void> {
-    await filesCancel(id);
+    try {
+      await filesCancel(id);
+    } catch (e) {
+      setError(errorText(e));
+    }
   }
+
+  function setSort(key: SortKey): void {
+    const dir: SortDir = sort.key === key ? (sort.dir === "asc" ? "desc" : "asc") : DEFAULT_SORT_DIR[key];
+    setSortState({ key, dir });
+    setEntries(sortEntries(entries, key, dir));
+  }
+
+  function select(name: string, mode: "replace" | "toggle" | "range"): void {
+    if (mode === "toggle") {
+      const next = new Set(selection.names);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      setSelection({ names: [...next], pivot: name });
+      return;
+    }
+    if (mode === "range" && selection.pivot) {
+      const from = entries.findIndex((e) => e.name === selection.pivot);
+      const to = entries.findIndex((e) => e.name === name);
+      if (from >= 0 && to >= 0) {
+        const [a, b] = from < to ? [from, to] : [to, from];
+        setSelection("names", entries.slice(a, b + 1).map((e) => e.name));
+        return;
+      }
+    }
+    setSelection({ names: [name], pivot: name });
+  }
+
+  function resizeCol(index: number, delta: number): void {
+    setUi("colWidths", (prev) => {
+      const next = [...prev];
+      next[index] = Math.max(COL_MIN[index] ?? 48, (next[index] ?? 80) + delta);
+      return next;
+    });
+  }
+
+  function togglePreview(): void {
+    setUi("previewOpen", (v) => !v);
+  }
+
+  const selectedSet = (): Set<string> => new Set(selection.names);
+
+  const selectedEntries = (): RemoteEntry[] => entries.filter((e) => selection.names.includes(e.name));
+
+  const singleFile = (): RemoteEntry | undefined => {
+    const only = selectedEntries()[0];
+    return selectedEntries().length === 1 && only?.kind === "file" ? only : undefined;
+  };
 
   void onTransferProgress((e) => {
     upsertTransfer({ ...e });
+    if (e.state !== "running" && serial()) void refresh();
   });
 
   return {
     entries,
     transfers,
-    path,
-    loading,
+    session,
+    sort,
+    selection,
+    ui,
+    bindSerial,
     refresh,
     enterDirectory,
     goUp,
     goTo,
-    remove,
+    removeMany,
     mkdir,
     createFile,
-    removeMany,
     push,
     pull,
     cancel,
-    focusSerial,
+    setSort,
+    select,
+    clearSelection,
+    resizeCol,
+    togglePreview,
+    selectedSet,
+    selectedEntries,
+    singleFile,
+    serial,
   };
 }
 
-/** 模块级单例。 */
 export const fileStore = createFileStore();

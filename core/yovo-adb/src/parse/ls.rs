@@ -33,9 +33,8 @@ pub fn parse_ls(output: &str) -> Vec<RemoteEntry> {
             fields.next()?;
             fields.next()?;
             let size: u64 = fields.next()?.parse().ok()?;
-            // 日期 时间（两列，原文保留）
-            let mtime = Some(format!("{} {}", fields.next()?, fields.next()?));
-            let name = fields.collect::<Vec<_>>().join(" ");
+            let rest: Vec<&str> = fields.collect();
+            let (mtime, name) = split_mtime_and_name(&rest);
             if name.is_empty() || name == "." || name == ".." {
                 return None;
             }
@@ -49,6 +48,22 @@ pub fn parse_ls(output: &str) -> Vec<RemoteEntry> {
             })
         })
         .collect()
+}
+
+/// toybox：`2026-01-01 12:00 name`；认不出日期则整段当名称、mtime 空（不丢行）。
+fn split_mtime_and_name(rest: &[&str]) -> (Option<String>, String) {
+    if rest.len() >= 3 && looks_date(rest[0]) && looks_time(rest[1]) {
+        return (Some(format!("{} {}", rest[0], rest[1])), rest[2..].join(" "));
+    }
+    (None, rest.join(" "))
+}
+
+fn looks_date(token: &str) -> bool {
+    token.len() >= 8 && token.contains('-')
+}
+
+fn looks_time(token: &str) -> bool {
+    token.len() >= 4 && token.contains(':')
 }
 
 #[cfg(test)]
@@ -88,5 +103,14 @@ lrwxrwxrwx 1 root root 12 2026-01-03 09:00 data -> /sdcard/DCIM
         let out = "-rw-rw---- 1 root root 10 2026-01-01 00:00 my file.txt\n";
         let entries = parse_ls(out);
         assert_eq!(entries[0].name, "my file.txt");
+    }
+
+    #[test]
+    fn unknown_date_keeps_name() {
+        let out = "-rw-rw---- 1 root root 10 Jan 1 2024 keep-me.bin\n";
+        let entries = parse_ls(out);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].name, "Jan 1 2024 keep-me.bin");
+        assert!(entries[0].mtime.is_none());
     }
 }

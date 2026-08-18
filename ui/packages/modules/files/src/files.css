@@ -1,6 +1,6 @@
 /* ============================================================================
  * 文件管理（UI设计系统-v6.md §4.3）。
- * 面包屑路径栏 → 四列清单（名称/类型/大小/修改时间）+ 可收起预览
+ * 面包屑路径栏 → 四列清单（名称定宽截断 / 类型 / 大小 / 日期吃剩余）+ 可收起预览
  * → 传输面板（卡片式；终态 3s 淡出）。
  * ========================================================================== */
 
@@ -101,24 +101,98 @@
   align-items: center;
   padding: 0 var(--yovo-space-sm) 0 var(--yovo-space-md);
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .yovo-files__cols--head {
   flex-shrink: 0;
-  height: var(--yovo-control-height);
+  height: 28px;
   background: var(--yovo-surface-2);
   border-bottom: 1px solid var(--yovo-border);
   font-size: var(--yovo-font-caption);
-  font-weight: var(--yovo-font-weight-semibold);
+  font-weight: var(--yovo-font-weight-regular);
   color: var(--yovo-fg-2);
 }
 
-.yovo-files__cols--head > span {
-  position: relative;
+.yovo-files__col,
+.yovo-files__cell,
+.yovo-files__name {
   min-width: 0;
-  padding-right: var(--yovo-space-sm);
-  overflow: visible;
+  overflow: hidden;
+}
+
+.yovo-files__col {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.yovo-files__col:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 0;
+  bottom: 6px;
+  width: 1px;
+  background: var(--yovo-border);
+  pointer-events: none;
+}
+
+.yovo-files__col:hover {
+  color: var(--yovo-fg);
+  background: var(--yovo-nav-hover);
+}
+
+.yovo-files__col[aria-sort="ascending"] .yovo-files__sort-label,
+.yovo-files__col[aria-sort="descending"] .yovo-files__sort-label {
+  color: var(--yovo-fg);
+  font-weight: var(--yovo-font-weight-semibold);
+}
+
+.yovo-files__col--end {
+  justify-content: flex-end;
+}
+
+.yovo-files__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0 var(--yovo-space-xs) 0 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+.yovo-files__col--end .yovo-files__sort {
+  justify-content: flex-end;
+}
+
+.yovo-files__sort-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.yovo-files__sort-icon {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yovo-files__sort:focus-visible {
+  outline: 2px solid var(--yovo-focus-ring);
+  outline-offset: -2px;
 }
 
 .yovo-files__table-list {
@@ -128,9 +202,7 @@
 
 .yovo-files__row {
   height: 100%;
-  font-family: var(--yovo-font-mono);
   font-size: var(--yovo-font-caption);
-  font-variant-numeric: tabular-nums;
   color: var(--yovo-fg);
 }
 
@@ -138,18 +210,33 @@
   display: flex;
   align-items: center;
   gap: var(--yovo-space-sm);
-  min-width: 0;
+  padding-right: var(--yovo-space-sm);
 }
 
-.yovo-files__name span {
+.yovo-files__name-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.yovo-files__num {
-  text-align: right;
+.yovo-files__cell {
+  padding-right: var(--yovo-space-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--yovo-fg-2);
+}
+
+.yovo-files__num {
+  font-family: var(--yovo-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.yovo-files__mtime {
+  font-family: var(--yovo-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
 }
 
 .yovo-files__preview {
@@ -317,4 +404,15 @@
   margin: 0;
   font-size: var(--yovo-font-body);
   color: var(--yovo-fg);
+}
+
+.yovo-files__error {
+  flex-shrink: 0;
+  margin: 0 0 var(--yovo-space-sm);
+  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  color: var(--yovo-error);
+  background: var(--yovo-surface-2);
+  border: 1px solid var(--yovo-error);
+  border-radius: var(--yovo-radius-sm);
+  font-size: var(--yovo-font-caption);
 }

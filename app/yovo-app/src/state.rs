@@ -57,4 +57,6 @@ pub struct AppState {
     /// 传输取消令牌（transfer id → token）
     pub transfer_cancels: Mutex<HashMap<u32, CancellationToken>>,
     pub transfer_next: AtomicU32,
+    /// 当前目录列举取消令牌（新 list 取消上一趟，防过期结果覆盖）
+    pub browse_cancel: Mutex<CancellationToken>,
 }

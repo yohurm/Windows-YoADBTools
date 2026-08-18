@@ -16,4 +16,4 @@ pub use command::{
     split_command_line,
 };
 pub use focus::{DeviceFocus, SelectionMode};
-pub use safety::{PathError, RemotePath, SafetyError, SafetyRoot};
+pub use safety::{PathError, RemotePath, SafetyError, SafetyRoot, validate_entry_name};

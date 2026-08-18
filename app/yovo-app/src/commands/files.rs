@@ -3,7 +3,7 @@
 use tauri::{AppHandle, Manager, State};
 use tokio_util::sync::CancellationToken;
 
-use crate::commands::{ipc, ipc_code};
+use crate::commands::{ipc_code, ipc_file};
 use crate::state::AppState;
 use yovo_protocol::{
     Direction, IpcError, IpcErrorCode, PathOpRequest, RemoteEntry, TransferRequest,
@@ -16,7 +16,14 @@ pub async fn files_list(
     serial: String,
     path: String,
 ) -> Result<Vec<RemoteEntry>, IpcError> {
-    state.browser.list(&serial, &path, CancellationToken::new()).await.map_err(ipc)
+    let cancel = {
+        let mut slot = state.browse_cancel.lock().expect("browse lock poisoned");
+        slot.cancel();
+        let next = CancellationToken::new();
+        *slot = next.clone();
+        next
+    };
+    state.browser.list(&serial, &path, cancel).await.map_err(ipc_file)
 }
 
 /// `files.push`：本机 → 设备（异步传输，进度经 `transfer.progress` 事件）。
@@ -100,7 +107,7 @@ pub async fn files_delete(
     state: State<'_, AppState>,
     req: PathOpRequest,
 ) -> Result<(), IpcError> {
-    state.mutator.delete(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc)
+    state.mutator.delete(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc_file)
 }
 
 /// `files.mkdir`：新建目录。
@@ -109,7 +116,7 @@ pub async fn files_mkdir(
     state: State<'_, AppState>,
     req: PathOpRequest,
 ) -> Result<(), IpcError> {
-    state.mutator.mkdir(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc)
+    state.mutator.mkdir(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc_file)
 }
 
 /// `files.create`：新建空文件（SafetyRoot 校验）。
@@ -122,5 +129,5 @@ pub async fn files_create(
         .mutator
         .create_file(&req.serial, &req.path, CancellationToken::new())
         .await
-        .map_err(ipc)
+        .map_err(ipc_file)
 }

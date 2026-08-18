@@ -1,4 +1,4 @@
-//! 危险操作（删除/新建目录）：core 侧 SafetyRoot 强制校验。
+//! 危险操作（删除/新建）：core 侧 SafetyRoot + 末段名强制校验。
 
 use std::sync::Arc;
 
@@ -6,7 +6,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::FileError;
 use yovo_adb::AdbClient;
-use yovo_domain::SafetyRoot;
+use yovo_domain::{validate_entry_name, RemotePath, SafetyRoot};
 
 /// 设备文件变更器。
 pub struct FileMutator {
@@ -19,6 +19,15 @@ impl FileMutator {
         Self { adb, safety: SafetyRoot::default() }
     }
 
+    fn normalize_mut(&self, path: &str) -> Result<RemotePath, FileError> {
+        let normalized = self
+            .safety
+            .check_descendant(path)
+            .map_err(|e| FileError::OutsideRoot(e.to_string()))?;
+        validate_entry_name(normalized.file_name()).map_err(|e| FileError::Path(e.to_string()))?;
+        Ok(normalized)
+    }
+
     /// 删除（递归）。**必须通过安全根校验**，用户确认由 UI 负责、core 二次强制。
     pub async fn delete(
         &self,
@@ -26,10 +35,7 @@ impl FileMutator {
         path: &str,
         cancel: CancellationToken,
     ) -> Result<(), FileError> {
-        let normalized = self
-            .safety
-            .check(path)
-            .map_err(|e| FileError::OutsideRoot(e.to_string()))?;
+        let normalized = self.normalize_mut(path)?;
         let out = self
             .adb
             .run(serial, &["shell".into(), "rm".into(), "-rf".into(), normalized.as_str().into()], Some(30_000), cancel)
@@ -50,10 +56,7 @@ impl FileMutator {
         path: &str,
         cancel: CancellationToken,
     ) -> Result<(), FileError> {
-        let normalized = self
-            .safety
-            .check(path)
-            .map_err(|e| FileError::OutsideRoot(e.to_string()))?;
+        let normalized = self.normalize_mut(path)?;
         let out = self
             .adb
             .run(serial, &["shell".into(), "mkdir".into(), "-p".into(), normalized.as_str().into()], Some(15_000), cancel)
@@ -74,10 +77,7 @@ impl FileMutator {
         path: &str,
         cancel: CancellationToken,
     ) -> Result<(), FileError> {
-        let normalized = self
-            .safety
-            .check(path)
-            .map_err(|e| FileError::OutsideRoot(e.to_string()))?;
+        let normalized = self.normalize_mut(path)?;
         let out = self
             .adb
             .run(

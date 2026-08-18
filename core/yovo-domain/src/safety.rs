@@ -9,6 +9,8 @@ pub enum PathError {
     NotAbsolute(String),
     #[error("路径含 .. 穿越: {0}")]
     Traversal(String),
+    #[error("条目名非法: {0}")]
+    InvalidName(String),
 }
 
 /// 规范化后的设备绝对路径（拒绝 `..` 与相对路径）。
@@ -44,6 +46,31 @@ impl RemotePath {
         self.normalized == root.normalized
             || self.normalized.starts_with(&format!("{}/", root.normalized))
     }
+
+    /// 位于 `root` 之下（不含 root 本身）。`/sdcard/a` 是，`/sdcard` 不是。
+    pub fn is_strictly_under(&self, root: &RemotePath) -> bool {
+        self.normalized.starts_with(&format!("{}/", root.normalized))
+    }
+
+    /// 规范化路径的最后一段。`/` 为空串。
+    pub fn file_name(&self) -> &str {
+        self.normalized.rsplit('/').next().unwrap_or("")
+    }
+}
+
+/// 校验单段条目名（禁止空、`.`/`..`、分隔符）。用于 UI 与 core 双侧。
+pub fn validate_entry_name(name: &str) -> Result<(), PathError> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err(PathError::InvalidName("名称为空".into()));
+    }
+    if trimmed == "." || trimmed == ".." {
+        return Err(PathError::InvalidName(trimmed.into()));
+    }
+    if trimmed.contains('/') || trimmed.contains('\\') || trimmed.contains('\0') {
+        return Err(PathError::InvalidName("含路径分隔符".into()));
+    }
+    Ok(())
 }
 
 /// 安全根违反。
@@ -74,10 +101,20 @@ impl SafetyRoot {
         Ok(Self { roots: parsed })
     }
 
-    /// 校验危险操作路径；通过返回规范化路径供执行使用。
+    /// 浏览范围：等于或位于安全根之下。
     pub fn check(&self, raw: &str) -> Result<RemotePath, SafetyError> {
         let path = RemotePath::parse(raw).map_err(|e| SafetyError::OutsideRoot(e.to_string()))?;
         if self.roots.iter().any(|r| path.is_under(r)) {
+            Ok(path)
+        } else {
+            Err(SafetyError::OutsideRoot(path.as_str().to_string()))
+        }
+    }
+
+    /// 删除/新建/传输：必须是安全根的**真子路径**，禁止对 `/sdcard` 等根本身动手。
+    pub fn check_descendant(&self, raw: &str) -> Result<RemotePath, SafetyError> {
+        let path = RemotePath::parse(raw).map_err(|e| SafetyError::OutsideRoot(e.to_string()))?;
+        if self.roots.iter().any(|r| path.is_strictly_under(r)) {
             Ok(path)
         } else {
             Err(SafetyError::OutsideRoot(path.as_str().to_string()))
@@ -118,7 +155,35 @@ mod tests {
         let safety = SafetyRoot::default();
         assert!(safety.check("/sdcard/DCIM/a.jpg").is_ok());
         assert!(safety.check("/storage/emulated/0/b").is_ok());
+        assert!(safety.check("/sdcard").is_ok());
+        assert!(matches!(safety.check("/"), Err(SafetyError::OutsideRoot(_))));
         assert!(matches!(safety.check("/data/local/tmp/x"), Err(SafetyError::OutsideRoot(_))));
         assert!(matches!(safety.check("/sdcard/../data/x"), Err(SafetyError::OutsideRoot(_))));
+    }
+
+    #[test]
+    fn mutate_forbids_safety_root_itself() {
+        let safety = SafetyRoot::default();
+        assert!(safety.check_descendant("/sdcard/DCIM/a.jpg").is_ok());
+        assert!(matches!(safety.check_descendant("/sdcard"), Err(SafetyError::OutsideRoot(_))));
+        assert!(matches!(safety.check_descendant("/sdcard/"), Err(SafetyError::OutsideRoot(_))));
+        assert!(matches!(safety.check_descendant("/storage"), Err(SafetyError::OutsideRoot(_))));
+        assert!(matches!(safety.check_descendant("/data/local/tmp/x"), Err(SafetyError::OutsideRoot(_))));
+    }
+
+    #[test]
+    fn file_name_last_segment() {
+        assert_eq!(RemotePath::parse("/sdcard/a.txt").unwrap().file_name(), "a.txt");
+        assert_eq!(RemotePath::parse("/sdcard").unwrap().file_name(), "sdcard");
+        assert_eq!(RemotePath::parse("/").unwrap().file_name(), "");
+    }
+
+    #[test]
+    fn validate_entry_name_rejects_separators() {
+        assert!(validate_entry_name("ok.txt").is_ok());
+        assert!(validate_entry_name("").is_err());
+        assert!(validate_entry_name("..").is_err());
+        assert!(validate_entry_name("a/b").is_err());
+        assert!(validate_entry_name("a\\b").is_err());
     }
 }

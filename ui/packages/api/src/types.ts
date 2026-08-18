@@ -16,6 +16,11 @@ export interface DeviceInfo {
   connection: string;
 }
 
+/** 壳注入到模块视图的设备会话（模块不得 import 壳 store）。 */
+export interface DeviceSession {
+  focusSerial: string | null;
+}
+
 // ===== log =====
 
 export interface LogLine {
@@ -23,6 +28,7 @@ export interface LogLine {
   ts: string;
   pid: number;
   tid: number;
+  uid?: number;
   level: string;
   tag: string;
   msg: string;
@@ -48,12 +54,16 @@ export interface ProcessIndexSnapshot {
   degraded: boolean;
 }
 
+export type LogScope =
+  | { kind: "all" }
+  | { kind: "pid"; pid: number }
+  | { kind: "package"; pids: number[] };
+
 export interface LogFilter {
   min_level?: string;
   tag_contains?: string;
   message_contains?: string;
-  exact_pid?: number;
-  pid_set?: number[];
+  scope: LogScope;
 }
 
 // ===== process =====
@@ -157,7 +167,6 @@ export interface PathOpRequest {
 
 export interface TransferRequest {
   serial: string;
-  direction: Direction;
   local: string;
   remote: string;
 }

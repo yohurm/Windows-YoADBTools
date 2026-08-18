@@ -5,6 +5,7 @@
 
 import type { Component } from "solid-js";
 
+import type { DeviceSession } from "@yovo/api";
 import type { IconName } from "@yovo/ui";
 
 /** 模块对设备的选择模式（与 core yovo-domain::SelectionMode 一致）。 */
@@ -18,8 +19,8 @@ export interface ModuleDescriptor {
   selectionMode: SelectionMode;
   /** 占位模块：仅贡献导航 + 「开发中」页 */
   isPlanned?: boolean;
-  /** 主视图组件 */
-  Component: Component;
+  /** 主视图组件（壳注入 DeviceSession，模块不读壳 store） */
+  Component: Component<DeviceSession>;
 }
 
 const registry: ModuleDescriptor[] = [];

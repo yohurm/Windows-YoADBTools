@@ -115,6 +115,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             capture_tasks: std::sync::Mutex::new(std::collections::HashMap::new()),
             transfer_cancels: std::sync::Mutex::new(std::collections::HashMap::new()),
             transfer_next: std::sync::atomic::AtomicU32::new(0),
+            browse_cancel: std::sync::Mutex::new(CancellationToken::new()),
         };
         app.manage(state);
 

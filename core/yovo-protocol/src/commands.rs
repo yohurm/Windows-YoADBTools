@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Direction, ExportWriteMode, LogFilter};
+use crate::{ExportWriteMode, LogFilter};
 
 /// `adb.exec` 请求。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -51,12 +51,10 @@ pub struct PathOpRequest {
     pub path: String,
 }
 
-/// `files.push/pull` 请求。
+/// `files.push/pull` 请求。方向由命令名决定；id 由壳发号，不进 DTO。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TransferRequest {
-    pub id: u32,
     pub serial: String,
-    pub direction: Direction,
     pub local: String,
     pub remote: String,
 }
@@ -112,4 +110,17 @@ pub struct CommandLibraryDto {
     pub schema_version: u32,
     #[serde(default)]
     pub groups: Vec<CommandGroupDto>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn transfer_request_has_no_id_or_direction() {
+        let parsed: TransferRequest =
+            serde_json::from_str(r#"{"serial":"S","local":"C:/a.bin","remote":"/sdcard/a.bin"}"#).unwrap();
+        assert_eq!(parsed.serial, "S");
+        assert_eq!(parsed.remote, "/sdcard/a.bin");
+    }
 }
