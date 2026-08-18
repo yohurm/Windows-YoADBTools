@@ -49,7 +49,7 @@ export function YoContextMenu(props: YoContextMenuProps): JSX.Element {
         ref={(el) => {
           root = el;
         }}
-        class="yovo-context-menu"
+        class="yohu-context-menu"
         role="menu"
         style={{ left: `${props.x}px`, top: `${props.y}px` }}
       >
@@ -58,8 +58,8 @@ export function YoContextMenu(props: YoContextMenuProps): JSX.Element {
             <button
               type="button"
               role="menuitem"
-              class="yovo-context-menu__item yovo-interactive yovo-focus-ring--inset"
-              classList={{ "yovo-context-menu__item--danger": !!item.danger }}
+              class="yohu-context-menu__item yohu-interactive yohu-focus-ring--inset"
+              classList={{ "yohu-context-menu__item--danger": !!item.danger }}
               disabled={item.disabled}
               onClick={() => {
                 if (item.disabled) return;

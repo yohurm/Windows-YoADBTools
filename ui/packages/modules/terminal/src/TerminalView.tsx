@@ -15,9 +15,9 @@ import {
   YoTextField,
   YoToolbar,
   YoTree,
-} from "@yovo/ui";
-import type { TreeNode } from "@yovo/ui";
-import type { CommandDto, CommandGroupDto } from "@yovo/api";
+} from "@yohu/ui";
+import type { TreeNode } from "@yohu/ui";
+import type { CommandDto, CommandGroupDto } from "@yohu/api";
 
 import { CommandManager } from "./CommandManager";
 import { terminalStore, type ResultEntry } from "./store";
@@ -69,7 +69,7 @@ function InputDialog(props: {
       }
     >
       <div
-        class="yovo-terminal__inputs"
+        class="yohu-terminal__inputs"
         ref={(el) => {
           fieldsRoot = el;
         }}
@@ -103,9 +103,9 @@ function ResultCard(props: {
   };
 
   return (
-    <div class="yovo-terminal__result" classList={{ "yovo-terminal__result--fail": !props.entry.ok }}>
+    <div class="yohu-terminal__result" classList={{ "yohu-terminal__result--fail": !props.entry.ok }}>
       <div
-        class="yovo-terminal__result-head yovo-interactive yovo-focus-ring--inset"
+        class="yohu-terminal__result-head yohu-interactive yohu-focus-ring--inset"
         role="button"
         tabIndex={0}
         aria-expanded={props.open}
@@ -123,26 +123,26 @@ function ResultCard(props: {
         <Show when={props.showSerial}>
           <YoBadge text={props.entry.serial} tone="neutral" />
         </Show>
-        <span class="yovo-terminal__result-title">{props.entry.title}</span>
+        <span class="yohu-terminal__result-title">{props.entry.title}</span>
         <Show when={props.entry.message}>
-          <span class="yovo-terminal__result-msgline" title={props.entry.message}>
+          <span class="yohu-terminal__result-msgline" title={props.entry.message}>
             {props.entry.message}
           </span>
         </Show>
-        <span class="yovo-terminal__result-meta">
+        <span class="yohu-terminal__result-meta">
           <Show when={props.entry.durationMs !== undefined}>
-            <span class="yovo-terminal__result-duration">{formatDuration(props.entry.durationMs!)}</span>
+            <span class="yohu-terminal__result-duration">{formatDuration(props.entry.durationMs!)}</span>
           </Show>
-          <span class="yovo-terminal__result-time">{props.entry.time}</span>
+          <span class="yohu-terminal__result-time">{props.entry.time}</span>
         </span>
         <YoBadge text={props.entry.ok ? "通过" : "失败"} tone={props.entry.ok ? "success" : "error"} />
       </div>
       <Show when={props.open}>
         <Show when={props.entry.stdout}>
-          <pre class="yovo-terminal__result-out">{props.entry.stdout}</pre>
+          <pre class="yohu-terminal__result-out">{props.entry.stdout}</pre>
         </Show>
         <Show when={!props.entry.stdout}>
-          <pre class="yovo-terminal__result-out yovo-terminal__result-out--empty">
+          <pre class="yohu-terminal__result-out yohu-terminal__result-out--empty">
             {props.entry.message || "（无输出）"}
           </pre>
         </Show>
@@ -247,9 +247,9 @@ export function TerminalView() {
   };
 
   return (
-    <div class="yovo-terminal">
+    <div class="yohu-terminal">
       <YoToolbar>
-        <span class="yovo-module-title">ADB 命令终端</span>
+        <span class="yohu-module-title">ADB 命令终端</span>
         <YoButton onClick={run} loading={running()} disabled={!selection()}>
           执行
         </YoButton>
@@ -258,8 +258,8 @@ export function TerminalView() {
         </YoButton>
       </YoToolbar>
 
-      <div class="yovo-terminal__body">
-        <div class="yovo-terminal__library">
+      <div class="yohu-terminal__body">
+        <div class="yohu-terminal__library">
           <Show
             when={treeData().length > 0}
             fallback={
@@ -274,15 +274,15 @@ export function TerminalView() {
           </Show>
         </div>
 
-        <div class="yovo-terminal__results">
-          <div class="yovo-terminal__results-head">
+        <div class="yohu-terminal__results">
+          <div class="yohu-terminal__results-head">
             <span>执行结果</span>
             <Show when={running()}>
               <YoBadge text="执行中" tone="warn" />
             </Show>
           </div>
           <div
-            class="yovo-terminal__results-list"
+            class="yohu-terminal__results-list"
             ref={(el) => {
               resultBox = el;
             }}
@@ -298,9 +298,9 @@ export function TerminalView() {
                   const pass = () => entries.filter((e) => e.ok).length;
                   const fail = () => entries.length - pass();
                   return (
-                    <div class="yovo-terminal__group">
+                    <div class="yohu-terminal__group">
                       <Show when={multiDevice()}>
-                        <div class="yovo-terminal__group-head">
+                        <div class="yohu-terminal__group-head">
                           <YoBadge text={serial === "-" ? "无设备" : serial} tone="neutral" />
                           <Show when={pass() > 0}>
                             <YoBadge text={`${pass()} 通过`} tone="success" />

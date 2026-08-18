@@ -1,62 +1,62 @@
 /* ============================================================================
  * 交互态单源（UI设计系统-v6.md §2.7）
  * 列表 / 树 / 菜单 / 导航 / 命令管理 只加 class，禁止再写选中底或裸圆角。
- * 子树可覆盖 --yovo-ripple-radius / --yovo-ripple-inset，不得另起配方。
+ * 子树可覆盖 --yohu-ripple-radius / --yohu-ripple-inset，不得另起配方。
  * ========================================================================== */
 
-.yovo-interactive {
+.yohu-interactive {
   position: relative;
   isolation: isolate;
 }
 
-.yovo-interactive::before {
+.yohu-interactive::before {
   content: "";
   position: absolute;
-  inset: var(--yovo-ripple-inset);
-  border-radius: var(--yovo-ripple-radius);
-  background: var(--yovo-state-hover);
+  inset: var(--yohu-ripple-inset);
+  border-radius: var(--yohu-ripple-radius);
+  background: var(--yohu-state-hover);
   opacity: 0;
   pointer-events: none;
   z-index: 0;
 }
 
-.yovo-interactive > * {
+.yohu-interactive > * {
   position: relative;
   z-index: 1;
 }
 
-.yovo-interactive:hover:not(:disabled):not([aria-disabled="true"])::before,
-.yovo-interactive--active::before {
-  background: var(--yovo-state-hover);
+.yohu-interactive:hover:not(:disabled):not([aria-disabled="true"])::before,
+.yohu-interactive--active::before {
+  background: var(--yohu-state-hover);
   opacity: 1;
 }
 
-.yovo-interactive:active:not(:disabled):not([aria-disabled="true"])::before {
-  background: var(--yovo-state-pressed);
+.yohu-interactive:active:not(:disabled):not([aria-disabled="true"])::before {
+  background: var(--yohu-state-pressed);
   opacity: 1;
 }
 
-.yovo-interactive--selected::before {
-  background: var(--yovo-state-selected);
+.yohu-interactive--selected::before {
+  background: var(--yohu-state-selected);
   opacity: 1;
 }
 
-.yovo-focus-ring:focus-visible {
-  outline: var(--yovo-focus-width) solid var(--yovo-focus-ring);
-  outline-offset: var(--yovo-focus-offset);
+.yohu-focus-ring:focus-visible {
+  outline: var(--yohu-focus-width) solid var(--yohu-focus-ring);
+  outline-offset: var(--yohu-focus-offset);
 }
 
-.yovo-focus-ring--inset:focus-visible {
-  outline: var(--yovo-focus-width) solid var(--yovo-focus-ring);
-  outline-offset: var(--yovo-focus-offset-inset);
+.yohu-focus-ring--inset:focus-visible {
+  outline: var(--yohu-focus-width) solid var(--yohu-focus-ring);
+  outline-offset: var(--yohu-focus-offset-inset);
 }
 
-.yovo-focus-host:focus-within:has(:focus-visible) {
-  outline: var(--yovo-focus-width) solid var(--yovo-focus-ring);
-  outline-offset: var(--yovo-focus-offset);
+.yohu-focus-host:focus-within:has(:focus-visible) {
+  outline: var(--yohu-focus-width) solid var(--yohu-focus-ring);
+  outline-offset: var(--yohu-focus-offset);
 }
 
-.yovo-focus-host--inset:focus-within:has(:focus-visible) {
-  outline: var(--yovo-focus-width) solid var(--yovo-focus-ring);
-  outline-offset: var(--yovo-focus-offset-inset);
+.yohu-focus-host--inset:focus-within:has(:focus-visible) {
+  outline: var(--yohu-focus-width) solid var(--yohu-focus-ring);
+  outline-offset: var(--yohu-focus-offset-inset);
 }

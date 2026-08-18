@@ -1,7 +1,7 @@
 # HarmonyOS 设计语言落地笔记（Design Language Notes）
 
 > **状态：** 研读稿（基于本地 HarmonyOS 开发者文档 `E:\Dev\Doc\HarmonyOS-Developer-docs\设计` 提炼，仅做设计规范研读，不改动任何代码）。
-> **用途：** 供 `@yovo/ui`（token 单源 + 组件）与各模块 UI 打磨时参考 HarmonyOS 的具体数值/规则，与项目自有《UI设计系统-v6.md》（Fluent 2 / 4px 网格路线）互为对照。
+> **用途：** 供 `@yohu/ui`（token 单源 + 组件）与各模块 UI 打磨时参考 HarmonyOS 的具体数值/规则，与项目自有《UI设计系统-v6.md》（Fluent 2 / 4px 网格路线）互为对照。
 > **覆盖范围：** 色彩 / 字体排版 / 圆角形状 / 间距网格 / 动效 / 组件外观 / 桌面·大屏布局 / 图标插画。
 > **来源目录：** `设计\设计指南\通用设计基础\{视觉风格,动效,布局}`、`设计\设计指南\控件\*`、`设计\设计指南\针对多设备设计\电脑`、`设计\设计指南\应用 UX 体验标准\*`、`设计\设计指南\系统特性&能力\系统特性\深色模式.md`。
 
@@ -484,19 +484,19 @@ HarmonyOS Symbol 以**描边（线性）**为主，几何型塑造，避免尖�
 
 ---
 
-## 附录 A：与 @yovo/ui 的落地映射建议（仅参考，非本报告约束）
+## 附录 A：与 @yohu/ui 的落地映射建议（仅参考，非本报告约束）
 
-| HarmonyOS 值 | 建议映射到 @yovo/ui |
+| HarmonyOS 值 | 建议映射到 @yohu/ui |
 |---------------|---------------------|
-| 宇宙蓝 `#0A59F7`（light）/`#317AF7`（dark） | 已落地为 `--yovo-accent`（深色取 `#4C8DFF` 以保对比度） |
-| 语义色 warning `#E84026` / alert `#ED6F21` / confirm `#64BB5C` | 对照 `--yovo-error / --yovo-warn / --yovo-success`，注意 HarmonyOS 用橙做「二级警示」，本项目用琥珀做「执行中」 |
-| 文本四档 90/60/40/20% | 对照 `--yovo-fg / fg-2 / fg-3` 透明度阶梯思路一致 |
+| 宇宙蓝 `#0A59F7`（light）/`#317AF7`（dark） | 已落地为 `--yohu-accent`（深色取 `#4C8DFF` 以保对比度） |
+| 语义色 warning `#E84026` / alert `#ED6F21` / confirm `#64BB5C` | 对照 `--yohu-error / --yohu-warn / --yohu-success`，注意 HarmonyOS 用橙做「二级警示」，本项目用琥珀做「执行中」 |
+| 文本四档 90/60/40/20% | 对照 `--yohu-fg / fg-2 / fg-3` 透明度阶梯思路一致 |
 | 交互态 hover 5% / pressed 10% / select 20% | 可作为组件态透明度基准 |
 | 圆角 4/8/16/20/32vp 阶梯 | 项目走 4px 网格，可对应 4/8/12/16（PC 用小圆角） |
 | 动效标准曲线 `cubic-bezier(0.40,0,0.20,1)` / 减速 `(0,0,0.40,1)` | 可直接复用作进出场缓动 |
 | 全屏转场时长 200/250/300ms 下限 | 可作窗口/面板切换时长下限 |
 | 按钮最大宽 448vp、间距 12vp | 弹窗/半模态按钮排布参考 |
-| 分割线 1px + 20% 黑 | 对照 `--yovo-border`/divider 低对比原则 |
+| 分割线 1px + 20% 黑 | 对照 `--yohu-border`/divider 低对比原则 |
 | 对比度：正文 ≥4.5:1（浅）/≥5:1（深）、控件背板 ≥2.2:1 | 与项目 P5「对比度达标」一致，可加严到深色正文 5:1 |
 
-> 说明：本附录仅为把 HarmonyOS 数值落到 `@yovo/ui` token 的**映射思路**，不替代《UI设计系统-v6.md》已定稿的 Fluent 2 路线；如采用需走架构评审与 token 纪律检查（scripts/check-ui-tokens.mjs）。
+> 说明：本附录仅为把 HarmonyOS 数值落到 `@yohu/ui` token 的**映射思路**，不替代《UI设计系统-v6.md》已定稿的 Fluent 2 路线；如采用需走架构评审与 token 纪律检查（scripts/check-ui-tokens.mjs）。

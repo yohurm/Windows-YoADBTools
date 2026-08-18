@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-  "core/yovo-protocol",
-  "core/yovo-domain",
-  "core/yovo-adb",
-  "core/yovo-logsrv",
-  "core/yovo-files",
-  "app/yovo-app",
+  "core/yohu-protocol",
+  "core/yohu-domain",
+  "core/yohu-adb",
+  "core/yohu-logsrv",
+  "core/yohu-files",
+  "app/yohu-app",
   "tools/fake-adb",
 ]
 
@@ -31,8 +31,8 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"
 tracing = "0.1"
 time = { version = "0.3", features = ["formatting", "local-offset"] }
 
-yovo-protocol = { path = "core/yovo-protocol" }
-yovo-domain = { path = "core/yovo-domain" }
-yovo-adb = { path = "core/yovo-adb" }
-yovo-logsrv = { path = "core/yovo-logsrv" }
-yovo-files = { path = "core/yovo-files" }
+yohu-protocol = { path = "core/yohu-protocol" }
+yohu-domain = { path = "core/yohu-domain" }
+yohu-adb = { path = "core/yohu-adb" }
+yohu-logsrv = { path = "core/yohu-logsrv" }
+yohu-files = { path = "core/yohu-files" }

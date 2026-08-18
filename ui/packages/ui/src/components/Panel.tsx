@@ -21,9 +21,9 @@ export interface YoPanelProps {
  */
 export function YoPanel(props: YoPanelProps): JSX.Element {
   return (
-    <section class="yovo-panel" classList={{ [`yovo-panel--padding-${props.padding ?? "md"}`]: true }}>
-      {props.title ? <h3 class="yovo-panel__title">{props.title}</h3> : null}
-      <div class="yovo-panel__body">{props.children}</div>
+    <section class="yohu-panel" classList={{ [`yohu-panel--padding-${props.padding ?? "md"}`]: true }}>
+      {props.title ? <h3 class="yohu-panel__title">{props.title}</h3> : null}
+      <div class="yohu-panel__body">{props.children}</div>
     </section>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * YoCheckbox —— 原生 checkbox + 自绘方框。
- * 受控（checked + onChange）；焦点环走 .yovo-focus-host。
+ * 受控（checked + onChange）；焦点环走 .yohu-focus-host。
  */
 import { Show } from "solid-js";
 import type { JSX } from "solid-js";
@@ -22,14 +22,14 @@ export interface YoCheckboxProps {
  */
 export function YoCheckbox(props: YoCheckboxProps): JSX.Element {
   return (
-    <label class="yovo-checkbox" classList={{ "yovo-checkbox--disabled": !!props.disabled }}>
+    <label class="yohu-checkbox" classList={{ "yohu-checkbox--disabled": !!props.disabled }}>
       <span
-        class="yovo-checkbox__box yovo-focus-host"
-        classList={{ "yovo-checkbox__box--checked": !!props.checked }}
+        class="yohu-checkbox__box yohu-focus-host"
+        classList={{ "yohu-checkbox__box--checked": !!props.checked }}
       >
         <input
           type="checkbox"
-          class="yovo-checkbox__input"
+          class="yohu-checkbox__input"
           checked={!!props.checked}
           disabled={props.disabled}
           onChange={(event) => {
@@ -39,7 +39,7 @@ export function YoCheckbox(props: YoCheckboxProps): JSX.Element {
         />
         <Show when={props.checked}>
           <svg
-            class="yovo-checkbox__check"
+            class="yohu-checkbox__check"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -52,7 +52,7 @@ export function YoCheckbox(props: YoCheckboxProps): JSX.Element {
           </svg>
         </Show>
       </span>
-      {props.label ? <span class="yovo-checkbox__label">{props.label}</span> : null}
+      {props.label ? <span class="yohu-checkbox__label">{props.label}</span> : null}
     </label>
   );
 }

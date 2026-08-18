@@ -32,16 +32,16 @@ export function YoButton(props: YoButtonProps): JSX.Element {
   return (
     <button
       type={props.type ?? "button"}
-      class="yovo-button yovo-focus-ring"
+      class="yohu-button yohu-focus-ring"
       classList={{
-        [`yovo-button--${props.variant ?? "primary"}`]: true,
-        [`yovo-button--${props.size ?? "md"}`]: true,
+        [`yohu-button--${props.variant ?? "primary"}`]: true,
+        [`yohu-button--${props.size ?? "md"}`]: true,
       }}
       disabled={props.disabled || props.loading}
       aria-busy={props.loading}
       onClick={props.onClick}
     >
-      {props.loading ? <span class="yovo-button__spinner" aria-hidden="true" /> : null}
+      {props.loading ? <span class="yohu-button__spinner" aria-hidden="true" /> : null}
       {props.children}
     </button>
   );

@@ -112,7 +112,7 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
   return (
     <div
       ref={(el) => (tablistRef = el)}
-      class="yovo-tabs"
+      class="yohu-tabs"
       role="tablist"
       aria-label="会话"
       onKeyDown={onTablistKeyDown}
@@ -123,8 +123,8 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
           return (
             <div
               data-tab-id={tab.id}
-              class="yovo-tabs__tab yovo-interactive yovo-focus-ring--inset"
-              classList={{ "yovo-tabs__tab--active": active() }}
+              class="yohu-tabs__tab yohu-interactive yohu-focus-ring--inset"
+              classList={{ "yohu-tabs__tab--active": active() }}
               role="tab"
               aria-selected={active()}
               tabindex={active() ? 0 : -1}
@@ -135,13 +135,13 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
               onContextMenu={(event) => props.onContextMenu?.(tab.id, event)}
             >
               {tab.dot ? (
-                <span class="yovo-tabs__dot" classList={{ [`yovo-tabs__dot--${tab.dot.tone}`]: true }} />
+                <span class="yohu-tabs__dot" classList={{ [`yohu-tabs__dot--${tab.dot.tone}`]: true }} />
               ) : null}
-              <span class="yovo-tabs__title">{tab.title}</span>
+              <span class="yohu-tabs__title">{tab.title}</span>
               {props.onClose ? (
                 <button
                   type="button"
-                  class="yovo-tabs__close yovo-interactive yovo-focus-ring"
+                  class="yohu-tabs__close yohu-interactive yohu-focus-ring"
                   aria-label="close"
                   onClick={(event) => handleClose(tab.id, event)}
                 >
@@ -153,7 +153,7 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
         }}
       </For>
       {props.onNew ? (
-        <button type="button" class="yovo-tabs__new yovo-interactive yovo-focus-ring" aria-label="new tab" onClick={props.onNew}>
+        <button type="button" class="yohu-tabs__new yohu-interactive yohu-focus-ring" aria-label="new tab" onClick={props.onNew}>
           <Icon name="plus" size={14} />
         </button>
       ) : null}

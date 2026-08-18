@@ -17,8 +17,8 @@ import {
   YoTextField,
   YoToaster,
   createToaster,
-} from "@yovo/ui";
-import type { Density, SettingKey, Theme } from "@yovo/api";
+} from "@yohu/ui";
+import type { Density, SettingKey, Theme } from "@yohu/api";
 
 import { settingsStore } from "../stores";
 import "./settings.css";
@@ -50,8 +50,8 @@ function EffectBadge(props: { text: string }) {
 /** 设置项头（label + 生效徽章）。 */
 function ItemHead(props: { label: string; effect: string }) {
   return (
-    <div class="yovo-settings__item-head">
-      <span class="yovo-settings__item-label">{props.label}</span>
+    <div class="yohu-settings__item-head">
+      <span class="yohu-settings__item-label">{props.label}</span>
       <EffectBadge text={props.effect} />
     </div>
   );
@@ -92,16 +92,16 @@ export const SettingsView: Component = () => {
   };
 
   return (
-    <div class="yovo-settings">
-      <h1 class="yovo-settings__title">设置</h1>
+    <div class="yohu-settings">
+      <h1 class="yohu-settings__title">设置</h1>
 
       <YoPanel title="工具链">
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="ADB 路径" effect="立即生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoTextField
               value={settingsStore.state.adb_path}
-              placeholder="%LOCALAPPDATA%\YovoAdbTools\data\tools\adb\adb.exe"
+              placeholder="%LOCALAPPDATA%\YohuAdbTools\data\tools\adb\adb.exe"
               ariaLabel="ADB 路径"
               clearable
               onInput={(v) => save("adb_path", v, "已保存（立即生效）")}
@@ -110,15 +110,15 @@ export const SettingsView: Component = () => {
               浏览
             </YoButton>
           </div>
-          <div class="yovo-settings__item-hint">留空 = 自动解析（用户设置 → 应用旁 → 内置解压）</div>
+          <div class="yohu-settings__item-hint">留空 = 自动解析（用户设置 → 应用旁 → 内置解压）</div>
         </div>
 
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="数据目录" effect="重启生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoTextField
               value={settingsStore.state.data_root}
-              placeholder="留空 = 默认 %LOCALAPPDATA%\YovoAdbTools\data"
+              placeholder="留空 = 默认 %LOCALAPPDATA%\YohuAdbTools\data"
               ariaLabel="数据目录"
               clearable
               onInput={(v) => save("data_root", v, "已保存（重启生效）")}
@@ -126,9 +126,9 @@ export const SettingsView: Component = () => {
           </div>
         </div>
 
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="设备自动刷新间隔（秒，0 = 关）" effect="重启生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoTextField
               type="number"
               value={String(settingsStore.state.devices_auto_refresh)}
@@ -145,9 +145,9 @@ export const SettingsView: Component = () => {
       </YoPanel>
 
       <YoPanel title="日志分析">
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="缓冲最大行数" effect="窗口立即裁剪，采集环下次启动" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoTextField
               type="number"
               value={String(settingsStore.state.buffer_capacity)}
@@ -162,9 +162,9 @@ export const SettingsView: Component = () => {
           </div>
         </div>
 
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="开始采集前清空设备缓冲（logcat -c）" effect="下次采集生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoCheckbox
               label="启用"
               checked={settingsStore.state.clear_device_on_start}
@@ -173,9 +173,9 @@ export const SettingsView: Component = () => {
           </div>
         </div>
 
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="默认导出路径" effect="立即生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoTextField
               value={settingsStore.state.export_default_path}
               placeholder="留空 = 应用 exports 目录"
@@ -187,12 +187,12 @@ export const SettingsView: Component = () => {
               选择文件夹
             </YoButton>
           </div>
-          <div class="yovo-settings__item-hint">关闭「每次询问」时写入该目录下的 logcat-设备号.txt</div>
+          <div class="yohu-settings__item-hint">关闭「每次询问」时写入该目录下的 logcat-设备号.txt</div>
         </div>
 
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="每次导出询问保存位置" effect="立即生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoCheckbox
               label="启用"
               checked={settingsStore.state.export_ask_every_time}
@@ -201,23 +201,23 @@ export const SettingsView: Component = () => {
           </div>
         </div>
 
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="导出写入方式" effect="立即生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoSelect
               options={EXPORT_MODE_OPTIONS}
               value={settingsStore.state.export_write_mode}
               onChange={(v) => save("export_write_mode", v, "已保存（立即生效）")}
             />
           </div>
-          <div class="yovo-settings__item-hint">覆盖替换目标文件；续写在同一路径末尾追加</div>
+          <div class="yohu-settings__item-hint">覆盖替换目标文件；续写在同一路径末尾追加</div>
         </div>
       </YoPanel>
 
       <YoPanel title="外观">
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="主题" effect="立即生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoSelect
               options={THEME_OPTIONS}
               value={settingsStore.state.theme}
@@ -226,9 +226,9 @@ export const SettingsView: Component = () => {
           </div>
         </div>
 
-        <div class="yovo-settings__item">
+        <div class="yohu-settings__item">
           <ItemHead label="密度" effect="立即生效" />
-          <div class="yovo-settings__item-control">
+          <div class="yohu-settings__item-control">
             <YoSelect
               options={DENSITY_OPTIONS}
               value={settingsStore.state.density}

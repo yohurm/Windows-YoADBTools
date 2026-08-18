@@ -25,14 +25,14 @@ export function YoProgressBar(props: YoProgressBarProps): JSX.Element {
   const width = (): string => `${clampValue(props.value ?? 0)}%`;
   return (
     <div
-      class="yovo-progress"
-      classList={{ "yovo-progress--indeterminate": !!props.indeterminate }}
+      class="yohu-progress"
+      classList={{ "yohu-progress--indeterminate": !!props.indeterminate }}
       role="progressbar"
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={props.indeterminate ? undefined : clampValue(props.value ?? 0)}
     >
-      <div class="yovo-progress__bar" style={{ width: width() }} />
+      <div class="yohu-progress__bar" style={{ width: width() }} />
     </div>
   );
 }

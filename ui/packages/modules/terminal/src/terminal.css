@@ -4,7 +4,7 @@
  * + 折叠输出区（等宽滚动，失败默认展开）。
  * ========================================================================== */
 
-.yovo-terminal {
+.yohu-terminal {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -12,149 +12,149 @@
   overflow: hidden;
 }
 
-.yovo-terminal__body {
+.yohu-terminal__body {
   display: grid;
-  grid-template-columns: var(--yovo-layout-sidebar) 1fr;
-  gap: var(--yovo-space-md);
+  grid-template-columns: var(--yohu-layout-sidebar) 1fr;
+  gap: var(--yohu-space-md);
   flex: 1;
   min-height: 0;
 }
 
-.yovo-terminal__library {
+.yohu-terminal__library {
   overflow: auto;
-  background: var(--yovo-surface);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-radius: var(--yovo-radius-md);
-  padding: var(--yovo-space-sm);
+  background: var(--yohu-surface);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-md);
+  padding: var(--yohu-space-sm);
 }
 
-.yovo-terminal__results {
+.yohu-terminal__results {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--yovo-surface);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-radius: var(--yovo-radius-md);
+  background: var(--yohu-surface);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-md);
   overflow: hidden;
 }
 
-.yovo-terminal__results-head {
+.yohu-terminal__results-head {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
-  padding: var(--yovo-space-sm) var(--yovo-space-md);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
-  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  gap: var(--yohu-space-sm);
+  padding: var(--yohu-space-sm) var(--yohu-space-md);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
-.yovo-terminal__results-list {
+.yohu-terminal__results-list {
   flex: 1;
   overflow: auto;
-  padding: var(--yovo-space-sm);
+  padding: var(--yohu-space-sm);
 }
 
 /* ===== 设备维度分组（组头 = 设备 + 汇总徽章） ===== */
 
-.yovo-terminal__group-head {
+.yohu-terminal__group-head {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
-  padding: var(--yovo-space-xs) var(--yovo-space-sm);
-  margin-bottom: var(--yovo-space-xs);
-  background: var(--yovo-surface-2);
-  border-radius: var(--yovo-radius-sm);
+  gap: var(--yohu-space-sm);
+  padding: var(--yohu-space-xs) var(--yohu-space-sm);
+  margin-bottom: var(--yohu-space-xs);
+  background: var(--yohu-surface-2);
+  border-radius: var(--yohu-radius-sm);
   position: sticky;
   top: 0;
 }
 
 /* ===== 结果卡片 ===== */
 
-.yovo-terminal__result {
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-left: var(--yovo-stroke-emphasis) solid var(--yovo-success);
-  margin-bottom: var(--yovo-space-sm);
-  background: var(--yovo-surface);
-  border-radius: var(--yovo-radius-sm);
+.yohu-terminal__result {
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-left: var(--yohu-stroke-emphasis) solid var(--yohu-success);
+  margin-bottom: var(--yohu-space-sm);
+  background: var(--yohu-surface);
+  border-radius: var(--yohu-radius-sm);
   overflow: hidden;
 }
 
-.yovo-terminal__result--fail {
-  border-left-color: var(--yovo-error);
+.yohu-terminal__result--fail {
+  border-left-color: var(--yohu-error);
 }
 
-.yovo-terminal__result-head {
+.yohu-terminal__result-head {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
   width: 100%;
-  padding: var(--yovo-space-xs) var(--yovo-space-sm);
+  padding: var(--yohu-space-xs) var(--yohu-space-sm);
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: var(--yovo-font-sans);
+  font-family: var(--yohu-font-sans);
   text-align: left;
   box-sizing: border-box;
 }
 
 
-.yovo-terminal__result-title {
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
+.yohu-terminal__result-title {
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
   flex-shrink: 0;
 }
 
-.yovo-terminal__result-msgline {
+.yohu-terminal__result-msgline {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-error);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-error);
 }
 
-.yovo-terminal__result-meta {
+.yohu-terminal__result-meta {
   display: inline-flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
   flex-shrink: 0;
 }
 
-.yovo-terminal__result-duration {
-  font-family: var(--yovo-font-mono);
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-2);
+.yohu-terminal__result-duration {
+  font-family: var(--yohu-font-mono);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-2);
   font-variant-numeric: tabular-nums;
 }
 
-.yovo-terminal__result-time {
-  font-family: var(--yovo-font-mono);
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-3);
+.yohu-terminal__result-time {
+  font-family: var(--yohu-font-mono);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
 }
 
 /* 折叠输出区：等宽滚动 */
-.yovo-terminal__result-out {
+.yohu-terminal__result-out {
   margin: 0;
-  padding: var(--yovo-space-xs) var(--yovo-space-sm);
-  max-height: var(--yovo-layout-output-max);
+  padding: var(--yohu-space-xs) var(--yohu-space-sm);
+  max-height: var(--yohu-layout-output-max);
   overflow: auto;
-  font-family: var(--yovo-font-mono);
-  font-size: var(--yovo-font-caption);
+  font-family: var(--yohu-font-mono);
+  font-size: var(--yohu-font-caption);
   white-space: pre-wrap;
   word-break: break-all;
-  background: var(--yovo-surface-2);
-  color: var(--yovo-fg);
-  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  background: var(--yohu-surface-2);
+  color: var(--yohu-fg);
+  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
-.yovo-terminal__result-out--empty {
-  color: var(--yovo-fg-3);
+.yohu-terminal__result-out--empty {
+  color: var(--yohu-fg-3);
 }
 
-.yovo-terminal__inputs {
+.yohu-terminal__inputs {
   display: flex;
   flex-direction: column;
-  gap: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
 }

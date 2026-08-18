@@ -4,7 +4,7 @@
  * → 传输面板（卡片式；终态 3s 淡出）。
  * ========================================================================== */
 
-.yovo-files {
+.yohu-files {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -14,75 +14,75 @@
 
 /* ===== 路径栏（面包屑化，逐级可点） ===== */
 
-.yovo-files__path {
+.yohu-files__path {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
-  margin-bottom: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
+  margin-bottom: var(--yohu-space-sm);
   flex-shrink: 0;
   min-width: 0;
 }
 
-.yovo-files__crumbs {
+.yohu-files__crumbs {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-xs);
+  gap: var(--yohu-space-xs);
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  padding: 0 var(--yovo-space-sm);
-  height: var(--yovo-control-height);
-  background: var(--yovo-surface);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-radius: var(--yovo-radius-sm);
+  padding: 0 var(--yohu-space-sm);
+  height: var(--yohu-control-height);
+  background: var(--yohu-surface);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-sm);
   box-sizing: border-box;
 }
 
-.yovo-files__crumb {
+.yohu-files__crumb {
   border: none;
   background: transparent;
-  color: var(--yovo-accent);
-  font-family: var(--yovo-font-mono);
-  font-size: var(--yovo-font-body);
+  color: var(--yohu-accent);
+  font-family: var(--yohu-font-mono);
+  font-size: var(--yohu-font-body);
   cursor: pointer;
-  padding: 0 var(--yovo-space-xs);
-  border-radius: var(--yovo-radius-xs);
-  max-width: var(--yovo-layout-crumb-max);
-  --yovo-ripple-radius: var(--yovo-radius-xs);
-  --yovo-ripple-inset: 0;
+  padding: 0 var(--yohu-space-xs);
+  border-radius: var(--yohu-radius-xs);
+  max-width: var(--yohu-layout-crumb-max);
+  --yohu-ripple-radius: var(--yohu-radius-xs);
+  --yohu-ripple-inset: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 
-.yovo-files__crumb-sep {
-  color: var(--yovo-fg-3);
-  font-size: var(--yovo-font-caption);
+.yohu-files__crumb-sep {
+  color: var(--yohu-fg-3);
+  font-size: var(--yohu-font-caption);
 }
 
 /* ===== 主体：四列清单 + 可收起预览 + 传输 ===== */
 
-.yovo-files__body {
+.yohu-files__body {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  gap: var(--yovo-space-md);
+  gap: var(--yohu-space-md);
 }
 
-.yovo-files__explorer {
+.yohu-files__explorer {
   display: flex;
   flex: 1;
   min-height: 0;
   min-width: 0;
-  background: var(--yovo-surface);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-radius: var(--yovo-radius-md);
+  background: var(--yohu-surface);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-md);
   overflow: hidden;
 }
 
-.yovo-files__table {
+.yohu-files__table {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -90,73 +90,73 @@
   min-height: 0;
 }
 
-.yovo-files__cols {
+.yohu-files__cols {
   display: grid;
   align-items: center;
-  padding: 0 var(--yovo-space-sm) 0 var(--yovo-space-md);
+  padding: 0 var(--yohu-space-sm) 0 var(--yohu-space-md);
   box-sizing: border-box;
   min-width: 0;
 }
 
-.yovo-files__cols--head {
+.yohu-files__cols--head {
   flex-shrink: 0;
-  height: var(--yovo-row-height-header);
-  background: var(--yovo-surface-2);
-  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  font-size: var(--yovo-font-caption);
-  font-weight: var(--yovo-font-weight-regular);
-  color: var(--yovo-fg-2);
+  height: var(--yohu-row-height-header);
+  background: var(--yohu-surface-2);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  font-size: var(--yohu-font-caption);
+  font-weight: var(--yohu-font-weight-regular);
+  color: var(--yohu-fg-2);
 }
 
-.yovo-files__col,
-.yovo-files__cell,
-.yovo-files__name {
+.yohu-files__col,
+.yohu-files__cell,
+.yohu-files__name {
   min-width: 0;
   overflow: hidden;
 }
 
-.yovo-files__col {
+.yohu-files__col {
   position: relative;
   height: 100%;
   display: flex;
   align-items: center;
 }
 
-.yovo-files__col:not(:last-child)::after {
+.yohu-files__col:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: var(--yovo-space-sm);
+  top: var(--yohu-space-sm);
   right: 0;
-  bottom: var(--yovo-space-sm);
-  width: var(--yovo-stroke-hairline);
-  background: var(--yovo-border);
+  bottom: var(--yohu-space-sm);
+  width: var(--yohu-stroke-hairline);
+  background: var(--yohu-border);
   pointer-events: none;
 }
 
-.yovo-files__col:hover {
-  color: var(--yovo-fg);
-  background: var(--yovo-state-hover);
+.yohu-files__col:hover {
+  color: var(--yohu-fg);
+  background: var(--yohu-state-hover);
 }
 
-.yovo-files__col[aria-sort="ascending"] .yovo-files__sort-label,
-.yovo-files__col[aria-sort="descending"] .yovo-files__sort-label {
-  color: var(--yovo-fg);
-  font-weight: var(--yovo-font-weight-semibold);
+.yohu-files__col[aria-sort="ascending"] .yohu-files__sort-label,
+.yohu-files__col[aria-sort="descending"] .yohu-files__sort-label {
+  color: var(--yohu-fg);
+  font-weight: var(--yohu-font-weight-semibold);
 }
 
-.yovo-files__col--end {
+.yohu-files__col--end {
   justify-content: flex-end;
 }
 
-.yovo-files__sort {
+.yohu-files__sort {
   display: inline-flex;
   align-items: center;
-  gap: var(--yovo-space-2xs);
+  gap: var(--yohu-space-2xs);
   width: 100%;
   min-width: 0;
   height: 100%;
   margin: 0;
-  padding: 0 var(--yovo-space-xs) 0 0;
+  padding: 0 var(--yohu-space-xs) 0 0;
   border: none;
   background: transparent;
   color: inherit;
@@ -165,243 +165,243 @@
   text-align: inherit;
 }
 
-.yovo-files__col--end .yovo-files__sort {
+.yohu-files__col--end .yohu-files__sort {
   justify-content: flex-end;
 }
 
-.yovo-files__sort-label {
+.yohu-files__sort-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.yovo-files__sort-icon {
-  flex: 0 0 var(--yovo-layout-icon-tiny);
-  width: var(--yovo-layout-icon-tiny);
-  height: var(--yovo-layout-icon-tiny);
+.yohu-files__sort-icon {
+  flex: 0 0 var(--yohu-layout-icon-tiny);
+  width: var(--yohu-layout-icon-tiny);
+  height: var(--yohu-layout-icon-tiny);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.yovo-files__table-list {
+.yohu-files__table-list {
   flex: 1;
   min-height: 0;
 }
 
-.yovo-files__row {
+.yohu-files__row {
   height: 100%;
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg);
 }
 
-.yovo-files__name {
+.yohu-files__name {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
-  padding-right: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
+  padding-right: var(--yohu-space-sm);
 }
 
-.yovo-files__name-text {
+.yohu-files__name-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.yovo-files__cell {
-  padding-right: var(--yovo-space-sm);
+.yohu-files__cell {
+  padding-right: var(--yohu-space-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--yovo-fg-2);
+  color: var(--yohu-fg-2);
 }
 
-.yovo-files__num {
-  font-family: var(--yovo-font-mono);
+.yohu-files__num {
+  font-family: var(--yohu-font-mono);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-.yovo-files__mtime {
-  font-family: var(--yovo-font-mono);
+.yohu-files__mtime {
+  font-family: var(--yohu-font-mono);
   font-variant-numeric: tabular-nums;
   text-align: left;
 }
 
-.yovo-files__preview {
+.yohu-files__preview {
   flex: 0 0 0;
   width: 0;
   overflow: hidden;
   border-left: 0;
-  transition: flex-basis var(--yovo-dur-normal) var(--yovo-ease-standard);
+  transition: flex-basis var(--yohu-dur-normal) var(--yohu-ease-standard);
 }
 
-.yovo-files__preview--open {
-  flex-basis: var(--yovo-layout-preview);
-  width: var(--yovo-layout-preview);
-  border-left: var(--yovo-stroke-hairline) solid var(--yovo-border);
+.yohu-files__preview--open {
+  flex-basis: var(--yohu-layout-preview);
+  width: var(--yohu-layout-preview);
+  border-left: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
-.yovo-files__preview-head {
-  height: var(--yovo-control-height);
-  padding: 0 var(--yovo-space-md);
+.yohu-files__preview-head {
+  height: var(--yohu-control-height);
+  padding: 0 var(--yohu-space-md);
   display: flex;
   align-items: center;
-  font-weight: var(--yovo-font-weight-semibold);
-  font-size: var(--yovo-font-caption);
-  background: var(--yovo-surface-2);
-  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  font-weight: var(--yohu-font-weight-semibold);
+  font-size: var(--yohu-font-caption);
+  background: var(--yohu-surface-2);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
-.yovo-files__preview-empty {
-  padding: var(--yovo-space-md);
-  color: var(--yovo-fg-3);
-  font-size: var(--yovo-font-caption);
+.yohu-files__preview-empty {
+  padding: var(--yohu-space-md);
+  color: var(--yohu-fg-3);
+  font-size: var(--yohu-font-caption);
 }
 
-.yovo-files__preview-body {
+.yohu-files__preview-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--yovo-space-sm);
-  padding: var(--yovo-space-md);
+  gap: var(--yohu-space-sm);
+  padding: var(--yohu-space-md);
 }
 
-.yovo-files__preview-name {
-  font-weight: var(--yovo-font-weight-semibold);
+.yohu-files__preview-name {
+  font-weight: var(--yohu-font-weight-semibold);
   text-align: center;
   word-break: break-all;
 }
 
-.yovo-files__preview-meta {
+.yohu-files__preview-meta {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: var(--yovo-space-xs) var(--yovo-space-sm);
+  gap: var(--yohu-space-xs) var(--yohu-space-sm);
   width: 100%;
   margin: 0;
-  font-size: var(--yovo-font-caption);
+  font-size: var(--yohu-font-caption);
 }
 
-.yovo-files__preview-meta dt {
-  color: var(--yovo-fg-3);
+.yohu-files__preview-meta dt {
+  color: var(--yohu-fg-3);
 }
 
-.yovo-files__preview-meta dd {
+.yohu-files__preview-meta dd {
   margin: 0;
-  color: var(--yovo-fg);
-  font-family: var(--yovo-font-mono);
+  color: var(--yohu-fg);
+  font-family: var(--yohu-font-mono);
 }
 
-.yovo-files__table-list .yovo-empty-state {
+.yohu-files__table-list .yohu-empty-state {
   height: 100%;
 }
 
 /* ===== 传输面板（卡片式；终态 3s 淡出） ===== */
 
-.yovo-files__transfers {
+.yohu-files__transfers {
   flex: none;
-  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  padding-top: var(--yovo-space-sm);
+  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  padding-top: var(--yohu-space-sm);
 }
 
-.yovo-files__transfers-head {
-  font-weight: var(--yovo-font-weight-semibold);
-  font-size: var(--yovo-font-body);
-  color: var(--yovo-fg);
-  margin-bottom: var(--yovo-space-xs);
+.yohu-files__transfers-head {
+  font-weight: var(--yohu-font-weight-semibold);
+  font-size: var(--yohu-font-body);
+  color: var(--yohu-fg);
+  margin-bottom: var(--yohu-space-xs);
 }
 
-.yovo-files__transfers-empty {
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-3);
+.yohu-files__transfers-empty {
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
 }
 
-.yovo-files__transfer {
+.yohu-files__transfer {
   display: flex;
-  gap: var(--yovo-space-sm);
-  padding: var(--yovo-space-sm) var(--yovo-space-md);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-radius: var(--yovo-radius-sm);
-  background: var(--yovo-surface);
-  margin-bottom: var(--yovo-space-xs);
+  gap: var(--yohu-space-sm);
+  padding: var(--yohu-space-sm) var(--yohu-space-md);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-sm);
+  background: var(--yohu-surface);
+  margin-bottom: var(--yohu-space-xs);
 }
 
-.yovo-files__transfer--failed {
-  border-left: var(--yovo-stroke-emphasis) solid var(--yovo-error);
+.yohu-files__transfer--failed {
+  border-left: var(--yohu-stroke-emphasis) solid var(--yohu-error);
 }
 
 /* 终态：2.5s 后开始淡出，3s 时由 store 移除 */
-.yovo-files__transfer--terminal {
-  animation: yovo-fade-out var(--yovo-dur-slow) var(--yovo-ease-standard) forwards;
+.yohu-files__transfer--terminal {
+  animation: yohu-fade-out var(--yohu-dur-slow) var(--yohu-ease-standard) forwards;
   animation-delay: 2.5s;
 }
 
-@keyframes yovo-fade-out {
+@keyframes yohu-fade-out {
   to {
     opacity: 0;
   }
 }
 
-.yovo-files__transfer-dir {
+.yohu-files__transfer-dir {
   display: inline-flex;
   align-items: center;
-  color: var(--yovo-accent);
+  color: var(--yohu-accent);
   flex-shrink: 0;
 }
 
-.yovo-files__transfer-body {
+.yohu-files__transfer-body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--yovo-space-xs);
+  gap: var(--yohu-space-xs);
 }
 
-.yovo-files__transfer-head {
+.yohu-files__transfer-head {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
 }
 
-.yovo-files__transfer-name {
+.yohu-files__transfer-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--yovo-font-body);
-  color: var(--yovo-fg);
+  font-size: var(--yohu-font-body);
+  color: var(--yohu-fg);
 }
 
-.yovo-files__transfer-meta {
-  font-family: var(--yovo-font-mono);
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-2);
+.yohu-files__transfer-meta {
+  font-family: var(--yohu-font-mono);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-2);
   font-variant-numeric: tabular-nums;
 }
 
-.yovo-files__transfer-speed {
-  color: var(--yovo-fg-3);
+.yohu-files__transfer-speed {
+  color: var(--yohu-fg-3);
 }
 
-.yovo-files__transfer-msg {
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-error);
+.yohu-files__transfer-msg {
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-error);
 }
 
-.yovo-files__confirm {
+.yohu-files__confirm {
   margin: 0;
-  font-size: var(--yovo-font-body);
-  color: var(--yovo-fg);
+  font-size: var(--yohu-font-body);
+  color: var(--yohu-fg);
 }
 
-.yovo-files__error {
+.yohu-files__error {
   flex-shrink: 0;
-  margin: 0 0 var(--yovo-space-sm);
-  padding: var(--yovo-space-xs) var(--yovo-space-sm);
-  color: var(--yovo-error);
-  background: var(--yovo-surface-2);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-error);
-  border-radius: var(--yovo-radius-sm);
-  font-size: var(--yovo-font-caption);
+  margin: 0 0 var(--yohu-space-sm);
+  padding: var(--yohu-space-xs) var(--yohu-space-sm);
+  color: var(--yohu-error);
+  background: var(--yohu-surface-2);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-error);
+  border-radius: var(--yohu-radius-sm);
+  font-size: var(--yohu-font-caption);
 }

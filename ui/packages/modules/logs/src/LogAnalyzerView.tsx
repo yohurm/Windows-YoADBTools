@@ -5,8 +5,8 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 
 import { save } from "@tauri-apps/plugin-dialog";
-import type { DeviceSession } from "@yovo/api";
-import { settingsGet, systemOpenPath } from "@yovo/api";
+import type { DeviceSession } from "@yohu/api";
+import { settingsGet, systemOpenPath } from "@yohu/api";
 import {
   Icon,
   YoBadge,
@@ -22,7 +22,7 @@ import {
   YoVirtualList,
   createToaster,
   type YoMenuItem,
-} from "@yovo/ui";
+} from "@yohu/ui";
 
 import { LEVELS, type ViewRow } from "./pipeline";
 import { NewSessionDialog } from "./NewSessionDialog";
@@ -51,8 +51,8 @@ const LEVEL_OPTIONS = [
 
 const LEVEL_SUFFIX: Record<string, string> = { V: "v", D: "d", I: "i", W: "w", E: "e", F: "f" };
 
-const levelClass = (level: string): string => `yovo-logs__level--${LEVEL_SUFFIX[level] ?? "dim"}`;
-const barClass = (level: string): string => `yovo-logs__row--bar-${LEVEL_SUFFIX[level] ?? "dim"}`;
+const levelClass = (level: string): string => `yohu-logs__level--${LEVEL_SUFFIX[level] ?? "dim"}`;
+const barClass = (level: string): string => `yohu-logs__row--bar-${LEVEL_SUFFIX[level] ?? "dim"}`;
 
 const rowKey = (row: ViewRow): string => `${row.line.seq}-${row.line.pid}`;
 
@@ -77,7 +77,7 @@ function SessionEmpty(props: { session: { minLevel: string | null; tagContains: 
   const filterActive = (): boolean =>
     props.session.minLevel !== null || props.session.tagContains.length > 0 || props.session.keyword.length > 0;
   return (
-    <div class="yovo-logs__empty">
+    <div class="yohu-logs__empty">
       <Show
         when={!logStore.state.capturing && !filterActive()}
         fallback={
@@ -214,9 +214,9 @@ export function LogAnalyzerView(props: DeviceSession) {
   ];
 
   return (
-    <div class="yovo-logs">
+    <div class="yohu-logs">
       <YoToolbar>
-        <span class="yovo-module-title">日志分析</span>
+        <span class="yohu-module-title">日志分析</span>
         <Show
           when={!logStore.state.capturing}
           fallback={
@@ -265,7 +265,7 @@ export function LogAnalyzerView(props: DeviceSession) {
         when={props.focusSerial !== null}
         fallback={<YoEmptyState icon="log" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
       >
-        <div class="yovo-logs__tabs">
+        <div class="yohu-logs__tabs">
           <YoTabs
             tabs={tabs()}
             activeId={logStore.state.activeSessionId !== null ? String(logStore.state.activeSessionId) : null}
@@ -281,8 +281,8 @@ export function LogAnalyzerView(props: DeviceSession) {
 
         <Show when={active()} keyed>
           {(session) => (
-            <div class="yovo-logs__session">
-              <div class="yovo-logs__filter">
+            <div class="yohu-logs__session">
+              <div class="yohu-logs__filter">
                 <YoSelect
                   options={LEVEL_OPTIONS}
                   value={session.minLevel ?? ""}
@@ -296,13 +296,13 @@ export function LogAnalyzerView(props: DeviceSession) {
                   onInput={(v) => logStore.patchFilter(session.id, { tagContains: v })}
                 />
                 <span
-                  class="yovo-logs__search"
-                  classList={{ "yovo-logs__search--active": session.keyword.length > 0 }}
+                  class="yohu-logs__search"
+                  classList={{ "yohu-logs__search--active": session.keyword.length > 0 }}
                   ref={(el) => {
                     keywordRef = el.querySelector("input") ?? undefined;
                   }}
                 >
-                  <span class="yovo-logs__search-icon" aria-hidden="true">
+                  <span class="yohu-logs__search-icon" aria-hidden="true">
                     <Icon name="search" size={13} />
                   </span>
                   <YoTextField
@@ -313,10 +313,10 @@ export function LogAnalyzerView(props: DeviceSession) {
                     onInput={(v) => logStore.patchFilter(session.id, { keyword: v })}
                   />
                 </span>
-                <span class="yovo-logs__scope">{scopeLabel(session)}</span>
+                <span class="yohu-logs__scope">{scopeLabel(session)}</span>
               </div>
 
-              <div class="yovo-logs__list">
+              <div class="yohu-logs__list">
                 <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} />}>
                   <YoVirtualList<ViewRow>
                     items={() => logStore.state.sessions.find((s) => s.id === session.id)?.visible ?? []}
@@ -332,30 +332,30 @@ export function LogAnalyzerView(props: DeviceSession) {
                     onSelectRow={(row) => setSelectedKey(rowKey(row))}
                     renderRow={(row) => (
                       <div
-                        class="yovo-logs__row"
+                        class="yohu-logs__row"
                         classList={{
                           [barClass(row.line.level)]: true,
-                          "yovo-logs__row--signal": row.signal !== undefined,
+                          "yohu-logs__row--signal": row.signal !== undefined,
                         }}
                       >
-                        <span class="yovo-logs__row-ts">{row.line.ts}</span>
-                        <span class="yovo-logs__row-pid">{row.line.pid}</span>
-                        <span class={`yovo-logs__row-level ${levelClass(row.line.level)}`}>{row.line.level}</span>
-                        <span class="yovo-logs__row-tag">{row.line.tag}</span>
-                        <span class="yovo-logs__row-msg">
+                        <span class="yohu-logs__row-ts">{row.line.ts}</span>
+                        <span class="yohu-logs__row-pid">{row.line.pid}</span>
+                        <span class={`yohu-logs__row-level ${levelClass(row.line.level)}`}>{row.line.level}</span>
+                        <span class="yohu-logs__row-tag">{row.line.tag}</span>
+                        <span class="yohu-logs__row-msg">
                           <For each={highlight(row.line.msg, session.keyword)}>
-                            {(part) => (typeof part === "string" ? part : <mark class="yovo-logs__mark">{part.mark}</mark>)}
+                            {(part) => (typeof part === "string" ? part : <mark class="yohu-logs__mark">{part.mark}</mark>)}
                           </For>
                         </span>
                         <Show when={row.collapsedAfter}>
-                          <span class="yovo-logs__row-fold">…{row.collapsedAfter} 帧折叠</span>
+                          <span class="yohu-logs__row-fold">…{row.collapsedAfter} 帧折叠</span>
                         </Show>
                       </div>
                     )}
                   />
                 </Show>
                 <Show when={session.pendingCount > 0}>
-                  <div class="yovo-logs__pending">
+                  <div class="yohu-logs__pending">
                     <YoButton variant="secondary" onClick={() => logStore.resumeFollow(session.id)}>
                       {session.pendingCount} 条新日志
                     </YoButton>
@@ -363,21 +363,21 @@ export function LogAnalyzerView(props: DeviceSession) {
                 </Show>
               </div>
 
-              <div class="yovo-logs__status">
-                <span class="yovo-logs__status-capture">
+              <div class="yohu-logs__status">
+                <span class="yohu-logs__status-capture">
                   <span
-                    class="yovo-logs__status-dot"
-                    classList={{ "yovo-logs__status-dot--on": logStore.state.capturing }}
+                    class="yohu-logs__status-dot"
+                    classList={{ "yohu-logs__status-dot--on": logStore.state.capturing }}
                   />
                   {logStore.state.capturing ? "采集中" : "已停止"}
                 </span>
                 <span>设备 {logStore.serial() ?? "—"}</span>
                 <span>行数 {session.visible.length}</span>
-                <span classList={{ "yovo-logs__status-signal": session.signalCount > 0 }}>
+                <span classList={{ "yohu-logs__status-signal": session.signalCount > 0 }}>
                   信号 {session.signalCount}
                 </span>
                 <Show when={logStore.state.overflowed}>
-                  <span class="yovo-logs__status-lag">缓冲滞后（已回补）</span>
+                  <span class="yohu-logs__status-lag">缓冲滞后（已回补）</span>
                 </Show>
               </div>
             </div>

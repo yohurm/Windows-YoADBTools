@@ -1,4 +1,4 @@
-﻿# Yovo ADB Tools v6 — 真机端到端联调（Windows UIA 驱动 WebView2 + 真实 adb 设备）
+﻿# Yohu ADB Tools v6 — 真机端到端联调（Windows UIA 驱动 WebView2 + 真实 adb 设备）
 # 用法（应用需关闭；必须 cargo tauri build --no-bundle，不要用裸 cargo build --release）：
 #   $env:CARGO_TARGET_DIR = "E:\GithubGallery\Windows-YoADBTools\target"
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-real.ps1
@@ -7,7 +7,7 @@
 # 原理：SPI_SETSCREENREADER 强制激活 WebView2 无障碍树 → UIA 枚举 DOM 元素并按名交互。
 
 param(
-    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YovoAdbTools.exe")
+    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YohuAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,7 +36,7 @@ function Wait-AppRoot([int]$procId, [int]$timeoutSec = 30) {
         $root = [System.Windows.Automation.AutomationElement]::RootElement
         $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
         foreach ($e in $all) {
-            if ($e.Current.ControlType.ProgrammaticName -eq "ControlType.Document" -and $e.Current.Name -eq "Yovo ADB Tools") {
+            if ($e.Current.ControlType.ProgrammaticName -eq "ControlType.Document" -and $e.Current.Name -eq "Yohu ADB Tools") {
                 return $e
             }
         }
@@ -157,7 +157,7 @@ function Assert($name, [bool]$ok) {
 # ===== 1. 确认真机在线；恢复自动解析 adb（不要指向 fake-adb） =====
 $adbCandidates = @(
     (Join-Path $PSScriptRoot "..\tools\adb.exe"),
-    (Join-Path $env:LOCALAPPDATA "YovoAdbTools\data\tools\adb\adb.exe")
+    (Join-Path $env:LOCALAPPDATA "YohuAdbTools\data\tools\adb\adb.exe")
 )
 $adb = $adbCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $adb) { $adb = "adb" }
@@ -166,15 +166,15 @@ $devOut = & $adb devices -l 2>&1 | Out-String
 if ($devOut -notmatch "\sdevice\s") { throw "no online device. adb devices:`n$devOut" }
 Write-Host "device online"
 
-$settingsDir = Join-Path $env:LOCALAPPDATA "YovoAdbTools\settings"
+$settingsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\settings"
 New-Item -ItemType Directory -Force $settingsDir | Out-Null
 @{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
     ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
 
-$e2eDir = "000-yovo-e2e"
+$e2eDir = "000-yohu-e2e"
 [void](Invoke-Adb @("shell", "rm", "-rf", "/sdcard/$e2eDir"))
 
-Get-Process -Name "YovoAdbTools" -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name "YohuAdbTools" -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 1
 
 # ===== 2. 启动应用 + 激活无障碍树 =====
@@ -284,7 +284,7 @@ try {
     $kw = Find-Edit $appRoot "关键字" $false 6
     Assert "keyword filter field exists" ($null -ne $kw)
     if ($kw) {
-        Set-Value $kw "zzznomatchyovo999"
+        Set-Value $kw "zzznomatchyohu999"
         Start-Sleep -Seconds 2
     }
     $noHit = Find-ByName $appRoot "无匹配日志" $true 6

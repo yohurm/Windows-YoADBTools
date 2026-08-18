@@ -1,34 +1,34 @@
-.yovo-toaster {
+.yohu-toaster {
   position: fixed;
-  top: var(--yovo-space-md);
-  right: var(--yovo-space-md);
+  top: var(--yohu-space-md);
+  right: var(--yohu-space-md);
   z-index: 1100;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
   pointer-events: none;
-  font-family: var(--yovo-font-sans);
+  font-family: var(--yohu-font-sans);
 }
 
-.yovo-toast {
+.yohu-toast {
   pointer-events: auto;
-  max-width: calc(var(--yovo-space-xl) * 14);
-  padding: var(--yovo-space-sm) var(--yovo-space-md);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-left: var(--yovo-stroke-emphasis) solid var(--yovo-accent);
-  border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-surface);
-  color: var(--yovo-fg);
-  font-size: var(--yovo-font-body);
+  max-width: calc(var(--yohu-space-xl) * 14);
+  padding: var(--yohu-space-sm) var(--yohu-space-md);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-left: var(--yohu-stroke-emphasis) solid var(--yohu-accent);
+  border-radius: var(--yohu-radius-sm);
+  background-color: var(--yohu-surface);
+  color: var(--yohu-fg);
+  font-size: var(--yohu-font-body);
   box-sizing: border-box;
-  animation: yovo-toast-in var(--yovo-dur-normal) var(--yovo-ease-decel);
+  animation: yohu-toast-in var(--yohu-dur-normal) var(--yohu-ease-decel);
 }
 
-@keyframes yovo-toast-in {
+@keyframes yohu-toast-in {
   from {
     opacity: 0;
-    transform: translateX(calc(var(--yovo-space-md) * 2));
+    transform: translateX(calc(var(--yohu-space-md) * 2));
   }
   to {
     opacity: 1;
@@ -36,14 +36,14 @@
   }
 }
 
-.yovo-toast--success {
-  border-left-color: var(--yovo-success);
+.yohu-toast--success {
+  border-left-color: var(--yohu-success);
 }
 
-.yovo-toast--error {
-  border-left-color: var(--yovo-error);
+.yohu-toast--error {
+  border-left-color: var(--yohu-error);
 }
 
-.yovo-toast--info {
-  border-left-color: var(--yovo-accent);
+.yohu-toast--info {
+  border-left-color: var(--yohu-accent);
 }

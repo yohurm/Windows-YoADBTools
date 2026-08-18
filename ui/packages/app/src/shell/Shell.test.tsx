@@ -2,7 +2,7 @@
  * 壳组件测试（Phase C，UI设计系统-v6.md §3/§4.4）：
  * DeviceRail 卡片语义/键盘选择、NavList 键盘导航、StatusBar 任务明细、
  * SettingsView 生效徽章/浏览/密度切换/toast。
- * @yovo/api 与 tauri-plugin-dialog 全量 mock（模块 store 单例在 import 期订阅事件）。
+ * @yohu/api 与 tauri-plugin-dialog 全量 mock（模块 store 单例在 import 期订阅事件）。
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   taskHandler: null as null | ((e: unknown) => void),
 }));
 
-vi.mock("@yovo/api", () => {
+vi.mock("@yohu/api", () => {
   const noop = (): void => undefined;
   const notConfigured = vi.fn(async () => {
     throw new Error("测试未配置该命令 mock");
@@ -170,7 +170,7 @@ describe("DeviceRail（§3 设备卡片）", () => {
     expect(items[0]?.getAttribute("aria-selected")).toBe("true");
     expect(items[0]?.getAttribute("tabindex")).toBe("0");
     expect(items[1]?.getAttribute("tabindex")).toBe("-1");
-    expect(container.querySelector(".yovo-device-rail__list")?.getAttribute("role")).toBe("listbox");
+    expect(container.querySelector(".yohu-device-rail__list")?.getAttribute("role")).toBe("listbox");
   });
 
   it("点击与 Enter 键切换焦点设备（roving tabindex 跟随）", async () => {
@@ -198,7 +198,7 @@ describe("DeviceRail（§3 设备卡片）", () => {
     await deviceStore.refresh();
     const { container } = render(() => <DeviceRail />);
     expect(screen.getByText("无设备")).toBeTruthy();
-    expect(container.querySelector(".yovo-device-rail__empty-error")?.textContent).toContain("adb 未找到");
+    expect(container.querySelector(".yohu-device-rail__empty-error")?.textContent).toContain("adb 未找到");
     expect(screen.getByText("重试扫描")).toBeTruthy();
   });
 });
@@ -210,7 +210,7 @@ describe("NavList（§3 模块导航）", () => {
     const active = container.querySelector('[aria-current="page"]');
     expect(active).toBeTruthy();
     expect(active?.getAttribute("tabindex")).toBe("0");
-    const settingsItem = Array.from(container.querySelectorAll(".yovo-nav__item")).find((el) =>
+    const settingsItem = Array.from(container.querySelectorAll(".yohu-nav__item")).find((el) =>
       el.textContent?.includes("设置"),
     );
     expect(settingsItem).toBeTruthy();
@@ -222,10 +222,10 @@ describe("NavList（§3 模块导航）", () => {
 
   it("每个导航项都有独立图标（不因模块复用而消失）", () => {
     const { container } = render(() => <NavList activeId="files" onNavigate={() => undefined} />);
-    const items = container.querySelectorAll(".yovo-nav__item");
+    const items = container.querySelectorAll(".yohu-nav__item");
     expect(items.length).toBeGreaterThanOrEqual(4);
     items.forEach((item) => {
-      expect(item.querySelector("svg.yovo-icon")).toBeTruthy();
+      expect(item.querySelector("svg.yohu-icon")).toBeTruthy();
     });
   });
 
@@ -245,7 +245,7 @@ describe("StatusBar（§3 状态栏）", () => {
     });
     await Promise.resolve();
     const { container } = render(() => <StatusBar />);
-    const task = container.querySelector(".yovo-status__task");
+    const task = container.querySelector(".yohu-status__task");
     expect(task?.textContent).toBe("上传: x.apk");
     expect(task?.getAttribute("title")).toBe("C:\\x.apk → /sdcard/x.apk");
   });

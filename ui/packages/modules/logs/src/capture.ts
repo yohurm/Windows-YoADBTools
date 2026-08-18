@@ -1,6 +1,6 @@
 /**
  * 采集客户端：设备绑定、跟流启停、批次入镜、溢出回补、导出。
- * 只依赖 @yovo/api。
+ * 只依赖 @yohu/api。
  */
 
 import type { SetStoreFunction } from "solid-js/store";
@@ -19,8 +19,8 @@ import {
   onProcessIndex,
   onSettingsChanged,
   settingsGet,
-} from "@yovo/api";
-import type { LogBatch, ProcessEntry } from "@yovo/api";
+} from "@yohu/api";
+import type { LogBatch, ProcessEntry } from "@yohu/api";
 
 import {
   collapseStack,

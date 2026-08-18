@@ -4,8 +4,8 @@
 
 import { Component, createSignal, onMount } from "solid-js";
 
-import { systemReportError } from "@yovo/api";
-import { setDensity, setTheme } from "@yovo/ui";
+import { systemReportError } from "@yohu/api";
+import { setDensity, setTheme } from "@yohu/ui";
 
 import { registerModule } from "./registry";
 import { AppLayout } from "./shell/AppLayout";

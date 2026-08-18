@@ -2,7 +2,7 @@
  * 文件模块纯领域函数（ViewModel 之外，零 IPC / 零壳依赖）。
  */
 
-import type { RemoteEntry } from "@yovo/api";
+import type { RemoteEntry } from "@yohu/api";
 
 export function joinPath(dir: string, name: string): string {
   if (dir === "/") return `/${name}`;

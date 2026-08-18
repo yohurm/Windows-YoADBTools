@@ -1,5 +1,5 @@
 /**
- * @yovo/ui token 入口。
+ * @yohu/ui token 入口。
  * 引入 theme.css + states.css；导出 setTheme/getTheme（含 system 偏好）。
  */
 import "./theme.css";

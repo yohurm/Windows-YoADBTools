@@ -97,10 +97,10 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
 
   return (
     <Show when={isOpen()}>
-      <div class="yovo-dialog">
-        <div class="yovo-dialog__backdrop" aria-hidden="true" />
+      <div class="yohu-dialog">
+        <div class="yohu-dialog__backdrop" aria-hidden="true" />
         <div
-          class="yovo-dialog__panel"
+          class="yohu-dialog__panel"
           role="dialog"
           aria-modal="true"
           aria-label={props.title}
@@ -113,9 +113,9 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
             height: props.height !== undefined ? `${props.height}px` : undefined,
           }}
         >
-          {props.title ? <h3 class="yovo-dialog__title">{props.title}</h3> : null}
-          <div class="yovo-dialog__body">{props.children}</div>
-          {props.footer ? <div class="yovo-dialog__footer">{props.footer}</div> : null}
+          {props.title ? <h3 class="yohu-dialog__title">{props.title}</h3> : null}
+          <div class="yohu-dialog__body">{props.children}</div>
+          {props.footer ? <div class="yohu-dialog__footer">{props.footer}</div> : null}
         </div>
       </div>
     </Show>

@@ -1,40 +1,40 @@
-.yovo-icon-button {
+.yohu-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--yovo-control-height);
-  height: var(--yovo-control-height);
+  width: var(--yohu-control-height);
+  height: var(--yohu-control-height);
   padding: 0;
   border: none;
-  border-radius: var(--yovo-radius-sm);
+  border-radius: var(--yohu-radius-sm);
   background-color: transparent;
-  color: var(--yovo-fg-2);
+  color: var(--yohu-fg-2);
   cursor: pointer;
   box-sizing: border-box;
   transition:
-    background-color var(--yovo-dur-fast) var(--yovo-ease-standard),
-    color var(--yovo-dur-fast) var(--yovo-ease-standard);
+    background-color var(--yohu-dur-fast) var(--yohu-ease-standard),
+    color var(--yohu-dur-fast) var(--yohu-ease-standard);
 }
 
-.yovo-icon-button:not(:disabled):hover {
-  background-color: var(--yovo-state-hover);
-  color: var(--yovo-fg);
+.yohu-icon-button:not(:disabled):hover {
+  background-color: var(--yohu-state-hover);
+  color: var(--yohu-fg);
 }
 
-.yovo-icon-button:not(:disabled):active {
-  background-color: var(--yovo-state-pressed);
+.yohu-icon-button:not(:disabled):active {
+  background-color: var(--yohu-state-pressed);
 }
 
-.yovo-icon-button:disabled {
-  color: var(--yovo-disabled);
+.yohu-icon-button:disabled {
+  color: var(--yohu-disabled);
   cursor: not-allowed;
 }
 
-.yovo-icon-button--loading .yovo-icon {
-  animation: yovo-spin var(--yovo-dur-loop) linear infinite;
+.yohu-icon-button--loading .yohu-icon {
+  animation: yohu-spin var(--yohu-dur-loop) linear infinite;
 }
 
-@keyframes yovo-spin {
+@keyframes yohu-spin {
   to {
     transform: rotate(360deg);
   }

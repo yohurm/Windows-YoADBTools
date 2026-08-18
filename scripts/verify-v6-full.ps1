@@ -1,23 +1,23 @@
-# Yovo ADB Tools v6 — 全功能联调（需设备在线；真机桌面会话运行）
+# Yohu ADB Tools v6 — 全功能联调（需设备在线；真机桌面会话运行）
 # 用法（应用需关闭）：
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-full.ps1
 # 覆盖：启动 / 设备扫描 / 终端（库加载/执行/命令管理）/ 文件（浏览/传输/删除）/
 #       日志（多会话/过滤/导出）/ 设置 / 占位模块；退出后检查 crash 日志。
 
 param(
-    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YovoAdbTools.exe")
+    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YohuAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Exe)) {
-    throw "未找到 $Exe — 请先 cargo build --release -p yovo-app"
+    throw "未找到 $Exe — 请先 cargo build --release -p yohu-app"
 }
 
-$logsDir = Join-Path $env:LOCALAPPDATA "YovoAdbTools\logs"
+$logsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\logs"
 Remove-Item (Join-Path $logsDir "panic-*.log") -ErrorAction SilentlyContinue
 
-Write-Host "== Yovo ADB Tools v6 全功能联调 =="
+Write-Host "== Yohu ADB Tools v6 全功能联调 =="
 Write-Host "请确保至少 1 台设备 USB 连接且已授权（adb devices 显示 device）。"
 Write-Host ""
 
@@ -47,7 +47,7 @@ foreach ($step in $steps) {
 }
 
 Write-Host ""
-$appProcesses = @(Get-Process -Name "yovo-app" -ErrorAction SilentlyContinue)
+$appProcesses = @(Get-Process -Name "yohu-app" -ErrorAction SilentlyContinue)
 foreach ($p in $appProcesses) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 2
 

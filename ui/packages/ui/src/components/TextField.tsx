@@ -57,17 +57,17 @@ export function YoTextField(props: YoTextFieldProps): JSX.Element {
   const showClear = (): boolean => !!props.clearable && (props.value ?? "").length > 0;
 
   return (
-    <div class="yovo-text-field" classList={{ "yovo-text-field--disabled": !!props.disabled }}>
+    <div class="yohu-text-field" classList={{ "yohu-text-field--disabled": !!props.disabled }}>
       {props.label ? (
-        <label class="yovo-text-field__label" for={id}>
+        <label class="yohu-text-field__label" for={id}>
           {props.label}
         </label>
       ) : null}
-      <div class="yovo-text-field__control yovo-focus-host">
+      <div class="yohu-text-field__control yohu-focus-host">
         <input
           ref={(el) => (inputRef = el)}
           id={id}
-          class="yovo-text-field__input"
+          class="yohu-text-field__input"
           type={props.type ?? "text"}
           value={props.value ?? ""}
           placeholder={props.placeholder ?? ""}
@@ -79,7 +79,7 @@ export function YoTextField(props: YoTextFieldProps): JSX.Element {
         {showClear() ? (
           <button
             type="button"
-            class="yovo-text-field__clear yovo-focus-ring"
+            class="yohu-text-field__clear yohu-focus-ring"
             aria-label="clear"
             onClick={handleClear}
           >

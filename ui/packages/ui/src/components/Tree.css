@@ -1,44 +1,44 @@
-.yovo-tree {
-  font-family: var(--yovo-font-sans);
-  color: var(--yovo-fg);
-  background-color: var(--yovo-surface);
+.yohu-tree {
+  font-family: var(--yohu-font-sans);
+  color: var(--yohu-fg);
+  background-color: var(--yohu-surface);
   box-sizing: border-box;
 }
 
-.yovo-tree__row {
+.yohu-tree__row {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-xs);
-  padding-right: var(--yovo-space-sm);
-  font-size: var(--yovo-font-body);
+  gap: var(--yohu-space-xs);
+  padding-right: var(--yohu-space-sm);
+  font-size: var(--yohu-font-body);
   cursor: pointer;
   user-select: none;
   box-sizing: border-box;
 }
 
-.yovo-tree__row--selected {
-  color: var(--yovo-accent);
+.yohu-tree__row--selected {
+  color: var(--yohu-accent);
 }
 
-.yovo-tree__chevron {
+.yohu-tree__chevron {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: var(--yovo-space-lg);
-  height: var(--yovo-space-lg);
+  width: var(--yohu-space-lg);
+  height: var(--yohu-space-lg);
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--yovo-fg-3);
+  color: var(--yohu-fg-3);
   cursor: pointer;
 }
 
-.yovo-tree__chevron--leaf {
+.yohu-tree__chevron--leaf {
   pointer-events: none;
 }
 
-.yovo-tree__label {
+.yohu-tree__label {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -46,11 +46,11 @@
   white-space: nowrap;
 }
 
-.yovo-tree__badge {
+.yohu-tree__badge {
   flex: none;
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-3);
-  background: var(--yovo-surface-2);
-  border-radius: var(--yovo-radius-sm);
-  padding: 0 var(--yovo-space-xs);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
+  background: var(--yohu-surface-2);
+  border-radius: var(--yohu-radius-sm);
+  padding: 0 var(--yohu-space-xs);
 }

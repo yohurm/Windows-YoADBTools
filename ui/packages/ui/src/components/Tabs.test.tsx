@@ -63,7 +63,7 @@ describe("YoTabs", () => {
         onActivate={(id) => setActive(id)}
       />
     ));
-    const tablist = container.querySelector(".yovo-tabs") as HTMLElement;
+    const tablist = container.querySelector(".yohu-tabs") as HTMLElement;
     fireEvent.keyDown(tablist, { key: "ArrowRight" });
     expect(active()).toBe("b");
     fireEvent.keyDown(tablist, { key: "ArrowRight" });
@@ -79,7 +79,7 @@ describe("YoTabs", () => {
     const { container } = render(() => (
       <YoTabs tabs={TABS} activeId={active()} onActivate={setActive} />
     ));
-    const tablist = container.querySelector(".yovo-tabs") as HTMLElement;
+    const tablist = container.querySelector(".yohu-tabs") as HTMLElement;
     fireEvent.keyDown(tablist, { key: "Home" });
     expect(active()).toBe("a");
     fireEvent.keyDown(tablist, { key: "End" });
@@ -89,7 +89,7 @@ describe("YoTabs", () => {
   it("键盘 Delete 关闭当前 tab", () => {
     const onClose = vi.fn();
     const { container } = render(() => <YoTabs tabs={TABS} activeId="b" onClose={onClose} />);
-    const tablist = container.querySelector(".yovo-tabs") as HTMLElement;
+    const tablist = container.querySelector(".yohu-tabs") as HTMLElement;
     fireEvent.keyDown(tablist, { key: "Delete" });
     expect(onClose).toHaveBeenCalledWith("b");
   });

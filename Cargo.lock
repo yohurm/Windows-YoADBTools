@@ -4720,6 +4720,88 @@ dependencies = [
 ]
 
 [[package]]
+name = "yohu-adb"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "yohu-domain",
+ "yohu-protocol",
+]
+
+[[package]]
+name = "yohu-app"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "thiserror 2.0.20",
+ "time",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "yohu-adb",
+ "yohu-domain",
+ "yohu-files",
+ "yohu-logsrv",
+ "yohu-protocol",
+]
+
+[[package]]
+name = "yohu-domain"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "yohu-protocol",
+]
+
+[[package]]
+name = "yohu-files"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "yohu-adb",
+ "yohu-domain",
+ "yohu-protocol",
+]
+
+[[package]]
+name = "yohu-logsrv"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.20",
+ "time",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "yohu-adb",
+ "yohu-protocol",
+]
+
+[[package]]
+name = "yohu-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "yoke"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4740,88 +4822,6 @@ dependencies = [
  "quote",
  "syn 2.0.119",
  "synstructure",
-]
-
-[[package]]
-name = "yovo-adb"
-version = "0.1.0"
-dependencies = [
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "tracing",
- "yovo-domain",
- "yovo-protocol",
-]
-
-[[package]]
-name = "yovo-app"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "thiserror 2.0.20",
- "time",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "yovo-adb",
- "yovo-domain",
- "yovo-files",
- "yovo-logsrv",
- "yovo-protocol",
-]
-
-[[package]]
-name = "yovo-domain"
-version = "0.1.0"
-dependencies = [
- "regex",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "yovo-protocol",
-]
-
-[[package]]
-name = "yovo-files"
-version = "0.1.0"
-dependencies = [
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "tracing",
- "yovo-adb",
- "yovo-domain",
- "yovo-protocol",
-]
-
-[[package]]
-name = "yovo-logsrv"
-version = "0.1.0"
-dependencies = [
- "thiserror 2.0.20",
- "time",
- "tokio",
- "tokio-util",
- "tracing",
- "yovo-adb",
- "yovo-protocol",
-]
-
-[[package]]
-name = "yovo-protocol"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]

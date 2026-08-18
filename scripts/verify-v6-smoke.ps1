@@ -1,19 +1,19 @@
-﻿# Yovo ADB Tools v6 — 冒烟回归（S1）
+﻿# Yohu ADB Tools v6 — 冒烟回归（S1）
 # 用法（应用需关闭，真机桌面会话运行）：
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-smoke.ps1
 # 覆盖：启动存活 / 无 panic 日志 / 数据目录创建（adb 解压 + 设置）
 
 param(
-    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YovoAdbTools.exe")
+    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YohuAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Exe)) {
-    throw "未找到 $Exe — 请先执行 cargo build --release -p yovo-app"
+    throw "未找到 $Exe — 请先执行 cargo build --release -p yohu-app"
 }
 
-$dataRoot = Join-Path $env:LOCALAPPDATA "YovoAdbTools"
+$dataRoot = Join-Path $env:LOCALAPPDATA "YohuAdbTools"
 $logsDir = Join-Path $dataRoot "logs"
 Remove-Item (Join-Path $logsDir "panic-*.log") -ErrorAction SilentlyContinue
 

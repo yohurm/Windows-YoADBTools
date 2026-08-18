@@ -1,14 +1,14 @@
 /**
  * 设备栏（UI设计系统-v6.md §3）：卡片式设备列表。
  * 设备卡片：在线点 + 型号一行 + serial 等宽一行 + 未授权徽章；
- * 选中 = `.yovo-interactive--selected`（accent-soft 片）+ stroke-accent 左边条；空态引导 + 错误明细 + 重试。
+ * 选中 = `.yohu-interactive--selected`（accent-soft 片）+ stroke-accent 左边条；空态引导 + 错误明细 + 重试。
  * 键盘：roving tabindex（选中行 0）+ Enter/Space 选择，role=listbox/option。
  */
 
 import { Component, For, Show, createSignal } from "solid-js";
 
-import { YoBadge, YoButton, YoIconButton } from "@yovo/ui";
-import type { DeviceInfo } from "@yovo/api";
+import { YoBadge, YoButton, YoIconButton } from "@yohu/ui";
+import type { DeviceInfo } from "@yohu/api";
 
 import { deviceStore } from "../stores";
 
@@ -37,15 +37,15 @@ export const DeviceRail: Component = () => {
   };
 
   return (
-    <div class="yovo-device-rail">
-      <div class="yovo-device-rail__header">
+    <div class="yohu-device-rail">
+      <div class="yohu-device-rail__header">
         <YoIconButton
           icon={expanded() ? "chevron-down" : "chevron-right"}
           title={expanded() ? "折叠设备列表" : "展开设备列表"}
           onClick={() => setExpanded((v) => !v)}
         />
-        <div class="yovo-device-rail__heading">
-          <span class="yovo-device-rail__title">设备</span>
+        <div class="yohu-device-rail__heading">
+          <span class="yohu-device-rail__title">设备</span>
           <Show when={deviceStore.state.devices.length > 0}>
             <YoBadge text={String(deviceStore.state.devices.length)} tone="neutral" />
           </Show>
@@ -58,16 +58,16 @@ export const DeviceRail: Component = () => {
         />
       </div>
       <Show when={expanded()}>
-        <ul class="yovo-device-rail__list" role="listbox" aria-label="设备列表">
+        <ul class="yohu-device-rail__list" role="listbox" aria-label="设备列表">
           <For each={deviceStore.state.devices}>
             {(device, index) => {
               const active = () => deviceStore.state.focusSerial === device.serial;
               return (
                 <li
-                  class="yovo-device-rail__item yovo-interactive yovo-focus-ring"
+                  class="yohu-device-rail__item yohu-interactive yohu-focus-ring"
                   classList={{
-                    "yovo-device-rail__item--active": active(),
-                    "yovo-interactive--selected": active(),
+                    "yohu-device-rail__item--active": active(),
+                    "yohu-interactive--selected": active(),
                   }}
                   role="option"
                   aria-selected={active()}
@@ -77,16 +77,16 @@ export const DeviceRail: Component = () => {
                   onKeyDown={(event) => onItemKeyDown(device.serial, event)}
                 >
                   <span
-                    class="yovo-device-rail__dot"
+                    class="yohu-device-rail__dot"
                     classList={{
-                      "yovo-device-rail__dot--online": device.state === "online",
-                      "yovo-device-rail__dot--off": device.state !== "online",
+                      "yohu-device-rail__dot--online": device.state === "online",
+                      "yohu-device-rail__dot--off": device.state !== "online",
                     }}
                     aria-hidden="true"
                   />
-                  <span class="yovo-device-rail__info">
-                    <span class="yovo-device-rail__model">{device.model ?? device.serial}</span>
-                    <span class="yovo-device-rail__serial">{device.serial}</span>
+                  <span class="yohu-device-rail__info">
+                    <span class="yohu-device-rail__model">{device.model ?? device.serial}</span>
+                    <span class="yohu-device-rail__serial">{device.serial}</span>
                   </span>
                   <Show when={device.state === "unauthorized"}>
                     <YoBadge text="未授权" tone="warn" />
@@ -97,15 +97,15 @@ export const DeviceRail: Component = () => {
           </For>
         </ul>
         <Show when={deviceStore.state.devices.length === 0}>
-          <div class="yovo-device-rail__empty">
-            <div class="yovo-device-rail__empty-title">无设备</div>
+          <div class="yohu-device-rail__empty">
+            <div class="yohu-device-rail__empty-title">无设备</div>
             <Show when={deviceStore.state.lastError}>
-              <div class="yovo-device-rail__empty-error" role="status" title={deviceStore.state.lastError}>
+              <div class="yohu-device-rail__empty-error" role="status" title={deviceStore.state.lastError}>
                 {deviceStore.state.lastError}
               </div>
             </Show>
             <Show when={!deviceStore.state.lastError}>
-              <div class="yovo-device-rail__empty-hint">
+              <div class="yohu-device-rail__empty-hint">
                 请用 USB 连接设备并确认已授权（adb devices 可见）
               </div>
             </Show>

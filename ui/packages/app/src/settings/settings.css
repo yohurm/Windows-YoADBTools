@@ -1,85 +1,85 @@
 /* 设置页（UI设计系统-v6.md §4.4）：页面滚动 + 分组卡片内 标签|控件 两列网格。 */
 
-.yovo-settings {
+.yohu-settings {
   display: flex;
   flex-direction: column;
-  gap: var(--yovo-space-lg);
+  gap: var(--yohu-space-lg);
   width: 100%;
-  max-width: var(--yovo-layout-settings-max);
+  max-width: var(--yohu-layout-settings-max);
   height: 100%;
   overflow: auto;
   min-height: 0;
-  padding-right: var(--yovo-space-sm);
+  padding-right: var(--yohu-space-sm);
   box-sizing: border-box;
 }
 
-.yovo-settings__title {
+.yohu-settings__title {
   margin: 0;
-  font-size: var(--yovo-font-page-title);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
+  font-size: var(--yohu-font-page-title);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
   flex: 0 0 auto;
 }
 
-.yovo-settings .yovo-panel {
+.yohu-settings .yohu-panel {
   flex: 0 0 auto;
   overflow: visible;
 }
 
-.yovo-settings__item {
+.yohu-settings__item {
   display: grid;
-  grid-template-columns: minmax(var(--yovo-layout-settings-label-min), var(--yovo-layout-settings-label-max)) minmax(0, 1fr);
+  grid-template-columns: minmax(var(--yohu-layout-settings-label-min), var(--yohu-layout-settings-label-max)) minmax(0, 1fr);
   grid-template-areas:
     "head control"
     ". hint";
-  column-gap: var(--yovo-space-md);
-  row-gap: var(--yovo-space-xs);
+  column-gap: var(--yohu-space-md);
+  row-gap: var(--yohu-space-xs);
   align-items: center;
-  padding: var(--yovo-space-md) 0;
+  padding: var(--yohu-space-md) 0;
 }
 
-.yovo-settings__item + .yovo-settings__item {
-  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
+.yohu-settings__item + .yohu-settings__item {
+  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
-.yovo-settings__item-head {
+.yohu-settings__item-head {
   grid-area: head;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--yovo-space-xs);
+  gap: var(--yohu-space-xs);
   min-width: 0;
 }
 
-.yovo-settings__item-label {
-  font-size: var(--yovo-font-body);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
+.yohu-settings__item-label {
+  font-size: var(--yohu-font-body);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
 }
 
-.yovo-settings__item-control {
+.yohu-settings__item-control {
   grid-area: control;
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
   min-width: 0;
   width: 100%;
 }
 
-.yovo-settings__item-control .yovo-text-field,
-.yovo-settings__item-control .yovo-select {
+.yohu-settings__item-control .yohu-text-field,
+.yohu-settings__item-control .yohu-select {
   flex: 1;
   width: 100%;
   display: flex;
   min-width: 0;
 }
 
-.yovo-settings__item-control .yovo-select__trigger {
+.yohu-settings__item-control .yohu-select__trigger {
   width: 100%;
 }
 
-.yovo-settings__item-hint {
+.yohu-settings__item-hint {
   grid-area: hint;
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-3);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
 }

@@ -1,4 +1,4 @@
-﻿# Yovo ADB Tools v6 — sidecar adb 准备
+﻿# Yohu ADB Tools v6 — sidecar adb 准备
 # tools/ 下官方 adb 三件套被 .gitignore 排除（二进制不入库）。
 # 本脚本从 Google platform-tools 下载并解出 adb.exe / AdbWinApi.dll / AdbWinUsbApi.dll。
 # 用法：
@@ -21,8 +21,8 @@ if ($missing.Count -eq 0) {
     exit 0
 }
 
-$tmpZip = Join-Path ([System.IO.Path]::GetTempPath()) ("yovo-platform-tools-" + [guid]::NewGuid().ToString("N") + ".zip")
-$tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("yovo-platform-tools-" + [guid]::NewGuid().ToString("N"))
+$tmpZip = Join-Path ([System.IO.Path]::GetTempPath()) ("yohu-platform-tools-" + [guid]::NewGuid().ToString("N") + ".zip")
+$tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("yohu-platform-tools-" + [guid]::NewGuid().ToString("N"))
 try {
     Write-Host "下载 platform-tools：$platformToolsUrl"
     Invoke-WebRequest -Uri $platformToolsUrl -OutFile $tmpZip -UseBasicParsing

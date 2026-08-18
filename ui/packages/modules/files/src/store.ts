@@ -1,5 +1,5 @@
 /**
- * 文件模块 ViewModel：会话由壳注入，本文件只依赖 @yovo/api。
+ * 文件模块 ViewModel：会话由壳注入，本文件只依赖 @yohu/api。
  * 浏览世代令牌丢弃过期 list；危险路径/空名在 childPath 拦截，core 再强制。
  */
 
@@ -14,8 +14,8 @@ import {
   filesPull,
   filesPush,
   onTransferProgress,
-} from "@yovo/api";
-import type { RemoteEntry, TransferProgress, TransferState } from "@yovo/api";
+} from "@yohu/api";
+import type { RemoteEntry, TransferProgress, TransferState } from "@yohu/api";
 
 import {
   DEFAULT_SORT_DIR,

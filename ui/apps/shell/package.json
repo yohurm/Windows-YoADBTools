@@ -1,5 +1,5 @@
 {
-  "name": "@yovo/shell",
+  "name": "@yohu/shell",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,12 +8,12 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@yovo/app": "workspace:*",
-    "@yovo/ui": "workspace:*",
-    "@yovo/module-terminal": "workspace:*",
-    "@yovo/module-files": "workspace:*",
-    "@yovo/module-logs": "workspace:*",
-    "@yovo/module-mirror": "workspace:*",
+    "@yohu/app": "workspace:*",
+    "@yohu/ui": "workspace:*",
+    "@yohu/module-terminal": "workspace:*",
+    "@yohu/module-files": "workspace:*",
+    "@yohu/module-logs": "workspace:*",
+    "@yohu/module-mirror": "workspace:*",
     "solid-js": "^1.9.5"
   },
   "devDependencies": {

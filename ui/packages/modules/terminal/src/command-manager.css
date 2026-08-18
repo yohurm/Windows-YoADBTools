@@ -1,101 +1,101 @@
 /* 命令管理：三栏（组 | 命令 | 编辑器），各自滚动，互不挤压。 */
 
-.yovo-dialog:has(.yovo-cm) .yovo-dialog__body {
+.yohu-dialog:has(.yohu-cm) .yohu-dialog__body {
   display: flex;
   overflow: hidden;
   padding: 0;
   min-height: 0;
 }
 
-.yovo-cm {
+.yohu-cm {
   display: grid;
-  grid-template-columns: minmax(var(--yovo-layout-cm-group-min), var(--yovo-layout-cm-group-max)) minmax(var(--yovo-layout-cm-cmd-min), var(--yovo-layout-cm-cmd-max)) minmax(0, 1fr);
+  grid-template-columns: minmax(var(--yohu-layout-cm-group-min), var(--yohu-layout-cm-group-max)) minmax(var(--yohu-layout-cm-cmd-min), var(--yohu-layout-cm-cmd-max)) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   min-width: 0;
   width: 100%;
 }
 
-.yovo-cm__groups,
-.yovo-cm__commands {
+.yohu-cm__groups,
+.yohu-cm__commands {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border-right: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  background: var(--yovo-surface-2);
+  border-right: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  background: var(--yohu-surface-2);
 }
 
-.yovo-cm__groups .yovo-toolbar,
-.yovo-cm__commands .yovo-toolbar {
+.yohu-cm__groups .yohu-toolbar,
+.yohu-cm__commands .yohu-toolbar {
   margin: 0;
-  padding: var(--yovo-space-xs) var(--yovo-space-sm);
-  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  padding: var(--yohu-space-xs) var(--yohu-space-sm);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
-.yovo-cm__caption {
+.yohu-cm__caption {
   flex: 1;
   min-width: 0;
-  font-size: var(--yovo-font-caption);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg-2);
+  font-size: var(--yohu-font-caption);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg-2);
 }
 
-.yovo-cm__list {
+.yohu-cm__list {
   flex: 1;
   min-height: 0;
   overflow: auto;
   list-style: none;
   margin: 0;
-  padding: var(--yovo-space-xs);
+  padding: var(--yohu-space-xs);
 }
 
-.yovo-cm__item {
+.yohu-cm__item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--yovo-space-sm);
-  min-height: var(--yovo-control-height);
-  padding: 0 var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
+  min-height: var(--yohu-control-height);
+  padding: 0 var(--yohu-space-sm);
   cursor: pointer;
-  color: var(--yovo-fg);
-  font-size: var(--yovo-font-body);
+  color: var(--yohu-fg);
+  font-size: var(--yohu-font-body);
 }
 
-.yovo-cm__item--active {
-  color: var(--yovo-accent);
+.yohu-cm__item--active {
+  color: var(--yohu-accent);
 }
 
-.yovo-cm__item-name {
+.yohu-cm__item-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.yovo-cm__editor {
+.yohu-cm__editor {
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: var(--yovo-space-md);
+  padding: var(--yohu-space-md);
   display: flex;
   flex-direction: column;
-  gap: var(--yovo-space-md);
+  gap: var(--yohu-space-md);
 }
 
-.yovo-cm__editor .yovo-text-field {
+.yohu-cm__editor .yohu-text-field {
   display: flex;
   width: 100%;
 }
 
-.yovo-cm__empty {
+.yohu-cm__empty {
   margin: auto;
-  color: var(--yovo-fg-3);
-  font-size: var(--yovo-font-caption);
+  color: var(--yohu-fg-3);
+  font-size: var(--yohu-font-caption);
 }
 
-.yovo-cm__error {
+.yohu-cm__error {
   margin-right: auto;
-  color: var(--yovo-error);
-  font-size: var(--yovo-font-caption);
+  color: var(--yohu-error);
+  font-size: var(--yohu-font-caption);
 }

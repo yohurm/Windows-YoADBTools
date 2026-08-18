@@ -1,10 +1,10 @@
 {
-  "name": "yovo-ui-workspace",
+  "name": "yohu-ui-workspace",
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "pnpm --filter @yovo/shell dev",
-    "build": "pnpm --filter @yovo/shell build",
+    "dev": "pnpm --filter @yohu/shell dev",
+    "build": "pnpm --filter @yohu/shell build",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "lint:tokens": "node ../scripts/check-ui-tokens.mjs",

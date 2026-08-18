@@ -1,10 +1,10 @@
 /**
- * 日志模块门面：工作区 + 采集客户端。只依赖 @yovo/api。
+ * 日志模块门面：工作区 + 采集客户端。只依赖 @yohu/api。
  * 设备焦点由 View 经 bindSerial 注入；会话/过滤/可见区在消费端（ADR-v6-006）。
  */
 
 import { createStore } from "solid-js/store";
-import type { ProcessEntry } from "@yovo/api";
+import type { ProcessEntry } from "@yohu/api";
 
 import { createCapture } from "./capture";
 import { RingMirror } from "./pipeline";

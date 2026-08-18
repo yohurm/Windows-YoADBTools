@@ -1,25 +1,25 @@
-.yovo-empty-state {
+.yohu-empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
   flex: 1;
   min-height: 0;
-  padding: var(--yovo-space-xl);
+  padding: var(--yohu-space-xl);
   text-align: center;
-  color: var(--yovo-fg-3);
-  font-family: var(--yovo-font-sans);
+  color: var(--yohu-fg-3);
+  font-family: var(--yohu-font-sans);
   box-sizing: border-box;
 }
 
-.yovo-empty-state__title {
-  font-size: var(--yovo-font-body-strong);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg-2);
+.yohu-empty-state__title {
+  font-size: var(--yohu-font-body-strong);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg-2);
 }
 
-.yovo-empty-state__description {
-  font-size: var(--yovo-font-body);
-  color: var(--yovo-fg-3);
+.yohu-empty-state__description {
+  font-size: var(--yohu-font-body);
+  color: var(--yohu-fg-3);
 }

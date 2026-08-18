@@ -45,22 +45,22 @@ importers:
 
   apps/shell:
     dependencies:
-      '@yovo/app':
+      '@yohu/app':
         specifier: workspace:*
         version: link:../../packages/app
-      '@yovo/module-files':
+      '@yohu/module-files':
         specifier: workspace:*
         version: link:../../packages/modules/files
-      '@yovo/module-logs':
+      '@yohu/module-logs':
         specifier: workspace:*
         version: link:../../packages/modules/logs
-      '@yovo/module-mirror':
+      '@yohu/module-mirror':
         specifier: workspace:*
         version: link:../../packages/modules/mirror
-      '@yovo/module-terminal':
+      '@yohu/module-terminal':
         specifier: workspace:*
         version: link:../../packages/modules/terminal
-      '@yovo/ui':
+      '@yohu/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       solid-js:
@@ -85,10 +85,10 @@ importers:
       '@tauri-apps/api':
         specifier: ^2.9.0
         version: 2.11.1
-      '@yovo/api':
+      '@yohu/api':
         specifier: workspace:*
         version: link:../api
-      '@yovo/ui':
+      '@yohu/ui':
         specifier: workspace:*
         version: link:../ui
       solid-js:
@@ -97,13 +97,13 @@ importers:
 
   packages/modules/files:
     dependencies:
-      '@yovo/api':
+      '@yohu/api':
         specifier: workspace:*
         version: link:../../api
-      '@yovo/app':
+      '@yohu/app':
         specifier: workspace:*
         version: link:../../app
-      '@yovo/ui':
+      '@yohu/ui':
         specifier: workspace:*
         version: link:../../ui
       solid-js:
@@ -112,13 +112,13 @@ importers:
 
   packages/modules/logs:
     dependencies:
-      '@yovo/api':
+      '@yohu/api':
         specifier: workspace:*
         version: link:../../api
-      '@yovo/app':
+      '@yohu/app':
         specifier: workspace:*
         version: link:../../app
-      '@yovo/ui':
+      '@yohu/ui':
         specifier: workspace:*
         version: link:../../ui
       solid-js:
@@ -127,13 +127,13 @@ importers:
 
   packages/modules/mirror:
     dependencies:
-      '@yovo/api':
+      '@yohu/api':
         specifier: workspace:*
         version: link:../../api
-      '@yovo/app':
+      '@yohu/app':
         specifier: workspace:*
         version: link:../../app
-      '@yovo/ui':
+      '@yohu/ui':
         specifier: workspace:*
         version: link:../../ui
       solid-js:
@@ -142,13 +142,13 @@ importers:
 
   packages/modules/terminal:
     dependencies:
-      '@yovo/api':
+      '@yohu/api':
         specifier: workspace:*
         version: link:../../api
-      '@yovo/app':
+      '@yohu/app':
         specifier: workspace:*
         version: link:../../app
-      '@yovo/ui':
+      '@yohu/ui':
         specifier: workspace:*
         version: link:../../ui
       solid-js:

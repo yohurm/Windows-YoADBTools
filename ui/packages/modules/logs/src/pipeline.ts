@@ -4,7 +4,7 @@
  * + 信号扫描（崩溃/ANR）+ 堆叠折叠（显示层）。
  */
 
-import type { LogBatch, LogFilter, LogLine, ProcessEntry } from "@yovo/api";
+import type { LogBatch, LogFilter, LogLine, ProcessEntry } from "@yohu/api";
 
 // ===== 级别 =====
 
@@ -33,7 +33,7 @@ export interface SessionFilter {
   pidSet: number[];
 }
 
-/** 单行匹配（与 core yovo-protocol::LogFilter 语义一致：空 package pids = 无命中）。 */
+/** 单行匹配（与 core yohu-protocol::LogFilter 语义一致：空 package pids = 无命中）。 */
 export function matchesLine(line: LogLine, f: SessionFilter): boolean {
   if (f.minLevel !== null && levelRank(line.level) < levelRank(f.minLevel)) {
     return false;

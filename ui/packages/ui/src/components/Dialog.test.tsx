@@ -53,7 +53,7 @@ describe("YoDialog", () => {
         内容
       </YoDialog>
     ));
-    fireEvent.click(container.querySelector(".yovo-dialog__backdrop") as HTMLElement);
+    fireEvent.click(container.querySelector(".yohu-dialog__backdrop") as HTMLElement);
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -82,7 +82,7 @@ describe("YoDialog", () => {
         内容
       </YoDialog>
     ));
-    expect((container.querySelector(".yovo-dialog__panel") as HTMLElement).style.width).toBe("560px");
+    expect((container.querySelector(".yohu-dialog__panel") as HTMLElement).style.width).toBe("560px");
   });
 
   it("open 支持 Accessor 形式（响应式开关）", () => {

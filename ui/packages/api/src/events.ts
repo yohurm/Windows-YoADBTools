@@ -1,5 +1,5 @@
 /**
- * @yovo/api — 事件订阅封装（自动反序列化为 AppEvent，返回取消订阅函数）。
+ * @yohu/api — 事件订阅封装（自动反序列化为 AppEvent，返回取消订阅函数）。
  */
 
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";

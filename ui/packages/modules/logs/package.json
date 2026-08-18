@@ -1,5 +1,5 @@
 {
-  "name": "@yovo/module-logs",
+  "name": "@yohu/module-logs",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,9 +9,9 @@
     ".": "./src/index.tsx"
   },
   "dependencies": {
-    "@yovo/api": "workspace:*",
-    "@yovo/ui": "workspace:*",
-    "@yovo/app": "workspace:*",
+    "@yohu/api": "workspace:*",
+    "@yohu/ui": "workspace:*",
+    "@yohu/app": "workspace:*",
     "solid-js": "^1.9.5"
   }
 }

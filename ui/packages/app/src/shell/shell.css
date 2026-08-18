@@ -1,29 +1,29 @@
 /* ============================================================================
  * 工作台壳布局（UI设计系统-v6.md §3）。
- * 仅引用 Semantic/Component 层 token（--yovo-fg/--yovo-surface/--yovo-accent…）。
+ * 仅引用 Semantic/Component 层 token（--yohu-fg/--yohu-surface/--yohu-accent…）。
  * ========================================================================== */
 
-.yovo-layout {
+.yohu-layout {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  grid-template-columns: var(--yovo-layout-shell-nav) minmax(0, 1fr);
+  grid-template-columns: var(--yohu-layout-shell-nav) minmax(0, 1fr);
   height: 100%;
   max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
-.yovo-layout__rail {
+.yohu-layout__rail {
   grid-row: 1;
   grid-column: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--yovo-surface-2);
-  border-right: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  background: var(--yohu-surface-2);
+  border-right: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
-.yovo-layout__content {
+.yohu-layout__content {
   grid-row: 1;
   grid-column: 2;
   display: flex;
@@ -31,27 +31,27 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: var(--yovo-bg-base);
-  padding: var(--yovo-space-md);
+  background: var(--yohu-bg-base);
+  padding: var(--yohu-space-md);
   box-sizing: border-box;
 }
 
-.yovo-layout__content > * {
+.yohu-layout__content > * {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
 }
 
-.yovo-layout > :last-child {
+.yohu-layout > :last-child {
   grid-row: 2;
   grid-column: 1 / span 2;
 }
 
-.yovo-module-title {
-  font-size: var(--yovo-font-page-title);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
-  margin-right: var(--yovo-space-sm);
+.yohu-module-title {
+  font-size: var(--yohu-font-page-title);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
+  margin-right: var(--yohu-space-sm);
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -59,230 +59,230 @@
 
 /* ===== 设备栏（卡片式，§3） ===== */
 
-.yovo-device-rail {
+.yohu-device-rail {
   display: flex;
   flex-direction: column;
-  gap: var(--yovo-space-sm);
-  padding: var(--yovo-space-sm);
-  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  gap: var(--yohu-space-sm);
+  padding: var(--yohu-space-sm);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   flex: 0 1 auto;
   max-height: 42%;
   min-height: 0;
 }
 
-.yovo-device-rail__header {
+.yohu-device-rail__header {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-xs);
+  gap: var(--yohu-space-xs);
 }
 
-.yovo-device-rail__heading {
+.yohu-device-rail__heading {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-xs);
+  gap: var(--yohu-space-xs);
   flex: 1;
   min-width: 0;
 }
 
-.yovo-device-rail__title {
-  font-size: var(--yovo-font-body);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
+.yohu-device-rail__title {
+  font-size: var(--yohu-font-body);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
 }
 
-.yovo-device-rail__list {
+.yohu-device-rail__list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--yovo-space-xs);
+  gap: var(--yohu-space-xs);
   overflow: auto;
 }
 
-.yovo-device-rail__item {
+.yohu-device-rail__item {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
-  min-height: var(--yovo-row-height-device);
-  padding: var(--yovo-space-xs) var(--yovo-space-sm);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-left: var(--yovo-stroke-accent) solid transparent;
-  border-radius: var(--yovo-radius-sm);
-  background: var(--yovo-surface);
+  gap: var(--yohu-space-sm);
+  min-height: var(--yohu-row-height-device);
+  padding: var(--yohu-space-xs) var(--yohu-space-sm);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-left: var(--yohu-stroke-accent) solid transparent;
+  border-radius: var(--yohu-radius-sm);
+  background: var(--yohu-surface);
   cursor: pointer;
   box-sizing: border-box;
 }
 
-.yovo-device-rail__item:hover {
-  border-color: var(--yovo-border-strong);
+.yohu-device-rail__item:hover {
+  border-color: var(--yohu-border-strong);
 }
 
-.yovo-device-rail__item--active {
-  border-left-color: var(--yovo-accent);
+.yohu-device-rail__item--active {
+  border-left-color: var(--yohu-accent);
 }
 
-.yovo-device-rail__dot {
-  width: var(--yovo-space-sm);
-  height: var(--yovo-space-sm);
-  border-radius: var(--yovo-radius-full);
+.yohu-device-rail__dot {
+  width: var(--yohu-space-sm);
+  height: var(--yohu-space-sm);
+  border-radius: var(--yohu-radius-full);
   flex-shrink: 0;
 }
 
-.yovo-device-rail__dot--online {
-  background: var(--yovo-success);
+.yohu-device-rail__dot--online {
+  background: var(--yohu-success);
 }
 
-.yovo-device-rail__dot--off {
-  background: var(--yovo-offline);
+.yohu-device-rail__dot--off {
+  background: var(--yohu-offline);
 }
 
-.yovo-device-rail__info {
+.yohu-device-rail__info {
   display: flex;
   flex-direction: column;
   min-width: 0;
   flex: 1;
 }
 
-.yovo-device-rail__model {
-  font-weight: var(--yovo-font-weight-semibold);
-  font-size: var(--yovo-font-body);
-  color: var(--yovo-fg);
+.yohu-device-rail__model {
+  font-weight: var(--yohu-font-weight-semibold);
+  font-size: var(--yohu-font-body);
+  color: var(--yohu-fg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.yovo-device-rail__serial {
-  font-family: var(--yovo-font-mono);
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-3);
+.yohu-device-rail__serial {
+  font-family: var(--yohu-font-mono);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* 空态引导卡片 */
-.yovo-device-rail__empty {
+.yohu-device-rail__empty {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--yovo-space-xs);
-  padding: var(--yovo-space-sm) var(--yovo-space-md);
-  border: var(--yovo-stroke-hairline) dashed var(--yovo-border);
-  border-radius: var(--yovo-radius-sm);
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-3);
+  gap: var(--yohu-space-xs);
+  padding: var(--yohu-space-sm) var(--yohu-space-md);
+  border: var(--yohu-stroke-hairline) dashed var(--yohu-border);
+  border-radius: var(--yohu-radius-sm);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
 }
 
-.yovo-device-rail__empty-title {
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
+.yohu-device-rail__empty-title {
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
 }
 
-.yovo-device-rail__empty-error {
-  color: var(--yovo-error);
+.yohu-device-rail__empty-error {
+  color: var(--yohu-error);
   word-break: break-all;
 }
 
 /* ===== 模块导航（§3） ===== */
 
-.yovo-nav {
+.yohu-nav {
   flex: 1;
   overflow: auto;
-  padding: var(--yovo-space-sm) var(--yovo-space-md);
+  padding: var(--yohu-space-sm) var(--yohu-space-md);
 }
 
-.yovo-nav__caption {
-  font-weight: var(--yovo-font-weight-semibold);
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-3);
-  margin: var(--yovo-space-sm) 0 var(--yovo-space-xs);
+.yohu-nav__caption {
+  font-weight: var(--yohu-font-weight-semibold);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
+  margin: var(--yohu-space-sm) 0 var(--yohu-space-xs);
 }
 
-.yovo-nav__list {
+.yohu-nav__list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--yovo-space-2xs);
+  gap: var(--yohu-space-2xs);
 }
 
-.yovo-nav__item {
+.yohu-nav__item {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
-  min-height: var(--yovo-row-height-nav);
+  gap: var(--yohu-space-sm);
+  min-height: var(--yohu-row-height-nav);
   width: 100%;
-  padding: 0 var(--yovo-space-sm);
+  padding: 0 var(--yohu-space-sm);
   border: none;
   background: transparent;
-  border-radius: var(--yovo-radius-sm);
+  border-radius: var(--yohu-radius-sm);
   cursor: pointer;
-  color: var(--yovo-fg);
+  color: var(--yohu-fg);
   font: inherit;
-  font-size: var(--yovo-font-body);
+  font-size: var(--yohu-font-body);
   text-align: left;
 }
 
-.yovo-nav__item--active {
-  color: var(--yovo-accent);
-  font-weight: var(--yovo-font-weight-semibold);
+.yohu-nav__item--active {
+  color: var(--yohu-accent);
+  font-weight: var(--yohu-font-weight-semibold);
 }
 
-.yovo-nav__icon {
+.yohu-nav__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--yovo-space-lg);
-  height: var(--yovo-space-lg);
+  width: var(--yohu-space-lg);
+  height: var(--yohu-space-lg);
   flex-shrink: 0;
   color: inherit;
 }
 
 
-.yovo-nav__title {
+.yohu-nav__title {
   flex: 1;
 }
 
-.yovo-nav__planned {
+.yohu-nav__planned {
   margin-left: auto;
-  font-size: var(--yovo-font-caption);
-  background: var(--yovo-offline);
-  color: var(--yovo-surface);
-  padding: var(--yovo-stroke-hairline) var(--yovo-space-xs);
-  border-radius: var(--yovo-radius-sm);
+  font-size: var(--yohu-font-caption);
+  background: var(--yohu-offline);
+  color: var(--yohu-surface);
+  padding: var(--yohu-stroke-hairline) var(--yohu-space-xs);
+  border-radius: var(--yohu-radius-sm);
 }
 
 /* ===== 状态栏（§3：左版本 · 中留白 · 右设备/任务） ===== */
 
-.yovo-status__version {
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-3);
+.yohu-status__version {
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
 }
 
-.yovo-status__right {
+.yohu-status__right {
   display: inline-flex;
   align-items: center;
-  gap: var(--yovo-space-md);
+  gap: var(--yohu-space-md);
 }
 
-.yovo-status__device {
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-fg-2);
+.yohu-status__device {
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-2);
 }
 
-.yovo-status__tasks {
+.yohu-status__tasks {
   display: inline-flex;
   align-items: center;
-  gap: var(--yovo-space-xs);
-  font-size: var(--yovo-font-caption);
-  color: var(--yovo-warn);
+  gap: var(--yohu-space-xs);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-warn);
 }
 
-.yovo-status__task {
-  max-width: calc(var(--yovo-space-xl) * 10);
+.yohu-status__task {
+  max-width: calc(var(--yohu-space-xl) * 10);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

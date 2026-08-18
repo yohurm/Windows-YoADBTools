@@ -1,6 +1,6 @@
 /**
  * 动效 token —— JS 消费侧单一事实源（UI设计系统-v6.md §2.4，HarmonyOS 时长分级）。
- * CSS 组件层通过 var(--yovo-dur-*) / var(--yovo-ease-*) 消费；
+ * CSS 组件层通过 var(--yohu-dur-*) / var(--yohu-ease-*) 消费；
  * JS 驱动的过渡/滚动/入场动画通过本模块常量消费。
  * 契约测试（motion.test.ts）强制本模块与 theme.css 完全一致。
  */

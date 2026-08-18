@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * @yovo/ui 组件库纪律检查（ADR-v6-011）：
+ * @yohu/ui 组件库纪律检查（ADR-v6-011）：
  * 组件目录（tokens/ 之外）禁止硬编码色值（#hex / rgb( / hsl(）与硬编码字号（font-size: Npx）。
  * 设计 token 单源：所有色值/字号必须来自 tokens（theme.css 或 colors/typography.ts）。
  * 结构值（边框 1px、z-index 等）不受限。
- * 动效纪律（UI设计系统-v6.md §2.4）：transition/animation 时长必须走 var(--yovo-dur-*)。
+ * 动效纪律（UI设计系统-v6.md §2.4）：transition/animation 时长必须走 var(--yohu-dur-*)。
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -16,11 +16,13 @@ const TOKEN_DIR = "packages/ui/src/tokens/"; // token 定义处是唯一允许�
 const COLOR_RE = /#[0-9a-fA-F]{3,8}\b|\b(rgb|hsl)a?\(/;
 const FONT_SIZE_RE = /font-size\s*:\s*\d/;
 const MOTION_RE = /(?:transition|animation)\s*:[^;]*\b\d+(?:\.\d+)?(?:ms|s)\b/;
-/** 圆角声明必须是 var(--yovo-radius-*)。 */
+/** 圆角声明必须是 var(--yohu-radius-*)。 */
 const RADIUS_DECL_RE = /border-radius\s*:\s*([^;]+)/;
-/** 已废弃的兼容别名与旧选中底（改走 --yovo-state-*）。 */
+/** 已废弃的兼容别名与旧选中底（改走 --yohu-state-*）。 */
 const DEPRECATED_ALIAS_RE =
-  /--yovo-(nav-bg|content-bg|panel-bg|panel-border|list-bg|list-border|text-primary|text-secondary|text-tertiary|accent-bg|nav-hover)\b/;
+  /--yohu-(nav-bg|content-bg|panel-bg|panel-border|list-bg|list-border|text-primary|text-secondary|text-tertiary|accent-bg|nav-hover)\b/;
+/** 旧品牌命名空间不得残留。 */
+const LEGACY_BRAND_RE = /--yovo-|\.yovo-|@yovo\//;
 
 /** 递归收集文件。 */
 function walk(dir, out) {
@@ -37,11 +39,15 @@ const violations = [];
 
 for (const file of files) {
   const rel = relative(UI_SRC, file).replaceAll("\\", "/");
-  if (rel.startsWith(TOKEN_DIR)) continue;
   if (!/\.(ts|tsx|css)$/.test(rel)) continue;
   if (rel.includes("node_modules") || rel.includes("/dist/")) continue;
   const lines = readFileSync(file, "utf8").split(/\r?\n/);
+  const inTokens = rel.startsWith(TOKEN_DIR);
   lines.forEach((line, i) => {
+    if (LEGACY_BRAND_RE.test(line)) {
+      violations.push(`${rel}:${i + 1}: 残留 Yovo 命名空间 → ${line.trim()}（须为 yohu-* / @yohu/*）`);
+    }
+    if (inTokens) return;
     const isCss = rel.endsWith(".css");
     if (COLOR_RE.test(line)) {
       if (!rel.endsWith("file-icons.tsx")) {
@@ -52,15 +58,15 @@ for (const file of files) {
       violations.push(`${rel}:${i + 1}: 硬编码字号 → ${line.trim()}`);
     }
     if (isCss && MOTION_RE.test(line)) {
-      violations.push(`${rel}:${i + 1}: 硬编码动效时长 → ${line.trim()}（须用 var(--yovo-dur-*)）`);
+      violations.push(`${rel}:${i + 1}: 硬编码动效时长 → ${line.trim()}（须用 var(--yohu-dur-*)）`);
     }
     if (isCss && DEPRECATED_ALIAS_RE.test(line)) {
-      violations.push(`${rel}:${i + 1}: 引用废弃兼容别名 → ${line.trim()}（迁移到 Semantic / --yovo-state-*）`);
+      violations.push(`${rel}:${i + 1}: 引用废弃兼容别名 → ${line.trim()}（迁移到 Semantic / --yohu-state-*）`);
     }
     if (isCss && !/^\s*\/\*/.test(line)) {
       const radius = RADIUS_DECL_RE.exec(line);
-      if (radius && !/^var\(--yovo-radius-/.test(radius[1].trim())) {
-        violations.push(`${rel}:${i + 1}: 硬编码圆角 → ${line.trim()}（须用 var(--yovo-radius-*)）`);
+      if (radius && !/^var\(--yohu-radius-/.test(radius[1].trim())) {
+        violations.push(`${rel}:${i + 1}: 硬编码圆角 → ${line.trim()}（须用 var(--yohu-radius-*)）`);
       }
     }
   });

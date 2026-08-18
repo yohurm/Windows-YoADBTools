@@ -1,20 +1,20 @@
 {
   "devices": [
-    "R58M1234A device product:yovo model:Yovo_Phone device:yovo transport_id:1"
+    "R58M1234A device product:yohu model:Yohu_Phone device:yohu transport_id:1"
   ],
   "logcat_lines": [
-    "01-02 03:04:05.001  1234  1234 I ActivityManager: Start proc 1234:com.yovo.app/u0a100",
-    "01-02 03:04:05.002  1234  1234 V ActivityManager: app com.yovo.app starting",
-    "01-02 03:04:05.003  5678  5678 D YovoCore: sensor init ok",
-    "01-02 03:04:05.004  5678  5678 I YovoCore: main loop started",
-    "01-02 03:04:05.005  5678  5678 W YovoCore: slow frame 32ms",
-    "01-02 03:04:05.006  5678  5678 E YovoCore: FATAL EXCEPTION: mock crash",
+    "01-02 03:04:05.001  1234  1234 I ActivityManager: Start proc 1234:com.yohu.app/u0a100",
+    "01-02 03:04:05.002  1234  1234 V ActivityManager: app com.yohu.app starting",
+    "01-02 03:04:05.003  5678  5678 D YohuCore: sensor init ok",
+    "01-02 03:04:05.004  5678  5678 I YohuCore: main loop started",
+    "01-02 03:04:05.005  5678  5678 W YohuCore: slow frame 32ms",
+    "01-02 03:04:05.006  5678  5678 E YohuCore: FATAL EXCEPTION: mock crash",
     "01-02 03:04:05.007  1234  1234 I TestTag: keyword-match-here alpha",
     "01-02 03:04:05.008  1234  1234 I TestTag: beta keyword-match-here",
     "01-02 03:04:05.009  1234  1234 I TestTag: gamma no-match",
-    "01-02 03:04:05.010  9999  9999 W Other: ANR in com.yovo.app"
+    "01-02 03:04:05.010  9999  9999 W Other: ANR in com.yohu.app"
   ],
   "logcat_delay_ms": 30,
-  "ps": "PID NAME\n1234 com.yovo.app\n5678 com.yovo.app:core\n9999 com.other.app\n",
+  "ps": "PID NAME\n1234 com.yohu.app\n5678 com.yohu.app:core\n9999 com.other.app\n",
   "ls": "drwxr-xr-x 2 root root 4096 2026-01-01 12:00 DCIM\n-rw-rw---- 1 root root 12345 2026-01-02 08:30 report.txt\n"
 }

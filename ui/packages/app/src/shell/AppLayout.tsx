@@ -4,7 +4,7 @@
 
 import { type Component, type JSX, Show } from "solid-js";
 
-import { YoBadge, YoToolbar } from "@yovo/ui";
+import { YoBadge, YoToolbar } from "@yohu/ui";
 
 import { modules } from "../registry";
 import { deviceStore } from "../stores";
@@ -20,12 +20,12 @@ export const AppLayout: Component<{
   const current = () => modules().find((m) => m.id === props.activeModuleId());
 
   return (
-    <div class="yovo-layout">
-      <aside class="yovo-layout__rail">
+    <div class="yohu-layout">
+      <aside class="yohu-layout__rail">
         <DeviceRail />
         <NavList activeId={props.activeModuleId()} onNavigate={props.onNavigate} />
       </aside>
-      <main class="yovo-layout__content">
+      <main class="yohu-layout__content">
         <Show when={current()} keyed>
           {(mod) => {
             const C = mod.Component;
@@ -45,7 +45,7 @@ export const ModuleToolbar: Component<{
   children?: JSX.Element;
 }> = (props) => (
   <YoToolbar>
-    <span class="yovo-module-title">{props.title}</span>
+    <span class="yohu-module-title">{props.title}</span>
     <Show when={props.badge}>
       <YoBadge text={props.badge!} tone="neutral" />
     </Show>
@@ -53,5 +53,5 @@ export const ModuleToolbar: Component<{
   </YoToolbar>
 );
 
-// 布局样式（token 引用见 @yovo/ui theme.css；此处仅结构性布局）
+// 布局样式（token 引用见 @yohu/ui theme.css；此处仅结构性布局）
 import "./shell.css";

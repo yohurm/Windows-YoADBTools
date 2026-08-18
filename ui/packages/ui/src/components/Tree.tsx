@@ -157,7 +157,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
   };
 
   return (
-    <div class="yovo-tree" role="tree" aria-label="树" tabindex={0} onKeyDown={onTreeKeyDown}>
+    <div class="yohu-tree" role="tree" aria-label="树" tabindex={0} onKeyDown={onTreeKeyDown}>
       <For each={rows()}>
         {({ node, depth }) => {
           const hasChildren = !!node.children && node.children.length > 0;
@@ -165,10 +165,10 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
           return (
             <div
               data-tree-key={node.key}
-              class="yovo-tree__row yovo-interactive yovo-focus-ring--inset"
+              class="yohu-tree__row yohu-interactive yohu-focus-ring--inset"
               classList={{
-                "yovo-tree__row--selected": selected() === node.key,
-                "yovo-interactive--selected": selected() === node.key,
+                "yohu-tree__row--selected": selected() === node.key,
+                "yohu-interactive--selected": selected() === node.key,
               }}
               role="treeitem"
               aria-expanded={hasChildren ? expandedNow : undefined}
@@ -176,7 +176,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
               tabindex={focusedKey() === node.key ? 0 : -1}
               style={{
                 height: `${rowHeight()}px`,
-                "padding-left": `calc(${depth} * var(--yovo-space-lg))`,
+                "padding-left": `calc(${depth} * var(--yohu-space-lg))`,
               }}
               onClick={() => {
                 select(node);
@@ -186,7 +186,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
               {hasChildren ? (
                 <button
                   type="button"
-                  class="yovo-tree__chevron"
+                  class="yohu-tree__chevron"
                   aria-label={expandedNow ? "collapse" : "expand"}
                   tabindex={-1}
                   onClick={(event) => {
@@ -199,13 +199,13 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
                   <Icon name={expandedNow ? "chevron-down" : "chevron-right"} size={14} />
                 </button>
               ) : (
-                <span class="yovo-tree__chevron yovo-tree__chevron--leaf" />
+                <span class="yohu-tree__chevron yohu-tree__chevron--leaf" />
               )}
               {node.icon ? <Icon name={node.icon} size={16} /> : null}
-              <span class="yovo-tree__label" title={node.title}>
+              <span class="yohu-tree__label" title={node.title}>
                 {node.label}
               </span>
-              {node.badge ? <span class="yovo-tree__badge">{node.badge}</span> : null}
+              {node.badge ? <span class="yohu-tree__badge">{node.badge}</span> : null}
             </div>
           );
         }}

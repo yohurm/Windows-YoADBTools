@@ -5,9 +5,9 @@
 
 import { createStore } from "solid-js/store";
 
-import { settingsSet, systemInfo } from "@yovo/api";
-import type { AppSettings, SettingKey } from "@yovo/api";
-import { setDensity, setTheme } from "@yovo/ui";
+import { settingsSet, systemInfo } from "@yohu/api";
+import type { AppSettings, SettingKey } from "@yohu/api";
+import { setDensity, setTheme } from "@yohu/ui";
 
 const DEFAULT_SETTINGS: AppSettings = {
   adb_path: "",

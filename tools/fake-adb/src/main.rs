@@ -6,7 +6,7 @@
 //! 脚本 JSON：
 //! ```json
 //! {
-//!   "devices": ["R58M1234A device product:x model:Yovo_Phone transport_id:1"],
+//!   "devices": ["R58M1234A device product:x model:Yohu_Phone transport_id:1"],
 //!   "logcat_lines": ["01-02 03:04:05.678  1234  5678 I TestTag: hello"],
 //!   "logcat_delay_ms": 10,
 //!   "logcat_forever": false,

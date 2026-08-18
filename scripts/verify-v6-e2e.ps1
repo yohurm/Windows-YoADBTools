@@ -1,4 +1,4 @@
-﻿# Yovo ADB Tools v6 — 无真机端到端联调（Windows UIA 驱动 WebView2 无障碍树 + fake-adb 模拟设备）
+﻿# Yohu ADB Tools v6 — 无真机端到端联调（Windows UIA 驱动 WebView2 无障碍树 + fake-adb 模拟设备）
 # 用法（应用需关闭；需先 cargo build --workspace 与 cargo tauri build --no-bundle）：
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-e2e.ps1
 # 覆盖：设备扫描（假设备在线）/ 终端（库加载/执行判定）/ 文件（浏览列表）/
@@ -6,12 +6,12 @@
 # 原理：SPI_SETSCREENREADER 强制激活 WebView2 无障碍树 → UIA 枚举 DOM 元素并按名交互。
 
 param(
-    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YovoAdbTools.exe")
+    [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YohuAdbTools.exe")
 )
 
 $ErrorActionPreference = "Stop"
 $Exe = [System.IO.Path]::GetFullPath($Exe)
-if (-not (Test-Path $Exe)) { throw "未找到 $Exe（先 cargo build --release -p yovo-app）" }
+if (-not (Test-Path $Exe)) { throw "未找到 $Exe（先 cargo build --release -p yohu-app）" }
 
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
@@ -35,7 +35,7 @@ function Wait-AppRoot([int]$procId, [int]$timeoutSec = 30) {
         $root = [System.Windows.Automation.AutomationElement]::RootElement
         $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
         foreach ($e in $all) {
-            if ($e.Current.ControlType.ProgrammaticName -eq "ControlType.Document" -and $e.Current.Name -eq "Yovo ADB Tools") {
+            if ($e.Current.ControlType.ProgrammaticName -eq "ControlType.Document" -and $e.Current.Name -eq "Yohu ADB Tools") {
                 return $e
             }
         }
@@ -128,14 +128,14 @@ function Assert($name, [bool]$ok) {
 }
 
 function Restore-Settings {
-    $settingsDir = Join-Path $env:LOCALAPPDATA "YovoAdbTools\settings"
+    $settingsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\settings"
     New-Item -ItemType Directory -Force $settingsDir | Out-Null
     @{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
         ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
 }
 
 # ===== 1. 准备 fake 设备（独立目录 + 设置 adb.path） =====
-$fakeDir = Join-Path $env:LOCALAPPDATA "YovoFakeDevice"
+$fakeDir = Join-Path $env:LOCALAPPDATA "YohuFakeDevice"
 New-Item -ItemType Directory -Force $fakeDir | Out-Null
 $fakeExe = Join-Path $fakeDir "fake-adb.exe"
 $fakeBin = Join-Path $PSScriptRoot "..\target\debug\fake-adb.exe"
@@ -143,7 +143,7 @@ if (-not (Test-Path $fakeBin)) { throw "先执行 cargo build --workspace（fake
 Copy-Item $fakeBin $fakeExe -Force
 Copy-Item (Join-Path $PSScriptRoot "..\tools\fake-adb\device-profile.json") (Join-Path $fakeDir "fake-adb.json") -Force
 
-$settingsDir = Join-Path $env:LOCALAPPDATA "YovoAdbTools\settings"
+$settingsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\settings"
 New-Item -ItemType Directory -Force $settingsDir | Out-Null
 @{ adb_path = $fakeExe; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
     ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
@@ -156,8 +156,8 @@ Start-Sleep -Seconds 12
 
 try {
     # ===== 3. 设备栏：假设备在线 =====
-    $model = Find-ByName $appRoot "Yovo Phone" $true 10
-    Assert "设备栏出现假设备（Yovo Phone）" ($null -ne $model)
+    $model = Find-ByName $appRoot "Yohu Phone" $true 10
+    Assert "设备栏出现假设备（Yohu Phone）" ($null -ne $model)
 
     # ===== 4. 终端：导航 → 树 → 执行「型号」→ 通过判定 =====
     $navTerminal = Find-Button $appRoot "ADB 命令终端" 10

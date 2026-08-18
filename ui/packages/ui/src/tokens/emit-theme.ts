@@ -30,75 +30,75 @@ const SEMANTIC_SKIP = new Set(["Splitter"]);
 function semanticVars(palette: Record<string, string>): Array<[string, string]> {
   return Object.entries(palette)
     .filter(([name]) => !SEMANTIC_SKIP.has(name))
-    .map(([name, value]) => [`--yovo-${kebab(name)}`, value]);
+    .map(([name, value]) => [`--yohu-${kebab(name)}`, value]);
 }
 
 function levelVars(board: { v: string; d: string; i: string; w: string; e: string; f: string; fBg: string }): Array<[string, string]> {
   return [
-    ["--yovo-level-v", board.v],
-    ["--yovo-level-d", board.d],
-    ["--yovo-level-i", board.i],
-    ["--yovo-level-w", board.w],
-    ["--yovo-level-e", board.e],
-    ["--yovo-level-f", board.f],
-    ["--yovo-level-f-bg", board.fBg],
+    ["--yohu-level-v", board.v],
+    ["--yohu-level-d", board.d],
+    ["--yohu-level-i", board.i],
+    ["--yohu-level-w", board.w],
+    ["--yohu-level-e", board.e],
+    ["--yohu-level-f", board.f],
+    ["--yohu-level-f-bg", board.fBg],
   ];
 }
 
 function densityVars(pack: Record<string, number>): Array<[string, string]> {
-  return Object.entries(pack).map(([name, value]) => [`--yovo-${kebab(name)}`, `${value}px`]);
+  return Object.entries(pack).map(([name, value]) => [`--yohu-${kebab(name)}`, `${value}px`]);
 }
 
 function fontSizeVars(sizes: Record<string, number>): Array<[string, string]> {
-  return Object.entries(sizes).map(([name, value]) => [`--yovo-font-${kebab(name)}`, `${value}px`]);
+  return Object.entries(sizes).map(([name, value]) => [`--yohu-font-${kebab(name)}`, `${value}px`]);
 }
 
 /** 排出完整 theme.css 文本（含页脚结构规则）。 */
 export function emitThemeCss(): string {
   const space: Array<[string, string]> = (Object.entries(Spacing) as Array<[string, number]>).map(
-    ([name, value]) => [`--yovo-space-${kebab(name)}`, `${value}px`],
+    ([name, value]) => [`--yohu-space-${kebab(name)}`, `${value}px`],
   );
   const radiusPx: Array<[string, string]> = (Object.entries(Radius) as Array<[string, number]>).map(
-    ([name, value]) => [`--yovo-radius-${kebab(name)}`, `${value}px`],
+    ([name, value]) => [`--yohu-radius-${kebab(name)}`, `${value}px`],
   );
   const layout: Array<[string, string]> = (Object.entries(Layout) as Array<[string, number]>).map(
-    ([name, value]) => [`--yovo-layout-${kebab(name)}`, `${value}px`],
+    ([name, value]) => [`--yohu-layout-${kebab(name)}`, `${value}px`],
   );
   const durs: Array<[string, string]> = Object.entries(MotionDuration).map(([name, value]) => [
-    `--yovo-dur-${kebab(name)}`,
+    `--yohu-dur-${kebab(name)}`,
     value,
   ]);
   const eases: Array<[string, string]> = Object.entries(MotionEasing).map(([name, value]) => [
-    `--yovo-ease-${kebab(name)}`,
+    `--yohu-ease-${kebab(name)}`,
     value,
   ]);
 
   const root: Array<[string, string]> = [
     ...semanticVars(Colors),
-    ["--yovo-shadow-overlay", Elevation.Overlay],
+    ["--yohu-shadow-overlay", Elevation.Overlay],
     ...levelVars(LogLevelLight),
-    ["--yovo-splitter", "var(--yovo-border-strong)"],
-    ["--yovo-state-hover", StateFill.Hover],
-    ["--yovo-state-pressed", StateFill.Pressed],
-    ["--yovo-state-selected", StateFill.Selected],
+    ["--yohu-splitter", "var(--yohu-border-strong)"],
+    ["--yohu-state-hover", StateFill.Hover],
+    ["--yohu-state-pressed", StateFill.Pressed],
+    ["--yohu-state-selected", StateFill.Selected],
     ...fontSizeVars(FontSizes),
-    ["--yovo-font-sans", FontFamilies.Sans],
-    ["--yovo-font-mono", FontFamilies.Mono],
-    ["--yovo-font-weight-regular", String(FontWeights.Regular)],
-    ["--yovo-font-weight-semibold", String(FontWeights.Semibold)],
+    ["--yohu-font-sans", FontFamilies.Sans],
+    ["--yohu-font-mono", FontFamilies.Mono],
+    ["--yohu-font-weight-regular", String(FontWeights.Regular)],
+    ["--yohu-font-weight-semibold", String(FontWeights.Semibold)],
     ...space,
     ...radiusPx,
-    ["--yovo-radius-full", RadiusShape.Full],
-    ["--yovo-radius-pill", RadiusShape.Pill],
-    ["--yovo-ripple-radius", "var(--yovo-radius-sm)"],
-    ["--yovo-ripple-inset", "var(--yovo-space-xs)"],
-    ["--yovo-focus-width", `${FocusRing.Width}px`],
-    ["--yovo-focus-offset", `${FocusRing.Offset}px`],
-    ["--yovo-focus-offset-inset", `${FocusRing.OffsetInset}px`],
-    ["--yovo-stroke-hairline", `${Stroke.Hairline}px`],
-    ["--yovo-stroke-accent", `${Stroke.Accent}px`],
-    ["--yovo-stroke-emphasis", `${Stroke.Emphasis}px`],
-    ["--yovo-density", "compact"],
+    ["--yohu-radius-full", RadiusShape.Full],
+    ["--yohu-radius-pill", RadiusShape.Pill],
+    ["--yohu-ripple-radius", "var(--yohu-radius-sm)"],
+    ["--yohu-ripple-inset", "var(--yohu-space-xs)"],
+    ["--yohu-focus-width", `${FocusRing.Width}px`],
+    ["--yohu-focus-offset", `${FocusRing.Offset}px`],
+    ["--yohu-focus-offset-inset", `${FocusRing.OffsetInset}px`],
+    ["--yohu-stroke-hairline", `${Stroke.Hairline}px`],
+    ["--yohu-stroke-accent", `${Stroke.Accent}px`],
+    ["--yohu-stroke-emphasis", `${Stroke.Emphasis}px`],
+    ["--yohu-density", "compact"],
     ...densityVars(Density.Compact),
     ...layout,
     ...durs,
@@ -107,7 +107,7 @@ export function emitThemeCss(): string {
 
   const dark: Array<[string, string]> = [
     ...semanticVars(DarkColors),
-    ["--yovo-shadow-overlay", DarkElevation.Overlay],
+    ["--yohu-shadow-overlay", DarkElevation.Overlay],
     ...levelVars(LogLevelDark),
   ];
 
@@ -130,9 +130,9 @@ ${lines(comfortable)}
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .yovo-dialog__backdrop,
-  .yovo-dialog__panel,
-  .yovo-toast {
+  .yohu-dialog__backdrop,
+  .yohu-dialog__panel,
+  .yohu-toast {
     animation: none;
   }
 }
@@ -143,9 +143,9 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background-color: var(--yovo-bg-base);
-  font-family: var(--yovo-font-sans);
-  color: var(--yovo-fg);
+  background-color: var(--yohu-bg-base);
+  font-family: var(--yohu-font-sans);
+  color: var(--yohu-fg);
 }
 `;
 }

@@ -164,14 +164,14 @@ describe("theme.css 变量", () => {
 
   it("浅色语义变量与 Colors 常量一致（token 单源校验）", () => {
     for (const [name, value] of Object.entries(EXPECTED_LIGHT)) {
-      const varName = `--yovo-${kebab(name)}`;
+      const varName = `--yohu-${kebab(name)}`;
       expect(themeCss, varName).toContain(`${varName}: ${value}`);
     }
   });
 
   it("深色语义变量已全部覆盖", () => {
     for (const name of Object.keys(EXPECTED_LIGHT)) {
-      const varName = `--yovo-${kebab(name)}`;
+      const varName = `--yohu-${kebab(name)}`;
       const darkBlock = themeCss.slice(themeCss.indexOf('[data-theme="dark"]'));
       expect(darkBlock, varName).toContain(`${varName}:`);
     }
@@ -179,15 +179,15 @@ describe("theme.css 变量", () => {
 
   it("级别板变量齐备（浅色+深色+反色块）", () => {
     for (const name of ["v", "d", "i", "w", "e", "f", "f-bg"]) {
-      expect(themeCss).toContain(`--yovo-level-${name}:`);
+      expect(themeCss).toContain(`--yohu-level-${name}:`);
     }
   });
 
   it("密度与动效 token 已定义", () => {
-    expect(themeCss).toContain("--yovo-density:");
-    expect(themeCss).toContain("--yovo-control-height:");
-    expect(themeCss).toContain("--yovo-row-height:");
-    expect(themeCss).toContain("--yovo-dur-fast:");
-    expect(themeCss).toContain("--yovo-ease-standard:");
+    expect(themeCss).toContain("--yohu-density:");
+    expect(themeCss).toContain("--yohu-control-height:");
+    expect(themeCss).toContain("--yohu-row-height:");
+    expect(themeCss).toContain("--yohu-dur-fast:");
+    expect(themeCss).toContain("--yohu-ease-standard:");
   });
 });

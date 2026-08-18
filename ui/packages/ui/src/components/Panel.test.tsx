@@ -7,11 +7,11 @@ describe("YoPanel", () => {
     const { container } = render(() => <YoPanel title="面板标题">内容</YoPanel>);
     expect(screen.getByText("面板标题")).toBeTruthy();
     expect(screen.getByText("内容")).toBeTruthy();
-    expect(container.querySelector(".yovo-panel--padding-md")).toBeTruthy();
+    expect(container.querySelector(".yohu-panel--padding-md")).toBeTruthy();
   });
 
   it("支持自定义 padding", () => {
     const { container } = render(() => <YoPanel padding="lg">内容</YoPanel>);
-    expect(container.querySelector(".yovo-panel--padding-lg")).toBeTruthy();
+    expect(container.querySelector(".yohu-panel--padding-lg")).toBeTruthy();
   });
 });

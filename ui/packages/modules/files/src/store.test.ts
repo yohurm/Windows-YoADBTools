@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { RemoteEntry } from "@yovo/api";
+import type { RemoteEntry } from "@yohu/api";
 
 import {
   childPath,

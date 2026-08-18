@@ -39,7 +39,7 @@ export function YoColResizer(props: YoColResizerProps): JSX.Element {
   return (
     <button
       type="button"
-      class="yovo-col-resizer"
+      class="yohu-col-resizer"
       aria-label={props.label ?? "调节列宽"}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

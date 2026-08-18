@@ -1,6 +1,6 @@
 /**
  * 间距 token：以 4px 网格为主，补 HarmonyOS 2vp 微档。
- * 组件内禁止硬编码间距，一律引用这里的常量或对应 CSS 变量 `--yovo-space-*`。
+ * 组件内禁止硬编码间距，一律引用这里的常量或对应 CSS 变量 `--yohu-space-*`。
  */
 export const Spacing = {
   /** 2px（微间隙 / 描边旁白） */

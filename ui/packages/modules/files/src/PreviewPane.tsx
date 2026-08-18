@@ -1,6 +1,6 @@
 import { Show } from "solid-js";
 
-import { YoFileIcon } from "@yovo/ui";
+import { YoFileIcon } from "@yohu/ui";
 
 import { fileTypeLabel, formatSize } from "./model";
 import { fileStore } from "./store";
@@ -12,16 +12,16 @@ export function PreviewPane() {
   };
 
   return (
-    <aside class="yovo-files__preview" classList={{ "yovo-files__preview--open": fileStore.ui.previewOpen }}>
-      <div class="yovo-files__preview-head">预览</div>
-      <Show when={preview()} fallback={<div class="yovo-files__preview-empty">选择一个项目以预览</div>}>
+    <aside class="yohu-files__preview" classList={{ "yohu-files__preview--open": fileStore.ui.previewOpen }}>
+      <div class="yohu-files__preview-head">预览</div>
+      <Show when={preview()} fallback={<div class="yohu-files__preview-empty">选择一个项目以预览</div>}>
         {(entry) => (
-          <div class="yovo-files__preview-body">
+          <div class="yohu-files__preview-body">
             <YoFileIcon name={entry().name} kind={entry().kind} size={48} />
-            <div class="yovo-files__preview-name" title={entry().name}>
+            <div class="yohu-files__preview-name" title={entry().name}>
               {entry().name}
             </div>
-            <dl class="yovo-files__preview-meta">
+            <dl class="yohu-files__preview-meta">
               <dt>类型</dt>
               <dd>{fileTypeLabel(entry())}</dd>
               <dt>大小</dt>

@@ -6,8 +6,8 @@ describe("YoButton", () => {
   it("渲染文本并应用默认 primary/md 类", () => {
     render(() => <YoButton>保存</YoButton>);
     const btn = screen.getByRole("button", { name: "保存" });
-    expect(btn.className).toContain("yovo-button--primary");
-    expect(btn.className).toContain("yovo-button--md");
+    expect(btn.className).toContain("yohu-button--primary");
+    expect(btn.className).toContain("yohu-button--md");
   });
 
   it("应用指定 variant 与 size", () => {
@@ -17,8 +17,8 @@ describe("YoButton", () => {
       </YoButton>
     ));
     const btn = screen.getByRole("button", { name: "删除" });
-    expect(btn.className).toContain("yovo-button--danger");
-    expect(btn.className).toContain("yovo-button--sm");
+    expect(btn.className).toContain("yohu-button--danger");
+    expect(btn.className).toContain("yohu-button--sm");
   });
 
   it("点击触发 onClick", () => {
@@ -42,6 +42,6 @@ describe("YoButton", () => {
     render(() => <YoButton loading>加载中</YoButton>);
     const btn = screen.getByRole("button") as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
-    expect(btn.querySelector(".yovo-button__spinner")).toBeTruthy();
+    expect(btn.querySelector(".yohu-button__spinner")).toBeTruthy();
   });
 });

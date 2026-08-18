@@ -13,5 +13,5 @@ export interface YoToolbarProps {
  * 渲染一个水平排列、间距 8、底部边距 12 的工具栏容器。
  */
 export function YoToolbar(props: YoToolbarProps): JSX.Element {
-  return <div class="yovo-toolbar">{props.children}</div>;
+  return <div class="yohu-toolbar">{props.children}</div>;
 }

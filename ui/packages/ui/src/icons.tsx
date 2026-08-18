@@ -158,7 +158,7 @@ export function Icon(props: IconProps): JSX.Element {
   const filled = () => FILLED.has(props.name);
   return (
     <svg
-      class="yovo-icon"
+      class="yohu-icon"
       width={size()}
       height={size()}
       viewBox="0 0 24 24"

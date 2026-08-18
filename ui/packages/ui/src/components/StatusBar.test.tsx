@@ -7,6 +7,6 @@ describe("YoStatusBar", () => {
     render(() => <YoStatusBar left={<span>左侧</span>} right={<span>右侧</span>} />);
     expect(screen.getByText("左侧")).toBeTruthy();
     expect(screen.getByText("右侧")).toBeTruthy();
-    expect(screen.getByText("左侧").closest("footer")?.className).toContain("yovo-status-bar");
+    expect(screen.getByText("左侧").closest("footer")?.className).toContain("yohu-status-bar");
   });
 });

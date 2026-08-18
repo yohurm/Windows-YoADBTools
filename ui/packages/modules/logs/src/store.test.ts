@@ -1,12 +1,12 @@
 /**
  * 日志 store 测试：会话生命周期（重命名/复制/关闭其他）+ 批量事件管线
  * （消费端过滤/信号计数/折叠/溢出回补/掉线清缓冲/焦点设备隔离）。
- * @yovo/api 全量 mock；事件订阅处理器以数组捕获，测试取最后一个（对应新建实例）。
+ * @yohu/api 全量 mock；事件订阅处理器以数组捕获，测试取最后一个（对应新建实例）。
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { LogBatch, LogLine } from "@yovo/api";
+import type { LogBatch, LogLine } from "@yohu/api";
 
 const mocks = vi.hoisted(() => ({
   logCaptureStart: vi.fn(),
@@ -24,7 +24,7 @@ const mocks = vi.hoisted(() => ({
   devicesChangedHandlers: [] as ((e: { devices: unknown[] }) => void)[],
 }));
 
-vi.mock("@yovo/api", () => {
+vi.mock("@yohu/api", () => {
   const noop = (): void => undefined;
   const notConfigured = vi.fn(async () => {
     throw new Error("测试未配置该命令 mock");

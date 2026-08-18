@@ -1,10 +1,10 @@
-.yovo-toolbar {
+.yohu-toolbar {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
   flex-shrink: 0;
-  gap: var(--yovo-space-sm);
-  min-height: var(--yovo-control-height);
-  margin-bottom: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
+  min-height: var(--yohu-control-height);
+  margin-bottom: var(--yohu-space-sm);
   overflow-x: auto;
 }

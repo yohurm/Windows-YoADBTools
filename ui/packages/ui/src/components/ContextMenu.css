@@ -1,35 +1,35 @@
-.yovo-context-menu {
+.yohu-context-menu {
   position: fixed;
   z-index: 40;
-  min-width: calc(var(--yovo-space-xl) * 7);
-  padding: var(--yovo-space-xs) 0;
-  background: var(--yovo-surface);
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-radius: var(--yovo-radius-sm);
-  box-shadow: var(--yovo-shadow-overlay);
+  min-width: calc(var(--yohu-space-xl) * 7);
+  padding: var(--yohu-space-xs) 0;
+  background: var(--yohu-surface);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-sm);
+  box-shadow: var(--yohu-shadow-overlay);
   box-sizing: border-box;
 }
 
-.yovo-context-menu__item {
+.yohu-context-menu__item {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: var(--yovo-control-height);
-  padding: 0 var(--yovo-space-md);
+  min-height: var(--yohu-control-height);
+  padding: 0 var(--yohu-space-md);
   border: none;
   background: transparent;
-  color: var(--yovo-fg);
+  color: var(--yohu-fg);
   font: inherit;
-  font-size: var(--yovo-font-body);
+  font-size: var(--yohu-font-body);
   text-align: left;
   cursor: pointer;
 }
 
-.yovo-context-menu__item--danger {
-  color: var(--yovo-error);
+.yohu-context-menu__item--danger {
+  color: var(--yohu-error);
 }
 
-.yovo-context-menu__item:disabled {
-  color: var(--yovo-disabled);
+.yohu-context-menu__item:disabled {
+  color: var(--yohu-disabled);
   cursor: not-allowed;
 }

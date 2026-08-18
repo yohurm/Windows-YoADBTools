@@ -1,49 +1,49 @@
-.yovo-panel {
+.yohu-panel {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-radius: var(--yovo-radius-md);
-  background-color: var(--yovo-surface);
-  color: var(--yovo-fg);
-  font-family: var(--yovo-font-sans);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-md);
+  background-color: var(--yohu-surface);
+  color: var(--yohu-fg);
+  font-family: var(--yohu-font-sans);
   box-sizing: border-box;
   overflow: visible;
 }
 
-.yovo-panel__title {
+.yohu-panel__title {
   margin: 0;
-  padding: var(--yovo-space-md) var(--yovo-space-md) 0;
-  font-size: var(--yovo-font-body-strong);
-  font-weight: var(--yovo-font-weight-semibold);
-  color: var(--yovo-fg);
+  padding: var(--yohu-space-md) var(--yohu-space-md) 0;
+  font-size: var(--yohu-font-body-strong);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
 }
 
-.yovo-panel__body {
+.yohu-panel__body {
   flex: 1 0 auto;
   min-width: 0;
 }
 
-.yovo-panel--padding-none .yovo-panel__body {
+.yohu-panel--padding-none .yohu-panel__body {
   padding: 0;
 }
 
-.yovo-panel--padding-xs .yovo-panel__body {
-  padding: var(--yovo-space-xs);
+.yohu-panel--padding-xs .yohu-panel__body {
+  padding: var(--yohu-space-xs);
 }
 
-.yovo-panel--padding-sm .yovo-panel__body {
-  padding: var(--yovo-space-sm);
+.yohu-panel--padding-sm .yohu-panel__body {
+  padding: var(--yohu-space-sm);
 }
 
-.yovo-panel--padding-md .yovo-panel__body {
-  padding: var(--yovo-space-md);
+.yohu-panel--padding-md .yohu-panel__body {
+  padding: var(--yohu-space-md);
 }
 
-.yovo-panel--padding-lg .yovo-panel__body {
-  padding: var(--yovo-space-lg);
+.yohu-panel--padding-lg .yohu-panel__body {
+  padding: var(--yohu-space-lg);
 }
 
-.yovo-panel--padding-xl .yovo-panel__body {
-  padding: var(--yovo-space-xl);
+.yohu-panel--padding-xl .yohu-panel__body {
+  padding: var(--yohu-space-xl);
 }

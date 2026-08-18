@@ -5,9 +5,9 @@
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { YoBadge, YoButton, YoCheckbox, YoDialog, YoIconButton, YoPanel, YoTextField, YoToolbar } from "@yovo/ui";
+import { YoBadge, YoButton, YoCheckbox, YoDialog, YoIconButton, YoPanel, YoTextField, YoToolbar } from "@yohu/ui";
 
-import type { CommandLibraryDto } from "@yovo/api";
+import type { CommandLibraryDto } from "@yohu/api";
 import { terminalStore } from "./store";
 import "./command-manager.css";
 
@@ -187,7 +187,7 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
       footer={
         <>
           <Show when={error()}>
-            <span class="yovo-cm__error">{error()}</span>
+            <span class="yohu-cm__error">{error()}</span>
           </Show>
           <YoButton variant="ghost" onClick={props.onClose} disabled={saving()}>
             取消
@@ -198,28 +198,28 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
         </>
       }
     >
-      <div class="yovo-cm">
-        <div class="yovo-cm__groups">
+      <div class="yohu-cm">
+        <div class="yohu-cm__groups">
           <YoToolbar>
-            <span class="yovo-cm__caption">命令组</span>
+            <span class="yohu-cm__caption">命令组</span>
             <YoIconButton icon="plus" title="新增组" onClick={addGroup} />
             <YoIconButton icon="trash" title="删除组" onClick={removeGroup} />
           </YoToolbar>
-          <ul class="yovo-cm__list">
+          <ul class="yohu-cm__list">
             <For each={draft.groups}>
               {(group) => (
                 <li
-                  class="yovo-cm__item yovo-interactive"
+                  class="yohu-cm__item yohu-interactive"
                   classList={{
-                    "yovo-cm__item--active": group.id === selectedGroupId(),
-                    "yovo-interactive--selected": group.id === selectedGroupId(),
+                    "yohu-cm__item--active": group.id === selectedGroupId(),
+                    "yohu-interactive--selected": group.id === selectedGroupId(),
                   }}
                   onClick={() => {
                     setSelectedGroupId(group.id);
                     setSelectedCommandId(null);
                   }}
                 >
-                  <span class="yovo-cm__item-name">{group.name || "（未命名）"}</span>
+                  <span class="yohu-cm__item-name">{group.name || "（未命名）"}</span>
                   <YoBadge text={String(group.commands.length)} tone="neutral" />
                 </li>
               )}
@@ -227,38 +227,38 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
           </ul>
         </div>
 
-        <div class="yovo-cm__commands">
+        <div class="yohu-cm__commands">
           <YoToolbar>
-            <span class="yovo-cm__caption">命令</span>
+            <span class="yohu-cm__caption">命令</span>
             <YoIconButton icon="plus" title="新增命令" onClick={addCommand} />
             <YoIconButton icon="trash" title="删除命令" onClick={removeCommand} />
           </YoToolbar>
-          <ul class="yovo-cm__list">
+          <ul class="yohu-cm__list">
             <For each={selectedGroup()?.commands ?? []}>
               {(command) => (
                 <li
-                  class="yovo-cm__item yovo-interactive"
+                  class="yohu-cm__item yohu-interactive"
                   classList={{
-                    "yovo-cm__item--active": command.id === selectedCommandId(),
-                    "yovo-interactive--selected": command.id === selectedCommandId(),
+                    "yohu-cm__item--active": command.id === selectedCommandId(),
+                    "yohu-interactive--selected": command.id === selectedCommandId(),
                   }}
                   onClick={() => setSelectedCommandId(command.id)}
                 >
-                  <span class="yovo-cm__item-name">{command.name || "（未命名）"}</span>
+                  <span class="yohu-cm__item-name">{command.name || "（未命名）"}</span>
                 </li>
               )}
             </For>
           </ul>
         </div>
 
-        <div class="yovo-cm__editor">
+        <div class="yohu-cm__editor">
           <Show
             when={selectedCommand()}
             keyed
             fallback={
               <Show
                 when={selectedGroup()}
-                fallback={<p class="yovo-cm__empty">选择左侧命令组，或新建一组</p>}
+                fallback={<p class="yohu-cm__empty">选择左侧命令组，或新建一组</p>}
               >
                 {(group) => (
                   <YoPanel title="组属性">

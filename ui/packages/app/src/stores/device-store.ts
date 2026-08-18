@@ -5,8 +5,8 @@
 
 import { createStore } from "solid-js/store";
 
-import { deviceList, deviceRefresh, onDeviceOffline, onDevicesChanged, systemInfo } from "@yovo/api";
-import type { DeviceInfo } from "@yovo/api";
+import { deviceList, deviceRefresh, onDeviceOffline, onDevicesChanged, systemInfo } from "@yohu/api";
+import type { DeviceInfo } from "@yohu/api";
 
 export interface DeviceStore {
   devices: DeviceInfo[];

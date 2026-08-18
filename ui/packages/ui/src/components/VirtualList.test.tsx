@@ -41,7 +41,7 @@ describe("YoVirtualList", () => {
     const { container } = render(() => (
       <YoVirtualList items={() => items} itemHeight={22} renderRow={(item) => <span>{item}</span>} />
     ));
-    const rows = container.querySelectorAll(".yovo-virtual-list__row");
+    const rows = container.querySelectorAll(".yohu-virtual-list__row");
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.length).toBeLessThan(100);
     expect(screen.getByText("row-0")).toBeTruthy();
@@ -58,7 +58,7 @@ describe("YoVirtualList", () => {
         renderRow={(item) => <span>{item}</span>}
       />
     ));
-    const first = container.querySelector(".yovo-virtual-list__row");
+    const first = container.querySelector(".yohu-virtual-list__row");
     expect(first?.getAttribute("data-key")).toBe("key-row-0");
   });
 
@@ -72,7 +72,7 @@ describe("YoVirtualList", () => {
         renderRow={(item) => <span>{item}</span>}
       />
     ));
-    const list = container.querySelector(".yovo-virtual-list") as HTMLElement;
+    const list = container.querySelector(".yohu-virtual-list") as HTMLElement;
     Object.defineProperty(list, "scrollHeight", { value: 22000, configurable: true, writable: true });
     setItems(["a", "b", "c"]);
     await Promise.resolve();
@@ -90,7 +90,7 @@ describe("YoVirtualList", () => {
         renderRow={(item) => <span>{item}</span>}
       />
     ));
-    const list = container.querySelector(".yovo-virtual-list") as HTMLElement;
+    const list = container.querySelector(".yohu-virtual-list") as HTMLElement;
     Object.defineProperty(list, "clientHeight", { value: 200, configurable: true });
     Object.defineProperty(list, "scrollHeight", { value: 2200, configurable: true });
     Object.defineProperty(list, "scrollTop", { value: 0, configurable: true, writable: true });
@@ -107,18 +107,18 @@ describe("YoVirtualList", () => {
     const { container } = render(() => (
       <YoVirtualList items={() => items} itemHeight={22} renderRow={(item) => <span>{item}</span>} />
     ));
-    expect(container.querySelector(".yovo-virtual-list")?.getAttribute("role")).toBeNull();
-    expect(container.querySelector(".yovo-virtual-list__row")?.hasAttribute("tabindex")).toBe(false);
+    expect(container.querySelector(".yohu-virtual-list")?.getAttribute("role")).toBeNull();
+    expect(container.querySelector(".yohu-virtual-list__row")?.hasAttribute("tabindex")).toBe(false);
   });
 
   it("选择模式：listbox/option 语义 + roving tabindex（未选中时首可视行可聚焦）", () => {
     const { container } = render(() => <SelectionHarness />);
-    expect(container.querySelector(".yovo-virtual-list")?.getAttribute("role")).toBe("listbox");
-    expect(container.querySelector(".yovo-virtual-list")?.getAttribute("aria-label")).toBe("测试列表");
+    expect(container.querySelector(".yohu-virtual-list")?.getAttribute("role")).toBe("listbox");
+    expect(container.querySelector(".yohu-virtual-list")?.getAttribute("aria-label")).toBe("测试列表");
     const rows = options(container);
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0]?.getAttribute("role")).toBe("option");
-    expect(rows[0]?.classList.contains("yovo-interactive")).toBe(true);
+    expect(rows[0]?.classList.contains("yohu-interactive")).toBe(true);
     expect(rows[0]?.getAttribute("aria-selected")).toBe("false");
     expect(rows[0]?.getAttribute("tabindex")).toBe("0");
     expect(rows[1]?.getAttribute("tabindex")).toBe("-1");
@@ -130,7 +130,7 @@ describe("YoVirtualList", () => {
     fireEvent.click(rows[2] as HTMLElement);
     await Promise.resolve();
     expect(rows[2]?.getAttribute("aria-selected")).toBe("true");
-    expect(rows[2]?.classList.contains("yovo-interactive--selected")).toBe(true);
+    expect(rows[2]?.classList.contains("yohu-interactive--selected")).toBe(true);
     expect(rows[2]?.getAttribute("tabindex")).toBe("0");
     expect(rows[0]?.getAttribute("tabindex")).toBe("-1");
     expect(rows[0]?.getAttribute("aria-selected")).toBe("false");

@@ -5,7 +5,7 @@
 
 import { Component, For, Show } from "solid-js";
 
-import { YoStatusBar } from "@yovo/ui";
+import { YoStatusBar } from "@yohu/ui";
 
 import { deviceStore, taskStore } from "../stores";
 
@@ -14,16 +14,16 @@ export const StatusBar: Component = () => {
 
   return (
     <YoStatusBar
-      left={<span class="yovo-status__version">Yovo ADB Tools v0.1.0</span>}
+      left={<span class="yohu-status__version">Yohu ADB Tools v0.1.0</span>}
       right={
-        <span class="yovo-status__right">
-          <span class="yovo-status__device">设备: {deviceStore.state.statusText}</span>
+        <span class="yohu-status__right">
+          <span class="yohu-status__device">设备: {deviceStore.state.statusText}</span>
           <Show when={activeTasks().length > 0}>
-            <span class="yovo-status__tasks">
+            <span class="yohu-status__tasks">
               任务:
               <For each={activeTasks()}>
                 {(t) => (
-                  <span class="yovo-status__task" title={t.detail ?? t.name}>
+                  <span class="yohu-status__task" title={t.detail ?? t.name}>
                     {t.name}
                   </span>
                 )}

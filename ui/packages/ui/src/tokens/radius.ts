@@ -1,6 +1,6 @@
 /**
  * 圆角 token（UI设计系统-v6.md §2.6）。
- * 组件内禁止硬编码圆角，一律引用这里的常量或对应 CSS 变量 `--yovo-radius-*`。
+ * 组件内禁止硬编码圆角，一律引用这里的常量或对应 CSS 变量 `--yohu-radius-*`。
  */
 export const Radius = {
   /** 2px（微标 / Fatal 块） */
@@ -17,7 +17,7 @@ export const Radius = {
   Xl: 32,
 } as const;
 
-/** 正圆与胶囊（非 px 阶梯，CSS 侧用 --yovo-radius-full / --yovo-radius-pill）。 */
+/** 正圆与胶囊（非 px 阶梯，CSS 侧用 --yohu-radius-full / --yohu-radius-pill）。 */
 export const RadiusShape = {
   Full: "50%",
   Pill: "999px",

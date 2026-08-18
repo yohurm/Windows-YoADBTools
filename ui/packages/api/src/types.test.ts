@@ -1,13 +1,13 @@
 /**
- * 契约测试：@yovo/api 的类型/字段名与 core/yovo-protocol 的 serde 输出对齐。
- * fixture 与 Rust 侧 `yovo-protocol` 各类型 serde_json 序列化结果保持一致。
+ * 契约测试：@yohu/api 的类型/字段名与 core/yohu-protocol 的 serde 输出对齐。
+ * fixture 与 Rust 侧 `yohu-protocol` 各类型 serde_json 序列化结果保持一致。
  */
 
 import { describe, expect, it } from "vitest";
 
 import type { AppEvent, LogFilter, LogLine, RemoteEntry, TransferRequest } from "./types";
 
-describe("wire 契约：与 yovo-protocol serde 输出一致", () => {
+describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
     const line: LogLine = {
       seq: 1,

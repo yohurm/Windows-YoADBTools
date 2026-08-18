@@ -1,6 +1,6 @@
 name: CI
 
-# Yovo ADB Tools v6 — 持续集成与发布流水线（架构文档 §11.3）
+# Yohu ADB Tools v6 — 持续集成与发布流水线（架构文档 §11.3）
 # 触发：push / PR 到 main；手动 workflow_dispatch。
 # 验收门槛与 CLAUDE.md「发布检查清单」一致（1/2/3/7 项自动化）。
 
@@ -106,7 +106,7 @@ jobs:
         run: cargo install tauri-cli --locked
 
       - name: 打包 NSIS
-        working-directory: app/yovo-app
+        working-directory: app/yohu-app
         run: cargo tauri build
 
       - name: 体积断言（≤ 12 MB）
@@ -121,6 +121,6 @@ jobs:
       - name: 上传安装包产物
         uses: actions/upload-artifact@v4
         with:
-          name: YovoAdbTools-installer
+          name: YohuAdbTools-installer
           path: target/release/bundle/nsis/*setup.exe
           if-no-files-found: error

@@ -1,4 +1,4 @@
-﻿# Yovo ADB Tools v6 — 发布构建（NSIS 安装包 ≤ 12 MB）
+﻿# Yohu ADB Tools v6 — 发布构建（NSIS 安装包 ≤ 12 MB）
 # 用法（真机）：
 #   powershell -ExecutionPolicy Bypass -File scripts/build-release.ps1
 # 前置：
@@ -7,11 +7,11 @@
 #   3. 若网络无法访问 github releases（NSIS 工具链下载超时）：
 #      winget install --id NSIS.NSIS -e 后，
 #      把安装目录复制到 %LOCALAPPDATA%\tauri\nsis-3.11
-# 产物：target\release\bundle\nsis\YovoAdbTools_<版本>_x64-setup.exe
+# 产物：target\release\bundle\nsis\YohuAdbTools_<版本>_x64-setup.exe
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$appDir = Join-Path $repoRoot "app\yovo-app"
+$appDir = Join-Path $repoRoot "app\yohu-app"
 
 Write-Host "[1/3] 前端构建…"
 Set-Location (Join-Path $repoRoot "ui")

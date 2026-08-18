@@ -141,37 +141,37 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
   };
 
   return (
-    <div ref={(el) => (rootRef = el)} class="yovo-select" classList={{ "yovo-select--disabled": !!props.disabled }}>
+    <div ref={(el) => (rootRef = el)} class="yohu-select" classList={{ "yohu-select--disabled": !!props.disabled }}>
       <button
         ref={(el) => (triggerRef = el)}
         type="button"
-        class="yovo-select__trigger yovo-focus-ring"
+        class="yohu-select__trigger yohu-focus-ring"
         disabled={props.disabled}
         aria-haspopup="listbox"
         aria-expanded={open()}
-        aria-activedescendant={open() ? `yovo-option-${activeValue()}` : undefined}
+        aria-activedescendant={open() ? `yohu-option-${activeValue()}` : undefined}
         onClick={openMenu}
         onKeyDown={onTriggerKeyDown}
       >
         <span
-          class="yovo-select__value"
-          classList={{ "yovo-select__value--placeholder": !selected() }}
+          class="yohu-select__value"
+          classList={{ "yohu-select__value--placeholder": !selected() }}
         >
           {selected()?.label ?? props.placeholder ?? ""}
         </span>
         <Icon name="chevron-down" size={14} />
       </button>
       <Show when={open()}>
-        <ul class="yovo-select__menu" role="listbox">
+        <ul class="yohu-select__menu" role="listbox">
           <For each={props.options}>
             {(option, index) => (
               <li
-                id={`yovo-option-${option.value}`}
-                class="yovo-select__option yovo-interactive"
+                id={`yohu-option-${option.value}`}
+                class="yohu-select__option yohu-interactive"
                 classList={{
-                  "yovo-select__option--selected": option.value === props.value,
-                  "yovo-interactive--selected": option.value === props.value,
-                  "yovo-interactive--active": index() === activeIndex(),
+                  "yohu-select__option--selected": option.value === props.value,
+                  "yohu-interactive--selected": option.value === props.value,
+                  "yohu-interactive--active": index() === activeIndex(),
                 }}
                 role="option"
                 aria-selected={option.value === props.value}

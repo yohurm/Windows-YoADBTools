@@ -1,6 +1,6 @@
 /**
  * YoIconButton —— 图标按钮。
- * 透明底，hover / pressed 走 --yovo-state-*；通过 title 提供悬浮提示。
+ * 透明底，hover / pressed 走 --yohu-state-*；通过 title 提供悬浮提示。
  */
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
@@ -13,7 +13,7 @@ export interface YoIconButtonProps {
   title?: string;
   /** 禁用 */
   disabled?: boolean;
-  /** 加载中：图标按 `--yovo-dur-loop` 旋转（UI设计系统 §2.4） */
+  /** 加载中：图标按 `--yohu-dur-loop` 旋转（UI设计系统 §2.4） */
   loading?: boolean;
   /** 图标尺寸（px） */
   size?: number;
@@ -28,8 +28,8 @@ export function YoIconButton(props: YoIconButtonProps): JSX.Element {
   return (
     <button
       type="button"
-      class="yovo-icon-button yovo-focus-ring"
-      classList={{ "yovo-icon-button--loading": !!props.loading }}
+      class="yohu-icon-button yohu-focus-ring"
+      classList={{ "yohu-icon-button--loading": !!props.loading }}
       title={props.title}
       aria-label={props.title}
       aria-busy={props.loading}

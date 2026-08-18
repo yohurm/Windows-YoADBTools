@@ -10,9 +10,9 @@ import {
   groupRun,
   onGroupProgress,
   terminalEval,
-} from "@yovo/api";
-import type { CommandDto, CommandGroupDto, CommandLibraryDto } from "@yovo/api";
-import { deviceStore } from "@yovo/app";
+} from "@yohu/api";
+import type { CommandDto, CommandGroupDto, CommandLibraryDto } from "@yohu/api";
+import { deviceStore } from "@yohu/app";
 
 /** 一条执行结果（命令或组内命令）。 */
 export interface ResultEntry {

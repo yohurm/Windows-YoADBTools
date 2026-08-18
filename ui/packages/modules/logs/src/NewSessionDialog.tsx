@@ -4,7 +4,7 @@
 
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
 
-import { YoButton, YoCheckbox, YoDialog, YoSelect, YoTextField } from "@yovo/ui";
+import { YoButton, YoCheckbox, YoDialog, YoSelect, YoTextField } from "@yohu/ui";
 
 import type { SessionScope } from "./pipeline";
 import { logStore } from "./store";
@@ -91,12 +91,12 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
         </>
       }
     >
-      <div class="yovo-logs__new">
+      <div class="yohu-logs__new">
         <Show when={!logStore.serial()}>
-          <p class="yovo-logs__new-hint">请先在左侧选择在线设备。</p>
+          <p class="yohu-logs__new-hint">请先在左侧选择在线设备。</p>
         </Show>
-        <div class="yovo-logs__field">
-          <span class="yovo-logs__label">划分方式</span>
+        <div class="yohu-logs__field">
+          <span class="yohu-logs__label">划分方式</span>
           <YoSelect
             options={[
               { value: "package", label: "按包名" },
@@ -111,8 +111,8 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
         </div>
 
         <Show when={mode() === "package"}>
-          <div class="yovo-logs__field">
-            <span class="yovo-logs__label">包名</span>
+          <div class="yohu-logs__field">
+            <span class="yohu-logs__label">包名</span>
             <YoSelect
               options={packageOptions()}
               value={pkg() || null}
@@ -133,8 +133,8 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
         </Show>
 
         <Show when={mode() === "pid"}>
-          <div class="yovo-logs__field">
-            <span class="yovo-logs__label">进程</span>
+          <div class="yohu-logs__field">
+            <span class="yohu-logs__label">进程</span>
             <YoSelect
               options={pidOptions()}
               value={pidText() || null}
@@ -157,10 +157,10 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
         </Show>
 
         <Show when={logStore.state.indexDegraded}>
-          <p class="yovo-logs__new-hint">进程列表读取失败，可手动输入包名或 PID。</p>
+          <p class="yohu-logs__new-hint">进程列表读取失败，可手动输入包名或 PID。</p>
         </Show>
         <Show when={error()}>
-          <p class="yovo-logs__new-error">{error()}</p>
+          <p class="yohu-logs__new-error">{error()}</p>
         </Show>
       </div>
     </YoDialog>

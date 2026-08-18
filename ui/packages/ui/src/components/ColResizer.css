@@ -1,8 +1,8 @@
-.yovo-col-resizer {
+.yohu-col-resizer {
   position: absolute;
   top: 0;
-  right: calc(var(--yovo-layout-hit-nudge) * -1);
-  width: var(--yovo-layout-hit-splitter);
+  right: calc(var(--yohu-layout-hit-nudge) * -1);
+  width: var(--yohu-layout-hit-splitter);
   height: 100%;
   padding: 0;
   border: none;
@@ -11,11 +11,11 @@
   z-index: 2;
 }
 
-.yovo-col-resizer:hover,
-.yovo-col-resizer:focus-visible {
-  background-color: var(--yovo-accent);
+.yohu-col-resizer:hover,
+.yohu-col-resizer:focus-visible {
+  background-color: var(--yohu-accent);
 }
 
-.yovo-col-resizer:focus-visible {
+.yohu-col-resizer:focus-visible {
   outline: none;
 }

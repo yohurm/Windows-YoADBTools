@@ -2,8 +2,8 @@
  * 投屏模块 — Planned 占位（仅导航 + 「开发中」页）。
  */
 
-import { registerModule } from "@yovo/app";
-import { YoEmptyState } from "@yovo/ui";
+import { registerModule } from "@yohu/app";
+import { YoEmptyState } from "@yohu/ui";
 
 registerModule({
   id: "screen-mirror",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { CommandLibraryDto } from "@yovo/api";
+import type { CommandLibraryDto } from "@yohu/api";
 
 import { fromDraft, toDraft } from "./CommandManager";
 

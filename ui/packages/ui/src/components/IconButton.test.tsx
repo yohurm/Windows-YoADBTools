@@ -28,6 +28,6 @@ describe("YoIconButton", () => {
     const btn = screen.getByRole("button", { name: "刷新" });
     expect(btn.getAttribute("aria-busy")).toBe("true");
     expect((btn as HTMLButtonElement).disabled).toBe(true);
-    expect(container.querySelector(".yovo-icon-button--loading")).toBeTruthy();
+    expect(container.querySelector(".yohu-icon-button--loading")).toBeTruthy();
   });
 });

@@ -1,5 +1,5 @@
 /**
- * @yovo/api — 与 core/yovo-protocol 严格对齐的 wire 类型。
+ * @yohu/api — 与 core/yohu-protocol 严格对齐的 wire 类型。
  *
  * 对齐规则：serde 默认 JSON（snake_case 字段；枚举 lowercase；
  * AppEvent 内部 tag `kind`（camelCase））。由 fixture 契约测试守护（types.test.ts）。
@@ -236,7 +236,7 @@ export type AppEvent =
   | { kind: "taskSummary"; tasks: TaskInfo[] }
   | { kind: "settingsChanged"; key: string };
 
-/** 事件名常量（与 yovo-protocol::event_names 一致）。 */
+/** 事件名常量（与 yohu-protocol::event_names 一致）。 */
 export const EVENT_NAMES = {
   devicesChanged: "devices.changed",
   deviceOffline: "device.offline",

@@ -147,7 +147,7 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
 
   const findRowElement = (key: string | number): HTMLElement | null => {
     if (!container) return null;
-    for (const el of container.querySelectorAll<HTMLElement>(".yovo-virtual-list__row")) {
+    for (const el of container.querySelectorAll<HTMLElement>(".yohu-virtual-list__row")) {
       if (el.dataset.key === String(key)) {
         return el;
       }
@@ -293,22 +293,22 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
   return (
     <div
       ref={(el) => (container = el)}
-      class="yovo-virtual-list"
+      class="yohu-virtual-list"
       role={selectable() ? "listbox" : undefined}
       aria-label={selectable() ? props.ariaLabel : undefined}
       aria-multiselectable={isMulti() ? true : undefined}
       onScroll={handleScroll}
     >
-      <div class="yovo-virtual-list__inner" style={{ height: `${totalHeight()}px` }}>
+      <div class="yohu-virtual-list__inner" style={{ height: `${totalHeight()}px` }}>
         <For each={visibleRows()}>
           {(row) => (
             <div
-              class="yovo-virtual-list__row"
+              class="yohu-virtual-list__row"
               classList={{
-                "yovo-interactive": selectable(),
-                "yovo-interactive--selected": selectable() && isSelected(row.key),
-                "yovo-focus-ring--inset": selectable(),
-                "yovo-virtual-list__row--selected": isSelected(row.key),
+                "yohu-interactive": selectable(),
+                "yohu-interactive--selected": selectable() && isSelected(row.key),
+                "yohu-focus-ring--inset": selectable(),
+                "yohu-virtual-list__row--selected": isSelected(row.key),
               }}
               style={{
                 position: "absolute",

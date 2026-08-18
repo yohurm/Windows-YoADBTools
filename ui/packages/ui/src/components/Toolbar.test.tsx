@@ -12,7 +12,7 @@ describe("YoToolbar", () => {
       </YoToolbar>
     ));
     const toolbar = screen.getByRole("button", { name: "刷新" }).parentElement;
-    expect(toolbar?.className).toContain("yovo-toolbar");
+    expect(toolbar?.className).toContain("yohu-toolbar");
     expect(screen.getByRole("button", { name: "导出" })).toBeTruthy();
   });
 });

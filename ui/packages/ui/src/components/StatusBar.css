@@ -1,21 +1,21 @@
-.yovo-status-bar {
+.yohu-status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--yovo-space-md);
-  padding: var(--yovo-space-xs) var(--yovo-space-md);
-  background-color: var(--yovo-surface-2);
-  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  color: var(--yovo-fg-2);
-  font-family: var(--yovo-font-sans);
-  font-size: var(--yovo-font-caption);
+  gap: var(--yohu-space-md);
+  padding: var(--yohu-space-xs) var(--yohu-space-md);
+  background-color: var(--yohu-surface-2);
+  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  color: var(--yohu-fg-2);
+  font-family: var(--yohu-font-sans);
+  font-size: var(--yohu-font-caption);
   box-sizing: border-box;
 }
 
-.yovo-status-bar__left,
-.yovo-status-bar__right {
+.yohu-status-bar__left,
+.yohu-status-bar__right {
   display: flex;
   align-items: center;
-  gap: var(--yovo-space-sm);
+  gap: var(--yohu-space-sm);
   min-width: 0;
 }

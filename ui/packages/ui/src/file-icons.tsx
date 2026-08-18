@@ -6,7 +6,7 @@
 import type { JSX } from "solid-js";
 import "./file-icons.css";
 
-/** 与 wire RemoteEntry.kind 对齐，但不依赖 @yovo/api（组件库零 IPC）。 */
+/** 与 wire RemoteEntry.kind 对齐，但不依赖 @yohu/api（组件库零 IPC）。 */
 export type FileIconKind = "dir" | "file" | "symlink" | "other";
 
 export type FileGlyph =
@@ -125,7 +125,7 @@ export function YoFileIcon(props: YoFileIconProps): JSX.Element {
   const size = () => props.size ?? 16;
   return (
     <svg
-      class="yovo-file-icon"
+      class="yohu-file-icon"
       width={size()}
       height={size()}
       viewBox="0 0 24 24"

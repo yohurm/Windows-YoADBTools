@@ -1,0 +1,15 @@
+[package]
+name = "yohu-logsrv"
+description = "Yohu ADB Tools v6 — logcat 采集服务：单流采集/共享环形缓冲/批量器/进程索引/导出"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "sync", "time", "process", "io-util"] }
+tokio-util = "0.7"
+thiserror.workspace = true
+tracing.workspace = true
+time.workspace = true
+yohu-protocol.workspace = true
+yohu-adb.workspace = true

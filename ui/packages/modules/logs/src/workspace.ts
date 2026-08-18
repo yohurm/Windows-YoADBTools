@@ -4,7 +4,7 @@
  */
 
 import type { SetStoreFunction } from "solid-js/store";
-import type { ProcessEntry } from "@yovo/api";
+import type { ProcessEntry } from "@yohu/api";
 
 import {
   collapseStack,

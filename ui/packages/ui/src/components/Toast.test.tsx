@@ -14,14 +14,14 @@ describe("createToaster + YoToaster", () => {
     const toaster = createToaster();
     render(() => <YoToaster toaster={toaster} />);
     toaster.show("失败", "error");
-    expect(screen.getByText("失败").className).toContain("yovo-toast--error");
+    expect(screen.getByText("失败").className).toContain("yohu-toast--error");
   });
 
   it("show 默认 info 色调", () => {
     const toaster = createToaster();
     render(() => <YoToaster toaster={toaster} />);
     toaster.show("提示");
-    expect(screen.getByText("提示").className).toContain("yovo-toast--info");
+    expect(screen.getByText("提示").className).toContain("yohu-toast--info");
   });
 
   it("多条消息堆叠渲染", () => {
@@ -60,7 +60,7 @@ describe("YoToast", () => {
   it("渲染单条 toast", () => {
     render(() => <YoToast toast={{ id: 1, text: "单条", tone: "success" }} />);
     const el = screen.getByText("单条");
-    expect(el.className).toContain("yovo-toast");
-    expect(el.className).toContain("yovo-toast--success");
+    expect(el.className).toContain("yohu-toast");
+    expect(el.className).toContain("yohu-toast--success");
   });
 });

@@ -5,8 +5,8 @@
 import { For, Show, createEffect, createSignal } from "solid-js";
 
 import { open, save } from "@tauri-apps/plugin-dialog";
-import type { DeviceSession } from "@yovo/api";
-import { YoButton, YoContextMenu, YoDialog, YoEmptyState, YoIconButton, YoTextField, YoToolbar, type YoMenuItem } from "@yovo/ui";
+import type { DeviceSession } from "@yohu/api";
+import { YoButton, YoContextMenu, YoDialog, YoEmptyState, YoIconButton, YoTextField, YoToolbar, type YoMenuItem } from "@yohu/ui";
 
 import { FileTable } from "./FileTable";
 import { PreviewPane } from "./PreviewPane";
@@ -18,18 +18,18 @@ import "./files.css";
 function Breadcrumb() {
   const segments = () => splitPath(fileStore.session.path);
   return (
-    <div class="yovo-files__crumbs">
+    <div class="yohu-files__crumbs">
       <For each={segments()}>
         {(segment, index) => {
           const target = (): string => `/${segments().slice(0, index() + 1).join("/")}`;
           return (
             <>
               <Show when={index() > 0}>
-                <span class="yovo-files__crumb-sep" aria-hidden="true">
+                <span class="yohu-files__crumb-sep" aria-hidden="true">
                   ▸
                 </span>
               </Show>
-              <button type="button" class="yovo-files__crumb yovo-interactive yovo-focus-ring" title={target()} onClick={() => void fileStore.goTo(target())}>
+              <button type="button" class="yohu-files__crumb yohu-interactive yohu-focus-ring" title={target()} onClick={() => void fileStore.goTo(target())}>
                 {segment}
               </button>
             </>
@@ -109,9 +109,9 @@ export function FileView(props: DeviceSession) {
   ];
 
   return (
-    <div class="yovo-files">
+    <div class="yohu-files">
       <YoToolbar>
-        <span class="yovo-module-title">文件管理</span>
+        <span class="yohu-module-title">文件管理</span>
         <YoButton onClick={() => void onUpload()}>上传</YoButton>
         <YoButton variant="secondary" disabled={fileStore.singleFile() === undefined} onClick={() => void onDownload()}>
           下载
@@ -128,12 +128,12 @@ export function FileView(props: DeviceSession) {
       </YoToolbar>
 
       <Show when={fileStore.session.error}>
-        <div class="yovo-files__error" role="alert">
+        <div class="yohu-files__error" role="alert">
           {fileStore.session.error}
         </div>
       </Show>
 
-      <div class="yovo-files__path">
+      <div class="yohu-files__path">
         <YoIconButton
           icon="chevron-up"
           title="上级目录"
@@ -143,12 +143,12 @@ export function FileView(props: DeviceSession) {
         <Breadcrumb />
       </div>
 
-      <div class="yovo-files__body">
+      <div class="yohu-files__body">
         <Show
           when={props.focusSerial !== null}
           fallback={<YoEmptyState icon="folder" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
         >
-          <div class="yovo-files__explorer">
+          <div class="yohu-files__explorer">
             <FileTable onContextMenu={(x, y) => setMenu({ x, y })} />
             <PreviewPane />
           </div>
@@ -187,7 +187,7 @@ export function FileView(props: DeviceSession) {
           </>
         }
       >
-        <p class="yovo-files__confirm">
+        <p class="yohu-files__confirm">
           确定删除 <strong>{deleteNames().join("、")}</strong> 吗？该操作不可恢复。
         </p>
       </YoDialog>
@@ -218,7 +218,7 @@ export function FileView(props: DeviceSession) {
           ariaLabel={createKind() === "dir" ? "新目录名" : "新文件名"}
         />
         <Show when={createError()}>
-          <div class="yovo-files__error">{createError()}</div>
+          <div class="yohu-files__error">{createError()}</div>
         </Show>
       </YoDialog>
     </div>

@@ -4,8 +4,8 @@
 
 import { createStore } from "solid-js/store";
 
-import { onTaskSummary } from "@yovo/api";
-import type { TaskInfo } from "@yovo/api";
+import { onTaskSummary } from "@yohu/api";
+import type { TaskInfo } from "@yohu/api";
 
 export interface TaskStore {
   tasks: TaskInfo[];

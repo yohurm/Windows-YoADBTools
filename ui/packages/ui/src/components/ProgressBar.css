@@ -1,25 +1,25 @@
-.yovo-progress {
+.yohu-progress {
   position: relative;
   width: 100%;
-  height: var(--yovo-space-xs);
-  border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-surface-2);
+  height: var(--yohu-space-xs);
+  border-radius: var(--yohu-radius-sm);
+  background-color: var(--yohu-surface-2);
   overflow: hidden;
 }
 
-.yovo-progress__bar {
+.yohu-progress__bar {
   height: 100%;
-  border-radius: var(--yovo-radius-sm);
-  background-color: var(--yovo-accent);
-  transition: width var(--yovo-dur-normal) var(--yovo-ease-standard);
+  border-radius: var(--yohu-radius-sm);
+  background-color: var(--yohu-accent);
+  transition: width var(--yohu-dur-normal) var(--yohu-ease-standard);
 }
 
-.yovo-progress--indeterminate .yovo-progress__bar {
+.yohu-progress--indeterminate .yohu-progress__bar {
   width: 40%;
-  animation: yovo-progress-indeterminate var(--yovo-dur-loop-slow) var(--yovo-ease-loop) infinite;
+  animation: yohu-progress-indeterminate var(--yohu-dur-loop-slow) var(--yohu-ease-loop) infinite;
 }
 
-@keyframes yovo-progress-indeterminate {
+@keyframes yohu-progress-indeterminate {
   0% {
     transform: translateX(-100%);
   }

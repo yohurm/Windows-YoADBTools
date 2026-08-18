@@ -40,7 +40,7 @@ describe("动效 token 单一事实源契约", () => {
 
   it("时长常量与 theme.css 完全一致", () => {
     for (const [name, value] of Object.entries(MotionDuration)) {
-      const varName = `--yovo-dur-${kebab(name)}`;
+      const varName = `--yohu-dur-${kebab(name)}`;
       const css = cssVarValue(varName);
       expect(css, varName).toBe(value);
     }
@@ -48,7 +48,7 @@ describe("动效 token 单一事实源契约", () => {
 
   it("缓动常量与 theme.css 完全一致", () => {
     for (const [name, value] of Object.entries(MotionEasing)) {
-      const varName = `--yovo-ease-${kebab(name)}`;
+      const varName = `--yohu-ease-${kebab(name)}`;
       const css = cssVarValue(varName);
       expect(css, varName).toBe(value);
     }

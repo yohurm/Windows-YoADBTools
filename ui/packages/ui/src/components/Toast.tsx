@@ -59,7 +59,7 @@ export interface YoToastProps {
  */
 export function YoToast(props: YoToastProps): JSX.Element {
   return (
-    <div class="yovo-toast" classList={{ [`yovo-toast--${props.toast.tone}`]: true }} role="status">
+    <div class="yohu-toast" classList={{ [`yohu-toast--${props.toast.tone}`]: true }} role="status">
       {props.toast.text}
     </div>
   );
@@ -75,7 +75,7 @@ export interface YoToasterProps {
  */
 export function YoToaster(props: YoToasterProps): JSX.Element {
   return (
-    <div class="yovo-toaster" role="region" aria-label="notifications">
+    <div class="yohu-toaster" role="region" aria-label="notifications">
       <For each={props.toaster.toasts()}>{(toast) => <YoToast toast={toast} />}</For>
     </div>
   );

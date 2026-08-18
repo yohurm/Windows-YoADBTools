@@ -1,14 +1,14 @@
 /**
  * 模块注册表（ADR-v6-012）：静态组合，无插件热加载。
- * 模块间零 import（depcheck 强制）；模块只依赖 @yovo/api + @yovo/ui。
+ * 模块间零 import（depcheck 强制）；模块只依赖 @yohu/api + @yohu/ui。
  */
 
 import type { Component } from "solid-js";
 
-import type { DeviceSession } from "@yovo/api";
-import type { IconName } from "@yovo/ui";
+import type { DeviceSession } from "@yohu/api";
+import type { IconName } from "@yohu/ui";
 
-/** 模块对设备的选择模式（与 core yovo-domain::SelectionMode 一致）。 */
+/** 模块对设备的选择模式（与 core yohu-domain::SelectionMode 一致）。 */
 export type SelectionMode = "none" | "singleRequired" | "multiOptional";
 
 export interface ModuleDescriptor {

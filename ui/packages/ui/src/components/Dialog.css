@@ -1,38 +1,38 @@
-.yovo-dialog {
+.yohu-dialog {
   position: fixed;
   inset: 0;
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--yovo-font-sans);
+  font-family: var(--yohu-font-sans);
 }
 
-.yovo-dialog__backdrop {
+.yohu-dialog__backdrop {
   position: absolute;
   inset: 0;
   /* Accent 低透明度遮罩：由强调色派生，避免硬编码色值 */
-  background-color: color-mix(in srgb, var(--yovo-accent) 24%, transparent);
-  animation: yovo-fade-in var(--yovo-dur-normal) var(--yovo-ease-standard);
+  background-color: color-mix(in srgb, var(--yohu-accent) 24%, transparent);
+  animation: yohu-fade-in var(--yohu-dur-normal) var(--yohu-ease-standard);
 }
 
-.yovo-dialog__panel {
+.yohu-dialog__panel {
   position: relative;
   display: flex;
   flex-direction: column;
-  max-width: calc(100% - var(--yovo-space-lg) * 2);
-  max-height: calc(100% - var(--yovo-space-xl) * 2);
+  max-width: calc(100% - var(--yohu-space-lg) * 2);
+  max-height: calc(100% - var(--yohu-space-xl) * 2);
   min-height: 0;
-  border: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  border-radius: var(--yovo-radius-md);
-  background-color: var(--yovo-surface);
-  color: var(--yovo-fg);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-md);
+  background-color: var(--yohu-surface);
+  color: var(--yohu-fg);
   box-sizing: border-box;
   overflow: hidden;
-  animation: yovo-dialog-in var(--yovo-dur-enter) var(--yovo-ease-decel);
+  animation: yohu-dialog-in var(--yohu-dur-enter) var(--yohu-ease-decel);
 }
 
-@keyframes yovo-fade-in {
+@keyframes yohu-fade-in {
   from {
     opacity: 0;
   }
@@ -41,10 +41,10 @@
   }
 }
 
-@keyframes yovo-dialog-in {
+@keyframes yohu-dialog-in {
   from {
     opacity: 0;
-    transform: translateY(calc(var(--yovo-space-lg) * -1)) scale(0.98);
+    transform: translateY(calc(var(--yohu-space-lg) * -1)) scale(0.98);
   }
   to {
     opacity: 1;
@@ -52,27 +52,27 @@
   }
 }
 
-.yovo-dialog__title {
+.yohu-dialog__title {
   margin: 0;
-  padding: var(--yovo-space-md) var(--yovo-space-lg);
-  border-bottom: var(--yovo-stroke-hairline) solid var(--yovo-border);
-  font-size: var(--yovo-font-subtitle);
-  font-weight: var(--yovo-font-weight-semibold);
+  padding: var(--yohu-space-md) var(--yohu-space-lg);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  font-size: var(--yohu-font-subtitle);
+  font-weight: var(--yohu-font-weight-semibold);
 }
 
-.yovo-dialog__body {
+.yohu-dialog__body {
   flex: 1;
   min-height: 0;
-  padding: var(--yovo-space-lg);
+  padding: var(--yohu-space-lg);
   overflow: auto;
-  font-size: var(--yovo-font-body);
+  font-size: var(--yohu-font-body);
 }
 
-.yovo-dialog__footer {
+.yohu-dialog__footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--yovo-space-sm);
-  padding: var(--yovo-space-md) var(--yovo-space-lg);
-  border-top: var(--yovo-stroke-hairline) solid var(--yovo-border);
+  gap: var(--yohu-space-sm);
+  padding: var(--yohu-space-md) var(--yohu-space-lg);
+  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }

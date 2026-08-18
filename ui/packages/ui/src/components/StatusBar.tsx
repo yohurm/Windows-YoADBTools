@@ -17,9 +17,9 @@ export interface YoStatusBarProps {
  */
 export function YoStatusBar(props: YoStatusBarProps): JSX.Element {
   return (
-    <footer class="yovo-status-bar">
-      <div class="yovo-status-bar__left">{props.left}</div>
-      <div class="yovo-status-bar__right">{props.right}</div>
+    <footer class="yohu-status-bar">
+      <div class="yohu-status-bar__left">{props.left}</div>
+      <div class="yohu-status-bar__right">{props.right}</div>
     </footer>
   );
 }

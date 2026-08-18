@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { LogLine } from "@yovo/api";
+import type { LogLine } from "@yohu/api";
 
 import { RingMirror, collapseStack, matchesLine } from "./pipeline";
 import type { SessionFilter } from "./pipeline";

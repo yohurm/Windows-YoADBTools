@@ -49,7 +49,7 @@ describe("YoSelect", () => {
     expect(screen.getByRole("listbox")).toBeTruthy();
     // 初始活动项 = 当前选中 a；↓ 到 b
     fireEvent.keyDown(trigger, { key: "ArrowDown" });
-    expect(trigger.getAttribute("aria-activedescendant")).toBe("yovo-option-b");
+    expect(trigger.getAttribute("aria-activedescendant")).toBe("yohu-option-b");
     fireEvent.keyDown(trigger, { key: "Enter" });
     expect(onChange).toHaveBeenCalledWith("b");
     expect(screen.queryByRole("listbox")).toBeNull();
@@ -72,8 +72,8 @@ describe("YoSelect", () => {
     trigger.focus();
     fireEvent.keyDown(trigger, { key: "ArrowDown" });
     fireEvent.keyDown(trigger, { key: "End" });
-    expect(trigger.getAttribute("aria-activedescendant")).toBe("yovo-option-c");
+    expect(trigger.getAttribute("aria-activedescendant")).toBe("yohu-option-c");
     fireEvent.keyDown(trigger, { key: "Home" });
-    expect(trigger.getAttribute("aria-activedescendant")).toBe("yovo-option-a");
+    expect(trigger.getAttribute("aria-activedescendant")).toBe("yohu-option-a");
   });
 });

@@ -12,7 +12,7 @@ describe("Icon", () => {
         <Icon name="folder" />
       </>
     ));
-    const svgs = container.querySelectorAll("svg.yovo-icon");
+    const svgs = container.querySelectorAll("svg.yohu-icon");
     expect(svgs).toHaveLength(3);
     svgs.forEach((svg) => {
       expect(svg.getAttribute("data-icon")).toBe("folder");

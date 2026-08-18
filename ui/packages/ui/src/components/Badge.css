@@ -1,40 +1,40 @@
-.yovo-badge {
+.yohu-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0 var(--yovo-space-sm);
-  height: calc(var(--yovo-space-lg) + var(--yovo-space-xs));
-  border-radius: var(--yovo-radius-pill);
-  border: var(--yovo-stroke-hairline) solid transparent;
-  font-family: var(--yovo-font-sans);
-  font-size: var(--yovo-font-caption);
-  font-weight: var(--yovo-font-weight-semibold);
+  padding: 0 var(--yohu-space-sm);
+  height: calc(var(--yohu-space-lg) + var(--yohu-space-xs));
+  border-radius: var(--yohu-radius-pill);
+  border: var(--yohu-stroke-hairline) solid transparent;
+  font-family: var(--yohu-font-sans);
+  font-size: var(--yohu-font-caption);
+  font-weight: var(--yohu-font-weight-semibold);
   line-height: 1;
   white-space: nowrap;
   box-sizing: border-box;
 }
 
-.yovo-badge--neutral {
-  background-color: var(--yovo-surface-2);
-  border-color: var(--yovo-border);
-  color: var(--yovo-fg-2);
+.yohu-badge--neutral {
+  background-color: var(--yohu-surface-2);
+  border-color: var(--yohu-border);
+  color: var(--yohu-fg-2);
 }
 
-.yovo-badge--accent {
-  background-color: var(--yovo-accent-soft);
-  color: var(--yovo-accent);
+.yohu-badge--accent {
+  background-color: var(--yohu-accent-soft);
+  color: var(--yohu-accent);
 }
 
-.yovo-badge--success {
-  background-color: var(--yovo-success-bg);
-  color: var(--yovo-success);
+.yohu-badge--success {
+  background-color: var(--yohu-success-bg);
+  color: var(--yohu-success);
 }
 
-.yovo-badge--warn {
-  background-color: var(--yovo-warn-bg);
-  color: var(--yovo-tag);
+.yohu-badge--warn {
+  background-color: var(--yohu-warn-bg);
+  color: var(--yohu-tag);
 }
 
-.yovo-badge--error {
-  background-color: var(--yovo-signal-bg);
-  color: var(--yovo-error);
+.yohu-badge--error {
+  background-color: var(--yohu-signal-bg);
+  color: var(--yohu-error);
 }
