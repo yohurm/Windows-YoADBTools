@@ -29,7 +29,13 @@ function Breadcrumb() {
                   ▸
                 </span>
               </Show>
-              <button type="button" class="yohu-files__crumb yohu-interactive yohu-focus-ring" title={target()} onClick={() => void fileStore.goTo(target())}>
+              <button
+                type="button"
+                class="yohu-files__crumb yohu-interactive yohu-focus-ring"
+                classList={{ "yohu-files__crumb--current": index() === segments().length - 1 }}
+                title={target()}
+                onClick={() => void fileStore.goTo(target())}
+              >
                 {segment}
               </button>
             </>

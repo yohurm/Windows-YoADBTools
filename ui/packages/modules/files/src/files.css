@@ -41,7 +41,7 @@
 .yohu-files__crumb {
   border: none;
   background: transparent;
-  color: var(--yohu-accent);
+  color: var(--yohu-fg-2);
   font-family: var(--yohu-font-mono);
   font-size: var(--yohu-font-body);
   cursor: pointer;
@@ -49,10 +49,14 @@
   border-radius: var(--yohu-radius-xs);
   max-width: var(--yohu-layout-crumb-max);
   --yohu-ripple-radius: var(--yohu-radius-xs);
-  --yohu-ripple-inset: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.yohu-files__crumb--current {
+  color: var(--yohu-fg);
+  font-weight: var(--yohu-font-weight-semibold);
 }
 
 
