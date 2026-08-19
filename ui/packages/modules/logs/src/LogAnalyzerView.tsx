@@ -2,7 +2,7 @@
  * 日志分析主视图：绑定壳注入的 DeviceSession；对话框与本机选路留在视图层。
  */
 
-import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, untrack } from "solid-js";
 
 import { save } from "@tauri-apps/plugin-dialog";
 import type { DeviceSession } from "@yohu/api";
@@ -27,6 +27,7 @@ import {
 import { LEVELS, type ViewRow } from "./pipeline";
 import { NewSessionDialog } from "./NewSessionDialog";
 import { logStore } from "./store";
+import type { LogSessionState } from "./workspace";
 import "./logs.css";
 
 const toaster = createToaster();
@@ -40,8 +41,18 @@ function errorMessage(e: unknown): string {
   return String(e);
 }
 
+function isCancelled(e: unknown): boolean {
+  if (e && typeof e === "object" && "code" in e && (e as { code: unknown }).code === "cancelled") {
+    return true;
+  }
+  return errorMessage(e).includes("采集已取消");
+}
+
 const beginCapture = (): void => {
-  void logStore.startCapture().catch((e) => toaster.show(errorMessage(e), "error"));
+  void logStore.startCapture().catch((e) => {
+    if (isCancelled(e)) return;
+    toaster.show(errorMessage(e), "error");
+  });
 };
 
 const LEVEL_OPTIONS = [
@@ -73,25 +84,53 @@ function highlight(msg: string, keyword: string): (string | { mark: string })[] 
   return parts;
 }
 
-function SessionEmpty(props: { session: { minLevel: string | null; tagContains: string; keyword: string } }) {
+function sessionPending(session: { id: number }): boolean {
+  return logStore.state.startPendingId === session.id;
+}
+
+function shortSerial(serial: string | null): string {
+  if (!serial) return "";
+  return serial.length > 6 ? serial.slice(-4) : serial;
+}
+
+function tabTitle(session: LogSessionState): string {
+  const short = shortSerial(session.serial);
+  return short ? `${session.title} · ${short}` : session.title;
+}
+
+function SessionEmpty(props: { session: LogSessionState }) {
   const filterActive = (): boolean =>
     props.session.minLevel !== null || props.session.tagContains.length > 0 || props.session.keyword.length > 0;
+  const idle = (): boolean =>
+    !props.session.capturing && !sessionPending(props.session) && !filterActive();
   return (
     <div class="yohu-logs__empty">
       <Show
-        when={!logStore.state.capturing && !filterActive()}
+        when={!idle()}
         fallback={
-          <YoEmptyState
-            icon="log"
-            title={filterActive() ? "无匹配日志" : "等待设备输出…"}
-            description={
-              filterActive() ? "调整过滤条件（级别/Tag/关键字）后重试" : "logcat 采集中，暂未收到行"
-            }
-          />
+          <>
+            <YoEmptyState icon="log" title="未采集" description="点击「开始采集」拉取设备日志" />
+            <YoButton onClick={beginCapture}>开始采集</YoButton>
+          </>
         }
       >
-        <YoEmptyState icon="log" title="未采集" description="点击「开始采集」拉取设备日志" />
-        <YoButton onClick={beginCapture}>开始采集</YoButton>
+        <YoEmptyState
+          icon="log"
+          title={
+            sessionPending(props.session)
+              ? "正在启动采集…"
+              : filterActive()
+                ? "无匹配日志"
+                : "等待设备输出…"
+          }
+          description={
+            sessionPending(props.session)
+              ? "正在连接设备 logcat"
+              : filterActive()
+                ? "调整过滤条件（级别/Tag/关键字）后重试"
+                : "logcat 采集中，暂未收到行"
+          }
+        />
       </Show>
     </div>
   );
@@ -100,7 +139,7 @@ function SessionEmpty(props: { session: { minLevel: string | null; tagContains: 
 function scopeLabel(session: { scope: { kind: string; pkg?: string; pid?: number } }): string {
   if (session.scope.kind === "package") return `包名: ${session.scope.pkg}`;
   if (session.scope.kind === "pid") return `PID: ${session.scope.pid}`;
-  return "全部";
+  return "System";
 }
 
 export function LogAnalyzerView(props: DeviceSession) {
@@ -113,8 +152,9 @@ export function LogAnalyzerView(props: DeviceSession) {
   let keywordRef: HTMLInputElement | undefined;
 
   createEffect(() => {
-    void logStore.bindSerial(props.focusSerial);
-    logStore.ensureSession();
+    const serial = props.focusSerial;
+    void logStore.bindSerial(serial);
+    untrack(() => logStore.ensureSession());
   });
 
   createEffect(() => {
@@ -130,20 +170,27 @@ export function LogAnalyzerView(props: DeviceSession) {
   const tabs = createMemo(() =>
     logStore.state.sessions.map((s) => ({
       id: String(s.id),
-      title: s.title,
+      title: tabTitle(s),
       dot:
         s.signalCount > 0
           ? ({ tone: "error" as const })
-          : logStore.state.capturing
+          : s.capturing
             ? ({ tone: "success" as const })
             : undefined,
     })),
   );
 
+  const windowLive = (): boolean => {
+    const session = active();
+    return Boolean(session && (session.capturing || sessionPending(session)));
+  };
+
+  const windowSerial = (): string | null => active()?.serial ?? props.focusSerial;
+
   const onKeydown = (e: KeyboardEvent): void => {
     const target = e.target as HTMLElement | null;
     const inInput = target !== null && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
-    if (e.key === " " && !inInput && logStore.state.capturing) {
+    if (e.key === " " && !inInput && active()?.capturing) {
       e.preventDefault();
       const id = logStore.state.activeSessionId;
       if (id !== null) {
@@ -218,18 +265,21 @@ export function LogAnalyzerView(props: DeviceSession) {
       <YoToolbar>
         <span class="yohu-module-title">日志分析</span>
         <Show
-          when={!logStore.state.capturing}
+          when={windowLive()}
           fallback={
-            <YoButton variant="secondary" onClick={() => void logStore.stopCapture()}>
-              停止
+            <YoButton onClick={beginCapture} disabled={windowSerial() === null}>
+              开始
             </YoButton>
           }
         >
-          <YoButton onClick={beginCapture} disabled={props.focusSerial === null}>
-            开始
+          <YoButton
+            variant="secondary"
+            onClick={() => void logStore.stopCapture().catch((e) => toaster.show(errorMessage(e), "error"))}
+          >
+            {sessionPending(active() ?? { id: -1 }) && !active()?.capturing ? "取消启动" : "停止"}
           </YoButton>
         </Show>
-        <Show when={logStore.state.capturing}>
+        <Show when={active()?.capturing}>
           <YoButton
             variant="secondary"
             onClick={() => {
@@ -250,7 +300,7 @@ export function LogAnalyzerView(props: DeviceSession) {
         >
           清空
         </YoButton>
-        <YoButton variant="secondary" onClick={() => void logStore.clearDevice()} disabled={props.focusSerial === null}>
+        <YoButton variant="secondary" onClick={() => void logStore.clearDevice()} disabled={windowSerial() === null}>
           清设备缓冲
         </YoButton>
         <YoButton variant="secondary" onClick={() => void doExport()}>
@@ -262,8 +312,8 @@ export function LogAnalyzerView(props: DeviceSession) {
       </YoToolbar>
 
       <Show
-        when={props.focusSerial !== null}
-        fallback={<YoEmptyState icon="log" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
+        when={logStore.state.sessions.length > 0}
+        fallback={<YoEmptyState icon="log" title="未选择设备" description="请在左侧设备栏选择在线设备，或新建日志窗口" />}
       >
         <div class="yohu-logs__tabs">
           <YoTabs
@@ -313,7 +363,9 @@ export function LogAnalyzerView(props: DeviceSession) {
                     onInput={(v) => logStore.patchFilter(session.id, { keyword: v })}
                   />
                 </span>
-                <span class="yohu-logs__scope">{scopeLabel(session)}</span>
+                <span class="yohu-logs__scope">
+                  <YoBadge text={scopeLabel(session)} tone="accent" />
+                </span>
               </div>
 
               <div class="yohu-logs__list">
@@ -340,11 +392,11 @@ export function LogAnalyzerView(props: DeviceSession) {
                       >
                         <span class="yohu-logs__row-ts">{row.line.ts}</span>
                         <span class="yohu-logs__row-pid">{row.line.pid}</span>
-                        <span class={`yohu-logs__row-level ${levelClass(row.line.level)}`}>{row.line.level}</span>
+                        <span class={`yohu-logs__row-level yohu-tone ${levelClass(row.line.level)}`}>{row.line.level}</span>
                         <span class="yohu-logs__row-tag">{row.line.tag}</span>
                         <span class="yohu-logs__row-msg">
                           <For each={highlight(row.line.msg, session.keyword)}>
-                            {(part) => (typeof part === "string" ? part : <mark class="yohu-logs__mark">{part.mark}</mark>)}
+                            {(part) => (typeof part === "string" ? part : <mark class="yohu-logs__mark yohu-tone">{part.mark}</mark>)}
                           </For>
                         </span>
                         <Show when={row.collapsedAfter}>
@@ -367,11 +419,15 @@ export function LogAnalyzerView(props: DeviceSession) {
                 <span class="yohu-logs__status-capture">
                   <span
                     class="yohu-logs__status-dot"
-                    classList={{ "yohu-logs__status-dot--on": logStore.state.capturing }}
+                    classList={{ "yohu-logs__status-dot--on": session.capturing }}
                   />
-                  {logStore.state.capturing ? "采集中" : "已停止"}
+                  {session.capturing
+                    ? "采集中"
+                    : sessionPending(session)
+                      ? "启动中"
+                      : "已停止"}
                 </span>
-                <span>设备 {logStore.serial() ?? "—"}</span>
+                <span>设备 {session.serial ?? "—"}</span>
                 <span>行数 {session.visible.length}</span>
                 <span classList={{ "yohu-logs__status-signal": session.signalCount > 0 }}>
                   信号 {session.signalCount}

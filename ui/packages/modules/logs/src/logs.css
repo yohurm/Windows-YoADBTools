@@ -29,7 +29,7 @@
   overflow: hidden;
 }
 
-/* ===== 过滤栏（单行，控件统一 26px 高） ===== */
+/* ===== 过滤栏（单行，控件走 --yohu-control-height） ===== */
 
 .yohu-logs__filter {
   display: flex;
@@ -72,11 +72,6 @@
 
 .yohu-logs__scope {
   margin-left: auto;
-  font-size: var(--yohu-font-caption);
-  color: var(--yohu-accent);
-  background: var(--yohu-accent-soft);
-  padding: var(--yohu-space-2xs) var(--yohu-space-sm);
-  border-radius: var(--yohu-radius-sm);
 }
 
 /* ===== 虚拟化日志列表 ===== */
@@ -111,10 +106,15 @@
   box-sizing: border-box;
 }
 
-/* 信号行（崩溃/ANR）：信号底色 + Error 左条；行 hover/选中由 YoVirtualList.yohu-interactive 承担 */
+/* 信号行（崩溃/ANR）：信号底色 + Error 左条；行 hover/选中由 YoVirtualList.yohu-interactive 承担。
+   选中时让位给选中片，只留 Error 左条。 */
 .yohu-logs__row--signal {
   background-color: var(--yohu-signal-bg);
   border-left-color: var(--yohu-error);
+}
+
+.yohu-interactive--selected .yohu-logs__row--signal {
+  background-color: transparent;
 }
 
 /* 级别左条（3px） */
@@ -230,7 +230,7 @@
   font-weight: var(--yohu-font-weight-semibold);
 }
 
-/* ===== 空态 / 新建会话表单 ===== */
+/* ===== 空态 / 新建窗口 ===== */
 
 .yohu-logs__empty {
   display: flex;
@@ -241,16 +241,27 @@
   height: 100%;
 }
 
+/* 对话框自行管理滚动：仅进程列表滚动，避免下拉菜单撑出双滚动条 */
+.yohu-dialog__body:has(.yohu-logs__new) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .yohu-logs__new {
   display: flex;
   flex-direction: column;
-  gap: var(--yohu-space-md);
+  flex: 1;
+  min-height: 0;
+  gap: var(--yohu-space-sm);
 }
 
-.yohu-logs__field {
-  display: flex;
-  flex-direction: column;
+.yohu-logs__new-row {
+  display: grid;
+  grid-template-columns: calc(var(--yohu-space-xl) * 1.5) minmax(0, 1fr);
+  align-items: center;
   gap: var(--yohu-space-sm);
+  flex-shrink: 0;
 }
 
 .yohu-logs__label {
@@ -258,16 +269,121 @@
   color: var(--yohu-fg-2);
 }
 
+.yohu-logs__new-chips,
+.yohu-logs__new-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--yohu-space-xs);
+  min-width: 0;
+}
+
+.yohu-logs__new-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: var(--yohu-control-height-sm);
+  padding: 0 var(--yohu-space-sm);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-sm);
+  background: transparent;
+  color: var(--yohu-fg);
+  font-family: inherit;
+  font-size: var(--yohu-font-caption);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yohu-logs__new-search {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.yohu-logs__new-search .yohu-text-field {
+  width: 100%;
+}
+
+.yohu-logs__new-search-icon {
+  position: absolute;
+  left: var(--yohu-space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--yohu-fg-3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.yohu-logs__new-search .yohu-text-field__input {
+  padding-left: calc(var(--yohu-space-md) + var(--yohu-space-sm));
+}
+
+.yohu-logs__new-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-sm);
+  background: var(--yohu-surface);
+}
+
+.yohu-logs__new-item {
+  display: flex;
+  align-items: center;
+  gap: var(--yohu-space-sm);
+  width: 100%;
+  min-height: var(--yohu-control-height);
+  padding: 0 var(--yohu-space-sm);
+  border: 0;
+  background: transparent;
+  color: var(--yohu-fg);
+  font-family: var(--yohu-font-mono);
+  font-size: var(--yohu-font-caption);
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.yohu-logs__new-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yohu-logs__new-item-pid {
+  flex-shrink: 0;
+  color: var(--yohu-fg-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.yohu-logs__new-empty,
 .yohu-logs__new-hint,
 .yohu-logs__new-error {
   margin: 0;
+  padding: var(--yohu-space-md);
   font-size: var(--yohu-font-caption);
 }
 
+.yohu-logs__new-empty,
 .yohu-logs__new-hint {
   color: var(--yohu-fg-2);
 }
 
+.yohu-logs__new-hint,
+.yohu-logs__new-error {
+  padding: 0;
+}
+
 .yohu-logs__new-error {
   color: var(--yohu-error);
+}
+
+.yohu-logs__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--yohu-space-sm);
 }

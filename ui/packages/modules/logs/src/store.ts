@@ -1,22 +1,27 @@
 /**
  * 日志模块门面：工作区 + 采集客户端。只依赖 @yohu/api。
- * 设备焦点由 View 经 bindSerial 注入；会话/过滤/可见区在消费端（ADR-v6-006）。
+ * 焦点由 View 经 bindSerial 注入默认设备；窗口/过滤/可见区在消费端（ADR-v6-006）。
  */
 
 import { createStore } from "solid-js/store";
 import type { ProcessEntry } from "@yohu/api";
 
 import { createCapture } from "./capture";
-import { RingMirror } from "./pipeline";
+import { MirrorBank } from "./pipeline";
 import { createWorkspace, type LogSessionState, type LogUiState } from "./workspace";
 
 export type { ExportWriteMode } from "./capture";
 export type { LogSessionState } from "./workspace";
+export { SYSTEM_SESSION_TITLE } from "./workspace";
 
 export function createLogStore() {
   const [state, setState] = createStore<LogUiState>({
     serial: null,
     capturing: false,
+    generation: 0,
+    generations: {},
+    startPending: false,
+    startPendingId: null,
     overflowed: false,
     sessions: [] as LogSessionState[],
     activeSessionId: null,
@@ -25,13 +30,16 @@ export function createLogStore() {
     bufferCapacity: 10_000,
   });
 
-  const mirror = new RingMirror(10_000);
-  const workspace = createWorkspace(state, setState, mirror);
-  const capture = createCapture(state, setState, mirror, workspace);
+  const mirrors = new MirrorBank(10_000);
+  const workspace = createWorkspace(state, setState, mirrors);
+  const capture = createCapture(state, setState, mirrors, workspace);
 
   return {
     state,
-    mirror,
+    mirrors,
+    get mirror() {
+      return mirrors.of(state.serial ?? "");
+    },
     ...workspace,
     ...capture,
   };

@@ -247,3 +247,30 @@ export class RingMirror {
     }
   }
 }
+
+/** 按设备分桶的环形镜像，禁止串设备。 */
+export class MirrorBank {
+  private readonly maps = new Map<string, RingMirror>();
+
+  constructor(private capacity: number) {}
+
+  of(serial: string): RingMirror {
+    let mirror = this.maps.get(serial);
+    if (!mirror) {
+      mirror = new RingMirror(this.capacity);
+      this.maps.set(serial, mirror);
+    }
+    return mirror;
+  }
+
+  clear(serial: string): void {
+    this.maps.get(serial)?.clear();
+  }
+
+  setCapacity(capacity: number): void {
+    this.capacity = Math.max(1, capacity);
+    for (const mirror of this.maps.values()) {
+      mirror.setCapacity(this.capacity);
+    }
+  }
+}
