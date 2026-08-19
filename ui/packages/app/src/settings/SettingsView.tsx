@@ -30,8 +30,8 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
 ];
 
 const DENSITY_OPTIONS: { value: Density; label: string }[] = [
-  { value: "compact", label: "紧凑（默认）" },
-  { value: "comfortable", label: "舒适" },
+  { value: "comfortable", label: "舒适（默认）" },
+  { value: "compact", label: "紧凑" },
 ];
 
 const EXPORT_MODE_OPTIONS = [

@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   display_limit: 2000,
   clear_device_on_start: true,
   theme: "system",
-  density: "compact",
+  density: "comfortable",
   export_default_path: "",
   export_ask_every_time: true,
   export_write_mode: "overwrite",

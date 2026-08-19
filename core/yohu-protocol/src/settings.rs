@@ -12,12 +12,12 @@ pub enum Theme {
     System,
 }
 
-/// 界面密度（UI设计系统-v6.md §2.3；立即生效）。
+/// 界面密度（UI设计系统-v6.md §2.3；立即生效）。新安装默认 Comfortable（鸿蒙 PC）。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Density {
-    #[default]
     Compact,
+    #[default]
     Comfortable,
 }
 
@@ -54,7 +54,7 @@ pub struct AppSettings {
     #[serde(default)]
     pub theme: Theme,
     /// 界面密度（compact/comfortable；立即生效）
-    #[serde(default)]
+    #[serde(default = "legacy_density")]
     pub density: Density,
     /// 日志导出默认目录；空 = 应用 exports 目录
     #[serde(default)]
@@ -80,6 +80,11 @@ fn default_export_ask() -> bool {
     true
 }
 
+/// 旧设置文件缺 density 字段时保持 compact，避免行为漂移。
+fn legacy_density() -> Density {
+    Density::Compact
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -90,7 +95,7 @@ impl Default for AppSettings {
             display_limit: default_display_limit(),
             clear_device_on_start: default_clear_device(),
             theme: Theme::System,
-            density: Density::Compact,
+            density: Density::Comfortable,
             export_default_path: String::new(),
             export_ask_every_time: default_export_ask(),
             export_write_mode: ExportWriteMode::Overwrite,
@@ -139,10 +144,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn defaults_are_compact_system_and_sane() {
+    fn defaults_are_comfortable_system_and_sane() {
         let s = AppSettings::default();
         assert_eq!(s.theme, Theme::System);
-        assert_eq!(s.density, Density::Compact);
+        assert_eq!(s.density, Density::Comfortable);
         assert_eq!(s.buffer_capacity, 10_000);
         assert_eq!(s.display_limit, 2_000);
         assert!(s.clear_device_on_start);

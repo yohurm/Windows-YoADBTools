@@ -9,7 +9,7 @@
   height: 100%;
   overflow: auto;
   min-height: 0;
-  padding-right: var(--yohu-space-sm);
+  padding-inline: var(--yohu-layout-page-margin);
   box-sizing: border-box;
 }
 

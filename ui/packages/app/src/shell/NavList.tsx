@@ -1,6 +1,6 @@
 /**
  * 模块导航（UI设计系统-v6.md §3）：来自注册表的模块列表（含 Planned「开发中」徽章）。
- * 激活项 = `.yohu-interactive--selected` + accent 文字；图标走 token。
+ * 激活项 = `.yohu-interactive--selected`（全表面同一配方）；图标走 token。
  * 键盘：roving tabindex（激活项 0）+ Enter/Space 导航 + aria-current。
  */
 
@@ -33,7 +33,6 @@ export const NavList: Component<{ activeId: string; onNavigate: (id: string) => 
                   type="button"
                   class="yohu-nav__item yohu-interactive yohu-focus-ring--inset"
                   classList={{
-                    "yohu-nav__item--active": active(),
                     "yohu-interactive--selected": active(),
                   }}
                   tabIndex={active() ? 0 : -1}

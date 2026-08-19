@@ -44,6 +44,7 @@ vi.mock("@yohu/api", () => {
     filesMkdir: notConfigured,
     logCaptureStart: notConfigured,
     logCaptureStop: notConfigured,
+    logCaptureStatus: notConfigured,
     logClear: notConfigured,
     logClearDevice: notConfigured,
     logReplay: notConfigured,
@@ -128,7 +129,7 @@ const DEFAULT_SETTINGS = {
   display_limit: 2000,
   clear_device_on_start: true,
   theme: "light",
-  density: "compact",
+  density: "comfortable",
   export_default_path: "",
   export_ask_every_time: true,
   export_write_mode: "overwrite",
@@ -171,6 +172,8 @@ describe("DeviceRail（§3 设备卡片）", () => {
     expect(items[0]?.getAttribute("tabindex")).toBe("0");
     expect(items[1]?.getAttribute("tabindex")).toBe("-1");
     expect(container.querySelector(".yohu-device-rail__list")?.getAttribute("role")).toBe("listbox");
+    expect(items[0]?.classList.contains("yohu-interactive--selected")).toBe(true);
+    expect(items[0]?.classList.contains("yohu-device-rail__item--active")).toBe(false);
   });
 
   it("点击与 Enter 键切换焦点设备（roving tabindex 跟随）", async () => {
@@ -209,6 +212,8 @@ describe("NavList（§3 模块导航）", () => {
     const { container } = render(() => <NavList activeId="adb-terminal" onNavigate={onNavigate} />);
     const active = container.querySelector('[aria-current="page"]');
     expect(active).toBeTruthy();
+    expect(active?.classList.contains("yohu-interactive--selected")).toBe(true);
+    expect(active?.classList.contains("yohu-nav__item--active")).toBe(false);
     expect(active?.getAttribute("tabindex")).toBe("0");
     const settingsItem = Array.from(container.querySelectorAll(".yohu-nav__item")).find((el) =>
       el.textContent?.includes("设置"),
@@ -280,13 +285,13 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
 
   it("密度切换：保存到 core 并应用到 documentElement", async () => {
     render(() => <SettingsView />);
-    fireEvent.click(screen.getByRole("button", { name: "紧凑（默认）" }));
-    fireEvent.click(screen.getByText("舒适"));
+    fireEvent.click(screen.getByRole("button", { name: "舒适（默认）" }));
+    fireEvent.click(screen.getByText("紧凑"));
     await waitFor(() => {
-      expect(mocks.settingsSet).toHaveBeenCalledWith("density", "comfortable");
+      expect(mocks.settingsSet).toHaveBeenCalledWith("density", "compact");
     });
     await waitFor(() => {
-      expect(document.documentElement.getAttribute("data-density")).toBe("comfortable");
+      expect(document.documentElement.getAttribute("data-density")).toBe("compact");
     });
   });
 

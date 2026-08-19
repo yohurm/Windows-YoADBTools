@@ -1,7 +1,7 @@
 /**
  * 设备栏（UI设计系统-v6.md §3）：卡片式设备列表。
  * 设备卡片：在线点 + 型号一行 + serial 等宽一行 + 未授权徽章；
- * 选中 = `.yohu-interactive--selected`（accent-soft 片）+ stroke-accent 左边条；空态引导 + 错误明细 + 重试。
+ * 选中 = `.yohu-interactive--selected`（全表面同一配方）；空态引导 + 错误明细 + 重试。
  * 键盘：roving tabindex（选中行 0）+ Enter/Space 选择，role=listbox/option。
  */
 
@@ -66,7 +66,6 @@ export const DeviceRail: Component = () => {
                 <li
                   class="yohu-device-rail__item yohu-interactive yohu-focus-ring"
                   classList={{
-                    "yohu-device-rail__item--active": active(),
                     "yohu-interactive--selected": active(),
                   }}
                   role="option"

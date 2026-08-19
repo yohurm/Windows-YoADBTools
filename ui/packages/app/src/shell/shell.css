@@ -63,7 +63,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--yohu-space-sm);
-  padding: var(--yohu-space-sm);
+  padding: var(--yohu-layout-rail-inset);
   border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   flex: 0 1 auto;
   max-height: 42%;
@@ -105,21 +105,13 @@
   align-items: center;
   gap: var(--yohu-space-sm);
   min-height: var(--yohu-row-height-device);
+  width: 100%;
   padding: var(--yohu-space-xs) var(--yohu-space-sm);
-  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
-  border-left: var(--yohu-stroke-accent) solid transparent;
+  border: none;
   border-radius: var(--yohu-radius-sm);
-  background: var(--yohu-surface);
+  background: transparent;
   cursor: pointer;
   box-sizing: border-box;
-}
-
-.yohu-device-rail__item:hover {
-  border-color: var(--yohu-border-strong);
-}
-
-.yohu-device-rail__item--active {
-  border-left-color: var(--yohu-accent);
 }
 
 .yohu-device-rail__dot {
@@ -190,7 +182,7 @@
 .yohu-nav {
   flex: 1;
   overflow: auto;
-  padding: var(--yohu-space-sm) var(--yohu-space-md);
+  padding: var(--yohu-layout-rail-inset);
 }
 
 .yohu-nav__caption {
@@ -226,8 +218,7 @@
   text-align: left;
 }
 
-.yohu-nav__item--active {
-  color: var(--yohu-accent);
+.yohu-nav__item.yohu-interactive--selected {
   font-weight: var(--yohu-font-weight-semibold);
 }
 
@@ -249,11 +240,12 @@
 .yohu-nav__planned {
   margin-left: auto;
   font-size: var(--yohu-font-caption);
-  background: var(--yohu-offline);
-  color: var(--yohu-surface);
+  background: var(--yohu-surface-2);
+  color: var(--yohu-fg-2);
   padding: var(--yohu-stroke-hairline) var(--yohu-space-xs);
   border-radius: var(--yohu-radius-sm);
 }
+
 
 /* ===== 状态栏（§3：左版本 · 中留白 · 右设备/任务） ===== */
 
