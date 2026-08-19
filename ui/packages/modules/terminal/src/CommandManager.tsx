@@ -211,7 +211,6 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
                 <li
                   class="yohu-cm__item yohu-interactive"
                   classList={{
-                    "yohu-cm__item--active": group.id === selectedGroupId(),
                     "yohu-interactive--selected": group.id === selectedGroupId(),
                   }}
                   onClick={() => {
@@ -239,7 +238,6 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
                 <li
                   class="yohu-cm__item yohu-interactive"
                   classList={{
-                    "yohu-cm__item--active": command.id === selectedCommandId(),
                     "yohu-interactive--selected": command.id === selectedCommandId(),
                   }}
                   onClick={() => setSelectedCommandId(command.id)}

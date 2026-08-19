@@ -62,10 +62,6 @@
   font-size: var(--yohu-font-body);
 }
 
-.yohu-cm__item--active {
-  color: var(--yohu-accent);
-}
-
 .yohu-cm__item-name {
   min-width: 0;
   overflow: hidden;
