@@ -6,7 +6,7 @@
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 
 import { deviceList, type DeviceInfo } from "@yohu/api";
-import { Icon, YoButton, YoCheckbox, YoDialog, YoTextField } from "@yohu/ui";
+import { Icon, YoButton, YoCheckbox, YoDialog, YoSegmentedButton, YoTextField } from "@yohu/ui";
 
 import type { SessionScope } from "./pipeline";
 import { logStore } from "./store";
@@ -186,20 +186,18 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
           </Show>
         </div>
 
-        <div class="yohu-logs__new-row">
-          <span class="yohu-logs__label">划分</span>
-          <div class="yohu-logs__new-seg" role="radiogroup" aria-label="划分方式">
-            <YoButton
-              size="sm"
-              variant={mode() === "package" ? "primary" : "secondary"}
-              onClick={() => switchMode("package")}
-            >
-              包名
-            </YoButton>
-            <YoButton size="sm" variant={mode() === "pid" ? "primary" : "secondary"} onClick={() => switchMode("pid")}>
-              PID
-            </YoButton>
-          </div>
+        <div class="yohu-logs__new-seg">
+          <YoSegmentedButton
+            ariaLabel="划分方式"
+            value={mode()}
+            items={[
+              { value: "package", label: "包名" },
+              { value: "pid", label: "PID" },
+            ]}
+            onChange={(value) => {
+              if (value === "package" || value === "pid") switchMode(value);
+            }}
+          />
         </div>
 
         <div class="yohu-logs__new-search">

@@ -269,11 +269,14 @@
   color: var(--yohu-fg-2);
 }
 
-.yohu-logs__new-chips,
-.yohu-logs__new-seg {
+.yohu-logs__new-chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--yohu-space-xs);
+  min-width: 0;
+}
+
+.yohu-logs__new-seg {
   min-width: 0;
 }
 
