@@ -56,12 +56,30 @@ pub fn level_rank(level: char) -> u8 {
     }
 }
 
-/// 采集状态。
+/// 采集状态（wire 上必须带 `generation`，见 [`crate::AppEvent::CaptureState`]）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CaptureState {
     Running,
     Stopped,
+}
+
+/// `log.capture.start` 返回：新流或 adopt 已有 Live 流。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CaptureStart {
+    pub serial: String,
+    pub generation: u64,
+    pub adopted: bool,
+}
+
+/// `log.capture.status`：UI 对账用。`capturing` = Starting | Live（Stopping 视为未采集）。
+/// Empty 时 `generation` 为该 serial **最后一次槽位世代**（从未采过为 0），不是永远 0。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CaptureStatus {
+    pub serial: String,
+    pub capturing: bool,
+    pub generation: u64,
+    pub last_seq: u64,
 }
 
 /// 进程索引条目（`ps -A -o PID,NAME`）。
@@ -206,5 +224,24 @@ mod tests {
     fn raw_text_roundtrip_shape() {
         let l = line('E', 1234, "AndroidRuntime", "FATAL EXCEPTION");
         assert_eq!(l.raw_text(), "01-01 00:00:00.000  1234     1 E AndroidRuntime: FATAL EXCEPTION");
+    }
+
+    #[test]
+    fn capture_start_status_snake_case() {
+        let start = CaptureStart { serial: "s1".into(), generation: 2, adopted: true };
+        let v = serde_json::to_value(&start).unwrap();
+        assert_eq!(v["serial"], "s1");
+        assert_eq!(v["generation"], 2);
+        assert_eq!(v["adopted"], true);
+
+        let status = CaptureStatus {
+            serial: "s1".into(),
+            capturing: true,
+            generation: 2,
+            last_seq: 9,
+        };
+        let s = serde_json::to_value(&status).unwrap();
+        assert_eq!(s["last_seq"], 9);
+        assert_eq!(s["capturing"], true);
     }
 }

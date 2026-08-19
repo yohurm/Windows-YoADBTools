@@ -167,6 +167,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::files::files_create,
             commands::log::log_capture_start,
             commands::log::log_capture_stop,
+            commands::log::log_capture_status,
             commands::log::log_clear,
             commands::log::log_clear_device,
             commands::log::log_replay,

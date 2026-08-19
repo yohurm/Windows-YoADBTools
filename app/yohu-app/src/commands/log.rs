@@ -6,34 +6,37 @@ use crate::commands::{ipc, ipc_code};
 use crate::state::AppState;
 use yohu_logsrv::LogError;
 use yohu_protocol::{
-    ExportRequest, ExportResult, IpcError, IpcErrorCode, LogBatch, ProcessEntry, ReplayRequest,
+    CaptureStart, CaptureStatus, ExportRequest, ExportResult, IpcError, IpcErrorCode, LogBatch,
+    ProcessEntry, ReplayRequest,
 };
 
 #[tauri::command(rename = "log.capture.start")]
-pub async fn log_capture_start(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
+pub async fn log_capture_start(
+    state: State<'_, AppState>,
+    serial: String,
+) -> Result<CaptureStart, IpcError> {
     let snap = state.settings.snapshot();
     state.capture.set_ring_capacity(snap.buffer_capacity);
     let clear = snap.clear_device_on_start;
-    match state.capture.start(&serial, clear).await {
-        Ok(()) => {}
-        Err(LogError::AlreadyRunning) => {
-            return Err(ipc_code(IpcErrorCode::AlreadyRunning, "该设备已在采集中"));
-        }
+    let result = match state.capture.start(&serial, clear).await {
+        Ok(result) => result,
         Err(LogError::Cancelled) => {
             return Err(ipc_code(IpcErrorCode::Cancelled, "采集已取消"));
         }
         Err(e) => return Err(ipc(e)),
-    }
+    };
 
-    let task_id = state
-        .tasks
-        .register(format!("logcat 采集: {serial}"), format!("设备 {serial}"));
-    state
-        .capture_tasks
-        .lock()
-        .expect("capture lock poisoned")
-        .insert(serial, task_id);
-    Ok(())
+    if !result.adopted {
+        let task_id = state
+            .tasks
+            .register(format!("logcat 采集: {serial}"), format!("设备 {serial}"));
+        state
+            .capture_tasks
+            .lock()
+            .expect("capture lock poisoned")
+            .insert(serial, task_id);
+    }
+    Ok(result)
 }
 
 #[tauri::command(rename = "log.capture.stop")]
@@ -41,6 +44,11 @@ pub async fn log_capture_stop(state: State<'_, AppState>, serial: String) -> Res
     state.capture.stop(&serial).await;
     state.finish_capture_task(&serial);
     Ok(())
+}
+
+#[tauri::command(rename = "log.capture.status")]
+pub fn log_capture_status(state: State<'_, AppState>, serial: String) -> CaptureStatus {
+    state.capture.status(&serial)
 }
 
 #[tauri::command(rename = "log.clear")]

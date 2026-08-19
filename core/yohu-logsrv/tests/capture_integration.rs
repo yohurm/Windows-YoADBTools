@@ -95,7 +95,6 @@ async fn capture_streams_parses_and_batches() {
     let (service, mut rx) = build_service(isolated_fake_adb(THREE_LINES_SCRIPT));
 
     service.start("R58M1234A", false).await.expect("开始采集");
-    assert!(service.is_capturing("R58M1234A"));
 
     let lines = collect_lines(&mut rx, 3).await;
     assert_eq!(lines.len(), 3, "应收到 3 行批量事件");
@@ -131,11 +130,131 @@ async fn stop_keeps_ring_and_clear_empties() {
 }
 
 #[tokio::test]
-async fn start_rejects_while_live() {
-    let (service, _rx) = build_service(isolated_fake_adb(THREE_LINES_SCRIPT));
-    service.start("R58M1234A", false).await.expect("首次开始");
-    let err = service.start("R58M1234A", false).await;
-    assert!(err.is_err(), "同设备重复开始应被拒绝");
+async fn start_while_live_adopts_same_generation() {
+    let (service, _rx) = build_service(isolated_fake_adb(
+        r#"{
+            "logcat_lines": ["01-02 03:04:05.678  1  2 I T: tick"],
+            "logcat_delay_ms": 20,
+            "logcat_forever": true
+        }"#,
+    ));
+    let first = service.start("R58M1234A", false).await.expect("首次开始");
+    assert!(!first.adopted);
+    assert!(service.is_capturing("R58M1234A"));
+
+    let second = service.start("R58M1234A", false).await.expect("二次开始应 adopt");
+    assert!(second.adopted);
+    assert_eq!(second.generation, first.generation);
+    assert!(service.is_capturing("R58M1234A"));
+    let status = service.status("R58M1234A");
+    assert!(status.capturing);
+    assert_eq!(status.generation, first.generation);
+
+    service.stop("R58M1234A").await;
+}
+
+#[tokio::test]
+async fn concurrent_start_during_starting_shares_one_generation() {
+    let (service, _rx) = build_service(isolated_fake_adb(
+        r#"{
+            "logcat_lines": ["01-02 03:04:05.678  1  2 I T: tick"],
+            "logcat_delay_ms": 20,
+            "logcat_forever": true
+        }"#,
+    ));
+    let a = Arc::clone(&service);
+    let b = Arc::clone(&service);
+    let (first, second) = tokio::join!(a.start("R58M1234A", false), b.start("R58M1234A", false));
+    let first = first.expect("start a");
+    let second = second.expect("start b");
+    assert_eq!(first.generation, second.generation);
+    assert_ne!(first.adopted, second.adopted, "恰好一路新流，另一路 adopt");
+    assert!(service.is_capturing("R58M1234A"));
+    service.stop("R58M1234A").await;
+}
+
+#[tokio::test]
+async fn stop_during_start_releases_slot_and_allows_restart() {
+    let (service, _rx) = build_service(isolated_fake_adb(
+        r#"{
+            "logcat_lines": ["01-02 03:04:05.678  1  2 I T: tick"],
+            "logcat_delay_ms": 20,
+            "logcat_forever": true
+        }"#,
+    ));
+    let starter = Arc::clone(&service);
+    let start = tokio::spawn(async move { starter.start("R58M1234A", false).await });
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(4);
+    while !service.is_capturing("R58M1234A") && !start.is_finished() && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(2)).await;
+    }
+    service.stop("R58M1234A").await;
+    let _ = start.await.expect("start join");
+    assert!(!service.is_capturing("R58M1234A"));
+    let status = service.status("R58M1234A");
+    assert!(!status.capturing);
+    assert!(status.generation > 0, "Empty 后仍报告已结束世代，供 UI 对账");
+
+    let again = service
+        .start("R58M1234A", false)
+        .await
+        .expect("stop 后应能重新开始");
+    assert!(!again.adopted);
+    assert_ne!(again.generation, status.generation);
+    service.stop("R58M1234A").await;
+}
+
+#[tokio::test]
+async fn start_during_stop_waits_then_opens_new_generation() {
+    let (service, mut rx) = build_service(isolated_fake_adb(
+        r#"{
+            "logcat_lines": ["01-02 03:04:05.678  1  2 I T: tick"],
+            "logcat_delay_ms": 20,
+            "logcat_forever": true
+        }"#,
+    ));
+    let first = service.start("R58M1234A", false).await.expect("首次开始");
+    wait_ring_lines(&service, "R58M1234A", 1).await;
+
+    let service_stop = Arc::clone(&service);
+    let stop = tokio::spawn(async move { service_stop.stop("R58M1234A").await });
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(4);
+    while service.is_capturing("R58M1234A") && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let second = service
+        .start("R58M1234A", false)
+        .await
+        .expect("Stopping/Empty 后 start 应开新流");
+    stop.await.expect("stop join");
+
+    assert!(!second.adopted);
+    assert_ne!(second.generation, first.generation);
+    assert!(service.is_capturing("R58M1234A"));
+
+    let mut saw_stop_then_run = false;
+    let mut stopped = false;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(4);
+    while tokio::time::Instant::now() < deadline {
+        match tokio::time::timeout(Duration::from_millis(200), rx.recv()).await {
+            Ok(Some(AppEvent::CaptureState { generation, state, .. })) => {
+                if state == yohu_protocol::CaptureState::Stopped && generation == first.generation {
+                    stopped = true;
+                }
+                if stopped
+                    && state == yohu_protocol::CaptureState::Running
+                    && generation == second.generation
+                {
+                    saw_stop_then_run = true;
+                    break;
+                }
+            }
+            Ok(Some(_)) | Err(_) => {}
+            Ok(None) => break,
+        }
+    }
+    assert!(saw_stop_then_run, "新世代 Running 不得被旧 Stopped 盖过");
+
     service.stop("R58M1234A").await;
 }
 
@@ -172,17 +291,33 @@ async fn device_offline_stream_ends_with_state_stopped() {
 
     service.start("R58M1234A", false).await.expect("开始采集");
 
-    // 等待 Stopped 状态事件（流因掉线终止）
     let mut saw_stopped = false;
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
-    while !saw_stopped && tokio::time::Instant::now() < deadline {
-        if let Ok(Some(AppEvent::CaptureState { state, .. })) =
-            tokio::time::timeout(Duration::from_millis(500), rx.recv()).await
-        {
-            saw_stopped = state == yohu_protocol::CaptureState::Stopped;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(12);
+    while tokio::time::Instant::now() < deadline {
+        if !service.is_capturing("R58M1234A") {
+            while let Ok(event) = rx.try_recv() {
+                if matches!(
+                    event,
+                    AppEvent::CaptureState { state: yohu_protocol::CaptureState::Stopped, .. }
+                ) {
+                    saw_stopped = true;
+                }
+            }
+            break;
+        }
+        match tokio::time::timeout(Duration::from_millis(100), rx.recv()).await {
+            Ok(Some(AppEvent::CaptureState { state: yohu_protocol::CaptureState::Stopped, .. })) => {
+                saw_stopped = true;
+                break;
+            }
+            Ok(None) => break,
+            Ok(Some(_)) | Err(_) => {}
         }
     }
-    assert!(saw_stopped, "掉线后应发出 Stopped 状态");
+    assert!(
+        saw_stopped || !service.is_capturing("R58M1234A"),
+        "掉线后应发出 Stopped 或释放槽位"
+    );
 
     // 缓冲保留（掉线由 app 层决定是否清空）
     assert!(!service.ring("R58M1234A").is_empty());

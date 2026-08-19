@@ -52,6 +52,7 @@ pub enum AppEvent {
     ProcessIndex(ProcessIndexSnapshot),
     CaptureState {
         serial: String,
+        generation: u64,
         state: CaptureState,
     },
     TransferProgress(TransferProgress),
@@ -122,5 +123,19 @@ mod tests {
         assert_eq!(v["kind"], "logBatch");
         assert_eq!(v["batch"]["serial"], "s1");
         assert_eq!(v["batch"]["from_seq"], 1);
+    }
+
+    #[test]
+    fn capture_state_event_includes_generation() {
+        let event = AppEvent::CaptureState {
+            serial: "s1".into(),
+            generation: 3,
+            state: CaptureState::Running,
+        };
+        let v = serde_json::to_value(&event).expect("serialize");
+        assert_eq!(v["kind"], "captureState");
+        assert_eq!(v["serial"], "s1");
+        assert_eq!(v["generation"], 3);
+        assert_eq!(v["state"], "running");
     }
 }

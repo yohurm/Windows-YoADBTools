@@ -64,6 +64,21 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
     expect(JSON.stringify(entry)).toContain('"kind":"dir"');
   });
 
+  it("captureState 事件含 generation", () => {
+    const event: AppEvent = {
+      kind: "captureState",
+      serial: "s1",
+      generation: 3,
+      state: "running",
+    };
+    expect(JSON.parse(JSON.stringify(event))).toEqual({
+      kind: "captureState",
+      serial: "s1",
+      generation: 3,
+      state: "running",
+    });
+  });
+
   it("AppEvent 内部 tag 为 camelCase kind", () => {
     const event: AppEvent = {
       kind: "logOverflow",

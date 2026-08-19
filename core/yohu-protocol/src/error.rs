@@ -11,7 +11,6 @@ pub enum IpcErrorCode {
     Unauthorized,
     AdbError,
     NotFound,
-    AlreadyRunning,
     Cancelled,
     Internal,
 }

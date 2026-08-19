@@ -43,6 +43,19 @@ export interface LogBatch {
 
 export type CaptureState = "running" | "stopped";
 
+export interface CaptureStart {
+  serial: string;
+  generation: number;
+  adopted: boolean;
+}
+
+export interface CaptureStatus {
+  serial: string;
+  capturing: boolean;
+  generation: number;
+  last_seq: number;
+}
+
 export interface ProcessEntry {
   pid: number;
   name: string;
@@ -230,7 +243,7 @@ export type AppEvent =
   | { kind: "logBatch"; batch: LogBatch }
   | { kind: "logOverflow"; serial: string; dropped_batches: number }
   | { kind: "processIndex"; serial: string; entries: ProcessEntry[]; degraded: boolean }
-  | { kind: "captureState"; serial: string; state: CaptureState }
+  | { kind: "captureState"; serial: string; generation: number; state: CaptureState }
   | { kind: "transferProgress" } & TransferProgress
   | { kind: "groupProgress" } & GroupProgress
   | { kind: "taskSummary"; tasks: TaskInfo[] }
@@ -258,7 +271,6 @@ export type IpcErrorCode =
   | "unauthorized"
   | "adb_error"
   | "not_found"
-  | "already_running"
   | "cancelled"
   | "internal";
 

@@ -11,6 +11,8 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   AdbExecRequest,
   AppSettings,
+  CaptureStart,
+  CaptureStatus,
   CommandDto,
   CommandLibraryDto,
   DeviceInfo,
@@ -83,10 +85,13 @@ export const filesCreate = (req: PathOpRequest) => invoke<void>("files.create", 
 // ===== log =====
 
 export const logCaptureStart = (serial: string) =>
-  invoke<void>("log.capture.start", { serial });
+  invoke<CaptureStart>("log.capture.start", { serial });
 
 export const logCaptureStop = (serial: string) =>
   invoke<void>("log.capture.stop", { serial });
+
+export const logCaptureStatus = (serial: string) =>
+  invoke<CaptureStatus>("log.capture.status", { serial });
 
 export const logClear = (serial: string) => invoke<void>("log.clear", { serial });
 
