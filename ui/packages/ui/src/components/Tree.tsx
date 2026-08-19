@@ -11,6 +11,7 @@
 import { For, createMemo, createSignal } from "solid-js";
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
+import { YoBadge } from "./Badge";
 import "./Tree.css";
 
 export interface TreeNode<T = unknown> {
@@ -167,7 +168,6 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
               data-tree-key={node.key}
               class="yohu-tree__row yohu-interactive yohu-focus-ring--inset"
               classList={{
-                "yohu-tree__row--selected": selected() === node.key,
                 "yohu-interactive--selected": selected() === node.key,
               }}
               role="treeitem"
@@ -205,7 +205,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
               <span class="yohu-tree__label" title={node.title}>
                 {node.label}
               </span>
-              {node.badge ? <span class="yohu-tree__badge">{node.badge}</span> : null}
+              {node.badge ? <YoBadge text={node.badge} /> : null}
             </div>
           );
         }}

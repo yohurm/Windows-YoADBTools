@@ -11,8 +11,8 @@
 .yohu-dialog__backdrop {
   position: absolute;
   inset: 0;
-  /* Accent 低透明度遮罩：由强调色派生，避免硬编码色值 */
-  background-color: color-mix(in srgb, var(--yohu-accent) 24%, transparent);
+  /* 电脑弹出框不强遮罩：中性 10%（font_primary 叠透明） */
+  background-color: color-mix(in srgb, var(--yohu-fg) 10%, transparent);
   animation: yohu-fade-in var(--yohu-dur-normal) var(--yohu-ease-standard);
 }
 
@@ -20,16 +20,23 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  max-width: calc(100% - var(--yohu-space-lg) * 2);
-  max-height: calc(100% - var(--yohu-space-xl) * 2);
-  min-height: 0;
+  width: min(var(--yohu-layout-dialog-max), calc(100% - var(--yohu-space-3xl) * 2));
+  min-width: min(var(--yohu-layout-window-min-w), 100%);
+  min-height: min(var(--yohu-layout-window-min-h), 90%);
+  max-width: min(var(--yohu-layout-dialog-max), calc(100% - var(--yohu-space-3xl) * 2));
+  max-height: 90%;
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-radius: var(--yohu-radius-md);
   background-color: var(--yohu-surface);
   color: var(--yohu-fg);
+  box-shadow: var(--yohu-shadow-dialog);
   box-sizing: border-box;
   overflow: hidden;
   animation: yohu-dialog-in var(--yohu-dur-enter) var(--yohu-ease-decel);
+}
+
+.yohu-dialog__panel:not(:focus-within) {
+  box-shadow: var(--yohu-shadow-dialog-unfocused);
 }
 
 @keyframes yohu-fade-in {
@@ -72,7 +79,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--yohu-space-sm);
+  gap: var(--yohu-space-md);
   padding: var(--yohu-space-md) var(--yohu-space-lg);
   border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }

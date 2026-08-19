@@ -1,7 +1,7 @@
 /**
  * 密度 token（UI设计系统-v6.md §2.3）。
- * compact（默认）与 comfortable 成对覆盖控件高 / 行高。
- * CSS 侧由 `[data-density="comfortable"]` 覆盖对应变量。
+ * 默认 comfortable = HarmonyOS PC 尺度；compact 为产线收敛。
+ * CSS 侧由 `[data-density="compact"]` 覆盖对应变量。
  */
 export type DensityName = "compact" | "comfortable";
 

@@ -1,35 +1,36 @@
 /**
- * 排版 token：字号阶梯、字重、字体栈（UI设计系统-v6.md §2.2）。
- * 组件内禁止硬编码字号，一律引用这里的常量或对应 CSS 变量 `--yohu-font-*`。
+ * 排版 token（UI设计系统-v6.md §2.2）。
+ * 默认 = HarmonyOS PC 字号表；compact 为产线收敛覆盖。
+ * 组件内禁止硬编码字号，一律引用 `--yohu-font-*`。
  */
 export const FontSizes = {
-  /** 说明性小字 */
-  Caption: 11,
-  /** 正文 */
-  Body: 12.5,
-  /** 强调正文 */
-  BodyStrong: 13.5,
-  /** 小标题 */
-  Subtitle: 15,
-  /** 页面标题 */
+  /** Caption_L：12vp */
+  Caption: 12,
+  /** Body_L/M/S 电脑统一 14vp */
+  Body: 14,
+  /** 强调正文（同 Body，字重走 Medium/Semibold） */
+  BodyStrong: 14,
+  /** Subtitle_L：16vp */
+  Subtitle: 16,
+  /** Title_S：18vp */
   PageTitle: 18,
 } as const;
 
-/** 字重阶梯 */
-export const FontWeights = {
-  /** 常规 */
-  Regular: 400,
-  /** 半粗 */
-  Semibold: 600,
+/** compact 产线收敛（低于 PC 推荐、不低于 10vp 必须项）。 */
+export const FontSizesCompact = {
+  Caption: 11,
+  Body: 12.5,
+  BodyStrong: 13.5,
+  Subtitle: 15,
+  PageTitle: 18,
 } as const;
 
-/** comfortable 字号：compact 各 +1（§2.2）。 */
-export const FontSizesComfortable = {
-  Caption: FontSizes.Caption + 1,
-  Body: FontSizes.Body + 1,
-  BodyStrong: FontSizes.BodyStrong + 1,
-  Subtitle: FontSizes.Subtitle + 1,
-  PageTitle: FontSizes.PageTitle + 1,
+/** 字重阶梯（鸿蒙 Title Bold / Subtitle Medium）。 */
+export const FontWeights = {
+  Regular: 400,
+  Medium: 500,
+  Semibold: 600,
+  Bold: 700,
 } as const;
 
 export const FontFamilies = {

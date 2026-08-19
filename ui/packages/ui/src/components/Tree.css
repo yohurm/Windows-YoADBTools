@@ -16,10 +16,6 @@
   box-sizing: border-box;
 }
 
-.yohu-tree__row--selected {
-  color: var(--yohu-accent);
-}
-
 .yohu-tree__chevron {
   display: inline-flex;
   align-items: center;
@@ -44,13 +40,4 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.yohu-tree__badge {
-  flex: none;
-  font-size: var(--yohu-font-caption);
-  color: var(--yohu-fg-3);
-  background: var(--yohu-surface-2);
-  border-radius: var(--yohu-radius-sm);
-  padding: 0 var(--yohu-space-xs);
 }

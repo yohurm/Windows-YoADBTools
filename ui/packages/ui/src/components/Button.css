@@ -13,6 +13,7 @@
   white-space: nowrap;
   user-select: none;
   box-sizing: border-box;
+  max-width: var(--yohu-layout-button-max);
   transition:
     background-color var(--yohu-dur-fast) var(--yohu-ease-standard),
     border-color var(--yohu-dur-fast) var(--yohu-ease-standard),
@@ -23,7 +24,7 @@
   cursor: not-allowed;
   background-color: var(--yohu-disabled);
   border-color: transparent;
-  color: var(--yohu-surface);
+  color: var(--yohu-fg-3);
 }
 
 .yohu-button--sm {
@@ -39,7 +40,7 @@
 
 .yohu-button--primary {
   background-color: var(--yohu-accent);
-  color: var(--yohu-surface);
+  color: var(--yohu-fg-on);
 }
 
 .yohu-button--primary:not(:disabled):hover {
@@ -80,7 +81,7 @@
 
 .yohu-button--danger {
   background-color: var(--yohu-error);
-  color: var(--yohu-surface);
+  color: var(--yohu-fg-on);
 }
 
 .yohu-button--danger:not(:disabled):hover {

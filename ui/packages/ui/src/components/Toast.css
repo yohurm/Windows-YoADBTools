@@ -13,7 +13,7 @@
 
 .yohu-toast {
   pointer-events: auto;
-  max-width: calc(var(--yohu-space-xl) * 14);
+  max-width: var(--yohu-layout-dialog-max);
   padding: var(--yohu-space-sm) var(--yohu-space-md);
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-left: var(--yohu-stroke-emphasis) solid var(--yohu-accent);

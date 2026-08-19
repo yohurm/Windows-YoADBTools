@@ -31,4 +31,14 @@ describe("yohu-interactive 叠层契约", () => {
     const block = statesCss.match(/\.yohu-interactive > \*\s*\{[^}]+\}/);
     expect(block?.[0]).toMatch(/z-index:\s*1/);
   });
+
+  it("选中字色走 --yohu-state-selected-fg，禁止表面另写 accent 字", () => {
+    expect(statesCss).toContain("color: var(--yohu-state-selected-fg)");
+    expect(statesCss).toContain("background: var(--yohu-state-selected)");
+  });
+
+  it("语义色逃生：yohu-badge / yohu-tone 不吃选中字色", () => {
+    expect(statesCss).toContain(".yohu-badge");
+    expect(statesCss).toContain(".yohu-tone");
+  });
 });

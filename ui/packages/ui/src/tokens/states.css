@@ -1,7 +1,7 @@
 /* ============================================================================
  * 交互态单源（UI设计系统-v6.md §2.7）
- * 列表 / 树 / 菜单 / 导航 / 命令管理 只加 class，禁止再写选中底或裸圆角。
- * 子树可覆盖 --yohu-ripple-radius / --yohu-ripple-inset，不得另起配方。
+ * 列表 / 树 / 菜单 / 导航 / 命令库 / 命令管理 只加 .yohu-interactive--selected，禁止再写选中底或选中字色。
+ * 语义色逃生：.yohu-badge / .yohu-tone。子树可覆盖 --yohu-ripple-radius / --yohu-ripple-inset，不得另起配方。
  * ========================================================================== */
 
 .yohu-interactive {
@@ -38,9 +38,29 @@
   opacity: 1;
 }
 
-.yohu-interactive--selected::before {
+.yohu-interactive--selected {
+  /* 宿主自绘底会盖住 z-index:-1 的选中片（芯片/信号行）。 */
+  background-color: transparent;
+  color: var(--yohu-state-selected-fg);
+}
+
+.yohu-interactive--selected *:not(.yohu-badge):not(.yohu-badge *):not(.yohu-tone):not(.yohu-tone *) {
+  color: var(--yohu-state-selected-fg);
+}
+
+.yohu-interactive--selected::before,
+.yohu-interactive--selected:hover:not(:disabled):not([aria-disabled="true"])::before,
+.yohu-interactive--selected.yohu-interactive--active::before {
   background: var(--yohu-state-selected);
   opacity: 1;
+}
+
+.yohu-interactive--selected:hover:not(:disabled):not([aria-disabled="true"])::before {
+  background: var(--yohu-accent-hover);
+}
+
+.yohu-interactive--selected:active:not(:disabled):not([aria-disabled="true"])::before {
+  background: var(--yohu-accent-pressed);
 }
 
 .yohu-focus-ring:focus-visible {

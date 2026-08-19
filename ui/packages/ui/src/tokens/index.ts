@@ -101,10 +101,10 @@ export function setDensity(density: DensityName): void {
   }
 }
 
-/** 读取当前密度；未显式设置时视为 compact。 */
+/** 读取当前密度；未显式设置时视为 comfortable（鸿蒙 PC 默认）。 */
 export function getDensity(): DensityName {
-  if (typeof document !== "undefined" && document.documentElement.getAttribute("data-density") === "comfortable") {
-    return "comfortable";
+  if (typeof document !== "undefined" && document.documentElement.getAttribute("data-density") === "compact") {
+    return "compact";
   }
-  return "compact";
+  return "comfortable";
 }

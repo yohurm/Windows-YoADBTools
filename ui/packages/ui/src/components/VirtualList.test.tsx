@@ -131,6 +131,7 @@ describe("YoVirtualList", () => {
     await Promise.resolve();
     expect(rows[2]?.getAttribute("aria-selected")).toBe("true");
     expect(rows[2]?.classList.contains("yohu-interactive--selected")).toBe(true);
+    expect(rows[2]?.classList.contains("yohu-virtual-list__row--selected")).toBe(false);
     expect(rows[2]?.getAttribute("tabindex")).toBe("0");
     expect(rows[0]?.getAttribute("tabindex")).toBe("-1");
     expect(rows[0]?.getAttribute("aria-selected")).toBe("false");

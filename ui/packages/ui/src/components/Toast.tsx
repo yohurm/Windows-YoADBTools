@@ -1,10 +1,11 @@
 /**
  * YoToast / YoToaster —— 轻量消息提示。
- * `createToaster()` 工厂返回 `{ toasts, show }`；每条 toast 自动 2.5s 消失。
+ * `createToaster()` 工厂返回 `{ toasts, show }`；每条 toast 自动消失（≤3s，鸿蒙即时反馈上限）。
  * tone 决定左边框颜色：success=Success、error=Error、info=Accent。
  */
 import { For, createSignal } from "solid-js";
 import type { JSX } from "solid-js";
+import { MotionDuration } from "../tokens/motion";
 import "./Toast.css";
 
 /** 消息色调 */
@@ -28,8 +29,18 @@ export interface Toaster {
   show: (text: string, tone?: ToastTone) => void;
 }
 
-/** 单条 toast 自动消失时长（ms） */
-const TOAST_DURATION_MS = 2500;
+function motionToMs(token: string): number {
+  if (token.endsWith("ms")) {
+    return Number.parseFloat(token);
+  }
+  if (token.endsWith("s")) {
+    return Number.parseFloat(token) * 1000;
+  }
+  return Number.parseFloat(token);
+}
+
+/** 单条 toast 自动消失时长（ms），对齐 `--yohu-dur-toast`。 */
+const TOAST_DURATION_MS = motionToMs(MotionDuration.toast);
 
 /**
  * 创建一个 toaster 实例（每个实例独立维护自己的消息列表）。

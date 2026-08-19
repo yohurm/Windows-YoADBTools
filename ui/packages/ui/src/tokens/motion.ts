@@ -1,24 +1,30 @@
 /**
  * 动效 token —— JS 消费侧单一事实源（UI设计系统-v6.md §2.4，HarmonyOS 时长分级）。
- * CSS 组件层通过 var(--yohu-dur-*) / var(--yohu-ease-*) 消费；
- * JS 驱动的过渡/滚动/入场动画通过本模块常量消费。
- * 契约测试（motion.test.ts）强制本模块与 theme.css 完全一致。
+ * CSS 组件层通过 var(--yohu-dur-*) / var(--yohu-ease-*) 消费。
  */
 
-/** 时长分级：fast 100ms → normal 160ms → slow 300ms → enter 350ms；loop 系为循环指示器。 */
+/** 时长分级：100 / 150 / 160 / 200 / 300 / 350 / 400ms；loop 系循环指示；toast 上限 3s。 */
 export const MotionDuration = {
   /** 100ms：hover / 按下反馈 */
   fast: "100ms",
+  /** 150ms：小范围运动（开关图标） */
+  small: "150ms",
   /** 160ms：面板展开 / 下拉 */
   normal: "160ms",
+  /** 200ms：局部运动（删除一行） */
+  local: "200ms",
   /** 300ms：页面级过渡 / 面板进出场 */
   slow: "300ms",
   /** 350ms：大面板入场（Dialog 等） */
   enter: "350ms",
+  /** 400ms：进度条最短感知时长 */
+  progress: "400ms",
   /** 800ms：循环指示器（spinner） */
   loop: "800ms",
   /** 1.2s：不确定进度条扫动 */
   loopSlow: "1.2s",
+  /** 3s：Toast 最长展示 */
+  toast: "3s",
 } as const;
 
 export type MotionDurationName = keyof typeof MotionDuration;

@@ -17,7 +17,7 @@
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-radius: var(--yohu-radius-sm);
   background-color: var(--yohu-surface);
-  color: var(--yohu-surface);
+  color: var(--yohu-fg-on);
   box-sizing: border-box;
   transition:
     background-color var(--yohu-dur-fast) var(--yohu-ease-standard),

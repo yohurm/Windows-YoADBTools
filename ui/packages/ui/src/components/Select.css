@@ -43,7 +43,7 @@
   left: 0;
   right: 0;
   z-index: 10;
-  margin: var(--yohu-space-xs) 0 0;
+  margin: var(--yohu-space-sm) 0 0;
   padding: var(--yohu-space-xs) 0;
   list-style: none;
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);
@@ -54,7 +54,11 @@
 }
 
 .yohu-select__option {
-  padding: var(--yohu-space-xs) var(--yohu-space-sm);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--yohu-control-height);
+  padding: 0 var(--yohu-space-sm);
   font-size: var(--yohu-font-body);
   color: var(--yohu-fg);
   cursor: pointer;
@@ -63,8 +67,10 @@
   text-overflow: ellipsis;
 }
 
-.yohu-select__option--selected {
-  color: var(--yohu-accent);
+.yohu-select__option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .yohu-select--disabled .yohu-select__trigger {

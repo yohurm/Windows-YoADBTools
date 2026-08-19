@@ -65,6 +65,15 @@ describe("YoTree", () => {
     expect(onSelect).toHaveBeenCalledWith("c1", expect.objectContaining({ key: "c1" }));
   });
 
+  it("点击选中只挂 yohu-interactive--selected，不另写选中色 class 配方", () => {
+    render(() => <YoTree data={DATA} />);
+    fireEvent.click(screen.getByText("根2"));
+    const row = document.querySelector('[data-tree-key="root2"]');
+    expect(row?.classList.contains("yohu-interactive--selected")).toBe(true);
+    expect(row?.classList.contains("yohu-tree__row--selected")).toBe(false);
+    expect(row?.getAttribute("aria-selected")).toBe("true");
+  });
+
   it("键盘 ← 未展开时跳到父节点", () => {
     render(() => <YoTree data={DATA} defaultExpandedKeys={["root1"]} />);
     const tree = screen.getByRole("tree");

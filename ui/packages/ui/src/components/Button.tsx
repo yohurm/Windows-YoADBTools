@@ -1,7 +1,7 @@
 /**
  * YoButton —— 通用按钮。
  * variants: primary / secondary / ghost / danger；size: sm / md。
- * primary 使用强调色底 + 白字，hover 加深（AccentHover）。
+ * primary 使用品牌色底 + font_on（--yohu-fg-on），hover 叠 interactive 5%。
  */
 import type { JSX } from "solid-js";
 import "./Button.css";

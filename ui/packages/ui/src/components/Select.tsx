@@ -172,7 +172,6 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
                 id={optionDomId(option.value)}
                 class="yohu-select__option yohu-interactive"
                 classList={{
-                  "yohu-select__option--selected": option.value === props.value,
                   "yohu-interactive--selected": option.value === props.value,
                   "yohu-interactive--active": index() === activeIndex(),
                 }}

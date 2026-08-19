@@ -78,7 +78,7 @@ describe("YoSelect", () => {
     expect(selected.textContent).toBe("全部");
     expect(selected.getAttribute("aria-selected")).toBe("true");
     expect(selected.classList.contains("yohu-interactive--selected")).toBe(true);
-    expect(selected.classList.contains("yohu-select__option--selected")).toBe(true);
+    expect(selected.classList.contains("yohu-select__option--selected")).toBe(false);
     expect(selected.querySelector(".yohu-select__option-label")?.textContent).toBe("全部");
     expect(screen.getByRole("button").getAttribute("aria-activedescendant")).toBe("yohu-option-empty");
   });

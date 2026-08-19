@@ -5,6 +5,7 @@ import { Radius, RadiusShape } from "./radius";
 import { Spacing } from "./spacing";
 import { Density } from "./density";
 import { FocusRing, Layout, Stroke } from "./layout";
+import { Ripple } from "./state";
 
 function loadThemeCss(): string {
   const candidates = [
@@ -42,28 +43,33 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
     expect(cssVarValue("--yohu-radius-pill")).toBe(RadiusShape.Pill);
   });
 
-  it("间距阶梯含 2xs 并与 theme.css 一致", () => {
+  it("间距阶梯含 2xs/2xl/3xl 并与 theme.css 一致", () => {
     expect(cssVarValue("--yohu-space-2xs")).toBe(`${Spacing.TwoXs}px`);
     expect(cssVarValue("--yohu-space-xs")).toBe(`${Spacing.Xs}px`);
+    expect(cssVarValue("--yohu-space-2xl")).toBe(`${Spacing.TwoXl}px`);
+    expect(cssVarValue("--yohu-space-3xl")).toBe(`${Spacing.ThreeXl}px`);
   });
 
   it("ripple / 焦点 / 描边默认几何走 token", () => {
-    expect(cssVarValue("--yohu-ripple-radius")).toBe("var(--yohu-radius-sm)");
-    expect(cssVarValue("--yohu-ripple-inset")).toBe("var(--yohu-space-xs)");
+    expect(cssVarValue("--yohu-ripple-radius")).toBe(Ripple.Radius);
+    expect(cssVarValue("--yohu-ripple-inset")).toBe(Ripple.Inset);
     expect(cssVarValue("--yohu-focus-width")).toBe(`${FocusRing.Width}px`);
     expect(cssVarValue("--yohu-stroke-accent")).toBe(`${Stroke.Accent}px`);
     expect(cssVarValue("--yohu-stroke-emphasis")).toBe(`${Stroke.Emphasis}px`);
   });
 
-  it("密度 compact 行高与 theme.css 默认一致", () => {
-    expect(cssVarValue("--yohu-control-height")).toBe(`${Density.Compact.controlHeight}px`);
-    expect(cssVarValue("--yohu-row-height-device")).toBe(`${Density.Compact.rowHeightDevice}px`);
-    expect(cssVarValue("--yohu-row-height-nav")).toBe(`${Density.Compact.rowHeightNav}px`);
+  it("密度 comfortable 行高与 theme.css 默认一致", () => {
+    expect(cssVarValue("--yohu-control-height")).toBe(`${Density.Comfortable.controlHeight}px`);
+    expect(cssVarValue("--yohu-row-height-device")).toBe(`${Density.Comfortable.rowHeightDevice}px`);
+    expect(cssVarValue("--yohu-row-height-nav")).toBe(`${Density.Comfortable.rowHeightNav}px`);
   });
 
   it("布局常量与 theme.css 一致", () => {
     expect(cssVarValue("--yohu-layout-shell-nav")).toBe(`${Layout.ShellNav}px`);
     expect(cssVarValue("--yohu-layout-preview")).toBe(`${Layout.Preview}px`);
     expect(cssVarValue("--yohu-layout-hit-splitter")).toBe(`${Layout.HitSplitter}px`);
+    expect(cssVarValue("--yohu-layout-window-default-w")).toBe(`${Layout.WindowDefaultW}px`);
+    expect(cssVarValue("--yohu-layout-page-margin")).toBe(`${Layout.PageMargin}px`);
+    expect(cssVarValue("--yohu-layout-rail-inset")).toBe(`${Layout.RailInset}px`);
   });
 });

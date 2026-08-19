@@ -1,7 +1,7 @@
 .yohu-context-menu {
   position: fixed;
   z-index: 40;
-  min-width: calc(var(--yohu-space-xl) * 7);
+  min-width: var(--yohu-layout-menu-min);
   padding: var(--yohu-space-xs) 0;
   background: var(--yohu-surface);
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);

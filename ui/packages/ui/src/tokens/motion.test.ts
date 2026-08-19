@@ -54,11 +54,15 @@ describe("动效 token 单一事实源契约", () => {
     }
   });
 
-  it("时长分级符合 HarmonyOS 100/160/300/350ms 规范", () => {
+  it("时长分级符合 HarmonyOS 100/150/160/200/300/350/400ms 规范", () => {
     expect(MotionDuration.fast).toBe("100ms");
+    expect(MotionDuration.small).toBe("150ms");
     expect(MotionDuration.normal).toBe("160ms");
+    expect(MotionDuration.local).toBe("200ms");
     expect(MotionDuration.slow).toBe("300ms");
     expect(MotionDuration.enter).toBe("350ms");
+    expect(MotionDuration.progress).toBe("400ms");
+    expect(MotionDuration.toast).toBe("3s");
   });
 
   it("标准/减速曲线符合 HarmonyOS 规范值", () => {

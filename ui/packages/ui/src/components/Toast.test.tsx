@@ -33,14 +33,14 @@ describe("createToaster + YoToaster", () => {
     expect(screen.getByText("第二条")).toBeTruthy();
   });
 
-  it("2.5s 后自动消失", () => {
+  it("3s 后自动消失", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       const toaster = createToaster();
       render(() => <YoToaster toaster={toaster} />);
       toaster.show("临时消息");
       expect(screen.getByText("临时消息")).toBeTruthy();
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(3000);
       expect(screen.queryByText("临时消息")).toBeNull();
     } finally {
       vi.useRealTimers();

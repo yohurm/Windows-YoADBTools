@@ -308,7 +308,6 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
                 "yohu-interactive": selectable(),
                 "yohu-interactive--selected": selectable() && isSelected(row.key),
                 "yohu-focus-ring--inset": selectable(),
-                "yohu-virtual-list__row--selected": isSelected(row.key),
               }}
               style={{
                 position: "absolute",
