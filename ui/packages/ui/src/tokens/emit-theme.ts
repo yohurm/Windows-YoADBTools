@@ -77,6 +77,7 @@ export function emitThemeCss(): string {
 
   const root: Array<[string, string]> = [
     ...semanticVars(Colors),
+    ["--yohu-shadow-xs", Elevation.Xs],
     ["--yohu-shadow-overlay", Elevation.Overlay],
     ["--yohu-shadow-dialog", Elevation.Dialog],
     ["--yohu-shadow-dialog-unfocused", Elevation.DialogUnfocused],
@@ -114,6 +115,7 @@ export function emitThemeCss(): string {
 
   const dark: Array<[string, string]> = [
     ...semanticVars(DarkColors),
+    ["--yohu-shadow-xs", DarkElevation.Xs],
     ["--yohu-shadow-overlay", DarkElevation.Overlay],
     ["--yohu-shadow-dialog", DarkElevation.Dialog],
     ["--yohu-shadow-dialog-unfocused", DarkElevation.DialogUnfocused],

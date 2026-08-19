@@ -1,0 +1,106 @@
+/* HarmonyOS SegmentButtonV2：单行 40vp / 图文 56vp；compact 落到 V1 最小 28vp。 */
+
+.yohu-segmented {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: stretch;
+  width: 100%;
+  max-width: var(--yohu-layout-button-max);
+  min-height: var(--yohu-segment-single);
+  padding: var(--yohu-space-2xs);
+  box-sizing: border-box;
+  background: var(--yohu-surface-2);
+  border-radius: var(--yohu-radius-xl);
+}
+
+.yohu-segmented--hybrid {
+  min-height: var(--yohu-segment-hybrid);
+}
+
+.yohu-segmented__thumb {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  border-radius: var(--yohu-radius-xl);
+  opacity: 0;
+  pointer-events: none;
+  box-sizing: border-box;
+  transition:
+    transform var(--yohu-dur-small) var(--yohu-ease-standard),
+    width var(--yohu-dur-small) var(--yohu-ease-standard),
+    height var(--yohu-dur-small) var(--yohu-ease-standard),
+    opacity var(--yohu-dur-fast) var(--yohu-ease-standard);
+}
+
+.yohu-segmented__thumb--ready {
+  opacity: 1;
+}
+
+.yohu-segmented--tab .yohu-segmented__thumb {
+  background: var(--yohu-surface);
+  box-shadow: var(--yohu-shadow-xs);
+}
+
+.yohu-segmented--capsule .yohu-segmented__thumb {
+  background: var(--yohu-accent);
+}
+
+.yohu-segmented__item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--yohu-space-xs);
+  min-width: 0;
+  padding: var(--yohu-space-xs) var(--yohu-space-sm);
+  border: 0;
+  background: transparent;
+  color: var(--yohu-fg-2);
+  font-family: inherit;
+  font-weight: var(--yohu-font-weight-medium);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.yohu-segmented--sm .yohu-segmented__item {
+  font-size: var(--yohu-font-caption);
+}
+
+.yohu-segmented--md .yohu-segmented__item {
+  font-size: var(--yohu-font-body);
+}
+
+.yohu-segmented__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yohu-segmented--tab .yohu-segmented__item--selected {
+  color: var(--yohu-fg);
+}
+
+.yohu-segmented--capsule .yohu-segmented__item--selected {
+  color: var(--yohu-fg-on);
+}
+
+.yohu-segmented__item:disabled {
+  cursor: not-allowed;
+  color: var(--yohu-disabled);
+}
+
+.yohu-segmented--disabled {
+  opacity: 0.64;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yohu-segmented__thumb {
+    transition: none;
+  }
+}

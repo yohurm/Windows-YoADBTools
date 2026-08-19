@@ -1,8 +1,10 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.9（2026-08-19，选中单源全量清扫）    
+> **状态：** v1.10（2026-08-19，胶囊分段按钮）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `yovo-harmonyos-docs`：`设计/设计指南/通用设计基础/视觉风格/色彩.md` 等，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（token 单源 + 组件）+ `@yohu/app`（壳）+ `@yohu/modules/*`（三模块）。所有改动必须同步更新本文件。
+>
+> **v1.10 变更（分段按钮）**：新增 `YoSegmentedButton`（对齐 SegmentButtonV2）。默认 `tab`：灰背板 + **白选择块** + `radius-xl` 32vp + `--yohu-shadow-xs` + 主色 Medium 字；`capsule` 才是强调色块。选择块按 item 实测盒滑动。页签栏仍走 `YoTabs`。日志「划分」用默认 tab。
 >
 > **v1.9 变更（选中单源清扫）**：删除死 dual class（`*--selected` / 列表 `*--active`，Tabs 下划线 `--active` 除外）。语义色逃生统一 `.yohu-badge` / `.yohu-tone`。宿主禁止自绘底盖住选中片。面包屑祖先次要色、当前墨色（不是全段 accent）。范围芯片改 `YoBadge`。
 >
@@ -113,6 +115,8 @@ Primitive 层 = 鸿蒙系统 Token 原值（ARGB → CSS `#RRGGBB` / `#RRGGBBAA`
 | `--yohu-row-height-device` | 34 | 40 | 设备卡片 |
 | `--yohu-row-height-nav` | 32 | 36 | 导航项 |
 | `--yohu-row-height-header` | 28 | 32 | 表头 |
+| `--yohu-segment-single` | 28 | 40 | 分段按钮单行（V2 `singleline_background_height` / V1 最小 28） |
+| `--yohu-segment-hybrid` | 44 | 56 | 分段按钮图文（V2 `doubleline_background_height`） |
 
 布局常量（不随密度变）：`--yohu-layout-shell-nav: 232px`、`--yohu-layout-sidebar: 280px`、`--yohu-layout-preview: 240px`、`--yohu-layout-settings-max: 920px`、`--yohu-layout-output-max: 260px`、`--yohu-layout-hit-splitter: 6px`。
 
@@ -173,7 +177,8 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 **载体**：`tokens/states.css` 的 `.yohu-interactive`。选中只用 `.yohu-interactive--selected`（**不要**用 `[aria-selected]` 上填充：`YoTabs` 的 `aria-selected` 表示下划线激活，不是实底选中）。键盘活动用 `.yohu-interactive--active`。禁止 Tree/Select/命令管理/壳再写选中字色。
 
-- 实心底控件（`YoButton` / `YoCheckbox`）走变体色 + `--yohu-accent-hover/pressed`，不走列表 ripple。
+- 实心底控件（`YoButton` / `YoCheckbox` / `YoSegmentedButton`）走变体色 + `--yohu-accent-hover/pressed`，不走列表 ripple。
+- `YoSegmentedButton` 对齐 SegmentButtonV2：默认 tab 白选择块（`surface` + `shadow-xs` + `fg`），capsule 才用 accent + `fg-on`。背板/选择块 `radius-xl`（32vp）。不作一级导航、不承载删除/添加。
 - `YoTabs` 激活指示是底边 `--yohu-stroke-accent`，hover 仍走 ripple；不要把 Tab 激活画成选中填充。
 - 语义色逃生：`.yohu-badge`（徽章）与 `.yohu-tone`（日志级别 / 检索高亮等）在选中行内保持自身色。
 - 选中宿主必须透明底：自绘 `background` 会盖住 `z-index: -1` 的选中片。
@@ -223,6 +228,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - 信号行（崩溃/ANR）行底色 `--yohu-signal-bg` + 左侧 Error 条；选中时信号底让位给选中片，左条保留。
 - 过滤栏：级别含以上 / Tag / 关键字检索（放大镜图标 + 「清除」；过滤生效时检索框 accent 边框）+ 会话 scope 用 `YoBadge tone=accent`；控件走 `--yohu-control-height`。
 - 会话 Tab：标题 + 采集绿点/信号红点 + 关闭 × + 新建 +；Tab 溢出可横向滚动；右键菜单（关闭其他/重命名/复制会话）。
+- 新建窗口划分用 `YoSegmentedButton`（包名 / PID，无左侧标题；高度走 `--yohu-segment-single`）。
 - 状态行：`采集指示（绿点/灰点）· 设备 · 缓冲 n · 可见 n · 信号 n · 进程索引 n s 前 · 滞后回补提示`。
 - 空态：未采集 → 插画图标 + 「点击开始采集」主按钮；采集中空 → 等待输出；过滤无命中 → 「无匹配日志，调整过滤条件」。
 - **采集可见性**：点「开始」先清空 UI 镜像与可见区，core 同步 `ring.clear()`，只展示启动之后的 logcat；失败 toast 出错误。
@@ -263,6 +269,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 | YoVirtualList | 选择模式：roving tabindex + ↑/↓/Home/End/Enter/Space | 选择模式 `role=listbox/option` + `aria-selected` |
 | YoContextMenu | Esc 关闭；点击项执行；点击外部关闭 | `role=menu/menuitem` |
 | YoIconButton | 激活执行；`loading` 时不可激活 | `aria-label`（title）+ `aria-busy` |
+| YoSegmentedButton | ←/→/↑/↓ 循环选中；Home/End 首尾 | `role=radiogroup/radio` + `aria-checked` |
 
 ---
 

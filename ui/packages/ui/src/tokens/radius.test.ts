@@ -60,6 +60,8 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
 
   it("密度 comfortable 行高与 theme.css 默认一致", () => {
     expect(cssVarValue("--yohu-control-height")).toBe(`${Density.Comfortable.controlHeight}px`);
+    expect(cssVarValue("--yohu-segment-single")).toBe(`${Density.Comfortable.segmentSingle}px`);
+    expect(cssVarValue("--yohu-segment-hybrid")).toBe(`${Density.Comfortable.segmentHybrid}px`);
     expect(cssVarValue("--yohu-row-height-device")).toBe(`${Density.Comfortable.rowHeightDevice}px`);
     expect(cssVarValue("--yohu-row-height-nav")).toBe(`${Density.Comfortable.rowHeightNav}px`);
   });

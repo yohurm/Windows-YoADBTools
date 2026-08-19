@@ -13,6 +13,9 @@ export const Density = {
     rowHeightDevice: 34,
     rowHeightNav: 32,
     rowHeightHeader: 28,
+    /** V1 分段最小高 28vp */
+    segmentSingle: 28,
+    segmentHybrid: 44,
   },
   Comfortable: {
     controlHeight: 32,
@@ -21,5 +24,8 @@ export const Density = {
     rowHeightDevice: 40,
     rowHeightNav: 36,
     rowHeightHeader: 32,
+    /** V2 singleline_background_height / doubleline_background_height */
+    segmentSingle: 40,
+    segmentHybrid: 56,
   },
 } as const;

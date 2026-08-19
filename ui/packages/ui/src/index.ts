@@ -48,6 +48,15 @@ export type { YoFileIconProps, FileGlyph, FileIconKind } from "./file-icons";
 export { YoButton } from "./components/Button";
 export type { YoButtonProps, YoButtonVariant, YoButtonSize } from "./components/Button";
 
+export { YoSegmentedButton } from "./components/SegmentedButton";
+export type {
+  YoSegmentedButtonProps,
+  YoSegmentedButtonSize,
+  YoSegmentedItem,
+  YoSegmentedType,
+} from "./components/SegmentedButton";
+export { YO_SEGMENTED_MAX_ITEMS } from "./components/segmented-model";
+
 export { YoIconButton } from "./components/IconButton";
 export type { YoIconButtonProps } from "./components/IconButton";
 

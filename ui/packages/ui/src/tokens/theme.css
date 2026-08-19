@@ -25,6 +25,7 @@
   --yohu-tag: #ED6F21;
   --yohu-splitter-hover: #00000099;
   --yohu-disabled: #D1D1D6;
+  --yohu-shadow-xs: 0 1px 4px rgba(16, 24, 40, 0.10);
   --yohu-shadow-overlay: 0 4px 16px rgba(16, 24, 40, 0.16);
   --yohu-shadow-dialog: 0 8px 32px rgba(16, 24, 40, 0.22);
   --yohu-shadow-dialog-unfocused: 0 2px 8px rgba(16, 24, 40, 0.10);
@@ -82,6 +83,8 @@
   --yohu-row-height-device: 40px;
   --yohu-row-height-nav: 36px;
   --yohu-row-height-header: 32px;
+  --yohu-segment-single: 40px;
+  --yohu-segment-hybrid: 56px;
   --yohu-layout-shell-nav: 232px;
   --yohu-layout-sidebar: 280px;
   --yohu-layout-preview: 240px;
@@ -149,6 +152,7 @@
   --yohu-tag: #DB6B42;
   --yohu-splitter-hover: #FFFFFF99;
   --yohu-disabled: #2E3033;
+  --yohu-shadow-xs: 0 1px 4px rgba(0, 0, 0, 0.40);
   --yohu-shadow-overlay: 0 4px 16px rgba(0, 0, 0, 0.55);
   --yohu-shadow-dialog: 0 8px 32px rgba(0, 0, 0, 0.55);
   --yohu-shadow-dialog-unfocused: 0 2px 8px rgba(0, 0, 0, 0.35);
@@ -172,6 +176,8 @@
   --yohu-row-height-device: 34px;
   --yohu-row-height-nav: 32px;
   --yohu-row-height-header: 28px;
+  --yohu-segment-single: 28px;
+  --yohu-segment-hybrid: 44px;
   --yohu-font-caption: 11px;
   --yohu-font-body: 12.5px;
   --yohu-font-body-strong: 13.5px;
