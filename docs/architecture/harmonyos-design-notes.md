@@ -1,9 +1,9 @@
 # HarmonyOS 设计语言落地笔记（Design Language Notes）
 
-> **状态：** 研读稿（基于本地 HarmonyOS 开发者文档 `E:\Dev\Doc\HarmonyOS-Developer-docs\设计` 提炼，仅做设计规范研读，不改动任何代码）。
-> **用途：** 供 `@yohu/ui`（token 单源 + 组件）与各模块 UI 打磨时参考 HarmonyOS 的具体数值/规则，与项目自有《UI设计系统-v6.md》（Fluent 2 / 4px 网格路线）互为对照。
+> **状态：** 已落地（2026-08-19）。颜色系统以本笔记 §1 为 `@yohu/ui` Primitive 单源；布局常量见 §4 / §7。
+> **用途：** 供 `@yohu/ui`（token 单源 + 组件）与各模块对照 HarmonyOS 数值；消费名仍是 `--yohu-*`，值必须来自官方 Token。
 > **覆盖范围：** 色彩 / 字体排版 / 圆角形状 / 间距网格 / 动效 / 组件外观 / 桌面·大屏布局 / 图标插画。
-> **来源目录：** `设计\设计指南\通用设计基础\{视觉风格,动效,布局}`、`设计\设计指南\控件\*`、`设计\设计指南\针对多设备设计\电脑`、`设计\设计指南\应用 UX 体验标准\*`、`设计\设计指南\系统特性&能力\系统特性\深色模式.md`。
+> **来源目录：** `D:\A_yoprogram\Learn\yovo-harmonyos-docs\设计\设计指南\通用设计基础\{视觉风格,动效,布局}`、`设计\设计指南\控件\*`、`设计\设计指南\针对多设备设计\电脑`、`设计\设计指南\应用 UX 体验标准\*`。
 
 ---
 
@@ -484,19 +484,26 @@ HarmonyOS Symbol 以**描边（线性）**为主，几何型塑造，避免尖�
 
 ---
 
-## 附录 A：与 @yohu/ui 的落地映射建议（仅参考，非本报告约束）
+## 附录 A：与 @yohu/ui 的落地映射（v1.6 已生效）
 
-| HarmonyOS 值 | 建议映射到 @yohu/ui |
-|---------------|---------------------|
-| 宇宙蓝 `#0A59F7`（light）/`#317AF7`（dark） | 已落地为 `--yohu-accent`（深色取 `#4C8DFF` 以保对比度） |
-| 语义色 warning `#E84026` / alert `#ED6F21` / confirm `#64BB5C` | 对照 `--yohu-error / --yohu-warn / --yohu-success`，注意 HarmonyOS 用橙做「二级警示」，本项目用琥珀做「执行中」 |
-| 文本四档 90/60/40/20% | 对照 `--yohu-fg / fg-2 / fg-3` 透明度阶梯思路一致 |
-| 交互态 hover 5% / pressed 10% / select 20% | 可作为组件态透明度基准 |
-| 圆角 4/8/16/20/32vp 阶梯 | 项目走 4px 网格，可对应 4/8/12/16（PC 用小圆角） |
-| 动效标准曲线 `cubic-bezier(0.40,0,0.20,1)` / 减速 `(0,0,0.40,1)` | 可直接复用作进出场缓动 |
-| 全屏转场时长 200/250/300ms 下限 | 可作窗口/面板切换时长下限 |
-| 按钮最大宽 448vp、间距 12vp | 弹窗/半模态按钮排布参考 |
-| 分割线 1px + 20% 黑 | 对照 `--yohu-border`/divider 低对比原则 |
-| 对比度：正文 ≥4.5:1（浅）/≥5:1（深）、控件背板 ≥2.2:1 | 与项目 P5「对比度达标」一致，可加严到深色正文 5:1 |
+| HarmonyOS Token | `@yohu/ui` |
+|-----------------|------------|
+| `brand` `#0A59F7` / `#317AF7` | `--yohu-accent`（深色不再改写为 `#4C8DFF`） |
+| `warning` / `alert` / `confirm` | `--yohu-error` / `--yohu-warn` / `--yohu-success`（官方原值） |
+| `font_primary`…`fourth` 90/60/40/20% | `--yohu-fg` / `fg-2` / `fg-3` / `fg-4` |
+| `font_on_primary` | `--yohu-fg-on`（强调底反色字） |
+| `background_secondary` 雪域灰 / 深色黑 | `--yohu-bg-base` |
+| `comp_background_primary` | `--yohu-surface` |
+| `comp_emphasize_secondary` 20% | `--yohu-accent-soft`（徽章/芯片） |
+| `interactive_active` 品牌实底 | `--yohu-state-selected` + `--yohu-state-selected-fg`（全表面选中） |
+| `interactive_hover` 5% / `pressed` 10% | `--yohu-state-hover` / `--yohu-state-pressed`（中性叠色，深浅分板） |
+| `comp_divider` 20% | `--yohu-border` |
+| 圆角 4/8/16/20/32vp | `--yohu-radius-xs`…`xl` |
+| 动效标准/减速曲线 | `--yohu-ease-standard` / `--yohu-ease-decel` |
+| PC 窗口 1200×800、边距 40vp、断点 600/840 | `--yohu-layout-window-*` / `page-margin` / `breakpoint-*` |
+| PC 正文 14 / Caption 12 / Title_S 18 | `--yohu-font-*` 默认；`[data-density=compact]` 收敛 |
+| 电脑对话框阴影分层、不强遮罩 | `--yohu-shadow-dialog` / `-unfocused`；遮罩 `fg` 10% |
+| Toast ≤3s、最大宽 400；按钮最大 448；菜单最小 224 | `--yohu-dur-toast` / `--yohu-layout-dialog-max` / `button-max` / `menu-min` |
+| 对比度：正文浅 4.5:1 / 深 5:1 | `colors.test.ts` 门禁；语义色按官方填充使用 |
 
-> 说明：本附录仅为把 HarmonyOS 数值落到 `@yohu/ui` token 的**映射思路**，不替代《UI设计系统-v6.md》已定稿的 Fluent 2 路线；如采用需走架构评审与 token 纪律检查（scripts/check-ui-tokens.mjs）。
+消费名与《UI设计系统-v6.md》§2 同步；改色只改 `tokens/colors.ts` 的 `Harmony` 表。默认尺度自 v1.7 起为鸿蒙 PC（comfortable）。

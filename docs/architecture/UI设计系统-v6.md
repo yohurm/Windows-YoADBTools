@@ -1,16 +1,26 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.4（2026-08-18，theme.css 由 TS 生成 + Theme=system + 焦点环单载体）  
-> **调研依据：** HarmonyOS 开发者文档设计规范（详见 `docs/architecture/harmonyos-design-notes.md`：宇宙蓝/圆角阶梯/时长分级/标准缓动）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
+> **状态：** v1.9（2026-08-19，选中单源全量清扫）    
+> **调研依据：** HarmonyOS 开发者文档设计规范（本地 `yovo-harmonyos-docs`：`设计/设计指南/通用设计基础/视觉风格/色彩.md` 等，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（token 单源 + 组件）+ `@yohu/app`（壳）+ `@yohu/modules/*`（三模块）。所有改动必须同步更新本文件。
 >
-> **v1.1 变更（HarmonyOS 融合）**：主强调色 → 宇宙蓝 `#0A59F7`（浅）/`#4C8DFF`（深）；语义色对齐鸿蒙（浅色取深色变体以保正文对比度 ≥4.5:1，由 WCAG 门禁测试强制）；圆角阶梯 → 4/8/16/20/32；动效 → 鸿蒙时长分级 100/160/300/350ms + 标准曲线 `cubic-bezier(0.4,0,0.2,1)`/减速 `(0,0,0.4,1)`。PC 桌面端遵循鸿蒙「PC 小 2vp、8vp 网格」原则做密度收敛。
+> **v1.9 变更（选中单源清扫）**：删除死 dual class（`*--selected` / 列表 `*--active`，Tabs 下划线 `--active` 除外）。语义色逃生统一 `.yohu-badge` / `.yohu-tone`。宿主禁止自绘底盖住选中片。面包屑祖先次要色、当前墨色（不是全段 accent）。范围芯片改 `YoBadge`。
+>
+> **v1.8 变更（选中单源）**：侧栏 / 命令树 / 命令管理 / 下拉 / 虚拟列表共用同一配方：`--yohu-state-selected` = 品牌实底，`--yohu-state-selected-fg` = 反白，`--yohu-ripple-inset: 0`。删除表面自写选中字色与侧栏特判、删除 `AccentSofter`。距背板只靠容器 padding。
+>
+> **v1.7 变更（鸿蒙 PC 默认）**：`:root` = comfortable（正文 14 / 控件 32 / 数据行 26）；`[data-density=compact]` 才是产线收敛。新安装 `density=comfortable`；旧设置文件缺字段仍 compact。窗口默认 1200×800。对话框弱中性遮罩 + 获焦/失焦阴影，最小 360×240、最大宽 400；Toast ≤3s / 最大 400；按钮最大 448；菜单最小 224。动效补 150/200/400ms。
+>
+> **v1.6 变更（官方色板）**：`@yohu/ui` Primitive 层改为 HarmonyOS NEXT 系统 Token 原值（宇宙蓝 `#0A59F7` / `#317AF7`、雪域灰 `#F1F3F5`、文本四档 90/60/40/20%、warning/alert/confirm、interactive 5/10/20%）。不再为 WCAG 4.5 改写语义色；正文仍按鸿蒙 §1.6 门禁（浅 4.5:1 / 深 5:1）。布局补齐 PC 窗口默认 1200×800、页边距 40vp、断点 600/840。
+>
+> **v1.1 变更（HarmonyOS 融合）**：主强调色 → 宇宙蓝；圆角阶梯 → 4/8/16/20/32；动效 → 鸿蒙时长分级 100/160/300/350ms + 标准曲线 `cubic-bezier(0.4,0,0.2,1)`/减速 `(0,0,0.4,1)`。PC 桌面端遵循鸿蒙「PC 小 2vp、8vp 网格」原则做密度收敛。
 >
 > **v1.2 变更（底向上布局）**：设备数徽章紧跟「设备」标题；`YoIconButton.loading` 走 `--yohu-dur-loop` 旋转；设置页两列网格 + 页面滚动（面板不裁切）；文件管理改为资源管理器四列 + 可收起预览 + `YoContextMenu`/`YoFileIcon`；命令管理三栏；日志采集从开始时刻清空缓冲并出流。
 >
 > **v1.3 变更（交互态架构）**：公开组件统一 `Yo*` 标注（禁止 `Y*`）；CSS/token 命名空间保持 `yohu-*`。补齐交互态 / ripple / 焦点 / 布局 token；列表·树·菜单·导航·命令管理共用 `.yohu-interactive` 选中片（`radius-sm` + `inset space-xs`），禁止各表面自写选中底与裸圆角。圆角阶梯补 `2xs`/`full`/`pill`；间距补 `2xs`。纪律 lint 拦截裸 `border-radius`。
 >
 > **v1.4 变更（token 单源闭环）**：`theme.css` 由 `tokens/emit-theme.ts` 从 TS 常量排出（契约测试强制磁盘文件一致）；包导出 `@yohu/ui/theme.css` 绑定 `theme + states`。协议 `Theme` 增加 `system` 且默认跟随系统（P7）。选中填充只用 `.yohu-interactive--selected`（不用 `aria-selected`，以免 Tabs 下划线被画成实底）。焦点环补 `.yohu-focus-host`（焦点在内部控件时）。`YoCheckbox` 改原生 `input[type=checkbox]`。
+>
+> **v1.5 变更（选中片几何）**：`--yohu-ripple-inset` 从四边 `space-xs` 改为 `0 var(--yohu-space-xs)`。依据 Material 3 `DropdownMenuSelectableItemPadding = 4dp` 仅横向、纵向铺满 Surface；HarmonyOS「距背板 4vp」指容器边距而非行内再削一圈。矮行（下拉/菜单/日志）选中片与行高对齐。`YoSelect` 选项 `min-height: control-height`，与 `YoContextMenu` 一致。
 
 ---
 
@@ -18,11 +28,11 @@
 
 | # | 原则 | 落地含义 |
 |---|------|----------|
-| P1 | **为产线密度而设计** | 信息密度优先于留白；默认 compact 密度；一屏内可见更多日志/命令/文件 |
+| P1 | **为产线密度而设计** | 默认 comfortable（鸿蒙 PC 正文 14vp）；compact 仍可选作产线收敛，日志行不拉到手机 48vp |
 | P2 | **键盘优先** | 所有高频操作有快捷键；组件完整键盘可达（Tab 导航 + 方向键 + Esc 层级退出） |
 | P3 | **数据用等宽字体** | serial/PID/时间/日志正文/文件大小一律等宽 + `tabular-nums` 列对齐 |
 | P4 | **语义色先行** | 颜色只表达语义（在线/通过/失败/警告/级别），装饰色不喧宾夺主 |
-| P5 | **对比度达标** | 正文/次要文本对比 ≥ 4.5:1 / 3:1；级别色在深浅两主题下均可达标 |
+| P5 | **对比度达标** | 正文按鸿蒙 §1.6：浅色 ≥4.5:1、深色 ≥5:1；图标/标题 ≥3:1。语义色（confirm/warning/alert）用官方原值，优先作填充而非浅底正文 |
 | P6 | **即时反馈** | 操作 200ms 内有反馈（按钮态/行高亮/toast）；长任务有进度与可取消 |
 | P7 | **深色为一等公民** | 深浅主题同权维护（token 双板），默认跟随系统，可手动切换 |
 | P8 | **零意外** | 危险操作必确认；关闭窗口有脏检查；破坏性动作不可逆时明确标注 |
@@ -49,52 +59,54 @@ Component（组件级：--yohu-state-* / --yohu-level-* / --yohu-ripple-* / --yo
 - **CSS 类与 CSS 变量**保持产品命名空间 `yohu-*`（`.yohu-button`、`--yohu-accent`）。组件名 ≠ 样式前缀。
 - 新增组件必须同时：`YoXxx` 导出 + `.yohu-xxx` 样式 + 本文件登记。
 
-### 2.1 色彩系统（语义板）
+### 2.1 色彩系统（HarmonyOS NEXT 官方 Token）
 
-| 语义 | Light | Dark | 用途 |
-|------|-------|------|------|
-| `--yohu-bg-base` | `#F5F6F8` | `#17181C` | 窗口底色 |
-| `--yohu-surface` | `#FFFFFF` | `#1F2127` | 面板/卡片 |
-| `--yohu-surface-2` | `#F0F2F5` | `#262930` | 次级表面（列表头/输入底） |
-| `--yohu-fg` | `#1B1D22` | `#E8EAEF` | 主文本 |
-| `--yohu-fg-2` | `#565D68` | `#A6ADBB` | 次要文本 |
-| `--yohu-fg-3` | `#8A919C` | `#6E7686` | 弱化文本/占位 |
-| `--yohu-border` | `#D9DEE6` | `#333844` | 常规边框 |
-| `--yohu-border-strong` | `#B7BFCB` | `#454B58` | 强调边框/分割 |
-| `--yohu-accent` | `#0A59F7` | `#4C8DFF` | 主强调 |
-| `--yohu-accent-soft` | `#D9E7FF` | `#22365E` | 选中实底（= `--yohu-state-selected`） |
-| `--yohu-accent-hover` | `#094DDB` | `#6AA3FF` | 实心主按钮 hover |
-| `--yohu-accent-pressed` | `#0740C4` | `#8BB4FF` | 实心主按钮 pressed |
-| `--yohu-success` | `#2C7A38` | `#64BB5C` | 在线/通过 |
-| `--yohu-warn` | `#A35200` | `#ED6F21` | 警告/执行中 |
-| `--yohu-error` | `#CC2B1B` | `#F06A5A` | 失败/崩溃 |
-| `--yohu-offline` | `#8A919C` | `#6E7686` | 离线/禁用 |
-| `--yohu-focus-ring` | `rgba(10,89,247,.45)` | `rgba(76,141,255,.5)` | 键盘焦点环色 |
+Primitive 层 = 鸿蒙系统 Token 原值（ARGB → CSS `#RRGGBB` / `#RRGGBBAA`），见 `tokens/colors.ts` 的 `Harmony`。深色 `background_primary` 以文档正文为准（黑），不用表内 `#E5E5E5`。
 
-**logcat 级别专用板（Component 层，双主题各一组）：**
+| `--yohu-*` | 鸿蒙 Token | Light | Dark | 用途 |
+|------------|------------|-------|------|------|
+| `bg-base` | `background_secondary` / 深色 `background_primary` | `#F1F3F5` 雪域灰 | `#000000` | 窗口底色 |
+| `surface` | `comp_background_primary` | `#FFFFFF` | `#202224` | 面板/卡片 |
+| `surface-2` | `background_tertiary` / 深色 `background_secondary` | `#E5E5EA` | `#191A1C` | 次级表面 |
+| `fg` / `fg-2` / `fg-3` / `fg-4` | `font_primary`…`fourth` | 黑 90/60/40/20% | 白 90/60/40/20% | 文本四级 |
+| `fg-on` | `font_on_primary` | `#FFFFFF` | `#FFFFFF` | 强调底上的反色字 |
+| `border` | `comp_divider` | 黑 20% | 白 20% | 常规边框/分割 |
+| `border-strong` | `font_tertiary` | 黑 40% | 白 40% | 强调边框 |
+| `accent` | `brand` | `#0A59F7` | `#317AF7` | 宇宙蓝 |
+| `accent-soft` | `comp_emphasize_secondary` / `interactive_select` | 宇宙蓝 20% | 宇宙蓝 20% | 选中实底 |
+| `accent-hover` / `pressed` | brand + `interactive` 5% / 10% | 叠黑 | 叠白 | 实心主按钮 |
+| `success` | `confirm` | `#64BB5C` | `#5BA854` | 在线/通过（填充优先） |
+| `warn` | `alert` | `#ED6F21` | `#DB6B42` | 二级警示/执行中 |
+| `error` | `warning` | `#E84026` | `#D94838` | 一级警示/失败 |
+| `offline` | `font_tertiary` | 黑 40% | 白 40% | 离线点 |
+| `focus-ring` | `icon_sub_emphasize` | 宇宙蓝 40% | 宇宙蓝 40% | 键盘焦点环 |
+| `disabled` | `background_fourth` | `#D1D1D6` | `#2E3033` | 禁用底 |
 
-| 级别 | Light | Dark | 语义 |
-|------|-------|------|------|
-| `--yohu-level-v` | `#6E7686` | `#8A93A6` | Verbose（弱） |
-| `--yohu-level-d` | `#3D6E9E` | `#7FA8CE` | Debug（蓝） |
-| `--yohu-level-i` | `#1F7A33` | `#57B96B` | Info（绿） |
-| `--yohu-level-w` | `#9A6A00` | `#D9A43C` | Warn（琥珀） |
-| `--yohu-level-e` | `#C22929` | `#E86A6A` | Error（红） |
-| `--yohu-level-f` | `#FFFFFF on #C22929` | `#1B1D22 on #E86A6A` | Fatal（反色块） |
+**logcat 级别板（复用官方语义色，无独立鸿蒙级别 Token）：**
+
+| 级别 | 引用 | Light | Dark |
+|------|------|-------|------|
+| `--yohu-level-v` | `font_tertiary` | 黑 40% | 白 40% |
+| `--yohu-level-d` | `brand` | `#0A59F7` | `#317AF7` |
+| `--yohu-level-i` | `confirm` | `#64BB5C` | `#5BA854` |
+| `--yohu-level-w` | `alert` | `#ED6F21` | `#DB6B42` |
+| `--yohu-level-e` | `warning` | `#E84026` | `#D94838` |
+| `--yohu-level-f` | `font_on` on `warning` | `#FFFFFF` on `#E84026` | `#FFFFFF` on `#D94838` |
 
 ### 2.2 排版
 
 - 界面字体：`"Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif`
 - 数据/等宽：`"Cascadia Mono", Consolas, "Courier New", monospace`（`font-variant-numeric: tabular-nums`）
-- 字号阶梯（compact）：Caption 11 / Body 12.5 / BodyStrong 13.5 / Subtitle 15 / Title 18；**comfortable 各 +1px**（`[data-density=comfortable]` 覆盖字号变量）
+- 字号阶梯（默认 = 鸿蒙 PC）：Caption 12 / Body 14 / BodyStrong 14 / Subtitle 16 / Title 18；**compact 覆盖** 11 / 12.5 / 13.5 / 15 / 18（`[data-density=compact]`）
+- 字重：Regular 400 / Medium 500 / Semibold 600 / Bold 700
 - 行高：数据行 1.4；正文 1.55
 
 ### 2.3 密度与布局
 
 控件/行高走密度变量，布局宽走 `--yohu-layout-*`，禁止在组件或模块里写第二套数字。
 
-| Token | compact | comfortable | 用途 |
-|-------|---------|-------------|------|
+| Token | compact | comfortable（默认） | 用途 |
+|-------|---------|---------------------|------|
 | `--yohu-control-height` | 26 | 32 | 按钮/输入/图标钮/路径栏 |
 | `--yohu-control-height-sm` | 24 | 28 | 小按钮 |
 | `--yohu-row-height` | 22 | 26 | 日志/文件数据行 |
@@ -104,11 +116,13 @@ Component（组件级：--yohu-state-* / --yohu-level-* / --yohu-ripple-* / --yo
 
 布局常量（不随密度变）：`--yohu-layout-shell-nav: 232px`、`--yohu-layout-sidebar: 280px`、`--yohu-layout-preview: 240px`、`--yohu-layout-settings-max: 920px`、`--yohu-layout-output-max: 260px`、`--yohu-layout-hit-splitter: 6px`。
 
+HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、`--yohu-layout-window-min-w/h: 360×240`、`--yohu-layout-page-margin: 40px`（PC 左右边距）、`--yohu-layout-breakpoint-split: 600`（分栏）、`--yohu-layout-breakpoint-side: 840`（侧边页签）、`--yohu-layout-button-max: 448`、`--yohu-layout-dialog-max: 400`。间距补 `space-2xl=32`、`space-3xl=40`（Padding_level16/20）。控件行高仍按 P1 产线密度收敛，不改用手机 48vp 列表行。
+
 描边宽：`--yohu-stroke-hairline: 1px`、`--yohu-stroke-accent: 2px`（焦点/左边条/Tab 指示）、`--yohu-stroke-emphasis: 3px`（级别条/结果卡强调）。
 
 ### 2.4 动效
 
-- 时长分级（HarmonyOS）：`--yohu-dur-fast: 100ms`（hover/按下）、`--yohu-dur-normal: 160ms`（面板/下拉）、`--yohu-dur-slow: 300ms`（页面级）、`--yohu-dur-enter: 350ms`（入场/退场）；循环指示：`--yohu-dur-loop: 800ms`（spinner）、`--yohu-dur-loop-slow: 1.2s`（不确定进度条扫动）
+- 时长分级（HarmonyOS）：`--yohu-dur-fast: 100ms`（hover/按下）、`--yohu-dur-small: 150ms`（小范围）、`--yohu-dur-normal: 160ms`（面板/下拉）、`--yohu-dur-local: 200ms`（局部删除）、`--yohu-dur-slow: 300ms`（页面级）、`--yohu-dur-enter: 350ms`（入场）、`--yohu-dur-progress: 400ms`（进度最短感知）、`--yohu-dur-toast: 3s`；循环指示：`--yohu-dur-loop: 800ms`、`--yohu-dur-loop-slow: 1.2s`
 - 缓动：`--yohu-ease-standard: cubic-bezier(0.4,0,0.2,1)`（标准）、`--yohu-ease-decel: cubic-bezier(0,0,0.4,1)`（减速）、`--yohu-ease-loop: ease-in-out`（循环）
 - JS 消费侧经 `@yohu/ui` 导出 `MotionDuration` / `MotionEasing`（与 theme.css 契约测试强制一致）；动效时长硬编码由纪律 lint 拦截
 - 用途克制：下拉展开/淡入淡出；**日志列表选中片无过渡**（性能优先，`.yohu-interactive` 默认无 transition）
@@ -144,23 +158,26 @@ Component（组件级：--yohu-state-* / --yohu-level-* / --yohu-ripple-* / --yo
 
 | Token | 算法 | 用途 |
 |-------|------|------|
-| `--yohu-state-hover` | `accent` 10% 叠在透明上 | 悬浮 / 键盘活动 |
-| `--yohu-state-pressed` | `accent` 16% | 按压 |
-| `--yohu-state-selected` | `var(--yohu-accent-soft)` | 选中实底 |
+| `--yohu-state-hover` | `interactive_hover`：中性 5%（浅黑/深白） | 悬浮 / 键盘活动 |
+| `--yohu-state-pressed` | `interactive_pressed`：中性 10% | 按压 |
+| `--yohu-state-selected` | `interactive_active` = `var(--yohu-accent)` | 选中实底（侧栏/树/命令/列表同一源） |
+| `--yohu-state-selected-fg` | `font_on_primary` = `var(--yohu-fg-on)` | 选中行文字/图标 |
+| `--yohu-accent-soft` | `comp_emphasize_secondary`（品牌 20%） | 徽章/范围芯片，禁止当选中底 |
 
 **几何（可在子树覆盖，不可另起炉灶）**
 
 | Token | 默认 | 含义 |
 |-------|------|------|
 | `--yohu-ripple-radius` | `var(--yohu-radius-sm)` | 选中片圆角 |
-| `--yohu-ripple-inset` | `var(--yohu-space-xs)` | 距行盒内缩（HarmonyOS 沉浸光感 4vp） |
+| `--yohu-ripple-inset` | `0` | 铺满行盒；距背板 = 容器 padding |
 
-**载体**：`tokens/states.css` 的 `.yohu-interactive`。选中只用 `.yohu-interactive--selected`（**不要**用 `[aria-selected]` 上填充：`YoTabs` 的 `aria-selected` 表示下划线激活，不是实底选中）。键盘活动用 `.yohu-interactive--active`。
+**载体**：`tokens/states.css` 的 `.yohu-interactive`。选中只用 `.yohu-interactive--selected`（**不要**用 `[aria-selected]` 上填充：`YoTabs` 的 `aria-selected` 表示下划线激活，不是实底选中）。键盘活动用 `.yohu-interactive--active`。禁止 Tree/Select/命令管理/壳再写选中字色。
 
 - 实心底控件（`YoButton` / `YoCheckbox`）走变体色 + `--yohu-accent-hover/pressed`，不走列表 ripple。
-- 设备卡片是带边框的 surface：左边条 `--yohu-stroke-accent` + 同一 `.yohu-interactive` 选中片。
 - `YoTabs` 激活指示是底边 `--yohu-stroke-accent`，hover 仍走 ripple；不要把 Tab 激活画成选中填充。
-- 面包屑等小控件可在选择器内覆盖 `--yohu-ripple-radius: var(--yohu-radius-xs)`、`--yohu-ripple-inset: 0`。
+- 语义色逃生：`.yohu-badge`（徽章）与 `.yohu-tone`（日志级别 / 检索高亮等）在选中行内保持自身色。
+- 选中宿主必须透明底：自绘 `background` 会盖住 `z-index: -1` 的选中片。
+- 禁止再挂表面 dual class（`yohu-tree__row--selected` / `yohu-select__option--selected` / `yohu-*-item--active`）。键盘高亮仍用 `.yohu-interactive--active`。
 
 **焦点环（单源）**
 
@@ -179,7 +196,7 @@ Component（组件级：--yohu-state-* / --yohu-level-* / --yohu-ripple-* / --yo
 ├──────────┬─────────────────────────────────────────────────┤
 │ 设备栏    │ 模块工具栏（标题 + 操作按钮 + 模块状态）           │
 │ 在线设备  │─────────────────────────────────────────────────┤
-│ 卡片式    │                                                 │
+│ 列表行    │                                                 │
 │ 型号/串号 │            模块主视图                            │
 │──────────│                                                 │
 │ 模块导航  │                                                 │
@@ -190,8 +207,8 @@ Component（组件级：--yohu-state-* / --yohu-level-* / --yohu-ripple-* / --yo
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **设备栏**：标题行 = 折叠钮 +「设备」+ 数量徽章（徽章紧跟标题，不推到最右）+ 刷新（`YoIconButton loading` 旋转）；设备卡片（型号一行 + serial 等宽一行 + 在线点 + 未授权徽章）；空态给引导文案；选中 = `.yohu-interactive--selected` + `--yohu-stroke-accent` 左边条。
-- **导航**：图标 16px（`<Icon>` 单源，currentColor）+ 标题；激活项 accent 文字 + `.yohu-interactive--selected`；Planned 项「开发中」胶囊徽章。图标节点每次渲染新建。
+- **设备栏**：标题行 = 折叠钮 +「设备」+ 数量徽章（徽章紧跟标题，不推到最右）+ 刷新（`YoIconButton loading` 旋转）；设备行（型号一行 + serial 等宽一行 + 在线点 + 未授权徽章，无白卡片）；空态给引导文案；选中只加 `.yohu-interactive--selected`。
+- **导航**：图标 16px（`<Icon>` 单源，currentColor）+ 标题；激活只加 `.yohu-interactive--selected`；Planned 项「开发中」胶囊徽章。图标节点每次渲染新建。设备栏与导航共用 `--yohu-layout-rail-inset`。
 - **状态栏**：左版本/中留白/右「设备 · 任务 · 状态」；任务悬停显示明细。
 - **快捷键统一表（v6.1 目标）**：`Ctrl+K` 命令面板（模块跳转/刷新设备/开始采集…）；模块内快捷键不变。
 
@@ -202,9 +219,9 @@ Component（组件级：--yohu-state-* / --yohu-level-* / --yohu-ripple-* / --yo
 ### 4.1 日志分析（核心打磨对象）
 
 - 布局：工具栏 → 会话 Tab 栏 → 过滤栏（单行） → 虚拟列表 → 会话状态行。
-- 行结构（列对齐，等宽）：`[时间 18ch] [PID 6→] [级别 1] [Tag ≤24ch] [消息 →]`；级别用色字 + `--yohu-stroke-emphasis` 左条；Fatal 反色块（`radius-2xs`）；行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。
-- 信号行（崩溃/ANR）行底色 `--yohu-signal-bg` + 左侧 Error 条。
-- 过滤栏：级别含以上 / Tag / 关键字检索（放大镜图标 + 「清除」；过滤生效时检索框 accent 边框）+ 会话 scope 徽章；控件走 `--yohu-control-height`。
+- 行结构（列对齐，等宽）：`[时间 18ch] [PID 6→] [级别 1] [Tag ≤24ch] [消息 →]`；级别用色字 + `--yohu-stroke-emphasis` 左条；Fatal 反色块（`radius-2xs`）；级别与检索高亮挂 `.yohu-tone`；行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。
+- 信号行（崩溃/ANR）行底色 `--yohu-signal-bg` + 左侧 Error 条；选中时信号底让位给选中片，左条保留。
+- 过滤栏：级别含以上 / Tag / 关键字检索（放大镜图标 + 「清除」；过滤生效时检索框 accent 边框）+ 会话 scope 用 `YoBadge tone=accent`；控件走 `--yohu-control-height`。
 - 会话 Tab：标题 + 采集绿点/信号红点 + 关闭 × + 新建 +；Tab 溢出可横向滚动；右键菜单（关闭其他/重命名/复制会话）。
 - 状态行：`采集指示（绿点/灰点）· 设备 · 缓冲 n · 可见 n · 信号 n · 进程索引 n s 前 · 滞后回补提示`。
 - 空态：未采集 → 插画图标 + 「点击开始采集」主按钮；采集中空 → 等待输出；过滤无命中 → 「无匹配日志，调整过滤条件」。
@@ -222,14 +239,16 @@ Component（组件级：--yohu-state-* / --yohu-level-* / --yohu-ripple-* / --yo
 
 - 布局：工具栏 → 路径栏（面包屑）→ 四列清单 + 可收起预览 → 传输面板。
 - 四列清单：`YoVirtualList` 选择模式（含 ripple）；前三列 `YoColResizer`。
-- 面包屑覆盖 ripple 几何为 `radius-xs` + inset 0。
+- 面包屑：祖先 `--yohu-fg-2`，当前段 `--yohu-fg` + semibold（不是全段 accent，也不是选中实底）；ripple 圆角覆盖为 `radius-xs`。
 - 预览宽 `--yohu-layout-preview`；右键 `YoContextMenu`。
 
 ### 4.4 设置
 
 - 页面是滚动容器；`YoPanel` 不裁切表单项。
 - 控件（`YoTextField`/`YoSelect`）在设置页必须 `width: 100%`。
-- 页宽 `--yohu-layout-settings-max`。
+- 页宽 `--yohu-layout-settings-max`；左右边 `--yohu-layout-page-margin`（PC 40vp）。
+- `YoDialog`：中性 10% 遮罩 + `--yohu-shadow-dialog`（失焦 `-unfocused`）；最小 360×240、最大宽 400、高 90%。
+- `YoToast`：描边；最大宽 400；展示 ≤ `--yohu-dur-toast`（3s）。
 
 ---
 
