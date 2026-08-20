@@ -127,7 +127,11 @@ export function FileView(props: DeviceSession) {
             loading={fileStore.session.loading}
             onClick={() => void fileStore.refresh()}
           />
-          <YoButton variant="ghost" onClick={() => fileStore.togglePreview()}>
+          <YoButton
+            variant="ghost"
+            aria-expanded={fileStore.ui.previewOpen}
+            onClick={() => fileStore.togglePreview()}
+          >
             {fileStore.ui.previewOpen ? "收起预览" : "预览"}
           </YoButton>
       </YoChrome>
@@ -138,7 +142,10 @@ export function FileView(props: DeviceSession) {
         </div>
       </Show>
 
-      <div class="yohu-files__stage">
+      <div
+        class="yohu-files__stage yohu-recipe-rail"
+        classList={{ "yohu-files__stage--preview-collapsed": !fileStore.ui.previewOpen }}
+      >
         <div class="yohu-files__explorer">
           <div class="yohu-files__path">
             <YoIconButton
@@ -156,9 +163,9 @@ export function FileView(props: DeviceSession) {
             <FileTable onContextMenu={(x, y) => setMenu({ x, y })} />
           </Show>
         </div>
-        <Show when={fileStore.ui.previewOpen}>
+        <div class="yohu-files__preview-slot" attr:inert={!fileStore.ui.previewOpen ? true : undefined}>
           <PreviewPane />
-        </Show>
+        </div>
       </div>
       <TransferPanel />
 

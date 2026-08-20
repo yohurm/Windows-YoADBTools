@@ -72,11 +72,27 @@
 /* ===== 主体：圆角分区（清单 | 预览 | 传输） ===== */
 
 .yohu-files__stage {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(var(--yohu-space-md) + var(--yohu-layout-preview));
   flex: 1;
   min-height: 0;
   min-width: 0;
-  gap: var(--yohu-space-md);
+}
+
+.yohu-files__stage--preview-collapsed {
+  grid-template-columns: minmax(0, 1fr) 0;
+}
+
+/* 槽位随列宽收；预览锁宽并贴右，从分隔线一侧裁切，不换行压扁。 */
+.yohu-files__preview-slot {
+  overflow: hidden;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.yohu-files__stage--preview-collapsed .yohu-files__preview-slot {
+  pointer-events: none;
 }
 
 .yohu-files__explorer {
@@ -240,8 +256,12 @@
   display: flex;
   flex-direction: column;
   flex: 0 0 var(--yohu-layout-preview);
+  box-sizing: border-box;
   width: var(--yohu-layout-preview);
+  min-width: var(--yohu-layout-preview);
+  height: 100%;
   min-height: 0;
+  margin-left: var(--yohu-space-md);
   background: var(--yohu-surface);
   border-radius: var(--yohu-radius-md);
   overflow: hidden;
@@ -339,14 +359,8 @@
 
 /* 终态：2.5s 后开始淡出，3s 时由 store 移除 */
 .yohu-files__transfer--terminal {
-  animation: yohu-fade-out var(--yohu-dur-slow) var(--yohu-ease-standard) forwards;
+  animation: yohu-fade-out var(--yohu-motion-spatial-panel) forwards;
   animation-delay: 2.5s;
-}
-
-@keyframes yohu-fade-out {
-  to {
-    opacity: 0;
-  }
 }
 
 .yohu-files__transfer-dir {
