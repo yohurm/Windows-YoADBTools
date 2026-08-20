@@ -40,6 +40,8 @@ vi.mock("@yohu/api", () => {
     filesCancel: notConfigured,
     filesDelete: notConfigured,
     filesMkdir: notConfigured,
+    filesDragOut: notConfigured,
+    filesCreate: notConfigured,
     logCaptureStart: notConfigured,
     logCaptureStop: notConfigured,
     logCaptureStatus: notConfigured,
@@ -55,6 +57,7 @@ vi.mock("@yohu/api", () => {
     onProcessIndex: noop,
     onCaptureState: noop,
     onTransferProgress: noop,
+    onNativeDragDrop: noop,
     onGroupProgress: noop,
     onSettingsChanged: noop,
     onTaskSummary: (h: (e: unknown) => void): void => {

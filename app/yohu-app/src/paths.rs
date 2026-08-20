@@ -30,7 +30,10 @@ impl AppPaths {
         } else {
             PathBuf::from(settings_data_root)
         };
-        Self { data_root, logs_dir: root.join("logs") }
+        Self {
+            data_root,
+            logs_dir: root.join("logs"),
+        }
     }
 
     /// `DataRoot/tools/adb/`（sidecar 解压目标）。
@@ -45,11 +48,18 @@ impl AppPaths {
 
     /// 命令库文件：`DataRoot/modules/adb-terminal/config/library.json`。
     pub fn library_file(&self) -> PathBuf {
-        self.module_data("adb-terminal").join("config").join("library.json")
+        self.module_data("adb-terminal")
+            .join("config")
+            .join("library.json")
     }
 
     /// 日志导出目录。
     pub fn exports_dir(&self) -> PathBuf {
         self.module_data("log-analyzer").join("exports")
+    }
+
+    /// 拖出虚拟文件临时区：`DataRoot/modules/file-manager/drag-out/`。
+    pub fn drag_out_dir(&self) -> PathBuf {
+        self.module_data("file-manager").join("drag-out")
     }
 }

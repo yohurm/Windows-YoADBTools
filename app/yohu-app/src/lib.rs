@@ -6,6 +6,7 @@
 //! - 所有业务能力在 core crates（domain/adb/logsrv/files）。
 
 mod commands;
+mod dnd;
 mod events;
 mod panic_hook;
 mod paths;
@@ -70,6 +71,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         let settings = SettingsStore::load(probe_file);
         let snapshot = settings.snapshot();
         let paths = AppPaths::resolve(&snapshot.data_root);
+        crate::dnd::cleanup_stale(&paths.drag_out_dir());
 
         // 2) 崩溃 hook（先于一切业务）
         panic_hook::install(paths.logs_dir.clone());
@@ -80,13 +82,18 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
         // 4) core 服务装配
         let user_adb = (!snapshot.adb_path.is_empty()).then(|| PathBuf::from(&snapshot.adb_path));
-        let tool = std::sync::Arc::new(ToolResolver::new(user_adb, resource_dir, paths.adb_tools_dir()));
+        let tool = std::sync::Arc::new(ToolResolver::new(
+            user_adb,
+            resource_dir,
+            paths.adb_tools_dir(),
+        ));
         let client = std::sync::Arc::new(AdbClient::new((*tool).clone(), 8));
 
         let (event_tx, event_rx) = mpsc::channel::<AppEvent>(1024);
         events::spawn_dispatcher(event_rx, handle.clone());
 
-        let capture = CaptureService::new(client.clone(), event_tx.clone(), snapshot.buffer_capacity);
+        let capture =
+            CaptureService::new(client.clone(), event_tx.clone(), snapshot.buffer_capacity);
 
         let state = AppState {
             client: client.clone(),
@@ -99,7 +106,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             settings,
             paths: paths.clone(),
             app_log: AppLog::new(500),
-            tasks: TaskCenter::new(event_tx.clone()),
+            tasks: std::sync::Arc::new(TaskCenter::new(event_tx.clone())),
             event_tx: event_tx.clone(),
             root_cancel: root_cancel.clone(),
             last_devices: std::sync::Mutex::new(Vec::new()),
@@ -108,8 +115,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             group_next: std::sync::atomic::AtomicU32::new(0),
             library: std::sync::Mutex::new(yohu_domain::CommandLibrary::empty()),
             capture_tasks: std::sync::Mutex::new(std::collections::HashMap::new()),
-            transfer_cancels: std::sync::Mutex::new(std::collections::HashMap::new()),
-            transfer_next: std::sync::atomic::AtomicU32::new(0),
+            transfer_cancels: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )),
+            transfer_next: std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0)),
             browse_cancel: std::sync::Mutex::new(CancellationToken::new()),
         };
         app.manage(state);
@@ -160,6 +169,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::files::files_delete,
             commands::files::files_mkdir,
             commands::files::files_create,
+            commands::files::files_drag_out,
             commands::log::log_capture_start,
             commands::log::log_capture_stop,
             commands::log::log_capture_status,
@@ -184,6 +194,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 if let Err(e) = state.settings.save_atomic() {
                     tracing::warn!("退出时保存设置失败: {e}");
                 }
+                crate::dnd::cleanup_stale(&state.paths.drag_out_dir());
             }
         }
     });

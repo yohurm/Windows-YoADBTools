@@ -10,6 +10,7 @@ import {
   filesCancel,
   filesCreate,
   filesDelete,
+  filesDragOut,
   filesList,
   filesMkdir,
   filesPull,
@@ -17,19 +18,23 @@ import {
   onTransferProgress,
 } from "@yohu/api";
 import type { RemoteEntry, TransferProgress, TransferState } from "@yohu/api";
-import { DISMISS_HOLD_DURATION, motionDurationMs } from "@yohu/ui";
+import { DISMISS_HOLD_DURATION, motionDurationMs, nextKeys, type SelectMode } from "@yohu/ui";
 
+import { localBaseName, namesForDrag } from "./drop";
 import {
   DEFAULT_SORT_DIR,
   FILE_COLUMNS,
   childPath,
   errorText,
   isCancelledError,
+  isNotFoundError,
   parentWithinSafety,
   sortEntries,
+  validateEntryName,
   type SortDir,
   type SortKey,
 } from "./model";
+import { shouldAcceptProgress } from "./progress";
 
 export type { SortDir, SortKey } from "./model";
 export {
@@ -97,6 +102,11 @@ export function createFileStore() {
   }
 
   function upsertTransfer(progress: TransferProgress, name?: string): void {
+    const existing = transfers.find((t) => t.id === progress.id);
+    if (!shouldAcceptProgress(existing?.state, progress.state)) {
+      if (name !== undefined) setTransferName(progress.id, name);
+      return;
+    }
     const now = Date.now();
     const base = speedBase.get(progress.id);
     const speed =
@@ -257,21 +267,45 @@ export function createFileStore() {
     });
   }
 
-  async function push(local: string, remoteName: string): Promise<void> {
+  async function enqueuePush(local: string, remoteName: string, destDir: string): Promise<void> {
     const current = serial();
-    if (!current) {
-      setError("未选择设备");
-      return;
-    }
+    if (!current) throw new Error("未选择设备");
+    const remote = childPath(destDir, remoteName);
+    const id = await filesPush({ serial: current, local, remote });
+    setTransferName(id, remoteName);
+  }
+
+  async function push(local: string, remoteName: string, destDir?: string): Promise<void> {
     try {
-      const remote = childPath(session.path, remoteName);
-      const id = await filesPush({ serial: current, local, remote });
-      setTransferName(id, remoteName);
-      upsertTransfer({ id, direction: "push", bytes: 0, state: "running" }, remoteName);
+      await enqueuePush(local, remoteName, destDir ?? session.path);
       setError("");
     } catch (e) {
       setError(errorText(e));
     }
+  }
+
+  /** 拖入：每个本机顶层路径一次 push；destDir 缺省为当前会话目录。 */
+  async function pushLocals(locals: string[], destDir?: string): Promise<void> {
+    if (!serial()) {
+      setError("未选择设备");
+      return;
+    }
+    const dest = destDir ?? session.path;
+    const failures: string[] = [];
+    for (const local of locals) {
+      const name = localBaseName(local);
+      const invalid = validateEntryName(name);
+      if (invalid) {
+        failures.push(`${name || local}: ${invalid}`);
+        continue;
+      }
+      try {
+        await enqueuePush(local, name, dest);
+      } catch (e) {
+        failures.push(`${name}: ${errorText(e)}`);
+      }
+    }
+    setError(failures.length > 0 ? failures.join("；") : "");
   }
 
   async function pull(remoteName: string, local: string): Promise<void> {
@@ -284,7 +318,6 @@ export function createFileStore() {
       const remote = childPath(session.path, remoteName);
       const id = await filesPull({ serial: current, local, remote });
       setTransferName(id, remoteName);
-      upsertTransfer({ id, direction: "pull", bytes: 0, state: "running" }, remoteName);
       setError("");
     } catch (e) {
       setError(errorText(e));
@@ -295,7 +328,40 @@ export function createFileStore() {
     try {
       await filesCancel(id);
     } catch (e) {
+      if (!isNotFoundError(e)) {
+        setError(errorText(e));
+        return;
+      }
+    }
+    const current = transfers.find((t) => t.id === id);
+    if (current?.state === "running") {
+      upsertTransfer({
+        id,
+        direction: current.direction,
+        bytes: current.bytes,
+        total: current.total,
+        state: "cancelled",
+      });
+    }
+    setError("");
+  }
+
+  let dragging = false;
+
+  async function dragOut(dragName: string): Promise<void> {
+    const current = serial();
+    if (!current || dragging) return;
+    const names = namesForDrag(selection.names, dragName);
+    if (names.length === 0) return;
+    dragging = true;
+    try {
+      const remotes = names.map((name) => childPath(session.path, name));
+      await filesDragOut({ serial: current, remotes });
+      setError("");
+    } catch (e) {
       setError(errorText(e));
+    } finally {
+      dragging = false;
     }
   }
 
@@ -305,30 +371,21 @@ export function createFileStore() {
     setEntries(sortEntries(entries, key, dir));
   }
 
-  function select(name: string, mode: "replace" | "toggle" | "range"): void {
-    if (mode === "toggle") {
-      const next = new Set(selection.names);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      setSelection({ names: [...next], pivot: name });
-      return;
-    }
-    if (mode === "range" && selection.pivot) {
-      const from = entries.findIndex((e) => e.name === selection.pivot);
-      const to = entries.findIndex((e) => e.name === name);
-      if (from >= 0 && to >= 0) {
-        const [a, b] = from < to ? [from, to] : [to, from];
-        setSelection("names", entries.slice(a, b + 1).map((e) => e.name));
-        return;
-      }
-    }
-    setSelection({ names: [name], pivot: name });
+  function select(name: string, mode: SelectMode): void {
+    const ordered = entries.map((entry) => entry.name);
+    const next = nextKeys(ordered, new Set(selection.names), selection.pivot, name, mode);
+    setSelection({ names: [...next.keys], pivot: next.pivot });
+  }
+
+  function selectAll(): void {
+    const names = entries.map((entry) => entry.name);
+    setSelection({ names, pivot: selection.pivot ?? names[0] ?? null });
   }
 
   function resizeCol(index: number, delta: number): void {
     setUi("colWidths", (prev) => {
       const next = [...prev];
-      next[index] = Math.max(COL_MIN[index] ?? 48, (next[index] ?? 80) + delta);
+      next[index] = Math.max(COL_MIN[index] ?? 0, (next[index] ?? 0) + delta);
       return next;
     });
   }
@@ -367,10 +424,13 @@ export function createFileStore() {
     mkdir,
     createFile,
     push,
+    pushLocals,
     pull,
     cancel,
+    dragOut,
     setSort,
     select,
+    selectAll,
     clearSelection,
     resizeCol,
     togglePreview,
@@ -378,6 +438,7 @@ export function createFileStore() {
     selectedEntries,
     singleFile,
     serial,
+    notifyError: setError,
   };
 }
 

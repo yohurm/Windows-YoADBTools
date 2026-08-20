@@ -39,7 +39,10 @@ async fn real_browse_and_transfer_roundtrip() {
 
     // 1) 浏览 /sdcard
     let browser = FileBrowser::new(client.clone());
-    let entries = browser.list(&serial, "/sdcard", CancellationToken::new()).await.expect("浏览失败");
+    let entries = browser
+        .list(&serial, "/sdcard", CancellationToken::new())
+        .await
+        .expect("浏览失败");
     assert!(!entries.is_empty());
     assert!(
         entries.iter().any(|e| e.mtime.is_some()),
@@ -99,11 +102,28 @@ async fn real_browse_and_transfer_roundtrip() {
     // 4) 新建目录 + 删除（core 侧 SafetyRoot）
     let mutator = FileMutator::new(client.clone());
     let dir = format!("/sdcard/yohu-real-dir-{stamp}");
-    mutator.mkdir(&serial, &dir, CancellationToken::new()).await.expect("mkdir 失败");
-    let entries_after = browser.list(&serial, "/sdcard", CancellationToken::new()).await.unwrap();
-    assert!(entries_after.iter().any(|e| e.name == dir.trim_start_matches("/sdcard/")), "新目录应可见");
-    mutator.delete(&serial, &dir, CancellationToken::new()).await.expect("删除目录失败");
-    mutator.delete(&serial, &remote, CancellationToken::new()).await.expect("删除测试文件失败");
+    mutator
+        .mkdir(&serial, &dir, CancellationToken::new())
+        .await
+        .expect("mkdir 失败");
+    let entries_after = browser
+        .list(&serial, "/sdcard", CancellationToken::new())
+        .await
+        .unwrap();
+    assert!(
+        entries_after
+            .iter()
+            .any(|e| e.name == dir.trim_start_matches("/sdcard/")),
+        "新目录应可见"
+    );
+    mutator
+        .delete(&serial, &dir, CancellationToken::new())
+        .await
+        .expect("删除目录失败");
+    mutator
+        .delete(&serial, &remote, CancellationToken::new())
+        .await
+        .expect("删除测试文件失败");
     eprintln!("[真机] mkdir/delete 完成，清理完毕");
 
     let _ = std::fs::remove_file(&local);
@@ -122,11 +142,17 @@ async fn real_safety_root_rejects_dangerous_path() {
     };
     let mutator = FileMutator::new(client);
     // 即使设备存在该路径，core 侧也必须拒绝（ADR-v6-013：不信任 UI）
-    let result = mutator.delete(&serial, "/data/local/tmp", CancellationToken::new()).await;
+    let result = mutator
+        .delete(&serial, "/data/local/tmp", CancellationToken::new())
+        .await;
     assert!(result.is_err(), "安全根外删除必须被 core 拒绝");
-    let result = mutator.delete(&serial, "/sdcard/../data/x", CancellationToken::new()).await;
+    let result = mutator
+        .delete(&serial, "/sdcard/../data/x", CancellationToken::new())
+        .await;
     assert!(result.is_err(), "路径穿越必须被 core 拒绝");
-    let result = mutator.delete(&serial, "/sdcard", CancellationToken::new()).await;
+    let result = mutator
+        .delete(&serial, "/sdcard", CancellationToken::new())
+        .await;
     assert!(result.is_err(), "禁止删除安全根本身");
     eprintln!("[真机] SafetyRoot 拒绝危险路径验证通过");
 }
@@ -135,7 +161,11 @@ async fn real_safety_root_rejects_dangerous_path() {
 #[tokio::test]
 async fn real_transfer_cancel_midflight() {
     let client = Arc::new(AdbClient::new(
-        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a3"), PathBuf::from("n/a3")),
+        ToolResolver::new(
+            Some(real_adb()),
+            PathBuf::from("n/a3"),
+            PathBuf::from("n/a3"),
+        ),
         4,
     ));
     let Some(serial) = online_device(&client).await else {
@@ -144,8 +174,14 @@ async fn real_transfer_cancel_midflight() {
     };
     // 找一个设备上的大文件（≥10MB）作为拉取源；没有则跳过
     let browser = FileBrowser::new(client.clone());
-    let entries = browser.list(&serial, "/storage/emulated/0/", CancellationToken::new()).await.unwrap();
-    let Some(big) = entries.iter().find(|e| e.kind == yohu_protocol::EntryKind::File && e.size >= 10 * 1024 * 1024) else {
+    let entries = browser
+        .list(&serial, "/storage/emulated/0/", CancellationToken::new())
+        .await
+        .unwrap();
+    let Some(big) = entries
+        .iter()
+        .find(|e| e.kind == yohu_protocol::EntryKind::File && e.size >= 10 * 1024 * 1024)
+    else {
         eprintln!("跳过：设备无 ≥10MB 文件可拉取");
         return;
     };
@@ -153,7 +189,11 @@ async fn real_transfer_cancel_midflight() {
 
     let runner = TransferRunner::new(client);
     let (tx, mut rx) = mpsc::channel::<AppEvent>(16);
-    let local = std::env::temp_dir().join(format!("yohu-cancel-{}-{}.bin", std::process::id(), big.name));
+    let local = std::env::temp_dir().join(format!(
+        "yohu-cancel-{}-{}.bin",
+        std::process::id(),
+        big.name
+    ));
     let cancel = CancellationToken::new();
     let spec = TransferSpec {
         id: 77,
@@ -182,7 +222,9 @@ async fn real_transfer_cancel_midflight() {
     assert!(saw_running, "应进入 Running 状态");
     cancel.cancel();
 
-    let result = tokio::time::timeout(Duration::from_secs(15), handle).await.expect("传输未按时终止");
+    let result = tokio::time::timeout(Duration::from_secs(15), handle)
+        .await
+        .expect("传输未按时终止");
     assert!(result.is_ok(), "join 失败");
     let outcome = result.expect("checked");
     assert!(outcome.is_err(), "取消应返回错误");

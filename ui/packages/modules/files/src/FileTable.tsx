@@ -1,10 +1,11 @@
 /**
  * 文件表（View）：列规格来自 model.FILE_COLUMNS，状态全在 fileStore。
+ * 表头轨道走 YoColHeader（悬浮片铺满列宽；文案边距在 .yohu-col-header__label）；本文件只提供排序文案与单元格。
  */
 
 import { For, Show } from "solid-js";
 
-import { Icon, YoColResizer, YoEmptyState, YoFileIcon, YoVirtualList } from "@yohu/ui";
+import { Icon, YoColHeader, YoEmptyState, YoFileIcon, YoVirtualList, pointerSelectMode } from "@yohu/ui";
 import type { RemoteEntry } from "@yohu/api";
 
 import {
@@ -23,29 +24,29 @@ function ColHead(props: { col: FileColumnSpec; index: number }) {
     return fileStore.sort.dir === "asc" ? "ascending" : "descending";
   };
   return (
-    <span
-      class="yohu-files__col"
-      classList={{ "yohu-files__col--end": props.col.align === "end" }}
-      role="columnheader"
-      aria-sort={ariaSort()}
+    <YoColHeader
+      align={props.col.align}
+      ariaSort={ariaSort()}
+      resizable={!props.col.flex}
+      resizeLabel={props.col.resizeLabel}
+      onResize={(dx) => fileStore.resizeCol(props.index, dx)}
     >
       <button
         type="button"
-        class="yohu-files__sort yohu-focus-ring--inset"
+        class="yohu-files__sort yohu-interactive yohu-focus-ring--inset"
         onClick={() => fileStore.setSort(props.col.key)}
         title={props.col.sortTitle}
       >
-        <span class="yohu-files__sort-label">{props.col.header}</span>
-        <span class="yohu-files__sort-icon" aria-hidden="true">
+        <span class="yohu-col-header__label">
+          <span class="yohu-files__sort-label">{props.col.header}</span>
           <Show when={ariaSort() !== "none"}>
-            <Icon name={ariaSort() === "ascending" ? "chevron-up" : "chevron-down"} size={12} />
+            <span class="yohu-files__sort-icon" aria-hidden="true">
+              <Icon name={ariaSort() === "ascending" ? "chevron-up" : "chevron-down"} size={12} />
+            </span>
           </Show>
         </span>
       </button>
-      <Show when={!props.col.flex}>
-        <YoColResizer label={props.col.resizeLabel} onResize={(dx) => fileStore.resizeCol(props.index, dx)} />
-      </Show>
-    </span>
+    </YoColHeader>
   );
 }
 
@@ -84,7 +85,7 @@ function FileCell(props: { entry: RemoteEntry; col: FileColumnSpec }) {
   }
 }
 
-export function FileTable(props: { onContextMenu: (x: number, y: number) => void }) {
+export function FileTable(props: { onContextMenu: (x: number, y: number) => void; dropDirName?: string | null }) {
   const colStyle = (): { "grid-template-columns": string } => ({
     "grid-template-columns": fileColTemplate(fileStore.ui.colWidths),
   });
@@ -112,10 +113,7 @@ export function FileTable(props: { onContextMenu: (x: number, y: number) => void
             ariaLabel="文件列表"
             selectedKeys={fileStore.selectedSet}
             onSelectRow={(entry, _key, event) => {
-              if (event && "shiftKey" in event && event.shiftKey) fileStore.select(entry.name, "range");
-              else if (event && "ctrlKey" in event && (event.ctrlKey || event.metaKey)) {
-                fileStore.select(entry.name, "toggle");
-              } else fileStore.select(entry.name, "replace");
+              fileStore.select(entry.name, pointerSelectMode(event));
             }}
             onRowContextMenu={(entry, _key, event) => {
               if (!fileStore.selectedSet().has(entry.name)) fileStore.select(entry.name, "replace");
@@ -124,7 +122,15 @@ export function FileTable(props: { onContextMenu: (x: number, y: number) => void
             renderRow={(entry) => (
               <div
                 class="yohu-files__cols yohu-files__row"
+                classList={{ "yohu-files__row--drop": props.dropDirName === entry.name }}
+                data-kind={entry.kind}
+                draggable="true"
                 style={colStyle()}
+                onDragStart={(event) => {
+                  event.preventDefault();
+                  if (!fileStore.selectedSet().has(entry.name)) fileStore.select(entry.name, "replace");
+                  void fileStore.dragOut(entry.name);
+                }}
                 onDblClick={() => {
                   if (entry.kind === "dir" || entry.kind === "symlink") void fileStore.enterDirectory(entry.name);
                 }}

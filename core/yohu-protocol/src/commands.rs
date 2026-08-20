@@ -59,6 +59,13 @@ pub struct TransferRequest {
     pub remote: String,
 }
 
+/// `files.dragOut`：把设备路径交给壳虚拟文件拖出（DoDragDrop 结束后返回）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DragOutRequest {
+    pub serial: String,
+    pub remotes: Vec<String>,
+}
+
 /// `group.run` 请求（命令模板已由 UI 完成占位符填充）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GroupRunRequest {
@@ -119,8 +126,18 @@ mod tests {
     #[test]
     fn transfer_request_has_no_id_or_direction() {
         let parsed: TransferRequest =
-            serde_json::from_str(r#"{"serial":"S","local":"C:/a.bin","remote":"/sdcard/a.bin"}"#).unwrap();
+            serde_json::from_str(r#"{"serial":"S","local":"C:/a.bin","remote":"/sdcard/a.bin"}"#)
+                .unwrap();
         assert_eq!(parsed.serial, "S");
         assert_eq!(parsed.remote, "/sdcard/a.bin");
+    }
+
+    #[test]
+    fn drag_out_request_is_serial_plus_remotes() {
+        let parsed: DragOutRequest =
+            serde_json::from_str(r#"{"serial":"S","remotes":["/sdcard/a.txt","/sdcard/DCIM"]}"#)
+                .unwrap();
+        assert_eq!(parsed.serial, "S");
+        assert_eq!(parsed.remotes.len(), 2);
     }
 }

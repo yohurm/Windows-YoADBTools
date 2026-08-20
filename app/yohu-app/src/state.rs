@@ -10,7 +10,9 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use yohu_adb::{AdbClient, ToolResolver};
-use yohu_domain::{AppLog, CommandLibrary, DeviceSessionError, assert_device_online, assert_targets_online};
+use yohu_domain::{
+    assert_device_online, assert_targets_online, AppLog, CommandLibrary, DeviceSessionError,
+};
 use yohu_files::{FileBrowser, FileMutator, TransferRunner};
 use yohu_logsrv::{CaptureService, ExportService};
 use yohu_protocol::{AppEvent, DeviceInfo, IpcError, IpcErrorCode};
@@ -32,7 +34,7 @@ pub struct AppState {
     pub settings: SettingsStore,
     pub paths: AppPaths,
     pub app_log: AppLog,
-    pub tasks: TaskCenter,
+    pub tasks: Arc<TaskCenter>,
 
     // ===== 事件与生命周期 =====
     pub event_tx: mpsc::Sender<AppEvent>,
@@ -50,9 +52,9 @@ pub struct AppState {
     pub library: Mutex<CommandLibrary>,
     /// 采集任务登记（serial → 任务 id）
     pub capture_tasks: Mutex<HashMap<String, u32>>,
-    /// 传输取消令牌（transfer id → token）
-    pub transfer_cancels: Mutex<HashMap<u32, CancellationToken>>,
-    pub transfer_next: AtomicU32,
+    /// 传输取消令牌（transfer id → token）；拖出 GetData 与对话框共用
+    pub transfer_cancels: Arc<Mutex<HashMap<u32, CancellationToken>>>,
+    pub transfer_next: Arc<AtomicU32>,
     /// 当前目录列举取消令牌（新 list 取消上一趟，防过期结果覆盖）
     pub browse_cancel: Mutex<CancellationToken>,
 }

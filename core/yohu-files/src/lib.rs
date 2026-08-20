@@ -7,7 +7,7 @@ pub mod browse;
 pub mod mutate;
 pub mod transfer;
 
-pub use browse::FileBrowser;
+pub use browse::{join_win_relative, FileBrowser, TreeEntry, MAX_TREE_ENTRIES};
 pub use mutate::FileMutator;
 pub use transfer::{TransferRunner, TransferSpec};
 
@@ -20,7 +20,7 @@ pub enum FileError {
     Path(String),
     #[error("路径不在安全根内: {0}")]
     OutsideRoot(String),
-    #[error("本地文件不存在: {0}")]
+    #[error("本地路径不存在: {0}")]
     LocalNotFound(String),
     #[error("ADB 错误: {0}")]
     Adb(#[from] yohu_adb::AdbError),

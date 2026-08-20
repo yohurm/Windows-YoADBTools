@@ -17,7 +17,11 @@ pub struct TaskCenter {
 
 impl TaskCenter {
     pub fn new(sink: mpsc::Sender<AppEvent>) -> Self {
-        Self { inner: Mutex::new(HashMap::new()), next: AtomicU32::new(1), sink }
+        Self {
+            inner: Mutex::new(HashMap::new()),
+            next: AtomicU32::new(1),
+            sink,
+        }
     }
 
     /// 登记一个活动任务（name 展示名，detail 悬停明细），返回任务 id。
@@ -25,7 +29,12 @@ impl TaskCenter {
         let id = self.next.fetch_add(1, Ordering::Relaxed);
         self.inner.lock().expect("tasks lock poisoned").insert(
             id,
-            TaskInfo { id, name, active: true, detail: Some(detail) },
+            TaskInfo {
+                id,
+                name,
+                active: true,
+                detail: Some(detail),
+            },
         );
         self.emit();
         id
@@ -40,13 +49,20 @@ impl TaskCenter {
     }
 
     pub fn summary(&self) -> Vec<TaskInfo> {
-        let mut tasks: Vec<TaskInfo> =
-            self.inner.lock().expect("tasks lock poisoned").values().cloned().collect();
+        let mut tasks: Vec<TaskInfo> = self
+            .inner
+            .lock()
+            .expect("tasks lock poisoned")
+            .values()
+            .cloned()
+            .collect();
         tasks.sort_by_key(|t| t.id);
         tasks
     }
 
     fn emit(&self) {
-        let _ = self.sink.try_send(AppEvent::TaskSummary { tasks: self.summary() });
+        let _ = self.sink.try_send(AppEvent::TaskSummary {
+            tasks: self.summary(),
+        });
     }
 }

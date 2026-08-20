@@ -78,8 +78,8 @@ export const FILE_COLUMNS: readonly FileColumnSpec[] = [
     header: "类型",
     sortTitle: "按类型排序",
     resizeLabel: "调节类型列宽",
-    defaultWidth: 52,
-    minWidth: 44,
+    defaultWidth: 72,
+    minWidth: 56,
     flex: false,
     align: "start",
   },
@@ -88,8 +88,8 @@ export const FILE_COLUMNS: readonly FileColumnSpec[] = [
     header: "大小",
     sortTitle: "按大小排序",
     resizeLabel: "调节大小列宽",
-    defaultWidth: 72,
-    minWidth: 56,
+    defaultWidth: 80,
+    minWidth: 64,
     flex: false,
     align: "end",
   },
@@ -211,4 +211,13 @@ export function errorText(e: unknown): string {
 export function isCancelledError(e: unknown): boolean {
   const text = errorText(e).toLowerCase();
   return text.includes("cancel") || text.includes("取消");
+}
+
+export function isNotFoundError(e: unknown): boolean {
+  if (e && typeof e === "object") {
+    const rec = e as { code?: unknown };
+    if (rec.code === "not_found") return true;
+  }
+  const text = errorText(e);
+  return text.includes("不存在") || text.toLowerCase().includes("not found");
 }

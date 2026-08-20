@@ -1,6 +1,7 @@
 /* ============================================================================
  * 文件管理（UI设计系统-v6.md §4.3）。
- * 面包屑路径栏 → 四列清单（名称定宽截断 / 类型 / 大小 / 日期吃剩余）
+ * 面包屑路径栏 → 四列清单（名称定宽截断 / 类型 / 大小 / 日期吃剩余；
+ * 表头轨道走 YoColHeader（悬浮片与文案边距分权）；行间 hairline 走 YoVirtualList 单源，背板 canvas）
  * + 独立预览分区 → 传输面板（卡片式；终态 3s 淡出）。
  * ========================================================================== */
 
@@ -11,7 +12,6 @@
   align-items: center;
   gap: var(--yohu-space-sm);
   padding: var(--yohu-space-xs) var(--yohu-space-sm);
-  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   flex-shrink: 0;
   min-width: 0;
 }
@@ -85,8 +85,22 @@
 }
 
 .yohu-files__explorer {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   min-width: 0;
+  height: 100%;
+}
+
+.yohu-files__explorer--drop > .yohu-panel {
+  outline: var(--yohu-stroke-accent) dashed var(--yohu-accent);
+  outline-offset: calc(var(--yohu-stroke-hairline) * -1);
+  background-color: var(--yohu-accent-soft);
+}
+
+.yohu-files__row--drop {
+  background-color: var(--yohu-accent-soft);
+  box-shadow: inset 0 0 0 var(--yohu-stroke-accent) var(--yohu-accent);
 }
 
 .yohu-files__table {
@@ -95,12 +109,13 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
+  height: 100%;
 }
 
 .yohu-files__cols {
   display: grid;
   align-items: center;
-  padding: 0 var(--yohu-space-sm) 0 var(--yohu-space-md);
+  padding: 0;
   box-sizing: border-box;
   min-width: 0;
 }
@@ -108,62 +123,34 @@
 .yohu-files__cols--head {
   flex-shrink: 0;
   height: var(--yohu-row-height-header);
-  background: var(--yohu-surface-2);
+  align-items: stretch;
+  background: var(--yohu-canvas);
   border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   font-size: var(--yohu-font-caption);
   font-weight: var(--yohu-font-weight-regular);
   color: var(--yohu-fg-2);
 }
 
-.yohu-files__col,
 .yohu-files__cell,
 .yohu-files__name {
   min-width: 0;
   overflow: hidden;
 }
 
-.yohu-files__col {
-  position: relative;
-  height: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.yohu-files__col:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: var(--yohu-space-sm);
-  right: 0;
-  bottom: var(--yohu-space-sm);
-  width: var(--yohu-stroke-hairline);
-  background: var(--yohu-border);
-  pointer-events: none;
-}
-
-.yohu-files__col:hover {
-  color: var(--yohu-fg);
-  background: var(--yohu-state-hover);
-}
-
-.yohu-files__col[aria-sort="ascending"] .yohu-files__sort-label,
-.yohu-files__col[aria-sort="descending"] .yohu-files__sort-label {
+.yohu-col-header[aria-sort="ascending"] .yohu-files__sort-label,
+.yohu-col-header[aria-sort="descending"] .yohu-files__sort-label {
   color: var(--yohu-fg);
   font-weight: var(--yohu-font-weight-semibold);
 }
 
-.yohu-files__col--end {
-  justify-content: flex-end;
-}
-
 .yohu-files__sort {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--yohu-space-2xs);
+  display: flex;
+  align-items: stretch;
   width: 100%;
-  min-width: 0;
   height: 100%;
+  min-width: 0;
   margin: 0;
-  padding: 0 var(--yohu-space-xs) 0 0;
+  padding: 0;
   border: none;
   background: transparent;
   color: inherit;
@@ -172,8 +159,8 @@
   text-align: inherit;
 }
 
-.yohu-files__col--end .yohu-files__sort {
-  justify-content: flex-end;
+.yohu-files__sort:hover {
+  color: var(--yohu-fg);
 }
 
 .yohu-files__sort-label {
@@ -192,20 +179,29 @@
 }
 
 .yohu-files__table-list {
+  position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+  background-color: var(--yohu-canvas);
 }
 
 .yohu-files__row {
   height: 100%;
   font-size: var(--yohu-font-caption);
   color: var(--yohu-fg);
+  user-select: none;
+}
+
+.yohu-files__cols--head .yohu-col-header:first-child {
+  --yohu-col-header-content-pad: 0 var(--yohu-space-sm) 0 var(--yohu-space-md);
 }
 
 .yohu-files__name {
   display: flex;
   align-items: center;
   gap: var(--yohu-space-sm);
+  padding-left: var(--yohu-space-md);
   padding-right: var(--yohu-space-sm);
 }
 

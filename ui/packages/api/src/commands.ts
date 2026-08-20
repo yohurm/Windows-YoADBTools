@@ -27,6 +27,7 @@ import type {
   RemoteEntry,
   SettingKey,
   TransferRequest,
+  DragOutRequest,
 } from "./types";
 
 // ===== device =====
@@ -79,6 +80,8 @@ export const filesDelete = (req: PathOpRequest) => invoke<void>("files.delete", 
 export const filesMkdir = (req: PathOpRequest) => invoke<void>("files.mkdir", { req });
 
 export const filesCreate = (req: PathOpRequest) => invoke<void>("files.create", { req });
+
+export const filesDragOut = (req: DragOutRequest) => invoke<void>("files.dragOut", { req });
 
 // ===== log =====
 

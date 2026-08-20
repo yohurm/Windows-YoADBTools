@@ -33,7 +33,10 @@ pub struct TransferRunner {
 
 impl TransferRunner {
     pub fn new(adb: Arc<AdbClient>) -> Self {
-        Self { adb, safety: SafetyRoot::default() }
+        Self {
+            adb,
+            safety: SafetyRoot::default(),
+        }
     }
 
     /// 执行一次传输；进度经 `sink` 以 `TransferProgress` 事件推送。
@@ -44,16 +47,14 @@ impl TransferRunner {
         cancel: CancellationToken,
         sink: mpsc::Sender<AppEvent>,
     ) -> Result<u64, FileError> {
-        let TransferSpec { id, serial, direction, local, remote } = spec;
+        let TransferSpec {
+            id,
+            serial,
+            direction,
+            local,
+            remote,
+        } = spec;
         let local_path = PathBuf::from(&local);
-        match direction {
-            Direction::Push => {
-                if !local_path.is_file() {
-                    return Err(FileError::LocalNotFound(local.to_string()));
-                }
-            }
-            Direction::Pull => {}
-        }
         let remote_norm = self
             .safety
             .check_descendant(&remote)
@@ -61,10 +62,16 @@ impl TransferRunner {
 
         let (argv, total): (Vec<String>, u64) = match direction {
             Direction::Push => {
-                let total = std::fs::metadata(&local_path).map(|m| m.len()).unwrap_or(0);
-                (vec!["push".into(), local.clone(), remote_norm.as_str().into()], total)
+                let total = push_local_total(&local_path)?;
+                (
+                    vec!["push".into(), local.clone(), remote_norm.as_str().into()],
+                    total,
+                )
             }
-            Direction::Pull => (vec!["pull".into(), remote_norm.as_str().into(), local.clone()], 0),
+            Direction::Pull => (
+                vec!["pull".into(), remote_norm.as_str().into(), local.clone()],
+                0,
+            ),
         };
 
         let mut progress = TransferProgress {
@@ -100,7 +107,9 @@ impl TransferRunner {
                 }
             }
         }
-        let outcome = stream.await.map_err(|e| FileError::Adb(yohu_adb::AdbError::Io(e.into())))?;
+        let outcome = stream
+            .await
+            .map_err(|e| FileError::Adb(yohu_adb::AdbError::Io(e.into())))?;
 
         progress.bytes = total_bytes;
         match outcome {
@@ -146,8 +155,26 @@ async fn emit(sink: &mpsc::Sender<AppEvent>, progress: TransferProgress, reliabl
     }
 }
 
+/// 文件给 `adb push` 用精确字节；目录交给 adb 递归，总数等摘要行。
+fn push_local_total(path: &Path) -> Result<u64, FileError> {
+    let meta = std::fs::metadata(path)
+        .map_err(|_| FileError::LocalNotFound(path.display().to_string()))?;
+    if meta.is_file() {
+        Ok(meta.len())
+    } else if meta.is_dir() {
+        Ok(0)
+    } else {
+        Err(FileError::LocalNotFound(path.display().to_string()))
+    }
+}
+
 fn cleanup_pull(direction: Direction, local: &Path) {
-    if direction == Direction::Pull {
+    if direction != Direction::Pull {
+        return;
+    }
+    if local.is_dir() {
+        let _ = std::fs::remove_dir_all(local);
+    } else {
         let _ = std::fs::remove_file(local);
     }
 }
@@ -167,7 +194,9 @@ mod tests {
     #[test]
     fn extracts_byte_counts() {
         assert_eq!(
-            extract_byte_count("report.txt: 1 file pushed, 0 skipped. 1.2 MB/s (3456 bytes in 0.001s)"),
+            extract_byte_count(
+                "report.txt: 1 file pushed, 0 skipped. 1.2 MB/s (3456 bytes in 0.001s)"
+            ),
             Some(3456)
         );
         assert_eq!(
@@ -181,5 +210,50 @@ mod tests {
     fn remote_path_still_normalized() {
         assert!(RemotePath::parse("/sdcard//a/./b").is_ok());
         assert!(RemotePath::parse("sdcard/a").is_err());
+    }
+
+    fn unique_temp(tag: &str) -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("yohu-files-{tag}-{}-{nanos}", std::process::id()))
+    }
+
+    #[test]
+    fn push_accepts_file_and_directory() {
+        let root = unique_temp("push-src");
+        std::fs::create_dir_all(&root).unwrap();
+        let file = root.join("a.bin");
+        std::fs::write(&file, b"hello").unwrap();
+        let nested = root.join("folder");
+        std::fs::create_dir_all(&nested).unwrap();
+
+        assert_eq!(push_local_total(&file).unwrap(), 5);
+        assert_eq!(push_local_total(&nested).unwrap(), 0);
+        assert!(push_local_total(&root.join("missing")).is_err());
+
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn cleanup_pull_removes_file_or_directory_and_ignores_push() {
+        let root = unique_temp("cleanup");
+        let file = root.join("partial.bin");
+        let dir = root.join("partial-dir");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.txt"), b"x").unwrap();
+        std::fs::write(&file, b"abc").unwrap();
+
+        cleanup_pull(Direction::Push, &file);
+        assert!(file.exists());
+
+        cleanup_pull(Direction::Pull, &file);
+        assert!(!file.exists());
+
+        cleanup_pull(Direction::Pull, &dir);
+        assert!(!dir.exists());
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 }
