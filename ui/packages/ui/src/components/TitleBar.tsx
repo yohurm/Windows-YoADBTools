@@ -4,8 +4,8 @@
  * 右侧铬条（侧栏钮 + 三键）等宽 48vp 贴合铺满栏高，无内边距；关闭悬停铺满该键。
  * 受控 API：title / icon / children / actions / maximized / onMinimize / onToggleMaximize / onClose。
  *
- * 三键从左到右：最大化（或还原）、最小化、关闭。拖动走 data-tauri-drag-region；按钮 no-drag。
- * 沉浸：背板 = --yohu-canvas；底 1px 分割线。窗口操作由 Application 壳接线，本组件只收回调。
+ * 三键从左到右：最小化、最大化（或还原）、关闭。拖动走 data-tauri-drag-region；按钮 no-drag。
+ * 沉浸：背板 = --yohu-canvas。窗口操作由 Application 壳接线，本组件只收回调。
  */
 import { Show, type JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
@@ -67,20 +67,20 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
           <button
             type="button"
             class="yohu-titlebar__caption"
-            aria-label={props.maximized ? "还原" : "最大化"}
-            title={props.maximized ? "还原" : "最大化"}
-            onClick={() => props.onToggleMaximize?.()}
-          >
-            <Icon name={props.maximized ? "window-restore" : "window-max"} size={Layout.IconSm} />
-          </button>
-          <button
-            type="button"
-            class="yohu-titlebar__caption"
             aria-label="最小化"
             title="最小化"
             onClick={() => props.onMinimize?.()}
           >
             <Icon name="window-min" size={Layout.IconSm} />
+          </button>
+          <button
+            type="button"
+            class="yohu-titlebar__caption"
+            aria-label={props.maximized ? "还原" : "最大化"}
+            title={props.maximized ? "还原" : "最大化"}
+            onClick={() => props.onToggleMaximize?.()}
+          >
+            <Icon name={props.maximized ? "window-restore" : "window-max"} size={Layout.IconSm} />
           </button>
           <button
             type="button"

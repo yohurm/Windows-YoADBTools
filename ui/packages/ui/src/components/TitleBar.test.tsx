@@ -10,13 +10,13 @@ describe("YoTitleBar", () => {
     expect(container.querySelector('svg[data-icon="terminal"]')).toBeTruthy();
   });
 
-  it("三键顺序为最大化、最小化、关闭", () => {
+  it("三键顺序为最小化、最大化、关闭", () => {
     render(() => <YoTitleBar title="窗" />);
     const buttons = screen.getAllByRole("button");
-    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(["最大化", "最小化", "关闭"]);
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(["最小化", "最大化", "关闭"]);
   });
 
-  it("最大化时三键第一枚为还原", () => {
+  it("最大化时最大化键变为还原", () => {
     render(() => <YoTitleBar title="窗" maximized />);
     expect(screen.getByRole("button", { name: "还原" })).toBeTruthy();
   });

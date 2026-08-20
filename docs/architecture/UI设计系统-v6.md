@@ -1,8 +1,10 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.17（2026-08-20，侧栏分割线）    
+> **状态：** v1.18（2026-08-20，三键 Windows 顺序）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（token 单源 + 组件）+ `@yohu/app`（壳）+ `@yohu/modules/*`（三模块）。所有改动必须同步更新本文件。
+>
+> **v1.18 变更（三键顺序）**：窗口三键从左到右为最小化、最大化（或还原）、关闭（跟 Windows 标题栏习惯，不跟鸿蒙 max-min-close）。
 >
 > **v1.17 变更（侧栏分割线）**：去掉标题栏底部分割线；侧栏展开时在导航与内容区之间拉 hairline（`--yohu-border`），收起侧栏时不画。
 >

@@ -355,12 +355,12 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
 });
 
 describe("AppLayout 窗口铬", () => {
-  it("渲染标题栏且三键为最大化、最小化、关闭", () => {
+  it("渲染标题栏且三键为最小化、最大化、关闭", () => {
     render(() => <AppLayout activeModuleId={() => "adb-terminal"} onNavigate={() => undefined} />);
     expect(screen.getByText("Yohu ADB Tools")).toBeTruthy();
     const bar = document.querySelector(".yohu-titlebar");
     const buttons = bar?.querySelectorAll(".yohu-titlebar__caption") ?? [];
-    expect([...buttons].map((b) => b.getAttribute("aria-label"))).toEqual(["最大化", "最小化", "关闭"]);
+    expect([...buttons].map((b) => b.getAttribute("aria-label"))).toEqual(["最小化", "最大化", "关闭"]);
     expect(document.querySelector(".yohu-window")).toBeTruthy();
     expect(document.querySelector(".yohu-titlebar__center")).toBeTruthy();
   });
