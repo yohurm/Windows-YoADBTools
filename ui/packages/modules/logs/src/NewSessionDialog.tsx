@@ -141,7 +141,6 @@ export function NewSessionDialog(props: {
     <YoDialog
       open={props.open}
       title="新建日志窗口"
-      width={440}
       height={520}
       onClose={props.onClose}
       footer={

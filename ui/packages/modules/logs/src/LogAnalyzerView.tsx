@@ -265,21 +265,23 @@ export function LogAnalyzerView(props: DeviceSession) {
   return (
     <YoPage class="yohu-logs">
       <YoChrome title="日志分析">
-        <Show
-          when={windowLive()}
-          fallback={
-            <YoButton onClick={beginCapture} disabled={windowSerial() === null}>
-              开始
-            </YoButton>
-          }
+        <YoButton
+          variant={windowLive() ? "secondary" : "primary"}
+          disabled={!windowLive() && windowSerial() === null}
+          onClick={() => {
+            if (windowLive()) {
+              void logStore.stopCapture().catch((e) => toaster.show(errorMessage(e), "error"));
+              return;
+            }
+            beginCapture();
+          }}
         >
-          <YoButton
-            variant="secondary"
-            onClick={() => void logStore.stopCapture().catch((e) => toaster.show(errorMessage(e), "error"))}
-          >
-            {sessionPending(active() ?? { id: -1 }) && !active()?.capturing ? "取消启动" : "停止"}
-          </YoButton>
-        </Show>
+          {windowLive()
+            ? sessionPending(active() ?? { id: -1 }) && !active()?.capturing
+              ? "取消启动"
+              : "停止"
+            : "开始"}
+        </YoButton>
         <Show when={active()?.capturing}>
           <YoButton
             variant="secondary"
@@ -478,7 +480,6 @@ export function LogAnalyzerView(props: DeviceSession) {
       <YoDialog
         open={() => renameTarget() !== null}
         title="重命名会话"
-        width={400}
         onClose={() => setRenameTarget(null)}
         footer={
           <>
