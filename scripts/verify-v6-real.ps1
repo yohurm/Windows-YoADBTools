@@ -168,7 +168,7 @@ Write-Host "device online"
 
 $settingsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\settings"
 New-Item -ItemType Directory -Force $settingsDir | Out-Null
-@{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
+@{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
     ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
 
 $e2eDir = "000-yohu-e2e"

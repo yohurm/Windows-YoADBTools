@@ -11,6 +11,25 @@ pub struct SettingsStore {
     inner: RwLock<AppSettings>,
 }
 
+fn must_str(key: SettingKey, value: &serde_json::Value) -> Result<String, String> {
+    value
+        .as_str()
+        .map(str::to_string)
+        .ok_or_else(|| format!("{} 必须是字符串", key.as_str()))
+}
+
+fn must_u64(key: SettingKey, value: &serde_json::Value) -> Result<u64, String> {
+    value
+        .as_u64()
+        .ok_or_else(|| format!("{} 必须是非负整数", key.as_str()))
+}
+
+fn must_bool(key: SettingKey, value: &serde_json::Value) -> Result<bool, String> {
+    value
+        .as_bool()
+        .ok_or_else(|| format!("{} 必须是布尔值", key.as_str()))
+}
+
 impl SettingsStore {
     /// 读取（缺失/损坏 → 默认值，不中断启动）。
     pub fn load(file: PathBuf) -> Self {
@@ -30,58 +49,51 @@ impl SettingsStore {
         let mut s = self.snapshot();
         match key {
             SettingKey::AdbPath => {
-                s.adb_path = value.as_str().ok_or("adb.path 必须是字符串")?.to_string();
+                s.adb_path = must_str(key, value)?;
             }
             SettingKey::DataRoot => {
-                s.data_root = value.as_str().ok_or("data.root 必须是字符串")?.to_string();
+                s.data_root = must_str(key, value)?;
             }
             SettingKey::DevicesAutoRefresh => {
-                let n = value.as_u64().ok_or("devices.autoRefresh 必须是非负整数")?;
+                let n = must_u64(key, value)?;
                 s.devices_auto_refresh = u32::try_from(n).map_err(|_| "数值过大")?;
             }
             SettingKey::BufferCapacity => {
-                let n = value.as_u64().ok_or("buffer.capacity 必须是非负整数")?;
+                let n = must_u64(key, value)?;
                 if n == 0 {
-                    return Err("buffer.capacity 必须大于 0".into());
+                    return Err(format!("{} 必须大于 0", key.as_str()));
                 }
                 s.buffer_capacity = n as usize;
             }
-            SettingKey::DisplayLimit => {
-                let n = value.as_u64().ok_or("display.limit 必须是非负整数")?;
-                if n == 0 {
-                    return Err("display.limit 必须大于 0".into());
-                }
-                s.display_limit = n as usize;
-            }
             SettingKey::ClearDeviceOnStart => {
-                s.clear_device_on_start = value.as_bool().ok_or("clear.device.on.start 必须是布尔值")?;
+                s.clear_device_on_start = must_bool(key, value)?;
             }
             SettingKey::Theme => {
                 s.theme = match value.as_str() {
                     Some("light") => yohu_protocol::Theme::Light,
                     Some("dark") => yohu_protocol::Theme::Dark,
                     Some("system") => yohu_protocol::Theme::System,
-                    _ => return Err("theme 必须是 light、dark 或 system".into()),
+                    _ => return Err(format!("{} 必须是 light、dark 或 system", key.as_str())),
                 };
             }
             SettingKey::Density => {
                 s.density = match value.as_str() {
                     Some("compact") => yohu_protocol::Density::Compact,
                     Some("comfortable") => yohu_protocol::Density::Comfortable,
-                    _ => return Err("density 必须是 compact 或 comfortable".into()),
+                    _ => return Err(format!("{} 必须是 compact 或 comfortable", key.as_str())),
                 };
             }
             SettingKey::ExportDefaultPath => {
-                s.export_default_path = value.as_str().ok_or("export.default_path 必须是字符串")?.to_string();
+                s.export_default_path = must_str(key, value)?;
             }
             SettingKey::ExportAskEveryTime => {
-                s.export_ask_every_time = value.as_bool().ok_or("export.ask_every_time 必须是布尔值")?;
+                s.export_ask_every_time = must_bool(key, value)?;
             }
             SettingKey::ExportWriteMode => {
                 s.export_write_mode = match value.as_str() {
                     Some("overwrite") => yohu_protocol::ExportWriteMode::Overwrite,
                     Some("append") => yohu_protocol::ExportWriteMode::Append,
-                    _ => return Err("export.write_mode 必须是 overwrite 或 append".into()),
+                    _ => return Err(format!("{} 必须是 overwrite 或 append", key.as_str())),
                 };
             }
         }

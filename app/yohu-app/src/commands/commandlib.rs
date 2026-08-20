@@ -9,7 +9,7 @@ use crate::state::AppState;
 use yohu_domain::CommandLibrary;
 use yohu_protocol::{CommandLibraryDto, IpcError, IpcErrorCode};
 
-/// `commandlib.load`：加载命令库（缺失→写默认库；损坏/旧 schema→备份并重建默认库）。
+/// `commandlib.load`：加载命令库（缺失或 schema 不匹配 → 备份后写默认库）。
 #[tauri::command(rename = "commandlib.load")]
 pub fn commandlib_load(state: State<'_, AppState>) -> Result<CommandLibraryDto, IpcError> {
     let file = state.paths.library_file();
@@ -17,12 +17,11 @@ pub fn commandlib_load(state: State<'_, AppState>) -> Result<CommandLibraryDto, 
     let library = match fs::read_to_string(&file) {
         Ok(text) => match serde_json::from_str::<CommandLibrary>(&text) {
             Ok(lib) if lib.schema_version == CommandLibrary::SCHEMA_VERSION => lib,
-            Ok(lib) if lib.schema_version < CommandLibrary::SCHEMA_VERSION => {
-                // schema 过低（含 v5 旧数据）：备份并重建默认库
-                backup_corrupt(&file, &text, "schema 版本过低（旧版数据）")?;
+            Ok(_) => {
+                backup_corrupt(&file, &text, "schema 不受支持")?;
                 write_default(&file)?
             }
-            Ok(_) | Err(_) => {
+            Err(_) => {
                 backup_corrupt(&file, &text, "JSON 解析失败")?;
                 write_default(&file)?
             }

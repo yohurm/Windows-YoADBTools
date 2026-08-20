@@ -130,7 +130,7 @@ function Assert($name, [bool]$ok) {
 function Restore-Settings {
     $settingsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\settings"
     New-Item -ItemType Directory -Force $settingsDir | Out-Null
-    @{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
+    @{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
         ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
 }
 
@@ -145,7 +145,7 @@ Copy-Item (Join-Path $PSScriptRoot "..\tools\fake-adb\device-profile.json") (Joi
 
 $settingsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\settings"
 New-Item -ItemType Directory -Force $settingsDir | Out-Null
-@{ adb_path = $fakeExe; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; display_limit = 2000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
+@{ adb_path = $fakeExe; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
     ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
 
 # ===== 2. 启动应用 + 激活无障碍树 =====

@@ -14,7 +14,7 @@ if (-not (Test-Path $Exe)) {
 }
 
 Write-Host "== Yohu ADB Tools v6 日志性能验收 =="
-Write-Host "前置：设备已连接授权；设置中 buffer.capacity=50000、display.limit=2000（默认值）。"
+Write-Host "前置：设备已连接授权；设置中 buffer_capacity=50000（默认 10000）。"
 Write-Host ""
 
 $p = Start-Process -FilePath $Exe -PassThru

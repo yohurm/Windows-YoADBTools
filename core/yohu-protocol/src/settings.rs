@@ -45,16 +45,13 @@ pub struct AppSettings {
     /// 设备共享环形缓冲行数（core 环 + UI 镜像 + 可见区同一上限；采集环下次启动生效）
     #[serde(default = "default_buffer_capacity")]
     pub buffer_capacity: usize,
-    /// 历史字段：不再参与实时路径；旧设置文件反序列化保留
-    #[serde(default = "default_display_limit")]
-    pub display_limit: usize,
     /// 开始采集前执行 `adb logcat -c`
     #[serde(default = "default_clear_device")]
     pub clear_device_on_start: bool,
     #[serde(default)]
     pub theme: Theme,
     /// 界面密度（compact/comfortable；立即生效）
-    #[serde(default = "legacy_density")]
+    #[serde(default)]
     pub density: Density,
     /// 日志导出默认目录；空 = 应用 exports 目录
     #[serde(default)]
@@ -70,19 +67,11 @@ pub struct AppSettings {
 fn default_buffer_capacity() -> usize {
     10_000
 }
-fn default_display_limit() -> usize {
-    2_000
-}
 fn default_clear_device() -> bool {
     true
 }
 fn default_export_ask() -> bool {
     true
-}
-
-/// 旧设置文件缺 density 字段时保持 compact，避免行为漂移。
-fn legacy_density() -> Density {
-    Density::Compact
 }
 
 impl Default for AppSettings {
@@ -92,7 +81,6 @@ impl Default for AppSettings {
             data_root: String::new(),
             devices_auto_refresh: 0,
             buffer_capacity: default_buffer_capacity(),
-            display_limit: default_display_limit(),
             clear_device_on_start: default_clear_device(),
             theme: Theme::System,
             density: Density::Comfortable,
@@ -111,7 +99,6 @@ pub enum SettingKey {
     DataRoot,
     DevicesAutoRefresh,
     BufferCapacity,
-    DisplayLimit,
     ClearDeviceOnStart,
     Theme,
     Density,
@@ -121,20 +108,19 @@ pub enum SettingKey {
 }
 
 impl SettingKey {
-    /// 键名（事件负载与前端约定使用）。
+    /// 与 serde `snake_case` 相同的键名（`settings.get/set` 与 `settings.changed` 共用）。
     pub fn as_str(&self) -> &'static str {
         match self {
-            SettingKey::AdbPath => "adb.path",
-            SettingKey::DataRoot => "data.root",
-            SettingKey::DevicesAutoRefresh => "devices.autoRefresh",
-            SettingKey::BufferCapacity => "buffer.capacity",
-            SettingKey::DisplayLimit => "display.limit",
-            SettingKey::ClearDeviceOnStart => "clear.device.on.start",
+            SettingKey::AdbPath => "adb_path",
+            SettingKey::DataRoot => "data_root",
+            SettingKey::DevicesAutoRefresh => "devices_auto_refresh",
+            SettingKey::BufferCapacity => "buffer_capacity",
+            SettingKey::ClearDeviceOnStart => "clear_device_on_start",
             SettingKey::Theme => "theme",
             SettingKey::Density => "density",
-            SettingKey::ExportDefaultPath => "export.default_path",
-            SettingKey::ExportAskEveryTime => "export.ask_every_time",
-            SettingKey::ExportWriteMode => "export.write_mode",
+            SettingKey::ExportDefaultPath => "export_default_path",
+            SettingKey::ExportAskEveryTime => "export_ask_every_time",
+            SettingKey::ExportWriteMode => "export_write_mode",
         }
     }
 }
@@ -149,7 +135,6 @@ mod tests {
         assert_eq!(s.theme, Theme::System);
         assert_eq!(s.density, Density::Comfortable);
         assert_eq!(s.buffer_capacity, 10_000);
-        assert_eq!(s.display_limit, 2_000);
         assert!(s.clear_device_on_start);
         assert!(s.export_ask_every_time);
         assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
@@ -157,8 +142,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_file_without_density_deserializes_to_compact() {
-        // 旧设置文件（无 density 字段）不得导致反序列化失败或行为漂移
+    fn missing_density_uses_comfortable_default() {
         let json = r#"{
             "adb_path": "",
             "data_root": "",
@@ -168,9 +152,9 @@ mod tests {
             "clear_device_on_start": true,
             "theme": "dark"
         }"#;
-        let s: AppSettings = serde_json::from_str(json).expect("旧文件应可反序列化");
+        let s: AppSettings = serde_json::from_str(json).expect("未知字段应忽略");
         assert_eq!(s.theme, Theme::Dark);
-        assert_eq!(s.density, Density::Compact);
+        assert_eq!(s.density, Density::Comfortable);
         assert!(s.export_ask_every_time);
         assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
     }
@@ -183,6 +167,11 @@ mod tests {
         assert_eq!(serde_json::to_value(SettingKey::ClearDeviceOnStart).unwrap(), json!("clear_device_on_start"));
         assert_eq!(serde_json::to_value(SettingKey::Theme).unwrap(), json!("theme"));
         assert_eq!(serde_json::to_value(SettingKey::Density).unwrap(), json!("density"));
+        assert_eq!(SettingKey::BufferCapacity.as_str(), "buffer_capacity");
+        assert_eq!(
+            SettingKey::BufferCapacity.as_str(),
+            serde_json::to_value(SettingKey::BufferCapacity).unwrap().as_str().unwrap()
+        );
     }
 
     #[test]
