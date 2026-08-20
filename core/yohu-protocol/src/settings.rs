@@ -162,29 +162,62 @@ mod tests {
     #[test]
     fn setting_keys_serialize_to_wire_names() {
         use serde_json::json;
-        assert_eq!(serde_json::to_value(SettingKey::AdbPath).unwrap(), json!("adb_path"));
-        assert_eq!(serde_json::to_value(SettingKey::DevicesAutoRefresh).unwrap(), json!("devices_auto_refresh"));
-        assert_eq!(serde_json::to_value(SettingKey::ClearDeviceOnStart).unwrap(), json!("clear_device_on_start"));
-        assert_eq!(serde_json::to_value(SettingKey::Theme).unwrap(), json!("theme"));
-        assert_eq!(serde_json::to_value(SettingKey::Density).unwrap(), json!("density"));
+        assert_eq!(
+            serde_json::to_value(SettingKey::AdbPath).unwrap(),
+            json!("adb_path")
+        );
+        assert_eq!(
+            serde_json::to_value(SettingKey::DevicesAutoRefresh).unwrap(),
+            json!("devices_auto_refresh")
+        );
+        assert_eq!(
+            serde_json::to_value(SettingKey::ClearDeviceOnStart).unwrap(),
+            json!("clear_device_on_start")
+        );
+        assert_eq!(
+            serde_json::to_value(SettingKey::Theme).unwrap(),
+            json!("theme")
+        );
+        assert_eq!(
+            serde_json::to_value(SettingKey::Density).unwrap(),
+            json!("density")
+        );
         assert_eq!(SettingKey::BufferCapacity.as_str(), "buffer_capacity");
         assert_eq!(
             SettingKey::BufferCapacity.as_str(),
-            serde_json::to_value(SettingKey::BufferCapacity).unwrap().as_str().unwrap()
+            serde_json::to_value(SettingKey::BufferCapacity)
+                .unwrap()
+                .as_str()
+                .unwrap()
         );
     }
 
     #[test]
     fn density_serializes_lowercase() {
-        assert_eq!(serde_json::to_value(Density::Compact).unwrap(), serde_json::json!("compact"));
-        assert_eq!(serde_json::to_value(Density::Comfortable).unwrap(), serde_json::json!("comfortable"));
+        assert_eq!(
+            serde_json::to_value(Density::Compact).unwrap(),
+            serde_json::json!("compact")
+        );
+        assert_eq!(
+            serde_json::to_value(Density::Comfortable).unwrap(),
+            serde_json::json!("comfortable")
+        );
     }
 
     #[test]
     fn theme_serializes_lowercase_including_system() {
-        assert_eq!(serde_json::to_value(Theme::Light).unwrap(), serde_json::json!("light"));
-        assert_eq!(serde_json::to_value(Theme::Dark).unwrap(), serde_json::json!("dark"));
-        assert_eq!(serde_json::to_value(Theme::System).unwrap(), serde_json::json!("system"));
+        assert_eq!(
+            serde_json::to_value(Theme::Light).unwrap(),
+            serde_json::json!("light")
+        );
+        assert_eq!(
+            serde_json::to_value(Theme::Dark).unwrap(),
+            serde_json::json!("dark")
+        );
+        assert_eq!(
+            serde_json::to_value(Theme::System).unwrap(),
+            serde_json::json!("system")
+        );
     }
 
     #[test]

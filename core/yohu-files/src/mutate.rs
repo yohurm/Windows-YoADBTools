@@ -16,7 +16,10 @@ pub struct FileMutator {
 
 impl FileMutator {
     pub fn new(adb: Arc<AdbClient>) -> Self {
-        Self { adb, safety: SafetyRoot::default() }
+        Self {
+            adb,
+            safety: SafetyRoot::default(),
+        }
     }
 
     fn normalize_mut(&self, path: &str) -> Result<RemotePath, FileError> {
@@ -38,7 +41,17 @@ impl FileMutator {
         let normalized = self.normalize_mut(path)?;
         let out = self
             .adb
-            .run(serial, &["shell".into(), "rm".into(), "-rf".into(), normalized.as_str().into()], Some(30_000), cancel)
+            .run(
+                serial,
+                &[
+                    "shell".into(),
+                    "rm".into(),
+                    "-rf".into(),
+                    normalized.as_str().into(),
+                ],
+                Some(30_000),
+                cancel,
+            )
             .await?;
         if out.exit_code != 0 {
             return Err(FileError::Adb(yohu_adb::AdbError::BadExit {
@@ -59,7 +72,17 @@ impl FileMutator {
         let normalized = self.normalize_mut(path)?;
         let out = self
             .adb
-            .run(serial, &["shell".into(), "mkdir".into(), "-p".into(), normalized.as_str().into()], Some(15_000), cancel)
+            .run(
+                serial,
+                &[
+                    "shell".into(),
+                    "mkdir".into(),
+                    "-p".into(),
+                    normalized.as_str().into(),
+                ],
+                Some(15_000),
+                cancel,
+            )
             .await?;
         if out.exit_code != 0 {
             return Err(FileError::Adb(yohu_adb::AdbError::BadExit {
