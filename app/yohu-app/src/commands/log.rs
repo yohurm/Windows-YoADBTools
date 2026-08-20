@@ -15,6 +15,7 @@ pub async fn log_capture_start(
     state: State<'_, AppState>,
     serial: String,
 ) -> Result<CaptureStart, IpcError> {
+    state.require_online(&serial)?;
     let snap = state.settings.snapshot();
     state.capture.set_ring_capacity(snap.buffer_capacity);
     let clear = snap.clear_device_on_start;
@@ -112,9 +113,4 @@ pub async fn log_process_snapshot(
     serial: String,
 ) -> Result<Vec<ProcessEntry>, IpcError> {
     state.capture.process_snapshot(&serial).await.map_err(ipc)
-}
-
-#[tauri::command(rename = "log.dump")]
-pub async fn log_dump(state: State<'_, AppState>, serial: String) -> Result<u64, IpcError> {
-    state.capture.dump_into_ring(&serial).await.map_err(ipc)
 }

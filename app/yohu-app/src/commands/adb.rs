@@ -13,6 +13,7 @@ pub async fn adb_exec(
     state: State<'_, AppState>,
     req: AdbExecRequest,
 ) -> Result<ExecOutcome, IpcError> {
+    state.require_online(&req.serial)?;
     state
         .client
         .run(&req.serial, &req.argv, req.timeout_ms, CancellationToken::new())

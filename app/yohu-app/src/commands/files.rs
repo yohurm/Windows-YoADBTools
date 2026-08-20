@@ -16,6 +16,7 @@ pub async fn files_list(
     serial: String,
     path: String,
 ) -> Result<Vec<RemoteEntry>, IpcError> {
+    state.require_online(&serial)?;
     let cancel = {
         let mut slot = state.browse_cancel.lock().expect("browse lock poisoned");
         slot.cancel();
@@ -52,6 +53,7 @@ fn spawn_transfer(
     req: TransferRequest,
     direction: Direction,
 ) -> Result<u32, IpcError> {
+    state.require_online(&req.serial)?;
     let id = state.transfer_next.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
     let cancel = CancellationToken::new();
     state.transfer_cancels.lock().expect("transfer lock poisoned").insert(id, cancel.clone());
@@ -107,6 +109,7 @@ pub async fn files_delete(
     state: State<'_, AppState>,
     req: PathOpRequest,
 ) -> Result<(), IpcError> {
+    state.require_online(&req.serial)?;
     state.mutator.delete(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc_file)
 }
 
@@ -116,6 +119,7 @@ pub async fn files_mkdir(
     state: State<'_, AppState>,
     req: PathOpRequest,
 ) -> Result<(), IpcError> {
+    state.require_online(&req.serial)?;
     state.mutator.mkdir(&req.serial, &req.path, CancellationToken::new()).await.map_err(ipc_file)
 }
 
@@ -125,6 +129,7 @@ pub async fn files_create(
     state: State<'_, AppState>,
     req: PathOpRequest,
 ) -> Result<(), IpcError> {
+    state.require_online(&req.serial)?;
     state
         .mutator
         .create_file(&req.serial, &req.path, CancellationToken::new())

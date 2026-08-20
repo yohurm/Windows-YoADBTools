@@ -104,7 +104,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             root_cancel: root_cancel.clone(),
             last_devices: std::sync::Mutex::new(Vec::new()),
             adb_in_use: std::sync::Mutex::new(None),
-            focus: std::sync::Mutex::new(yohu_domain::DeviceFocus::default()),
             group_runs: std::sync::Mutex::new(std::collections::HashMap::new()),
             group_next: std::sync::atomic::AtomicU32::new(0),
             library: std::sync::Mutex::new(yohu_domain::CommandLibrary::empty()),
@@ -147,7 +146,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let app = builder
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            commands::device::device_list,
             commands::device::device_refresh,
             commands::adb::adb_exec,
             commands::terminal::terminal_eval,
@@ -170,7 +168,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::log::log_replay,
             commands::log::log_export,
             commands::log::log_process_snapshot,
-            commands::log::log_dump,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::system::system_info,

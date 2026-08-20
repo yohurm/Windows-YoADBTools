@@ -15,5 +15,7 @@ pub use command::{
     GroupRunEvent, InputField, LibraryError, RunError, Runner, Verdict, default_library,
     split_command_line,
 };
-pub use focus::{DeviceFocus, SelectionMode};
+pub use focus::{
+    assert_device_online, assert_targets_online, reconcile_focus, DeviceSessionError, SelectionMode,
+};
 pub use safety::{PathError, RemotePath, SafetyError, SafetyRoot, validate_entry_name};

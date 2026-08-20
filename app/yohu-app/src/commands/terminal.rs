@@ -30,6 +30,7 @@ pub async fn terminal_eval(
     serial: String,
     command: CommandDto,
 ) -> Result<EvalResult, IpcError> {
+    state.require_online(&serial)?;
     let definition = CommandDefinition::from_dto(&command);
     let argv = split_command_line(&definition.template);
     let started = std::time::Instant::now();
@@ -61,6 +62,7 @@ pub async fn group_run(
     app: AppHandle,
     req: GroupRunRequest,
 ) -> Result<u32, IpcError> {
+    state.require_online_many(&req.serials)?;
     let group = state
         .library
         .lock()

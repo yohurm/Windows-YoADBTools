@@ -10,10 +10,10 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use yohu_adb::{AdbClient, ToolResolver};
-use yohu_domain::{AppLog, CommandLibrary, DeviceFocus};
+use yohu_domain::{AppLog, CommandLibrary, DeviceSessionError, assert_device_online, assert_targets_online};
 use yohu_files::{FileBrowser, FileMutator, TransferRunner};
 use yohu_logsrv::{CaptureService, ExportService};
-use yohu_protocol::{AppEvent, DeviceInfo};
+use yohu_protocol::{AppEvent, DeviceInfo, IpcError, IpcErrorCode};
 
 use crate::paths::AppPaths;
 use crate::settings_store::SettingsStore;
@@ -43,8 +43,6 @@ pub struct AppState {
     pub last_devices: Mutex<Vec<DeviceInfo>>,
     /// 最近一次扫描实际使用的 adb 路径（诊断）
     pub adb_in_use: Mutex<Option<String>>,
-    /// 全局设备焦点
-    pub focus: Mutex<DeviceFocus>,
     /// 命令组运行（run_id → 取消令牌）
     pub group_runs: Mutex<HashMap<u32, CancellationToken>>,
     pub group_next: AtomicU32,
@@ -60,6 +58,18 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// 命令边界：serial 必须在最近扫描中且在线（与 SafetyRoot 同级，不信任 UI）。
+    pub fn require_online(&self, serial: &str) -> Result<(), IpcError> {
+        let devices = self.last_devices.lock().expect("devices lock poisoned");
+        assert_device_online(serial, &devices).map_err(session_ipc)
+    }
+
+    /// 命令边界：一组执行目标全部在线。
+    pub fn require_online_many(&self, serials: &[String]) -> Result<(), IpcError> {
+        let devices = self.last_devices.lock().expect("devices lock poisoned");
+        assert_targets_online(serials, &devices).map_err(session_ipc)
+    }
+
     /// 采集任务随 CaptureState::Stopped 收敛；重复调用幂等。
     pub fn finish_capture_task(&self, serial: &str) {
         if let Some(task_id) = self
@@ -70,5 +80,18 @@ impl AppState {
         {
             self.tasks.finish(task_id);
         }
+    }
+}
+
+fn session_ipc(e: DeviceSessionError) -> IpcError {
+    let code = match e {
+        DeviceSessionError::Empty => IpcErrorCode::InvalidArgs,
+        DeviceSessionError::Unknown(_) => IpcErrorCode::NotFound,
+        DeviceSessionError::Unauthorized(_) => IpcErrorCode::Unauthorized,
+        DeviceSessionError::Offline(_) => IpcErrorCode::DeviceOffline,
+    };
+    IpcError {
+        code,
+        message: e.to_string(),
     }
 }

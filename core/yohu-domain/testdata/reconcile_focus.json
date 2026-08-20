@@ -1,0 +1,22 @@
+[
+  {
+    "focus": "B2",
+    "online": ["A1", "B2"],
+    "expect": "B2"
+  },
+  {
+    "focus": "C3",
+    "online": ["A1", "B2"],
+    "expect": "A1"
+  },
+  {
+    "focus": null,
+    "online": ["A1", "B2"],
+    "expect": "A1"
+  },
+  {
+    "focus": "A1",
+    "online": [],
+    "expect": null
+  }
+]

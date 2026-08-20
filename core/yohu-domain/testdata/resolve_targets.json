@@ -1,0 +1,44 @@
+[
+  {
+    "mode": "none",
+    "focus": "A1",
+    "selected": ["A1", "B2"],
+    "online": ["A1", "B2"],
+    "expect": []
+  },
+  {
+    "mode": "singleRequired",
+    "focus": "B2",
+    "selected": ["A1"],
+    "online": ["A1", "B2"],
+    "expect": ["B2"]
+  },
+  {
+    "mode": "singleRequired",
+    "focus": "C3",
+    "selected": [],
+    "online": ["A1", "B2"],
+    "expect": []
+  },
+  {
+    "mode": "multiOptional",
+    "focus": "A1",
+    "selected": [],
+    "online": ["A1", "B2"],
+    "expect": ["A1"]
+  },
+  {
+    "mode": "multiOptional",
+    "focus": "A1",
+    "selected": ["B2", "offline"],
+    "online": ["A1", "B2"],
+    "expect": ["B2"]
+  },
+  {
+    "mode": "multiOptional",
+    "focus": "A1",
+    "selected": ["B2"],
+    "online": ["A1"],
+    "expect": ["A1"]
+  }
+]

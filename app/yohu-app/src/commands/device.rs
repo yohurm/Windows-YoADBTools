@@ -1,4 +1,4 @@
-//! 设备命令：扫描/列表/焦点收敛/掉线停采。
+//! 设备命令：扫描/掉线停采。选择会话在壳，本层只维护目录快照。
 
 use tauri::State;
 use tokio_util::sync::CancellationToken;
@@ -6,12 +6,6 @@ use tokio_util::sync::CancellationToken;
 use crate::commands::ipc;
 use crate::state::AppState;
 use yohu_protocol::{AppEvent, DeviceInfo, DeviceState, IpcError};
-
-/// `device.list`：最近一次扫描快照（不触发扫描）。
-#[tauri::command(rename = "device.list")]
-pub fn device_list(state: State<'_, AppState>) -> Vec<DeviceInfo> {
-    state.last_devices.lock().expect("devices lock poisoned").clone()
-}
 
 /// `device.refresh`：立即 `devices -l` 扫描。
 #[tauri::command(rename = "device.refresh")]
@@ -33,12 +27,10 @@ pub(crate) async fn refresh_inner(state: &AppState) -> Result<Vec<DeviceInfo>, S
 
     let serials: Vec<String> = devices.iter().map(|d| d.serial.clone()).collect();
 
-    // 缓存更新 + 焦点收敛
     let previous = {
         let mut cache = state.last_devices.lock().expect("devices lock poisoned");
         std::mem::replace(&mut *cache, devices.clone())
     };
-    state.focus.lock().expect("focus lock poisoned").resolve_against(&serials);
 
     // 掉线检测：上一批在线、本批缺失 → 事件 + 停采清缓冲（防串设备）
     for old in &previous {
