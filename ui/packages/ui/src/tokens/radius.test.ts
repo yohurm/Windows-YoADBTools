@@ -33,6 +33,7 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
   });
 
   it("半径阶梯与 theme.css 一致", () => {
+    expect(cssVarValue("--yohu-radius-none")).toBe(`${Radius.None}px`);
     expect(cssVarValue("--yohu-radius-2xs")).toBe(`${Radius.TwoXs}px`);
     expect(cssVarValue("--yohu-radius-xs")).toBe(`${Radius.Xs}px`);
     expect(cssVarValue("--yohu-radius-sm")).toBe(`${Radius.Sm}px`);
@@ -64,6 +65,7 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
     expect(cssVarValue("--yohu-segment-hybrid")).toBe(`${Density.Comfortable.segmentHybrid}px`);
     expect(cssVarValue("--yohu-row-height-device")).toBe(`${Density.Comfortable.rowHeightDevice}px`);
     expect(cssVarValue("--yohu-row-height-nav")).toBe(`${Density.Comfortable.rowHeightNav}px`);
+    expect(cssVarValue("--yohu-title-bar-height")).toBe(`${Density.Comfortable.titleBarHeight}px`);
   });
 
   it("布局常量与 theme.css 一致", () => {
@@ -73,5 +75,7 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
     expect(cssVarValue("--yohu-layout-window-default-w")).toBe(`${Layout.WindowDefaultW}px`);
     expect(cssVarValue("--yohu-layout-page-margin")).toBe(`${Layout.PageMargin}px`);
     expect(cssVarValue("--yohu-layout-rail-inset")).toBe(`${Layout.RailInset}px`);
+    expect(cssVarValue("--yohu-layout-settings-control-max")).toBe(`${Layout.SettingsControlMax}px`);
+    expect(cssVarValue("--yohu-layout-switch-w")).toBe(`${Layout.SwitchW}px`);
   });
 });

@@ -10,6 +10,10 @@ export const Layout = {
   SettingsMax: 920,
   SettingsLabelMin: 160,
   SettingsLabelMax: 240,
+  /** 设置页路径类控件上限，避免输入框横向拉满。 */
+  SettingsControlMax: 360,
+  /** 设置页数字输入宽度。 */
+  SettingsNumberW: 96,
   OutputMax: 260,
   CrumbMax: 160,
   CmGroupMin: 168,
@@ -39,6 +43,17 @@ export const Layout = {
   MenuMin: 224,
   /** 侧栏内容距背板（设备/导航同一槽，选中片不再二次内缩） */
   RailInset: 8,
+  /** HarmonyOS Toggle Switch 默认 {width:36vp, height:20vp} */
+  SwitchW: 36,
+  SwitchH: 20,
+  /** 窗口三键交互区宽（电脑去掉圆形底板，走竖条 hover）。 */
+  TitlebarCaption: 40,
+  /** HarmonyOS setDecorButtonStyle.spacingBetweenButtons 默认 12vp */
+  TitlebarCaptionGap: 12,
+  /** 关闭键距窗口右边距 */
+  TitlebarCloseMargin: 8,
+  /** 标题栏渐变模糊下延 32vp（沉浸光感） */
+  TitlebarBlur: 32,
 } as const;
 
 /** 描边宽度（结构线 / 强调条）。 */

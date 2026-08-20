@@ -76,12 +76,14 @@ export function emitThemeCss(): string {
   ]);
 
   const root: Array<[string, string]> = [
+    ["color-scheme", "light"],
     ...semanticVars(Colors),
     ["--yohu-shadow-xs", Elevation.Xs],
     ["--yohu-shadow-overlay", Elevation.Overlay],
     ["--yohu-shadow-dialog", Elevation.Dialog],
     ["--yohu-shadow-dialog-unfocused", Elevation.DialogUnfocused],
     ...levelVars(LogLevelLight),
+    ["--yohu-canvas", "var(--yohu-bg-base)"],
     ["--yohu-splitter", "var(--yohu-border-strong)"],
     ["--yohu-state-hover", StateFill.Hover],
     ["--yohu-state-pressed", StateFill.Pressed],
@@ -114,12 +116,14 @@ export function emitThemeCss(): string {
   ];
 
   const dark: Array<[string, string]> = [
+    ["color-scheme", "dark"],
     ...semanticVars(DarkColors),
     ["--yohu-shadow-xs", DarkElevation.Xs],
     ["--yohu-shadow-overlay", DarkElevation.Overlay],
     ["--yohu-shadow-dialog", DarkElevation.Dialog],
     ["--yohu-shadow-dialog-unfocused", DarkElevation.DialogUnfocused],
     ...levelVars(LogLevelDark),
+    ["--yohu-canvas", "var(--yohu-bg-base)"],
     ["--yohu-state-hover", DarkStateFill.Hover],
     ["--yohu-state-pressed", DarkStateFill.Pressed],
     ["--yohu-state-selected", DarkStateFill.Selected],
@@ -158,7 +162,7 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background-color: var(--yohu-bg-base);
+  background-color: var(--yohu-canvas);
   font-family: var(--yohu-font-sans);
   color: var(--yohu-fg);
 }

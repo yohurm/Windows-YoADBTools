@@ -46,6 +46,8 @@ export const Harmony = {
 
   compBackgroundPrimary: { light: fromArgb("#ffffffff"), dark: fromArgb("#ff202224") },
   compBackgroundGray: { light: fromArgb("#fff1f3f5"), dark: fromArgb("#ffe5e5ea") },
+  /** 控件二级底；Switch 关闭轨默认（API 20：浅 10% 黑 / 深 10% 白）。 */
+  compBackgroundSecondary: { light: fromArgb("#19000000"), dark: fromArgb("#19ffffff") },
   compEmphasizeSecondary: { light: fromArgb("#330a59f7"), dark: fromArgb("#33317af7") },
   compEmphasizeTertiary: { light: fromArgb("#190a59f7"), dark: fromArgb("#19317af7") },
   compDivider: { light: fromArgb("#33000000"), dark: fromArgb("#33ffffff") },
@@ -91,6 +93,8 @@ export const Colors = {
   Splitter: Harmony.compDivider.light,
   SplitterHover: Harmony.fontSecondary.light,
   Disabled: Harmony.backgroundFourth.light,
+  /** YoSwitch 关闭轨（Toggle unselectedColor）。 */
+  SwitchOff: Harmony.compBackgroundSecondary.light,
 } as const;
 
 export type SemanticColorName = keyof typeof Colors;
@@ -122,6 +126,7 @@ export const DarkColors: Record<SemanticColorName, string> = {
   Splitter: Harmony.compDivider.dark,
   SplitterHover: Harmony.fontSecondary.dark,
   Disabled: Harmony.backgroundFourth.dark,
+  SwitchOff: Harmony.compBackgroundSecondary.dark,
 };
 
 /** logcat 级别板：复用官方 brand / confirm / alert / warning + 文本四级。 */

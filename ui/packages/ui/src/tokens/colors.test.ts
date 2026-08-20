@@ -37,6 +37,7 @@ const EXPECTED_LIGHT: Record<string, string> = {
   Warn: "#ED6F21",
   Error: "#E84026",
   Offline: "#00000066",
+  SwitchOff: "#00000019",
 };
 
 const EXPECTED_DARK: Record<string, string> = {
@@ -47,6 +48,7 @@ const EXPECTED_DARK: Record<string, string> = {
   Success: "#5BA854",
   Warn: "#DB6B42",
   Error: "#D94838",
+  SwitchOff: "#FFFFFF19",
 };
 
 function kebab(name: string): string {
@@ -225,6 +227,12 @@ describe("theme.css 变量", () => {
     expect(themeCss).toContain("--yohu-layout-window-default-w: 1200px");
     expect(themeCss).toContain("--yohu-layout-page-margin: 40px");
     expect(themeCss).toContain("--yohu-layout-rail-inset: 8px");
+    expect(themeCss).toContain("--yohu-layout-settings-control-max: 360px");
+    expect(themeCss).toContain("--yohu-layout-switch-w: 36px");
+    expect(themeCss).toContain("--yohu-title-bar-height: 56px");
+    expect(themeCss).toContain("--yohu-canvas: var(--yohu-bg-base)");
+    expect(themeCss).toContain("color-scheme: light");
+    expect(themeCss).toContain("color-scheme: dark");
     expect(themeCss).toContain("--yohu-state-selected: var(--yohu-accent)");
     expect(themeCss).toContain("--yohu-state-selected-fg: var(--yohu-fg-on)");
     expect(themeCss).toContain("--yohu-ripple-inset: 0");

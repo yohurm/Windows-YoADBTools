@@ -36,6 +36,7 @@ function prefersDark(): boolean {
 
 function applyResolved(theme: ThemeName): void {
   document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.style.colorScheme = theme;
 }
 
 function detachSystemListener(): void {

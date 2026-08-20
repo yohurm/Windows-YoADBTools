@@ -31,6 +31,7 @@ describe("主题切换 setTheme / getTheme", () => {
     setTheme("dark");
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
     expect(document.documentElement.getAttribute("data-theme-pref")).toBe("dark");
+    expect(document.documentElement.style.colorScheme).toBe("dark");
     expect(getTheme()).toBe("dark");
     expect(getThemePreference()).toBe("dark");
   });
@@ -44,6 +45,7 @@ describe("主题切换 setTheme / getTheme", () => {
     setTheme("dark");
     setTheme("light");
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(document.documentElement.style.colorScheme).toBe("light");
     expect(getTheme()).toBe("light");
   });
 

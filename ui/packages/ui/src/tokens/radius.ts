@@ -3,6 +3,8 @@
  * 组件内禁止硬编码圆角，一律引用这里的常量或对应 CSS 变量 `--yohu-radius-*`。
  */
 export const Radius = {
+  /** 0（PC 标题栏三键竖条，无圆形底板） */
+  None: 0,
   /** 2px（微标 / Fatal 块） */
   TwoXs: 2,
   /** 4px（小控件） */
