@@ -172,7 +172,8 @@ export function createCapture(
     workspace.rebuildAll();
   }
 
-  async function pullSettings(): Promise<void> {
+  /** 采集引擎活过视图：只投影 buffer_capacity。显示列 / 导出走壳注入的 DeviceSession.settings。 */
+  async function pullBufferCapacity(): Promise<void> {
     try {
       const cap = await settingsGet("buffer_capacity");
       if (typeof cap === "number") setBufferCapacity(cap);
@@ -493,10 +494,10 @@ export function createCapture(
     }
   }
 
-  void pullSettings();
+  void pullBufferCapacity();
   void onSettingsChanged((e) => {
     if (e.key === "buffer_capacity") {
-      void pullSettings();
+      void pullBufferCapacity();
     }
   });
   void onLogBatch((e) => onBatch(e.batch));

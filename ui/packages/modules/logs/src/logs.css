@@ -1,6 +1,7 @@
 /* ============================================================================
  * 日志分析模块（UI设计系统-v6.md §4.1）。
- * 行结构列对齐等宽：[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 2ch] [Tag 24ch] [消息]；
+ * 行结构列对齐等宽：[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 4ch] [Tag 24ch] [消息]；
+ * 表头钉在虚拟列表外（flex-shrink: 0），与行共用 .yohu-logs__cols；轨道由显示列内联写入；
  * 级别色字 + 3px 级别左条；Fatal 反色块；信号行底色 + Error 左条；
  * 日志列表不动效（性能优先，§2.4）。
  * ========================================================================== */
@@ -57,6 +58,15 @@
 
 .yohu-logs__list {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--yohu-canvas);
+}
+
+.yohu-logs__list-body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -70,19 +80,48 @@
   z-index: 1;
 }
 
-.yohu-logs__row {
+/* 表头与行共用定宽 grid；ch 跟等宽字体走，禁止表头另起一套轨道 */
+.yohu-logs__cols {
   display: grid;
-  grid-template-columns: 18ch 10ch 6ch 6ch 2ch 24ch minmax(0, 1fr);
   align-items: center;
   column-gap: var(--yohu-space-sm);
-  height: 100%;
   padding: 0 var(--yohu-space-sm) 0 var(--yohu-space-xs);
+  border-left: var(--yohu-stroke-emphasis) solid transparent;
+  box-sizing: border-box;
+  min-width: 0;
   font-family: var(--yohu-font-mono);
   font-size: var(--yohu-font-caption);
   font-variant-numeric: tabular-nums;
-  border-left: var(--yohu-stroke-emphasis) solid transparent;
+}
+
+.yohu-logs__cols--head {
+  flex-shrink: 0;
+  height: var(--yohu-row-height-header);
+  background: var(--yohu-canvas);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  color: var(--yohu-fg-2);
+  font-weight: var(--yohu-font-weight-regular);
+  user-select: none;
+}
+
+.yohu-logs__head-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  box-sizing: border-box;
+  min-width: 0;
+}
+
+.yohu-logs__head-cell--end {
+  text-align: right;
+}
+
+.yohu-logs__head-cell--center {
+  text-align: center;
+}
+
+.yohu-logs__row {
+  height: 100%;
+  white-space: nowrap;
   user-select: none;
 }
 
@@ -258,6 +297,7 @@
 }
 
 .yohu-logs__new-chips {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: var(--yohu-space-xs);
@@ -312,6 +352,7 @@
 }
 
 .yohu-logs__new-list {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;

@@ -6,7 +6,7 @@
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 
 import type { DeviceInfo } from "@yohu/api";
-import { Icon, YoButton, YoCheckbox, YoDialog, YoSegmentedButton, YoTextField } from "@yohu/ui";
+import { Icon, YoButton, YoCheckbox, YoDialog, YoIndicator, YoSegmentedButton, YoTextField } from "@yohu/ui";
 
 import type { SessionScope } from "./pipeline";
 import { logStore } from "./store";
@@ -162,6 +162,7 @@ export function NewSessionDialog(props: {
             fallback={<p class="yohu-logs__new-hint">没有在线设备，请先在左侧设备栏连接。</p>}
           >
             <div class="yohu-logs__new-chips" role="listbox" aria-label="设备">
+              <YoIndicator follow={deviceSerial() || undefined} variant="fill" />
               <For each={devices()}>
                 {(device) => (
                   <button
@@ -220,6 +221,7 @@ export function NewSessionDialog(props: {
         </div>
 
         <div class="yohu-logs__new-list" role="listbox" aria-label={mode() === "package" ? "包名列表" : "进程列表"}>
+          <YoIndicator follow={query().trim() || undefined} variant="fill" />
           <Show when={mode() === "package"}>
             <Show
               when={filteredPackages().length > 0}

@@ -1,12 +1,13 @@
 /**
- * 日志分析主视图：绑定壳注入的 DeviceSession；对话框与本机选路留在视图层。
+ * 日志分析主视图：绑定壳注入的 DeviceSession（设备 + 设置）；对话框与本机选路留在视图层。
+ * 显示列 / 导出走注入的 settings；禁止本页 settings.get。
  */
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, untrack } from "solid-js";
 
 import { save } from "@tauri-apps/plugin-dialog";
 import type { DeviceSession } from "@yohu/api";
-import { settingsGet, systemOpenPath } from "@yohu/api";
+import { systemOpenPath } from "@yohu/api";
 import {
   Icon,
   YoBadge,
@@ -33,6 +34,7 @@ import {
 import { LEVELS, type ViewRow } from "./pipeline";
 import { NewSessionDialog } from "./NewSessionDialog";
 import { copyLogText, LOGS_KEY_BINDINGS, LOGS_LIST_SELECTOR, type LogsKeyAction } from "./keys";
+import { DEFAULT_LOG_DISPLAY_COLUMNS, logColTemplate, visibleLogColumns, type LogColumnSpec } from "./layout";
 import { logsRowMenu, logsTabMenu } from "./menu";
 import { logStore } from "./store";
 import type { LogSessionState } from "./workspace";
@@ -90,6 +92,39 @@ function highlight(msg: string, keyword: string): (string | { mark: string })[] 
   }
   if (cursor < msg.length) parts.push(msg.slice(cursor));
   return parts;
+}
+
+function LogCell(props: { col: LogColumnSpec; row: ViewRow; keyword: string }) {
+  const line = (): ViewRow["line"] => props.row.line;
+  switch (props.col.key) {
+    case "ts":
+      return <span class="yohu-logs__row-ts">{line().ts}</span>;
+    case "uid":
+      return <span class="yohu-logs__row-uid">{line().uid ?? ""}</span>;
+    case "pid":
+      return <span class="yohu-logs__row-pid">{line().pid}</span>;
+    case "tid":
+      return <span class="yohu-logs__row-tid">{line().tid}</span>;
+    case "level":
+      return <span class={`yohu-logs__row-level yohu-tone ${levelClass(line().level)}`}>{line().level}</span>;
+    case "tag":
+      return (
+        <span class="yohu-logs__row-tag" title={line().tag}>
+          {line().tag}
+        </span>
+      );
+    case "msg":
+      return (
+        <span class="yohu-logs__row-msg">
+          <For each={highlight(line().msg, props.keyword)}>
+            {(part) => (typeof part === "string" ? part : <mark class="yohu-logs__mark yohu-tone">{part.mark}</mark>)}
+          </For>
+          <Show when={props.row.collapsedAfter}>
+            <span class="yohu-logs__row-fold">…{props.row.collapsedAfter} 帧折叠</span>
+          </Show>
+        </span>
+      );
+  }
 }
 
 function sessionPending(session: { id: number }): boolean {
@@ -166,6 +201,10 @@ export function LogAnalyzerView(props: DeviceSession) {
   });
 
   createEffect(() => {
+    logStore.setBufferCapacity(props.settings.buffer_capacity);
+  });
+
+  createEffect(() => {
     void logStore.state.activeSessionId;
     setSelectedKeys(new Set<string>());
     setPivotKey(null);
@@ -198,6 +237,15 @@ export function LogAnalyzerView(props: DeviceSession) {
   const windowSerial = (): string | null => active()?.serial ?? props.selectedSerials[0] ?? null;
 
   const visibleKeys = (): string[] => (active()?.visible ?? []).map(rowKey);
+
+  const displayColumns = () => ({
+    ...DEFAULT_LOG_DISPLAY_COLUMNS,
+    ...props.settings.log_display_columns,
+  });
+
+  const colStyle = (): { "grid-template-columns": string } => ({
+    "grid-template-columns": logColTemplate(displayColumns()),
+  });
 
   const togglePause = (): void => {
     const id = logStore.state.activeSessionId;
@@ -270,9 +318,9 @@ export function LogAnalyzerView(props: DeviceSession) {
     if (id === null) return;
     try {
       let dest: string | undefined;
-      const askEvery = Boolean(await settingsGet("export_ask_every_time"));
-      const defaultPath = String((await settingsGet("export_default_path")) ?? "");
-      const writeMode = (await settingsGet("export_write_mode")) === "append" ? "append" : "overwrite";
+      const askEvery = Boolean(props.settings.export_ask_every_time);
+      const defaultPath = props.settings.export_default_path;
+      const writeMode = props.settings.export_write_mode === "append" ? "append" : "overwrite";
       if (askEvery) {
         const picked = await save({
           title: "导出日志",
@@ -296,7 +344,7 @@ export function LogAnalyzerView(props: DeviceSession) {
     <YoPage class="yohu-logs">
       <YoChrome title="日志分析">
         <YoButton
-          variant={windowLive() ? "secondary" : "primary"}
+          variant={windowLive() ? "danger" : "primary"}
           disabled={!windowLive() && windowSerial() === null}
           onClick={() => {
             if (windowLive()) {
@@ -423,69 +471,81 @@ export function LogAnalyzerView(props: DeviceSession) {
               </div>
 
               <div class="yohu-logs__list">
-                <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} />}>
-                  <YoVirtualList<ViewRow>
-                    items={() => logStore.state.sessions.find((s) => s.id === session.id)?.visible ?? []}
-                    itemHeight={22}
-                    getItemKey={rowKey}
-                    autoScrollToBottom={() => session.following && !session.paused}
-                    onAtBottomChange={(atBottom) => {
-                      if (atBottom) logStore.resumeFollow(session.id);
-                      else logStore.detachFollow(session.id);
-                    }}
-                    ariaLabel="日志列表"
-                    selectedKeys={selectedKeys}
-                    selectedKey={pivotKey}
-                    onSelectRow={(row, _key, event) => {
-                      const key = rowKey(row);
-                      const next = nextKeys(visibleKeys(), selectedKeys(), pivotKey(), key, pointerSelectMode(event));
-                      setSelectedKeys(next.keys);
-                      setPivotKey(next.pivot);
-                    }}
-                    onRowContextMenu={(row, _key, event) => {
-                      const key = rowKey(row);
-                      if (!selectedKeys().has(key)) {
-                        setSelectedKeys(new Set([key]));
-                        setPivotKey(key);
-                      }
-                      openContextMenu(logsRowMenu, {
-                        x: event.clientX,
-                        y: event.clientY,
-                        ctx: { canCopy: selectedKeys().size > 0, copy: copySelected },
-                      });
-                    }}
-                    renderRow={(row) => (
-                      <div
-                        class="yohu-logs__row"
+                <div class="yohu-logs__cols yohu-logs__cols--head" role="row" style={colStyle()}>
+                  <For each={visibleLogColumns(displayColumns())}>
+                    {(col) => (
+                      <span
+                        class="yohu-logs__head-cell"
                         classList={{
-                          [barClass(row.line.level)]: true,
-                          "yohu-logs__row--signal": row.signal !== undefined,
-                          "yohu-logs__row--raw": row.line.level === "?",
+                          "yohu-logs__head-cell--end": col.align === "end",
+                          "yohu-logs__head-cell--center": col.align === "center",
                         }}
+                        role="columnheader"
                       >
-                        <Show
-                          when={row.line.level !== "?"}
-                          fallback={<span class="yohu-logs__row-msg">{row.line.msg}</span>}
-                        >
-                          <span class="yohu-logs__row-ts">{row.line.ts}</span>
-                          <span class="yohu-logs__row-uid">{row.line.uid ?? ""}</span>
-                          <span class="yohu-logs__row-pid">{row.line.pid}</span>
-                          <span class="yohu-logs__row-tid">{row.line.tid}</span>
-                          <span class={`yohu-logs__row-level yohu-tone ${levelClass(row.line.level)}`}>{row.line.level}</span>
-                          <span class="yohu-logs__row-tag" title={row.line.tag}>{row.line.tag}</span>
-                          <span class="yohu-logs__row-msg">
-                            <For each={highlight(row.line.msg, session.keyword)}>
-                              {(part) => (typeof part === "string" ? part : <mark class="yohu-logs__mark yohu-tone">{part.mark}</mark>)}
-                            </For>
-                            <Show when={row.collapsedAfter}>
-                              <span class="yohu-logs__row-fold">…{row.collapsedAfter} 帧折叠</span>
-                            </Show>
-                          </span>
-                        </Show>
-                      </div>
+                        {col.header}
+                      </span>
                     )}
-                  />
-                </Show>
+                  </For>
+                </div>
+                <div class="yohu-logs__list-body">
+                  <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} />}>
+                    <YoVirtualList<ViewRow>
+                      items={() => logStore.state.sessions.find((s) => s.id === session.id)?.visible ?? []}
+                      itemHeight={22}
+                      getItemKey={rowKey}
+                      autoScrollToBottom={() => session.following && !session.paused}
+                      onAtBottomChange={(atBottom) => {
+                        if (atBottom) logStore.resumeFollow(session.id);
+                        else logStore.detachFollow(session.id);
+                      }}
+                      ariaLabel="日志列表"
+                      selectedKeys={selectedKeys}
+                      selectedKey={pivotKey}
+                      onSelectRow={(row, _key, event) => {
+                        const key = rowKey(row);
+                        const next = nextKeys(visibleKeys(), selectedKeys(), pivotKey(), key, pointerSelectMode(event));
+                        setSelectedKeys(next.keys);
+                        setPivotKey(next.pivot);
+                      }}
+                      onRowContextMenu={(row, _key, event) => {
+                        const key = rowKey(row);
+                        if (!selectedKeys().has(key)) {
+                          setSelectedKeys(new Set([key]));
+                          setPivotKey(key);
+                        }
+                        openContextMenu(logsRowMenu, {
+                          x: event.clientX,
+                          y: event.clientY,
+                          ctx: { canCopy: selectedKeys().size > 0, copy: copySelected },
+                        });
+                      }}
+                      renderRow={(row) => (
+                        <div
+                          class="yohu-logs__cols yohu-logs__row"
+                          classList={{
+                            [barClass(row.line.level)]: true,
+                            "yohu-logs__row--signal": row.signal !== undefined,
+                            "yohu-logs__row--raw": row.line.level === "?",
+                          }}
+                          style={
+                            row.line.level === "?"
+                              ? { "grid-template-columns": "minmax(0, 1fr)" }
+                              : colStyle()
+                          }
+                        >
+                          <Show
+                            when={row.line.level !== "?"}
+                            fallback={<span class="yohu-logs__row-msg">{row.line.msg}</span>}
+                          >
+                            <For each={visibleLogColumns(displayColumns())}>
+                              {(col) => <LogCell col={col} row={row} keyword={session.keyword} />}
+                            </For>
+                          </Show>
+                        </div>
+                      )}
+                    />
+                  </Show>
+                </div>
                 <Show when={session.pendingCount > 0}>
                   <div class="yohu-logs__pending">
                     <YoButton variant="secondary" onClick={() => logStore.resumeFollow(session.id)}>
