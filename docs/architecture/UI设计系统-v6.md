@@ -1,8 +1,16 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.32（2026-08-20，右键菜单统一宿主）    
+> **状态：** v1.36（2026-08-20，设置项控件靠右）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（token 单源 + 组件）+ `@yohu/app`（壳）+ `@yohu/modules/*`（三模块）。所有改动必须同步更新本文件。
+>
+> **v1.36 变更（设置项控件靠右）**：设置表单项统一「标签+生效徽章靠左、功能控件靠右 hug」。日志显示列的 `YoCheckbox` 组走同一控件槽，禁止整行左起铺开；说明文字仍独占下一行。
+>
+> **v1.35 变更（设置注入会话）**：应用设置与设备同一条链。`settingsStore` 是唯一 UI 投影；`AppLayout` 经 `DeviceSession.settings` 注入模块。日志显示列 / 导出走注入快照，禁止模块 `settings.get`。`buffer_capacity` 仍由日志 store 投影（采集活过视图）；`settings.changed` 控制面必达。
+>
+> **v1.34 变更（日志显示列）**：设置项 `log_display_columns`（立即生效）控制清单表头与行显示哪些元数据列（时间 / UID / PID / TID / 级别 / Tag）。消息列始终在。缺字段视为开启。轨道按可见列内联写入，禁止在 CSS 写死七列。
+>
+> **v1.33 变更（日志固定表头）**：日志清单表头钉在 `YoVirtualList` 外（`flex-shrink: 0` + `--yohu-row-height-header`），与行共用 `.yohu-logs__cols` 定宽轨道。无排序/拖宽，不走 `YoColHeader`。级别列改为 `4ch` 以容纳「级别」文案。表头与清单背板 `--yohu-canvas`。
 >
 > **v1.32 变更（右键菜单宿主）**：菜单引擎收口到 `@yohu/ui` `context-menu/`（`defineContextMenu` / `openContextMenu` / `YoContextMenuHost`）。壳只挂一份 Host。模块场景表在各自 `menu.ts`。禁止 View 自挂 `YoContextMenu`。详见 `右键菜单-v6.md`。
 >
@@ -223,11 +231,11 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 | `--yohu-ripple-radius` | `var(--yohu-radius-sm)` | 选中片圆角 |
 | `--yohu-ripple-inset` | `0` | 铺满行盒；距背板 = 容器 padding |
 
-**载体**：`tokens/states.css` 的 `.yohu-interactive`。选中只用 `.yohu-interactive--selected`（**不要**用 `[aria-selected]` 上填充：`YoTabs` 的 `aria-selected` 表示下划线激活，不是实底选中）。键盘活动用 `.yohu-interactive--active`。禁止 Tree/Select/命令管理/壳再写选中字色。
+**载体**：`tokens/states.css` 的 `.yohu-interactive`。选中只用 `.yohu-interactive--selected`（**不要**用 `[aria-selected]` 上填充：`YoTabs` 的 `aria-selected` 表示下划线激活，不是实底选中）。键盘活动用 `.yohu-interactive--active`。禁止 Tree/Select/命令管理/壳再写选中字色。单选实底由 `YoIndicator` 在项之间滑动；虚拟列表与多选块仍是每项 `::before`。
 
 - 实心底控件（`YoButton` / `YoCheckbox` / `YoSegmentedButton`）走变体色 + `--yohu-accent-hover/pressed`，不走列表 ripple。
 - `YoSegmentedButton` 对齐 SegmentButtonV2：默认 tab 白选择块（`surface` + `shadow-xs` + `fg`），capsule 才用 accent + `fg-on`。背板/选择块 `radius-xl`（32vp）。不作一级导航、不承载删除/添加。
-- `YoTabs` 激活指示是底边 `--yohu-stroke-accent`，hover 仍走 ripple；不要把 Tab 激活画成选中填充。
+- `YoTabs` 激活指示是 `YoIndicator` underline（底边 `--yohu-stroke-accent` 滑块），hover 仍走 ripple；不要把 Tab 激活画成选中填充。
 - 语义色逃生：`.yohu-badge`（徽章）与 `.yohu-tone`（日志级别 / 检索高亮等）在选中行内保持自身色。
 - 选中宿主必须透明底：自绘 `background` 会盖住 `z-index: -1` 的选中片。
 - 禁止再挂表面 dual class（`yohu-tree__row--selected` / `yohu-select__option--selected` / `yohu-*-item--active`）。键盘高亮仍用 `.yohu-interactive--active`。
@@ -273,8 +281,9 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 ### 4.1 日志分析（核心打磨对象）
 
-- 布局：内容区顶部模块页眉（标题 + 采集操作）→ 会话 Tab（canvas 上）→ `YoPanel` 会话分区（过滤 / 虚拟列表 / 状态行）。
-- 行结构（列对齐，等宽，**定宽 grid 轨道**）：`[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 2ch] [Tag 24ch] [消息 →]`。UID 来自 `logcat -v threadtime,uid`（数字或 `root`/`shell`/`wifi` 名）。禁止 `max-width` / 不定宽 flex 让消息列左右错位。解析失败（level=`?`）整行消息通栏，禁止画 `0 ?` 假列。级别用色字 + `--yohu-stroke-emphasis` 左条；Fatal 反色块（`radius-2xs`）；级别与检索高亮挂 `.yohu-tone`；行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。行间 hairline 走 VirtualList 单源。
+- 布局：内容区顶部模块页眉（标题 + 采集操作）→ 会话 Tab（canvas 上）→ `YoPanel` 会话分区（过滤 / **固定表头** + 虚拟列表 / 状态行）。
+- 行结构（列对齐，等宽，**定宽 grid 轨道**）：`[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 4ch] [Tag 24ch] [消息 →]`。UID 来自 `logcat -v threadtime,uid`（数字或 `root`/`shell`/`wifi` 名）。禁止 `max-width` / 不定宽 flex 让消息列左右错位。解析失败（level=`?`）整行消息通栏，禁止画 `0 ?` 假列。级别用色字 + `--yohu-stroke-emphasis` 左条；Fatal 反色块（`radius-2xs`）；级别与检索高亮挂 `.yohu-tone`；行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。行间 hairline 走 VirtualList 单源。
+- **固定表头**：列名钉在滚动区外，与行共用 `.yohu-logs__cols`；高度 `--yohu-row-height-header`；背板 `--yohu-canvas`。无排序、无列宽拖拽，禁止改走 `YoColHeader`。禁止把表头放进虚拟列表行。显示列读壳注入的 `DeviceSession.settings.log_display_columns`（消息始终在），`grid-template-columns` 按可见列内联写入。禁止模块再 `settings.get` 或把显示列拷进 logStore。
 - 信号行（崩溃/ANR）行底色 `--yohu-signal-bg` + 左侧 Error 条；选中时信号底让位给选中片，左条保留。
 - 过滤栏：级别含以上 / Tag / 关键字检索（放大镜图标 + 「清除」；过滤生效时检索框 accent 边框）+ 会话 scope 用 `YoBadge tone=accent`；控件走 `--yohu-control-height`。
 - 会话 Tab：标题 + 采集绿点/信号红点 + 关闭 × + 新建 +；Tab 溢出可横向滚动；右键菜单（关闭其他/重命名/复制会话）走 `logs.tab` 场景。
@@ -307,7 +316,9 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 - 页壳不滚动；`YoChrome` 钉在内容区顶部。分组卡片放进 `.yohu-settings__body` 滚动；`YoPanel` 不裁切表单项。
 - 页眉与卡片左缘共用 `--yohu-layout-page-margin`（PC 40vp）；页宽 `--yohu-layout-settings-max` 只约束滚动列，不把标题挤进 920 列。
+- 表单项同一行：标签 + 生效徽章靠左，功能控件靠右 hug（`.yohu-settings__item-control` + `margin-left: auto`）。开关 / 数字 / 下拉 / 多选复选共用该槽，禁止某一项整行左起铺开。说明文字（`.yohu-settings__item-hint`）独占下一行。
 - 文件位置项（ADB 路径 / 数据目录 / 默认导出路径）统一：只读展示框显示绝对路径 + 「浏览」；展示框宽 ≤ `--yohu-layout-settings-control-max`，超长折叠中间（目录头 ellipsis、末段完整）。空值显示 `system.info` 解析路径。数字/下拉仍走 `YoTextField`/`YoSelect`。
+- 日志显示列：多选走 `YoCheckbox`（不是启用开关），控件组靠右 hug、过窄时组内折行；消息列始终显示、不提供开关。立即生效。
 - `YoDialog`：中性 10% 遮罩 + `--yohu-shadow-dialog`（失焦 `-unfocused`）；最大宽 400、高 90%；标题 Title_S Bold；电脑小圆角 `radius-sm`。最小 360×240 仅适用于独立子窗口，不套浮层。
 - `YoToast`：描边；最大宽 400；展示 ≤ `--yohu-dur-toast`（3s）。
 
