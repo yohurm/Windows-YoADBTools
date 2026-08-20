@@ -1,16 +1,32 @@
-/* 设置页：标签靠左、控件靠右 hug；路径有上限，数字窄宽，开关靠右。 */
+/* 设置页：页眉铺满内容区；标题与分组卡片共用 page-margin 左缘。 */
 
 .yohu-settings {
   display: flex;
   flex-direction: column;
+  gap: var(--yohu-space-md);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.yohu-settings > .yohu-chrome {
+  padding-inline: var(--yohu-layout-page-margin);
+  padding-top: var(--yohu-space-md);
+}
+
+.yohu-settings__body {
+  display: flex;
+  flex-direction: column;
   gap: var(--yohu-space-lg);
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   max-width: var(--yohu-layout-settings-max);
-  height: 100%;
   overflow: auto;
-  min-height: 0;
   padding-inline: var(--yohu-layout-page-margin);
-  padding-block: var(--yohu-space-lg);
+  padding-bottom: var(--yohu-space-lg);
   box-sizing: border-box;
 }
 

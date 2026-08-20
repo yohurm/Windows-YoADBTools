@@ -96,7 +96,8 @@ export const SettingsView: Component = () => {
     <div class="yohu-settings">
       <YoChrome title="设置" />
 
-      <YoPanel title="工具链">
+      <div class="yohu-settings__body">
+        <YoPanel title="工具链">
         <div class="yohu-settings__item">
           <ItemHead label="ADB 路径" effect="立即生效" />
           <div class="yohu-settings__item-control yohu-settings__item-control--path">
@@ -237,7 +238,8 @@ export const SettingsView: Component = () => {
             />
           </div>
         </div>
-      </YoPanel>
+        </YoPanel>
+      </div>
 
       <YoToaster toaster={toaster} />
     </div>

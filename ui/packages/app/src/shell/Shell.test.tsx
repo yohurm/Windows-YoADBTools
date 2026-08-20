@@ -352,6 +352,17 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     expect(screen.getByRole("switch", { name: "每次导出询问保存位置" })).toBeTruthy();
     expect(screen.queryByText("启用")).toBeNull();
   });
+
+  it("页眉与分组卡片分列：标题不进滚动容器", () => {
+    const { container } = render(() => <SettingsView />);
+    const root = container.querySelector(".yohu-settings");
+    const chrome = root?.querySelector(":scope > .yohu-chrome");
+    const body = root?.querySelector(":scope > .yohu-settings__body");
+    expect(chrome).toBeTruthy();
+    expect(body).toBeTruthy();
+    expect(body?.querySelector(".yohu-panel")).toBeTruthy();
+    expect(body?.contains(chrome as Node)).toBe(false);
+  });
 });
 
 describe("AppLayout 窗口铬", () => {
