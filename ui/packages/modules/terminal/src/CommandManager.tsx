@@ -5,7 +5,7 @@
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { YoBadge, YoButton, YoCheckbox, YoDialog, YoIconButton, YoPanel, YoTextField, YoToolbar } from "@yohu/ui";
+import { YoBadge, YoButton, YoCheckbox, YoDialog, YoIconButton, YoIndicator, YoPanel, YoTextField, YoToolbar } from "@yohu/ui";
 
 import type { CommandLibraryDto } from "@yohu/api";
 import { terminalStore } from "./store";
@@ -205,25 +205,28 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
             <YoIconButton icon="plus" title="新增组" onClick={addGroup} />
             <YoIconButton icon="trash" title="删除组" onClick={removeGroup} />
           </YoToolbar>
-          <ul class="yohu-cm__list">
-            <For each={draft.groups}>
-              {(group) => (
-                <li
-                  class="yohu-cm__item yohu-interactive"
-                  classList={{
-                    "yohu-interactive--selected": group.id === selectedGroupId(),
-                  }}
-                  onClick={() => {
-                    setSelectedGroupId(group.id);
-                    setSelectedCommandId(null);
-                  }}
-                >
-                  <span class="yohu-cm__item-name">{group.name || "（未命名）"}</span>
-                  <YoBadge text={String(group.commands.length)} tone="neutral" />
-                </li>
-              )}
-            </For>
-          </ul>
+          <div class="yohu-cm__list">
+            <YoIndicator follow={selectedGroupId()} variant="fill" />
+            <ul class="yohu-cm__items">
+              <For each={draft.groups}>
+                {(group) => (
+                  <li
+                    class="yohu-cm__item yohu-interactive"
+                    classList={{
+                      "yohu-interactive--selected": group.id === selectedGroupId(),
+                    }}
+                    onClick={() => {
+                      setSelectedGroupId(group.id);
+                      setSelectedCommandId(null);
+                    }}
+                  >
+                    <span class="yohu-cm__item-name">{group.name || "（未命名）"}</span>
+                    <YoBadge text={String(group.commands.length)} tone="neutral" />
+                  </li>
+                )}
+              </For>
+            </ul>
+          </div>
         </div>
 
         <div class="yohu-cm__commands">
@@ -232,21 +235,24 @@ export function CommandManager(props: { open: () => boolean; onClose: () => void
             <YoIconButton icon="plus" title="新增命令" onClick={addCommand} />
             <YoIconButton icon="trash" title="删除命令" onClick={removeCommand} />
           </YoToolbar>
-          <ul class="yohu-cm__list">
-            <For each={selectedGroup()?.commands ?? []}>
-              {(command) => (
-                <li
-                  class="yohu-cm__item yohu-interactive"
-                  classList={{
-                    "yohu-interactive--selected": command.id === selectedCommandId(),
-                  }}
-                  onClick={() => setSelectedCommandId(command.id)}
-                >
-                  <span class="yohu-cm__item-name">{command.name || "（未命名）"}</span>
-                </li>
-              )}
-            </For>
-          </ul>
+          <div class="yohu-cm__list">
+            <YoIndicator follow={selectedCommandId()} variant="fill" />
+            <ul class="yohu-cm__items">
+              <For each={selectedGroup()?.commands ?? []}>
+                {(command) => (
+                  <li
+                    class="yohu-cm__item yohu-interactive"
+                    classList={{
+                      "yohu-interactive--selected": command.id === selectedCommandId(),
+                    }}
+                    onClick={() => setSelectedCommandId(command.id)}
+                  >
+                    <span class="yohu-cm__item-name">{command.name || "（未命名）"}</span>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </div>
         </div>
 
         <div class="yohu-cm__editor">

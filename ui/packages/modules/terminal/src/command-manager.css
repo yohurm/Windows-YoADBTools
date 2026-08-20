@@ -41,12 +41,17 @@
 }
 
 .yohu-cm__list {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
+  padding: var(--yohu-space-xs);
+}
+
+.yohu-cm__items {
   list-style: none;
   margin: 0;
-  padding: var(--yohu-space-xs);
+  padding: 0;
 }
 
 .yohu-cm__item {
