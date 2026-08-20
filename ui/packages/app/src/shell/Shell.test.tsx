@@ -108,6 +108,7 @@ registerModule({
   title: "设置",
   icon: "settings",
   selectionMode: "none",
+  kind: "system",
   Component: SettingsView,
 });
 registerModule({
@@ -132,11 +133,16 @@ const DEFAULT_SETTINGS = {
   export_write_mode: "overwrite",
 } as const;
 
+const RESOLVED_ADB = "C:\\Users\\me\\AppData\\Local\\YohuAdbTools\\data\\tools\\adb\\adb.exe";
+const RESOLVED_DATA = "C:\\Users\\me\\AppData\\Local\\YohuAdbTools\\data";
+const RESOLVED_EXPORT = "C:\\Users\\me\\AppData\\Local\\YohuAdbTools\\data\\modules\\log-analyzer\\exports";
+
 beforeEach(() => {
   mocks.systemInfo.mockResolvedValue({
     version: "0.1.0",
-    data_root: "",
-    adb_path: "",
+    data_root: RESOLVED_DATA,
+    adb_path: RESOLVED_ADB,
+    exports_dir: RESOLVED_EXPORT,
     settings: { ...DEFAULT_SETTINGS },
   });
   mocks.settingsSet.mockImplementation(async (key: string, value: unknown) => {
@@ -279,6 +285,25 @@ describe("NavList（§3 模块导航）", () => {
     render(() => <NavList activeId="adb-terminal" onNavigate={() => undefined} />);
     expect(screen.getByText("开发中")).toBeTruthy();
   });
+
+  it("设置钉在侧栏底部，与模块用横线隔开", () => {
+    const { container } = render(() => (
+      <NavList activeId="adb-terminal" onNavigate={() => undefined} />
+    ));
+    const moduleTitles = Array.from(
+      container.querySelectorAll(".yohu-nav__modules .yohu-nav__item"),
+    ).map((el) => el.textContent ?? "");
+    expect(moduleTitles.some((t) => t.includes("设置"))).toBe(false);
+    expect(moduleTitles.some((t) => t.includes("ADB 终端"))).toBe(true);
+
+    const footerItems = container.querySelectorAll(".yohu-nav__footer .yohu-nav__item");
+    expect(footerItems).toHaveLength(1);
+    expect(footerItems[0]?.textContent).toContain("设置");
+    expect(container.querySelector(".yohu-nav__rule")).toBeTruthy();
+
+    const allItems = container.querySelectorAll(".yohu-nav__item");
+    expect(allItems[allItems.length - 1]?.textContent).toContain("设置");
+  });
 });
 
 describe("StatusBar（§3 状态栏）", () => {
@@ -315,12 +340,36 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
   it("浏览按钮：选择 adb.exe 后写入 adb_path 并弹保存 toast", async () => {
     mocks.dialogOpen.mockResolvedValue("C:\\tools\\adb.exe");
     render(() => <SettingsView />);
-    fireEvent.click(screen.getByText("浏览"));
+    fireEvent.click(screen.getAllByText("浏览")[0] as HTMLElement);
     await waitFor(() => {
       expect(mocks.settingsSet).toHaveBeenCalledWith("adb_path", "C:\\tools\\adb.exe");
     });
     await waitFor(() => {
       expect(screen.getByText("已保存（立即生效）")).toBeTruthy();
+    });
+  });
+
+  it("三项文件位置统一：绝对路径展示框 + 浏览；数据目录走选文件夹", async () => {
+    const { container } = render(() => <SettingsView />);
+    await waitFor(() => {
+      expect(container.querySelector(".yohu-settings__path")?.getAttribute("title")).toBe(
+        RESOLVED_ADB,
+      );
+    });
+    const boxes = container.querySelectorAll(".yohu-settings__path");
+    expect(boxes).toHaveLength(3);
+    expect(boxes[0]?.querySelector(".yohu-settings__path-tail")?.textContent).toBe("adb.exe");
+    expect(boxes[1]?.getAttribute("title")).toBe(RESOLVED_DATA);
+    expect(boxes[2]?.getAttribute("title")).toBe(RESOLVED_EXPORT);
+    expect(screen.getAllByText("浏览")).toHaveLength(3);
+
+    mocks.dialogOpen.mockResolvedValue("D:\\YohuData");
+    fireEvent.click(screen.getAllByText("浏览")[1] as HTMLElement);
+    await waitFor(() => {
+      expect(mocks.dialogOpen).toHaveBeenCalledWith(
+        expect.objectContaining({ directory: true, title: "选择数据目录" }),
+      );
+      expect(mocks.settingsSet).toHaveBeenCalledWith("data_root", "D:\\YohuData");
     });
   });
 

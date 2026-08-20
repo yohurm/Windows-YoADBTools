@@ -76,12 +76,47 @@
 
 .yohu-settings__item-control--path {
   flex: 1 1 auto;
-  max-width: var(--yohu-layout-settings-control-max);
 }
 
-.yohu-settings__item-control--path .yohu-text-field {
-  flex: 1 1 auto;
+.yohu-settings__path {
+  display: flex;
+  align-items: center;
   min-width: 0;
+  flex: 1 1 var(--yohu-layout-settings-control-max);
+  width: var(--yohu-layout-settings-control-max);
+  max-width: var(--yohu-layout-settings-control-max);
+  height: var(--yohu-control-height);
+  padding: 0 var(--yohu-space-sm);
+  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border-radius: var(--yohu-radius-sm);
+  background-color: var(--yohu-surface);
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-ui);
+  color: var(--yohu-fg);
+}
+
+.yohu-settings__path-head {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.yohu-settings__path-head:empty {
+  display: none;
+}
+
+.yohu-settings__path-tail {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.yohu-settings__path-head:empty + .yohu-settings__path-tail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .yohu-settings__item-control--number .yohu-text-field {

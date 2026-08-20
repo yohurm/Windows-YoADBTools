@@ -16,6 +16,8 @@ pub struct SystemInfo {
     pub adb_path: String,
     /// 最近一次设备扫描实际使用的 adb（诊断「cmd 有设备、应用没有」类问题）
     pub adb_in_use: Option<String>,
+    /// 日志默认导出目录（未配置 export_default_path 时的绝对路径）
+    pub exports_dir: String,
     pub settings: AppSettings,
 }
 
@@ -36,6 +38,7 @@ pub fn system_info(state: State<'_, AppState>) -> Result<SystemInfo, IpcError> {
         data_root: state.paths.data_root.to_string_lossy().into_owned(),
         adb_path,
         adb_in_use,
+        exports_dir: state.paths.exports_dir().to_string_lossy().into_owned(),
         settings: state.settings.snapshot(),
     })
 }

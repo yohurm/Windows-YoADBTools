@@ -15,12 +15,17 @@ import type { IconName } from "@yohu/ui";
  */
 export type SelectionMode = "none" | "singleRequired" | "multiOptional";
 
+/** 导航分区：workspace=模块列表；system=侧栏底栏（设置，与模块横线隔开）。 */
+export type ModuleKind = "workspace" | "system";
+
 export interface ModuleDescriptor {
   /** 模块 id（与数据目录 modules/<id> 一致） */
   id: string;
   title: string;
   icon: IconName;
   selectionMode: SelectionMode;
+  /** 导航分区；缺省 workspace */
+  kind?: ModuleKind;
   /** 占位模块：仅贡献导航 + 「开发中」页 */
   isPlanned?: boolean;
   /** 主视图组件（壳注入 DeviceSession，模块不读壳 store） */
@@ -40,4 +45,18 @@ export function registerModule(descriptor: ModuleDescriptor): void {
 /** 全部已注册模块（按注册顺序）。 */
 export function modules(): readonly ModuleDescriptor[] {
   return registry;
+}
+
+function kindOf(mod: ModuleDescriptor): ModuleKind {
+  return mod.kind ?? "workspace";
+}
+
+/** 侧栏「模块」区：效率型/占位模块。 */
+export function workspaceModules(): readonly ModuleDescriptor[] {
+  return registry.filter((m) => kindOf(m) === "workspace");
+}
+
+/** 侧栏底栏：壳内建页（设置）。 */
+export function systemModules(): readonly ModuleDescriptor[] {
+  return registry.filter((m) => kindOf(m) === "system");
 }

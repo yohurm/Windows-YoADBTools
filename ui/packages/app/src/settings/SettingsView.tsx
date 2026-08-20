@@ -1,7 +1,7 @@
 /**
- * 设置面板（UI设计系统-v6.md §4.4）：分组卡片（工具链/日志/外观）。
+ * 设置面板（UI设计系统-v6.md §4.5）：分组卡片（工具链/日志/外观）。
  * 每项 = 标签靠左、控件靠右 hug；启用类走 YoSwitch（无「启用」二字）。
- * 保存成功 toast；路径项旁浏览按钮（tauri-plugin-dialog）。
+ * 文件位置项：只读展示框显示绝对路径 + 统一「浏览」；超长折叠中间。
  */
 
 import { Component, onMount } from "solid-js";
@@ -22,6 +22,7 @@ import {
 import type { Density, SettingKey, Theme } from "@yohu/api";
 
 import { settingsStore } from "../stores";
+import { effectivePath, splitPathEnds } from "./path-display";
 import "./settings.css";
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -58,6 +59,22 @@ function ItemHead(props: { label: string; effect: string }) {
   );
 }
 
+/** 文件位置：只读绝对路径展示框 + 浏览。超长时 head 省略、末段保留。 */
+function PathField(props: { label: string; path: string; onBrowse: () => void }) {
+  const parts = () => splitPathEnds(props.path);
+  return (
+    <div class="yohu-settings__item-control yohu-settings__item-control--path">
+      <div class="yohu-settings__path" title={props.path || undefined} aria-label={props.label}>
+        <span class="yohu-settings__path-head">{parts().head}</span>
+        <span class="yohu-settings__path-tail">{parts().tail}</span>
+      </div>
+      <YoButton variant="secondary" onClick={() => props.onBrowse()}>
+        浏览
+      </YoButton>
+    </div>
+  );
+}
+
 export const SettingsView: Component = () => {
   onMount(() => {
     void settingsStore.load();
@@ -70,25 +87,22 @@ export const SettingsView: Component = () => {
       .catch((e) => toaster.show(`保存失败: ${String(e)}`, "error"));
   };
 
-  const browseAdb = async (): Promise<void> => {
-    const selected = await open({
-      title: "选择 adb.exe",
-      multiple: false,
-      filters: [{ name: "adb 可执行文件", extensions: ["exe"] }],
-    });
+  const browseFile = async (
+    key: SettingKey,
+    title: string,
+    okText: string,
+    filters: { name: string; extensions: string[] }[],
+  ): Promise<void> => {
+    const selected = await open({ title, multiple: false, filters });
     if (typeof selected === "string") {
-      save("adb_path", selected, "已保存（立即生效）");
+      save(key, selected, okText);
     }
   };
 
-  const browseExportDir = async (): Promise<void> => {
-    const selected = await open({
-      title: "选择日志导出目录",
-      directory: true,
-      multiple: false,
-    });
+  const browseDir = async (key: SettingKey, title: string, okText: string): Promise<void> => {
+    const selected = await open({ title, directory: true, multiple: false });
     if (typeof selected === "string") {
-      save("export_default_path", selected, "已保存（立即生效）");
+      save(key, selected, okText);
     }
   };
 
@@ -100,32 +114,28 @@ export const SettingsView: Component = () => {
         <YoPanel title="工具链">
         <div class="yohu-settings__item">
           <ItemHead label="ADB 路径" effect="立即生效" />
-          <div class="yohu-settings__item-control yohu-settings__item-control--path">
-            <YoTextField
-              value={settingsStore.state.adb_path}
-              placeholder="%LOCALAPPDATA%\YohuAdbTools\data\tools\adb\adb.exe"
-              ariaLabel="ADB 路径"
-              clearable
-              onInput={(v) => save("adb_path", v, "已保存（立即生效）")}
-            />
-            <YoButton variant="secondary" onClick={() => void browseAdb()}>
-              浏览
-            </YoButton>
-          </div>
-          <div class="yohu-settings__item-hint">留空 = 自动解析（用户设置 → 应用旁 → 内置解压）</div>
+          <PathField
+            label="ADB 路径"
+            path={effectivePath(settingsStore.state.adb_path, settingsStore.resolved.adb_path)}
+            onBrowse={() =>
+              void browseFile(
+                "adb_path",
+                "选择 adb.exe",
+                "已保存（立即生效）",
+                [{ name: "adb 可执行文件", extensions: ["exe"] }],
+              )
+            }
+          />
+          <div class="yohu-settings__item-hint">未指定时显示自动解析的绝对路径（用户设置 → 应用旁 → 内置解压）</div>
         </div>
 
         <div class="yohu-settings__item">
           <ItemHead label="数据目录" effect="重启生效" />
-          <div class="yohu-settings__item-control yohu-settings__item-control--path">
-            <YoTextField
-              value={settingsStore.state.data_root}
-              placeholder="留空 = 默认 %LOCALAPPDATA%\YohuAdbTools\data"
-              ariaLabel="数据目录"
-              clearable
-              onInput={(v) => save("data_root", v, "已保存（重启生效）")}
-            />
-          </div>
+          <PathField
+            label="数据目录"
+            path={effectivePath(settingsStore.state.data_root, settingsStore.resolved.data_root)}
+            onBrowse={() => void browseDir("data_root", "选择数据目录", "已保存（重启生效）")}
+          />
         </div>
 
         <div class="yohu-settings__item">
@@ -177,18 +187,16 @@ export const SettingsView: Component = () => {
 
         <div class="yohu-settings__item">
           <ItemHead label="默认导出路径" effect="立即生效" />
-          <div class="yohu-settings__item-control yohu-settings__item-control--path">
-            <YoTextField
-              value={settingsStore.state.export_default_path}
-              placeholder="留空 = 应用 exports 目录"
-              ariaLabel="默认导出路径"
-              clearable
-              onInput={(v) => save("export_default_path", v, "已保存（立即生效）")}
-            />
-            <YoButton variant="secondary" onClick={() => void browseExportDir()}>
-              选择文件夹
-            </YoButton>
-          </div>
+          <PathField
+            label="默认导出路径"
+            path={effectivePath(
+              settingsStore.state.export_default_path,
+              settingsStore.resolved.export_default_path,
+            )}
+            onBrowse={() =>
+              void browseDir("export_default_path", "选择日志导出目录", "已保存（立即生效）")
+            }
+          />
           <div class="yohu-settings__item-hint">关闭「每次询问」时写入该目录下的 logcat-设备号.txt</div>
         </div>
 

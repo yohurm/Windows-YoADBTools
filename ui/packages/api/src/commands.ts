@@ -118,6 +118,8 @@ export interface SystemInfo {
   adb_path: string;
   /** 最近一次设备扫描实际使用的 adb 路径（诊断） */
   adb_in_use?: string;
+  /** 日志默认导出目录（data_root/modules/log-analyzer/exports） */
+  exports_dir?: string;
   settings: AppSettings;
 }
 

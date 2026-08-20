@@ -29,6 +29,7 @@ registerModule({
   title: "设置",
   icon: "settings",
   selectionMode: "none",
+  kind: "system",
   Component: SettingsView,
 });
 

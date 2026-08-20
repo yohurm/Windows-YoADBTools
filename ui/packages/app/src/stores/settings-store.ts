@@ -22,6 +22,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   export_write_mode: "overwrite",
 };
 
+const EMPTY_RESOLVED = {
+  adb_path: "",
+  data_root: "",
+  export_default_path: "",
+};
+
 /** 应用外观设置（主题 + 密度）。 */
 function applyAppearance(settings: AppSettings): void {
   setTheme(settings.theme);
@@ -30,11 +36,17 @@ function applyAppearance(settings: AppSettings): void {
 
 export function createSettingsStore() {
   const [state, setState] = createStore<AppSettings>({ ...DEFAULT_SETTINGS });
+  const [resolved, setResolved] = createStore({ ...EMPTY_RESOLVED });
 
   async function load(): Promise<void> {
     try {
       const info = await systemInfo();
       setState(info.settings);
+      setResolved({
+        adb_path: info.adb_in_use ?? info.adb_path ?? "",
+        data_root: info.data_root ?? "",
+        export_default_path: info.exports_dir ?? "",
+      });
       applyAppearance(info.settings);
     } catch (e) {
       console.error("system.info 失败", e);
@@ -47,7 +59,7 @@ export function createSettingsStore() {
     applyAppearance(updated);
   }
 
-  return { state, load, set };
+  return { state, resolved, load, set };
 }
 
 export type SettingsStoreApi = ReturnType<typeof createSettingsStore>;

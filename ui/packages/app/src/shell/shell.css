@@ -204,9 +204,28 @@
 /* ===== 模块导航（§3） ===== */
 
 .yohu-nav {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
   padding: var(--yohu-layout-rail-inset);
+}
+
+.yohu-nav__modules {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.yohu-nav__footer {
+  flex: 0 0 auto;
+}
+
+.yohu-nav__rule {
+  border: none;
+  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  margin: var(--yohu-space-sm) 0;
 }
 
 .yohu-nav__caption {
