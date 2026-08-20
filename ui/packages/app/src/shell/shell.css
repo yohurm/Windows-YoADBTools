@@ -111,6 +111,7 @@
 }
 
 .yohu-device-rail__list {
+  position: relative;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -204,6 +205,7 @@
 /* ===== 模块导航（§3） ===== */
 
 .yohu-nav {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;

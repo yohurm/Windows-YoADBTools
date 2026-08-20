@@ -7,7 +7,7 @@
 
 import { Component, For, Show } from "solid-js";
 
-import { Icon } from "@yohu/ui";
+import { Icon, YoIndicator } from "@yohu/ui";
 
 import { systemModules, workspaceModules, type ModuleDescriptor } from "../registry";
 
@@ -52,6 +52,7 @@ export const NavList: Component<{ activeId: string; onNavigate: (id: string) => 
 ) => {
   return (
     <nav class="yohu-nav" aria-label="侧栏导航">
+      <YoIndicator follow={props.activeId} variant="fill" />
       <div class="yohu-nav__modules">
         <div class="yohu-nav__caption">模块</div>
         <ul class="yohu-nav__list">

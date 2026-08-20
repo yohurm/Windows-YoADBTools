@@ -99,6 +99,11 @@ impl SettingsStore {
                     _ => return Err(format!("{} 必须是 overwrite 或 append", key.as_str())),
                 };
             }
+            SettingKey::LogDisplayColumns => {
+                s.log_display_columns = serde_json::from_value(value.clone()).map_err(|_| {
+                    format!("{} 必须是列开关对象（ts/uid/pid/tid/level/tag）", key.as_str())
+                })?;
+            }
         }
         *self.inner.write().expect("settings lock poisoned") = s.clone();
         self.save_atomic()?;

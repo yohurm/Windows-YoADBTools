@@ -9,7 +9,7 @@ import { type Component, Show, createEffect, createSignal } from "solid-js";
 import { YoContextMenuHost, YoIconButton, YoPresence, YoTitleBar, closeContextMenu, shouldSkipMotion } from "@yohu/ui";
 
 import { modules, type ModuleDescriptor } from "../registry";
-import { deviceStore } from "../stores";
+import { deviceStore, settingsStore } from "../stores";
 import { DeviceRail } from "./DeviceRail";
 import { NavList } from "./NavList";
 import { StatusBar } from "./StatusBar";
@@ -50,6 +50,7 @@ const ModuleStage: Component<{
               focusSerial={deviceStore.state.focusSerial}
               selectedSerials={deviceStore.selectedSerials(mod.id, mod.selectionMode)}
               devices={deviceStore.state.devices}
+              settings={settingsStore.state}
             />
           );
         }}

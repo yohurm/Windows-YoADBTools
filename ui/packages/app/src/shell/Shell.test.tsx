@@ -134,6 +134,14 @@ const DEFAULT_SETTINGS = {
   export_default_path: "",
   export_ask_every_time: true,
   export_write_mode: "overwrite",
+  log_display_columns: {
+    ts: true,
+    uid: true,
+    pid: true,
+    tid: true,
+    level: true,
+    tag: true,
+  },
 } as const;
 
 const RESOLVED_ADB = "C:\\Users\\me\\AppData\\Local\\YohuAdbTools\\data\\tools\\adb\\adb.exe";
@@ -338,6 +346,38 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     expect(screen.getByText("默认导出路径")).toBeTruthy();
     expect(screen.getByText("每次导出询问保存位置")).toBeTruthy();
     expect(screen.getByText("导出写入方式")).toBeTruthy();
+  });
+
+  it("日志显示列复选框可见且默认全开", () => {
+    render(() => <SettingsView />);
+    expect(screen.getByText("日志显示列")).toBeTruthy();
+    for (const name of ["时间", "UID", "PID", "TID", "级别", "Tag"]) {
+      expect((screen.getByRole("checkbox", { name }) as HTMLInputElement).checked).toBe(true);
+    }
+  });
+
+  it("日志显示列控件走靠右 hug 槽，不独占整行", () => {
+    const { container } = render(() => <SettingsView />);
+    const label = [...container.querySelectorAll(".yohu-settings__item-label")].find(
+      (el) => el.textContent === "日志显示列",
+    );
+    const item = label?.closest(".yohu-settings__item");
+    const control = item?.querySelector(":scope > .yohu-settings__item-control--checks");
+    expect(item?.querySelector(":scope > .yohu-settings__item-head")).toBeTruthy();
+    expect(control).toBeTruthy();
+    expect(control?.classList.contains("yohu-settings__item-control")).toBe(true);
+    expect(item?.querySelector(":scope > .yohu-settings__item-hint")).toBeTruthy();
+  });
+
+  it("关闭 UID 列立即写入 log_display_columns", async () => {
+    render(() => <SettingsView />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "UID" }));
+    await waitFor(() => {
+      expect(mocks.settingsSet).toHaveBeenCalledWith(
+        "log_display_columns",
+        expect.objectContaining({ uid: false, ts: true, pid: true, tag: true }),
+      );
+    });
   });
 
   it("浏览按钮：选择 adb.exe 后写入 adb_path 并弹保存 toast", async () => {

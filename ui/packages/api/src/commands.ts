@@ -110,6 +110,7 @@ export const logProcessSnapshot = (serial: string) =>
 
 export const settingsGet = (key: SettingKey) => invoke<unknown>("settings.get", { key });
 
+/** 返回全量快照。壳 settingsStore.set 回写后经 DeviceSession.settings 注入模块。 */
 export const settingsSet = (key: SettingKey, value: unknown) =>
   invoke<AppSettings>("settings.set", { key, value });
 

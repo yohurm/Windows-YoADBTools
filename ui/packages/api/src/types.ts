@@ -16,16 +16,6 @@ export interface DeviceInfo {
   connection: string;
 }
 
-/** 壳注入到模块视图的设备会话（模块不得 import 壳 store）。 */
-export interface DeviceSession {
-  /** 全局焦点（日志新窗口默认设备；与 selectedSerials 可能不同） */
-  focusSerial: string | null;
-  /** 当前模块解析后的执行目标（仅在线）。模块禁止再扫全部设备。 */
-  selectedSerials: string[];
-  /** 设备目录快照（与壳设备栏同一源） */
-  devices: DeviceInfo[];
-}
-
 // ===== log =====
 
 export interface LogLine {
@@ -109,6 +99,17 @@ export interface AppSettings {
   export_default_path: string;
   export_ask_every_time: boolean;
   export_write_mode: "overwrite" | "append";
+  log_display_columns: LogDisplayColumns;
+}
+
+/** 日志清单元数据列开关；消息列始终显示。 */
+export interface LogDisplayColumns {
+  ts: boolean;
+  uid: boolean;
+  pid: boolean;
+  tid: boolean;
+  level: boolean;
+  tag: boolean;
 }
 
 export type SettingKey =
@@ -121,7 +122,22 @@ export type SettingKey =
   | "density"
   | "export_default_path"
   | "export_ask_every_time"
-  | "export_write_mode";
+  | "export_write_mode"
+  | "log_display_columns";
+
+/** 壳注入到模块视图的会话（模块不得 import 壳 store）。
+ * 设备与设置走同一条链：壳 store 投影 → AppLayout 注入 → 模块 View。
+ */
+export interface DeviceSession {
+  /** 全局焦点（日志新窗口默认设备；与 selectedSerials 可能不同） */
+  focusSerial: string | null;
+  /** 当前模块解析后的执行目标（仅在线）。模块禁止再扫全部设备。 */
+  selectedSerials: string[];
+  /** 设备目录快照（与壳设备栏同一源） */
+  devices: DeviceInfo[];
+  /** 应用设置快照（与设置页同一 settingsStore 投影） */
+  settings: AppSettings;
+}
 
 // ===== transfer =====
 

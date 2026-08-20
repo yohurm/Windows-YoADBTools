@@ -28,7 +28,7 @@ export interface ModuleDescriptor {
   kind?: ModuleKind;
   /** 占位模块：仅贡献导航 + 「开发中」页 */
   isPlanned?: boolean;
-  /** 主视图组件（壳注入 DeviceSession，模块不读壳 store） */
+  /** 主视图组件（壳注入 DeviceSession：设备 + 设置；模块不读壳 store） */
   Component: Component<DeviceSession>;
 }
 

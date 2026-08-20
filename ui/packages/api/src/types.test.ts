@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { AppEvent, LogFilter, LogLine, RemoteEntry, TransferRequest } from "./types";
+import type { AppEvent, LogDisplayColumns, LogFilter, LogLine, RemoteEntry, TransferRequest } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -121,6 +121,18 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
     expect(JSON.parse(JSON.stringify(req))).toEqual({
       serial: "S",
       remotes: ["/sdcard/a.txt", "/sdcard/DCIM"],
+    });
+  });
+
+  it("LogDisplayColumns 字段为 snake_case 布尔开关", () => {
+    const cols: LogDisplayColumns = { ts: true, uid: false, pid: true, tid: true, level: true, tag: false };
+    expect(JSON.parse(JSON.stringify(cols))).toEqual({
+      ts: true,
+      uid: false,
+      pid: true,
+      tid: true,
+      level: true,
+      tag: false,
     });
   });
 });

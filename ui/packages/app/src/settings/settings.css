@@ -132,6 +132,11 @@
   flex: 0 0 auto;
 }
 
+.yohu-settings__item-control--checks {
+  flex-wrap: wrap;
+  gap: var(--yohu-space-md);
+}
+
 .yohu-settings__item-hint {
   flex: 1 0 100%;
   font-size: var(--yohu-font-caption);

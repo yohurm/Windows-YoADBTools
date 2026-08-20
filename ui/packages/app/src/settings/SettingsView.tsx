@@ -4,13 +4,14 @@
  * 文件位置项：只读展示框显示绝对路径 + 统一「浏览」；超长折叠中间。
  */
 
-import { Component, onMount } from "solid-js";
+import { Component, For, onMount } from "solid-js";
 
 import { open } from "@tauri-apps/plugin-dialog";
 
 import {
   YoBadge,
   YoButton,
+  YoCheckbox,
   YoChrome,
   YoPanel,
   YoSelect,
@@ -19,7 +20,7 @@ import {
   YoToaster,
   createToaster,
 } from "@yohu/ui";
-import type { Density, SettingKey, Theme } from "@yohu/api";
+import type { Density, LogDisplayColumns, SettingKey, Theme } from "@yohu/api";
 
 import { settingsStore } from "../stores";
 import { effectivePath, splitPathEnds } from "./path-display";
@@ -39,6 +40,15 @@ const DENSITY_OPTIONS: { value: Density; label: string }[] = [
 const EXPORT_MODE_OPTIONS = [
   { value: "overwrite", label: "覆盖" },
   { value: "append", label: "续写" },
+];
+
+const LOG_COLUMN_OPTIONS: { key: keyof LogDisplayColumns; label: string }[] = [
+  { key: "ts", label: "时间" },
+  { key: "uid", label: "UID" },
+  { key: "pid", label: "PID" },
+  { key: "tid", label: "TID" },
+  { key: "level", label: "级别" },
+  { key: "tag", label: "Tag" },
 ];
 
 /** 设置页级 toaster（模块生命周期 = 应用生命周期）。 */
@@ -221,6 +231,28 @@ export const SettingsView: Component = () => {
             />
           </div>
           <div class="yohu-settings__item-hint">覆盖替换目标文件；续写在同一路径末尾追加</div>
+        </div>
+
+        <div class="yohu-settings__item">
+          <ItemHead label="日志显示列" effect="立即生效" />
+          <div class="yohu-settings__item-control yohu-settings__item-control--checks">
+            <For each={LOG_COLUMN_OPTIONS}>
+              {(opt) => (
+                <YoCheckbox
+                  label={opt.label}
+                  checked={settingsStore.state.log_display_columns[opt.key]}
+                  onChange={(v) =>
+                    save(
+                      "log_display_columns",
+                      { ...settingsStore.state.log_display_columns, [opt.key]: v },
+                      "已保存（立即生效）",
+                    )
+                  }
+                />
+              )}
+            </For>
+          </div>
+          <div class="yohu-settings__item-hint">消息列始终显示。关闭的列不出现在清单表头与行内。</div>
         </div>
       </YoPanel>
 

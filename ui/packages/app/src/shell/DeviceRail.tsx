@@ -8,7 +8,7 @@
 
 import { Component, For, Show, createSignal } from "solid-js";
 
-import { YoBadge, YoButton, YoCollapse, YoIconButton } from "@yohu/ui";
+import { YoBadge, YoButton, YoCollapse, YoIconButton, YoIndicator } from "@yohu/ui";
 import type { DeviceInfo } from "@yohu/api";
 
 import type { SelectionMode } from "../registry";
@@ -41,6 +41,10 @@ export const DeviceRail: Component<{
   };
 
   const isSelected = (serial: string): boolean => targets().includes(serial);
+  const indicatorFollow = (): string | undefined => {
+    const ids = targets();
+    return ids.length === 1 ? ids[0] : undefined;
+  };
 
   const select = (serial: string, event?: MouseEvent | KeyboardEvent): void => {
     deviceStore.selectDevice(serial, {
@@ -80,17 +84,18 @@ export const DeviceRail: Component<{
         />
       </div>
       <YoCollapse open={expanded()}>
-        <ul
+        <div
           class="yohu-device-rail__list"
           role="listbox"
           aria-label="设备列表"
           aria-multiselectable={multi() || undefined}
         >
+          <YoIndicator follow={indicatorFollow()} variant="fill" />
           <For each={deviceStore.state.devices}>
             {(device, index) => {
               const focused = () => deviceStore.state.focusSerial === device.serial;
               return (
-                <li
+                <div
                   class="yohu-device-rail__item yohu-interactive yohu-focus-ring"
                   classList={{
                     "yohu-interactive--selected": isSelected(device.serial),
@@ -117,11 +122,11 @@ export const DeviceRail: Component<{
                   <Show when={device.state === "unauthorized"}>
                     <YoBadge text="未授权" tone="warn" />
                   </Show>
-                </li>
+                </div>
               );
             }}
           </For>
-        </ul>
+        </div>
         <Show when={deviceStore.state.devices.length === 0}>
           <div class="yohu-device-rail__empty">
             <div class="yohu-device-rail__empty-title">无设备</div>

@@ -1,5 +1,6 @@
 /**
  * 设置 store：启动加载全量快照；set 后回写并应用立即生效语义（由 core 负责）。
+ * 本 store 是设置的唯一 UI 投影；壳经 DeviceSession.settings 注入模块，模块禁止再 settings.get。
  * 外观项（theme/density）在加载与变更后同步到 documentElement（data-theme/data-density）。
  */
 
@@ -20,6 +21,14 @@ const DEFAULT_SETTINGS: AppSettings = {
   export_default_path: "",
   export_ask_every_time: true,
   export_write_mode: "overwrite",
+  log_display_columns: {
+    ts: true,
+    uid: true,
+    pid: true,
+    tid: true,
+    level: true,
+    tag: true,
+  },
 };
 
 const EMPTY_RESOLVED = {

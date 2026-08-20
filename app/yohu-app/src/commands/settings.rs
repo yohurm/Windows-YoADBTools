@@ -23,12 +23,14 @@ pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::
         SettingKey::ExportDefaultPath => serde_json::json!(s.export_default_path),
         SettingKey::ExportAskEveryTime => serde_json::json!(s.export_ask_every_time),
         SettingKey::ExportWriteMode => serde_json::json!(s.export_write_mode),
+        SettingKey::LogDisplayColumns => serde_json::json!(s.log_display_columns),
     }
 }
 
-/// `settings.set`：更新单键并落盘；返回全量快照；`adb.path` 立即生效。
+/// `settings.set`：更新单键并落盘；返回全量快照。
+/// `settings.changed` 是控制面（无环可重放），`send().await` 必达，禁止 try_send。
 #[tauri::command(rename = "settings.set")]
-pub fn settings_set(
+pub async fn settings_set(
     state: State<'_, AppState>,
     key: SettingKey,
     value: serde_json::Value,
@@ -53,8 +55,11 @@ pub fn settings_set(
         });
     }
 
-    let _ = state.event_tx.try_send(AppEvent::SettingsChanged {
-        key: key.as_str().to_string(),
-    });
+    let _ = state
+        .event_tx
+        .send(AppEvent::SettingsChanged {
+            key: key.as_str().to_string(),
+        })
+        .await;
     Ok(updated)
 }

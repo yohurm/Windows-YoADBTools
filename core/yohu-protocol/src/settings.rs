@@ -30,6 +30,40 @@ pub enum ExportWriteMode {
     Append,
 }
 
+fn default_true() -> bool {
+    true
+}
+
+/// 日志清单显示哪些元数据列（消息列始终显示）。缺字段视为开启。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LogDisplayColumns {
+    #[serde(default = "default_true")]
+    pub ts: bool,
+    #[serde(default = "default_true")]
+    pub uid: bool,
+    #[serde(default = "default_true")]
+    pub pid: bool,
+    #[serde(default = "default_true")]
+    pub tid: bool,
+    #[serde(default = "default_true")]
+    pub level: bool,
+    #[serde(default = "default_true")]
+    pub tag: bool,
+}
+
+impl Default for LogDisplayColumns {
+    fn default() -> Self {
+        Self {
+            ts: true,
+            uid: true,
+            pid: true,
+            tid: true,
+            level: true,
+            tag: true,
+        }
+    }
+}
+
 /// 全部设置项（JSON 文件全量序列化；字段级缺省回落到 [`AppSettings::default`]）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -62,6 +96,9 @@ pub struct AppSettings {
     /// 覆盖或续写
     #[serde(default)]
     pub export_write_mode: ExportWriteMode,
+    /// 日志清单显示列（立即生效；消息列始终在）
+    #[serde(default)]
+    pub log_display_columns: LogDisplayColumns,
 }
 
 fn default_buffer_capacity() -> usize {
@@ -87,6 +124,7 @@ impl Default for AppSettings {
             export_default_path: String::new(),
             export_ask_every_time: default_export_ask(),
             export_write_mode: ExportWriteMode::Overwrite,
+            log_display_columns: LogDisplayColumns::default(),
         }
     }
 }
@@ -105,6 +143,7 @@ pub enum SettingKey {
     ExportDefaultPath,
     ExportAskEveryTime,
     ExportWriteMode,
+    LogDisplayColumns,
 }
 
 impl SettingKey {
@@ -121,6 +160,7 @@ impl SettingKey {
             SettingKey::ExportDefaultPath => "export_default_path",
             SettingKey::ExportAskEveryTime => "export_ask_every_time",
             SettingKey::ExportWriteMode => "export_write_mode",
+            SettingKey::LogDisplayColumns => "log_display_columns",
         }
     }
 }
@@ -139,6 +179,7 @@ mod tests {
         assert!(s.export_ask_every_time);
         assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
         assert!(s.export_default_path.is_empty());
+        assert_eq!(s.log_display_columns, LogDisplayColumns::default());
     }
 
     #[test]
@@ -182,7 +223,12 @@ mod tests {
             serde_json::to_value(SettingKey::Density).unwrap(),
             json!("density")
         );
+        assert_eq!(
+            serde_json::to_value(SettingKey::LogDisplayColumns).unwrap(),
+            json!("log_display_columns")
+        );
         assert_eq!(SettingKey::BufferCapacity.as_str(), "buffer_capacity");
+        assert_eq!(SettingKey::LogDisplayColumns.as_str(), "log_display_columns");
         assert_eq!(
             SettingKey::BufferCapacity.as_str(),
             serde_json::to_value(SettingKey::BufferCapacity)
@@ -231,5 +277,14 @@ mod tests {
         }"#;
         let s: AppSettings = serde_json::from_str(json).expect("缺 theme 应回落默认");
         assert_eq!(s.theme, Theme::System);
+        assert_eq!(s.log_display_columns, LogDisplayColumns::default());
+    }
+
+    #[test]
+    fn partial_log_display_columns_defaults_missing_flags_true() {
+        let s: LogDisplayColumns =
+            serde_json::from_str(r#"{"uid":false,"tag":false}"#).expect("部分列开关");
+        assert!(s.ts && s.pid && s.tid && s.level);
+        assert!(!s.uid && !s.tag);
     }
 }
