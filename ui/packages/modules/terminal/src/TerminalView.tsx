@@ -15,6 +15,7 @@ import {
   YoIconButton,
   YoTextField,
   YoTree,
+  YoCollapse,
 } from "@yohu/ui";
 import type { TreeNode } from "@yohu/ui";
 import type { CommandDto, CommandGroupDto, DeviceSession } from "@yohu/api";
@@ -137,7 +138,7 @@ function ResultCard(props: {
         </span>
         <YoBadge text={props.entry.ok ? "通过" : "失败"} tone={props.entry.ok ? "success" : "error"} />
       </div>
-      <Show when={props.open}>
+      <YoCollapse open={props.open}>
         <Show when={props.entry.stdout}>
           <pre class="yohu-terminal__result-out">{props.entry.stdout}</pre>
         </Show>
@@ -146,7 +147,7 @@ function ResultCard(props: {
             {props.entry.message || "（无输出）"}
           </pre>
         </Show>
-      </Show>
+      </YoCollapse>
     </div>
   );
 }
