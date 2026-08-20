@@ -376,8 +376,12 @@ describe("AppLayout 窗口铬", () => {
     render(() => <AppLayout activeModuleId={() => "adb-terminal"} onNavigate={() => undefined} />);
     fireEvent.click(screen.getByRole("button", { name: "收起侧栏" }));
     expect(document.querySelector(".yohu-layout--rail-collapsed")).toBeTruthy();
+    expect(document.querySelector(".yohu-recipe-rail")).toBeTruthy();
+    expect(document.querySelector(".yohu-layout__rail-inner")).toBeTruthy();
+    expect(document.querySelector(".yohu-layout__rail")?.hasAttribute("inert")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "展开侧栏" }));
     expect(document.querySelector(".yohu-layout--rail-collapsed")).toBeNull();
+    expect(document.querySelector(".yohu-layout__rail")?.hasAttribute("inert")).toBe(false);
   });
 });
 

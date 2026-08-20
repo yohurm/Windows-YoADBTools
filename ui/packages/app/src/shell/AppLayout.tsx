@@ -4,15 +4,59 @@
  * 单一 canvas 铺满窗口；标题栏/侧栏/状态栏不刷互打架的实底。
  */
 
-import { type Component, Show, createSignal } from "solid-js";
+import { type Component, Show, createEffect, createSignal } from "solid-js";
 
-import { YoIconButton, YoTitleBar } from "@yohu/ui";
+import { YoIconButton, YoPresence, YoTitleBar, shouldSkipMotion } from "@yohu/ui";
 
-import { modules } from "../registry";
+import { modules, type ModuleDescriptor } from "../registry";
 import { deviceStore } from "../stores";
 import { DeviceRail } from "./DeviceRail";
 import { NavList } from "./NavList";
 import { StatusBar } from "./StatusBar";
+
+/** 模块区：PC 层级转场淡入淡出（动画系统-v6.md 配方 module-fade）。 */
+const ModuleStage: Component<{
+  current: ModuleDescriptor | undefined;
+}> = (props) => {
+  const [shown, setShown] = createSignal<ModuleDescriptor | undefined>(props.current);
+  const [gate, setGate] = createSignal(true);
+
+  createEffect(() => {
+    const next = props.current;
+    const cur = shown();
+    if (next?.id === cur?.id) return;
+    if (!cur || shouldSkipMotion()) {
+      setShown(next);
+      setGate(true);
+      return;
+    }
+    setGate(false);
+  });
+
+  return (
+    <YoPresence
+      when={gate()}
+      recipe="fade"
+      onExitComplete={() => {
+        setShown(props.current);
+        setGate(true);
+      }}
+    >
+      <Show when={shown()} keyed>
+        {(mod) => {
+          const C = mod.Component;
+          return (
+            <C
+              focusSerial={deviceStore.state.focusSerial}
+              selectedSerials={deviceStore.selectedSerials(mod.id, mod.selectionMode)}
+              devices={deviceStore.state.devices}
+            />
+          );
+        }}
+      </Show>
+    </YoPresence>
+  );
+};
 
 /** 工作台壳（activeModuleId 由 App 持有；窗口三键由 App 接线 Tauri）。 */
 export const AppLayout: Component<{
@@ -39,28 +83,23 @@ export const AppLayout: Component<{
           <YoIconButton
             icon="sidebar"
             title={railOpen() ? "收起侧栏" : "展开侧栏"}
+            aria-expanded={railOpen()}
             onClick={() => setRailOpen((open) => !open)}
           />
         }
       />
-      <div class="yohu-layout" classList={{ "yohu-layout--rail-collapsed": !railOpen() }}>
-        <aside class="yohu-layout__rail">
-          <DeviceRail moduleId={props.activeModuleId()} selectionMode={current()?.selectionMode} />
-          <NavList activeId={props.activeModuleId()} onNavigate={props.onNavigate} />
+      <div
+        class="yohu-layout yohu-recipe-rail"
+        classList={{ "yohu-layout--rail-collapsed": !railOpen() }}
+      >
+        <aside class="yohu-layout__rail" attr:inert={!railOpen() ? true : undefined}>
+          <div class="yohu-layout__rail-inner">
+            <DeviceRail moduleId={props.activeModuleId()} selectionMode={current()?.selectionMode} />
+            <NavList activeId={props.activeModuleId()} onNavigate={props.onNavigate} />
+          </div>
         </aside>
         <main class="yohu-layout__content">
-          <Show when={current()} keyed>
-            {(mod) => {
-              const C = mod.Component;
-              return (
-                <C
-                  focusSerial={deviceStore.state.focusSerial}
-                  selectedSerials={deviceStore.selectedSerials(mod.id, mod.selectionMode)}
-                  devices={deviceStore.state.devices}
-                />
-              );
-            }}
-          </Show>
+          <ModuleStage current={current()} />
         </main>
         <StatusBar />
       </div>

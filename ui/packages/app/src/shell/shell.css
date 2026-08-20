@@ -29,7 +29,6 @@
 
 .yohu-layout--rail-collapsed .yohu-layout__rail {
   overflow: hidden;
-  visibility: hidden;
   pointer-events: none;
   border-right: none;
 }
@@ -37,11 +36,22 @@
 .yohu-layout__rail {
   grid-row: 1;
   grid-column: 1;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
+  min-width: 0;
   background: transparent;
   border-right: var(--yohu-stroke-hairline) solid var(--yohu-border);
+}
+
+/* 槽位随列宽收；内层锁死壳宽，避免换行把内容向下挤。裁切沿收缩方向（水平）。 */
+.yohu-layout__rail-inner {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: var(--yohu-layout-shell-nav);
+  min-width: var(--yohu-layout-shell-nav);
+  height: 100%;
+  overflow: hidden;
 }
 
 .yohu-layout__content {

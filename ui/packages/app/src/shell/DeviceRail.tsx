@@ -8,7 +8,7 @@
 
 import { Component, For, Show, createSignal } from "solid-js";
 
-import { YoBadge, YoButton, YoIconButton } from "@yohu/ui";
+import { YoBadge, YoButton, YoCollapse, YoIconButton } from "@yohu/ui";
 import type { DeviceInfo } from "@yohu/api";
 
 import type { SelectionMode } from "../registry";
@@ -63,6 +63,7 @@ export const DeviceRail: Component<{
         <YoIconButton
           icon={expanded() ? "chevron-down" : "chevron-right"}
           title={expanded() ? "折叠设备列表" : "展开设备列表"}
+          aria-expanded={expanded()}
           onClick={() => setExpanded((v) => !v)}
         />
         <div class="yohu-device-rail__heading">
@@ -78,7 +79,7 @@ export const DeviceRail: Component<{
           onClick={() => void deviceStore.refresh()}
         />
       </div>
-      <Show when={expanded()}>
+      <YoCollapse open={expanded()}>
         <ul
           class="yohu-device-rail__list"
           role="listbox"
@@ -139,7 +140,7 @@ export const DeviceRail: Component<{
             </YoButton>
           </div>
         </Show>
-      </Show>
+      </YoCollapse>
     </div>
   );
 };
