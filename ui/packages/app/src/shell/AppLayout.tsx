@@ -6,7 +6,7 @@
 
 import { type Component, Show, createEffect, createSignal } from "solid-js";
 
-import { YoIconButton, YoPresence, YoTitleBar, shouldSkipMotion } from "@yohu/ui";
+import { YoContextMenuHost, YoIconButton, YoPresence, YoTitleBar, closeContextMenu, shouldSkipMotion } from "@yohu/ui";
 
 import { modules, type ModuleDescriptor } from "../registry";
 import { deviceStore } from "../stores";
@@ -70,6 +70,11 @@ export const AppLayout: Component<{
   const current = () => modules().find((m) => m.id === props.activeModuleId());
   const [railOpen, setRailOpen] = createSignal(true);
 
+  createEffect(() => {
+    props.activeModuleId();
+    closeContextMenu();
+  });
+
   return (
     <div class="yohu-window">
       <YoTitleBar
@@ -103,6 +108,7 @@ export const AppLayout: Component<{
         </main>
         <StatusBar />
       </div>
+      <YoContextMenuHost />
     </div>
   );
 };
