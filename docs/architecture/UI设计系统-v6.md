@@ -1,8 +1,14 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.18（2026-08-20，三键 Windows 顺序）    
+> **状态：** v1.21（2026-08-20，效率型页壳单源 YoPage）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（token 单源 + 组件）+ `@yohu/app`（壳）+ `@yohu/modules/*`（三模块）。所有改动必须同步更新本文件。
+>
+> **v1.21 变更（页壳单源）**：效率型/占位模块（终端/文件/日志/投屏）根节点一律 `YoPage`。页垫 `--yohu-layout-page-inset` / 间距 `--yohu-layout-page-gap`，数值单源 `Spacing.Md`（12vp）。禁止模块 CSS 再铺一套 `height:100%` + `padding: space-md`。功能标题只出现在 `YoChrome`，空态不得复写模块名。设置页仍走 `--yohu-layout-page-margin`。
+>
+> **v1.20 变更（画布卡片单源）**：模块分区（终端库/结果、文件清单/预览/传输、日志会话、投屏占位、设置分组）一律 `YoPanel`。铬 = surface + radius-md + hairline 描边 + XS 阴影；pane 内部裁切、阴影留在外壳。禁止模块 CSS 再铺 `surface` + `radius-md`。
+>
+> **v1.19 变更（页眉与内容区同缘）**：模块必须单根页壳（禁止 fragment 把 `YoChrome` 与内容并列交给 presence）。效率型/占位模块页垫走 `YoPage`；设置页页眉不进滚动容器，标题与分组卡片共用 `--yohu-layout-page-margin`。
 >
 > **v1.18 变更（三键顺序）**：窗口三键从左到右为最小化、最大化（或还原）、关闭（跟 Windows 标题栏习惯，不跟鸿蒙 max-min-close）。
 >
@@ -135,11 +141,11 @@ Primitive 层 = 鸿蒙系统 Token 原值（ARGB → CSS `#RRGGBB` / `#RRGGBBAA`
 | `--yohu-segment-hybrid` | 44 | 56 | 分段按钮图文（V2 `doubleline_background_height`） |
 | `--yohu-title-bar-height` | 40 | 40 | 窗口铬（页眉回内容区后走 HarmonyOS Compact；不再随内容密度抬到 56） |
 
-布局常量（不随密度变）：`--yohu-layout-shell-nav: 232px`、`--yohu-layout-sidebar: 280px`、`--yohu-layout-preview: 240px`、`--yohu-layout-settings-max: 920px`、`--yohu-layout-output-max: 260px`、`--yohu-layout-hit-splitter: 6px`、`--yohu-layout-gutter: 16px`、`--yohu-layout-grid-max: 2220px`。
+布局常量（不随密度变）：`--yohu-layout-shell-nav: 232px`、`--yohu-layout-sidebar: 280px`、`--yohu-layout-preview: 240px`、`--yohu-layout-settings-max: 920px`、`--yohu-layout-output-max: 260px`、`--yohu-layout-hit-splitter: 6px`、`--yohu-layout-gutter: 16px`、`--yohu-layout-grid-max: 2220px`、`--yohu-layout-page-inset` / `--yohu-layout-page-gap`（数值 = `Spacing.Md` 12vp，经 `YoPage` 消费）。
 
 HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、`--yohu-layout-window-min-w/h: 360×240`、`--yohu-layout-page-margin: 40px`（PC 左右边距，设置页用）、`--yohu-layout-breakpoint-split: 600`（分栏）、`--yohu-layout-breakpoint-side: 840`（侧边页签）、`--yohu-layout-button-max: 448`、`--yohu-layout-dialog-max: 400`。数量约束 `LayoutLimits`：标题栏右侧 ≤3 图标、C 栏工具栏 ≤6、侧栏 ≤窗口宽 40%。间距补 `space-2xl=32`、`space-3xl=40`（Padding_level16/20）。控件行高仍按 P1 产线密度收敛，不改用手机 48vp 列表行。
 
-效率型工作台：内容区从窗口标题栏下方**贴边**排布（`.yohu-layout__content` padding 0）；模块页眉与列表的内边距由模块自己承担。设置页才用 `page-margin` 40vp。
+效率型工作台：内容区从窗口标题栏下方**贴边**排布（`.yohu-layout__content` padding 0）；模块页眉与分区的内边距由 `YoPage` 承担（`page-inset` / `page-gap`）。设置页才用 `page-margin` 40vp。
 
 描边宽：`--yohu-stroke-hairline: 1px`、`--yohu-stroke-accent: 2px`（焦点/左边条/Tab 指示）、`--yohu-stroke-emphasis: 3px`（级别条/结果卡强调）。
 
@@ -231,8 +237,9 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 - **设备栏**：标题行 = 折叠钮 +「设备」+ 数量徽章（徽章紧跟标题，不推到最右）+ 刷新（`YoIconButton loading` 旋转）；设备行（型号一行 + serial 等宽一行，主次上下间隔 2vp + 在线点 + 未授权徽章，无白卡片）；空态给引导文案；选中只加 `.yohu-interactive--selected`（高亮 = 当前模块解析后的执行目标）。MultiOptional（终端）：单击替换勾选，Ctrl/Meta+click 加减选；未勾选回退全局焦点，不把全部在线设备当作已选。
 - **导航**：图标 16px（`<Icon>` 单源，currentColor）+ 标题；激活只加 `.yohu-interactive--selected`；Planned 项「开发中」胶囊徽章。图标节点每次渲染新建。设备栏与导航共用 `--yohu-layout-rail-inset`。侧栏可整栏收起（标题栏 `sidebar` 抽屉钮）。
-- **模块页眉**：在右侧内容区顶部（`YoChrome`）。左侧为功能标题区（Subtitle Bold），右侧为功能栏；与窗口标题栏分离，不挤进中区。无操作的模块（设置/投屏）只显示标题。
-- **通铺与分区**：窗口 `--yohu-canvas` 通铺；标题栏与工作区、状态栏不拉结构分割线。侧栏展开时与内容区之间画 hairline。模块分区 = `surface` + `radius-md` + `space-md` 间距，**不描外边框**。分割线还用于：页签指示、表头/列、路径对清单、数据行、对话框头尾、输入类控件。
+- **模块页眉**：在右侧内容区顶部（`YoChrome`）。左侧为功能标题区（Subtitle Bold），右侧为功能栏；与窗口标题栏分离，不挤进中区。无操作的模块（设置/投屏）只显示标题。页眉是页壳的第一子节点（`flex: 0 0 auto`），禁止与内容区作为 fragment 兄弟交给模块转场。
+- **模块页壳**：效率型与占位模块（终端/文件/日志/投屏）根节点一律 `YoPage`（`.yohu-page`：`padding: page-inset`、`gap: page-gap`）。`YoChrome` 是第一子节点。内容进 `YoPanel`（`variant=pane` 撑满）。禁止模块再写一套页垫。空态文案不得复写页眉模块名。设置页分组走 `YoPanel` 默认 card，边距仍是 `page-margin`。
+- **通铺与分区**：窗口 `--yohu-canvas` 通铺；标题栏与工作区、状态栏不拉结构分割线。侧栏展开时与内容区之间画 hairline。模块分区 = `YoPanel`（surface + radius-md + hairline 描边 + XS 阴影）。分割线还用于：页签指示、表头/列、路径对清单、数据行、对话框头尾、输入类控件。
 - **状态栏**：左版本/中留白/右「设备 · 任务 · 状态」；任务悬停显示明细。透明贴合 canvas。Caption + leading-tight。
 - **对话框**：Title_S Bold；PC 小圆角 `radius-sm`；宽 ≤400、高 ≤90%；**不要**把窗口最小 360×240 套到浮层确认框。
 - **快捷键统一表（v6.1 目标）**：`Ctrl+K` 命令面板（模块跳转/刷新设备/开始采集…）；模块内快捷键不变。
@@ -243,7 +250,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 ### 4.1 日志分析（核心打磨对象）
 
-- 布局：内容区顶部模块页眉（标题 + 采集操作）→ 会话 Tab（canvas 上）→ 圆角会话分区（过滤 / 虚拟列表 / 状态行，无外框）。
+- 布局：内容区顶部模块页眉（标题 + 采集操作）→ 会话 Tab（canvas 上）→ `YoPanel` 会话分区（过滤 / 虚拟列表 / 状态行）。
 - 行结构（列对齐，等宽）：`[时间 18ch] [PID 6→] [级别 1] [Tag ≤24ch] [消息 →]`；级别用色字 + `--yohu-stroke-emphasis` 左条；Fatal 反色块（`radius-2xs`）；级别与检索高亮挂 `.yohu-tone`；行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。
 - 信号行（崩溃/ANR）行底色 `--yohu-signal-bg` + 左侧 Error 条；选中时信号底让位给选中片，左条保留。
 - 过滤栏：级别含以上 / Tag / 关键字检索（放大镜图标 + 「清除」；过滤生效时检索框 accent 边框）+ 会话 scope 用 `YoBadge tone=accent`；控件走 `--yohu-control-height`。
@@ -256,23 +263,27 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 ### 4.2 ADB 命令终端
 
-- 布局：内容区顶部模块页眉（标题 + 执行/清屏/命令管理）→ 左侧命令库圆角分区 + 右侧结果圆角分区（间距 12vp，无中缝线）。
+- 布局：内容区顶部模块页眉（标题 + 执行/清屏/命令管理）→ 左侧命令库 `YoPanel` + 右侧结果 `YoPanel`（间距 12vp）。
 - 命令库树：组节点加命令数徽章；点击组行或展开箭头即选中该组；选中/hover 走 `.yohu-interactive`。
 - **命令管理**：`YoDialog` 定高三栏。列表项同样走 `.yohu-interactive`，禁止自写圆角底。
 - 结果区为结构化卡片列表；设备维度分组；结果区标题栏与模块功能栏均可「清屏」（只清 UI 结果，不影响命令库）。
 
 ### 4.3 文件管理
 
-- 布局：内容区顶部模块页眉（标题 + 上传/下载/刷新/预览）→ 圆角资源分区（路径栏 | 四列清单）与独立圆角预览分区并列 → 有任务时另起圆角传输分区。
+- 布局：内容区顶部模块页眉（标题 + 上传/下载/刷新/预览）→ `YoPanel` 资源分区（路径栏 | 四列清单）与独立预览 `YoPanel` 并列 → 有任务时另起传输 `YoPanel`。
 - 四列清单：`YoVirtualList` 选择模式（含 ripple）；前三列 `YoColResizer`。
 - 面包屑：祖先 `--yohu-fg-2`，当前段 `--yohu-fg` + semibold（不是全段 accent，也不是选中实底）；ripple 圆角覆盖为 `radius-xs`。
-- 预览是独立 `surface` 分区（宽 `--yohu-layout-preview`），不嵌进清单卡片；右键 `YoContextMenu`。
+- 预览是独立 `YoPanel`（宽 `--yohu-layout-preview`），不嵌进清单卡片；右键 `YoContextMenu`。
 
-### 4.4 设置
+### 4.4 投屏显示（Planned）
 
-- 页面是滚动容器；`YoPanel` 不裁切表单项。一级标题在内容区顶部 `YoChrome` 标题区。
+- 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"`。空态只写状态（「模块开发中」），不把模块名再写一遍。
+
+### 4.5 设置
+
+- 页壳不滚动；`YoChrome` 钉在内容区顶部。分组卡片放进 `.yohu-settings__body` 滚动；`YoPanel` 不裁切表单项。
+- 页眉与卡片左缘共用 `--yohu-layout-page-margin`（PC 40vp）；页宽 `--yohu-layout-settings-max` 只约束滚动列，不把标题挤进 920 列。
 - 控件（`YoTextField`/`YoSelect`）在设置页必须 `width: 100%`。
-- 页宽 `--yohu-layout-settings-max`；左右边 `--yohu-layout-page-margin`（PC 40vp）。
 - `YoDialog`：中性 10% 遮罩 + `--yohu-shadow-dialog`（失焦 `-unfocused`）；最大宽 400、高 90%；标题 Title_S Bold；电脑小圆角 `radius-sm`。最小 360×240 仅适用于独立子窗口，不套浮层。
 - `YoToast`：描边；最大宽 400；展示 ≤ `--yohu-dur-toast`（3s）。
 
@@ -299,7 +310,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 |------|------|------|
 | **A. Token 升级** | 三层 token + 双主题语义板 + 密度/布局 + 级别板 + 动效 + 交互态 | token 单测 + 纪律 lint + 两主题对比度抽查 |
 | **B. 组件打磨** | Yo 标注；`.yohu-interactive` 选中片；焦点环单源 | 组件测试全覆盖 |
-| **C. 壳重绘** | 设备卡片/导航/状态栏/设置页按 §3/§4.4 | Vitest + 冒烟脚本 |
+| **C. 壳重绘** | 设备卡片/导航/状态栏/设置页按 §3/§4.5 | Vitest + 冒烟脚本 |
 | **D. 三模块重绘** | 按 §4.1–4.3 逐模块重绘 | 模块单测 + 真机联调 |
 | **E. 交互态收敛** | 全表面消费 ripple 原语；Y* 清零 | lint 圆角门禁 + 契约测试 |
 
