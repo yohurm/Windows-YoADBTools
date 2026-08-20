@@ -60,7 +60,6 @@ function InputDialog(props: {
     <YoDialog
       open={props.open}
       title={`执行: ${props.command.name}`}
-      width={520}
       onClose={props.onClose}
       footer={
         <>
