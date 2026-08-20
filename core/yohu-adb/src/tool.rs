@@ -90,25 +90,44 @@ impl ToolResolver {
 
     /// 预热（启动时调用，不阻塞窗口；失败仅记录，后续 resolve 会兜底重试）。
     pub async fn warm_up(&self) {
-        let data = self.data_tools_dir.clone();
-        let resource = self.resource_dir.clone();
-        let result = tokio::task::spawn_blocking(move || {
-            std::fs::create_dir_all(&data)?;
-            for name in ADB_FILES {
-                let src = resource.join(name);
-                if !src.is_file() {
-                    continue;
-                }
-                let dst = data.join(name);
-                if !dst.is_file() {
-                    std::fs::copy(&src, &dst)?;
-                }
-            }
-            Ok::<(), std::io::Error>(())
-        })
-        .await;
-        if let Err(e) = result {
-            tracing::warn!("adb 预热解压失败: {e}");
+        let this = self.clone();
+        match tokio::task::spawn_blocking(move || this.ensure_extracted()).await {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => tracing::warn!("adb 预热解压失败: {e}"),
+            Err(e) => tracing::warn!("adb 预热解压失败: {e}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn extract_copies_adb_trio_into_data_dir() {
+        let root = std::env::temp_dir().join(format!(
+            "yohu-tool-extract-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        let resource = root.join("res");
+        let data = root.join("data");
+        fs::create_dir_all(&resource).unwrap();
+        for name in ADB_FILES {
+            fs::write(resource.join(name), name.as_bytes()).unwrap();
+        }
+
+        let tool = ToolResolver::new(None, resource.clone(), data.clone());
+        tool.ensure_extracted().unwrap();
+        for name in ADB_FILES {
+            assert_eq!(fs::read_to_string(data.join(name)).unwrap(), name);
+        }
+
+        let candidates = tool.candidates();
+        assert_eq!(candidates.first(), Some(&resource.join("adb.exe")));
+        assert!(candidates.contains(&data.join("adb.exe")));
+        let _ = fs::remove_dir_all(&root);
     }
 }

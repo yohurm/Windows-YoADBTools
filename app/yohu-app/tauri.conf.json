@@ -31,11 +31,11 @@
     "active": true,
     "targets": ["nsis"],
     "icon": ["icons/icon.ico"],
-    "resources": [
-      "../../tools/adb.exe",
-      "../../tools/AdbWinApi.dll",
-      "../../tools/AdbWinUsbApi.dll"
-    ],
+    "resources": {
+      "../../tools/adb.exe": "adb.exe",
+      "../../tools/AdbWinApi.dll": "AdbWinApi.dll",
+      "../../tools/AdbWinUsbApi.dll": "AdbWinUsbApi.dll"
+    },
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"

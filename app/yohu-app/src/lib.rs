@@ -10,6 +10,7 @@ mod events;
 mod panic_hook;
 mod paths;
 mod settings_store;
+mod sidecar;
 mod state;
 mod tasks;
 
@@ -74,12 +75,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         panic_hook::install(paths.logs_dir.clone());
         tracing::info!("数据根: {}", paths.data_root.display());
 
-        // 3) sidecar 资源目录：dev = 仓库 tools/；发布 = 安装包 resources
-        let resource_dir: PathBuf = if cfg!(debug_assertions) {
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("tools")
-        } else {
-            app.path().resource_dir().unwrap_or_default()
-        };
+        // 3) sidecar 资源目录：安装包 resources / 可执行文件旁 / 仓库 tools/
+        let resource_dir = sidecar::resolve_resource_dir(app);
 
         // 4) core 服务装配
         let user_adb = (!snapshot.adb_path.is_empty()).then(|| PathBuf::from(&snapshot.adb_path));
