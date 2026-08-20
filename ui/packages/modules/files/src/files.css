@@ -306,12 +306,6 @@
   border-left: var(--yohu-stroke-emphasis) solid var(--yohu-error);
 }
 
-/* 终态：2.5s 后开始淡出，3s 时由 store 移除 */
-.yohu-files__transfer--terminal {
-  animation: yohu-fade-out var(--yohu-motion-spatial-panel) forwards;
-  animation-delay: 2.5s;
-}
-
 .yohu-files__transfer-dir {
   display: inline-flex;
   align-items: center;

@@ -14,7 +14,6 @@ export function TransferPanel() {
             <div
               class="yohu-files__transfer"
               classList={{
-                "yohu-files__transfer--terminal": transfer.state !== "running",
                 "yohu-recipe-dismiss-fade": transfer.state !== "running",
                 "yohu-files__transfer--failed": transfer.state === "failed",
               }}

@@ -192,7 +192,6 @@ export function FileView(props: DeviceSession) {
       <YoDialog
         open={() => deleteNames().length > 0}
         title="确认删除"
-        width={420}
         onClose={() => setDeleteNames([])}
         footer={
           <>
@@ -213,7 +212,6 @@ export function FileView(props: DeviceSession) {
       <YoDialog
         open={() => createKind() !== null}
         title={createKind() === "dir" ? "新建目录" : "新建文件"}
-        width={420}
         onClose={() => setCreateKind(null)}
         footer={
           <>

@@ -1,5 +1,6 @@
 /**
- * 文件模块 ViewModel：会话由壳注入，本文件只依赖 @yohu/api。
+ * 文件模块 ViewModel：会话由壳注入；IPC 只走 @yohu/api。
+ * 传输卡停留时长消费 @yohu/ui 配方常量（与 dismiss-fade 对齐）。
  * 浏览世代令牌丢弃过期 list；危险路径/空名在 childPath 拦截，core 再强制。
  */
 
@@ -16,6 +17,7 @@ import {
   onTransferProgress,
 } from "@yohu/api";
 import type { RemoteEntry, TransferProgress, TransferState } from "@yohu/api";
+import { DISMISS_HOLD_DURATION, motionDurationMs } from "@yohu/ui";
 
 import {
   DEFAULT_SORT_DIR,
@@ -53,7 +55,7 @@ export interface UiTransfer {
   speed?: number;
 }
 
-const TERMINAL_KEEP_MS = 3000;
+const TERMINAL_KEEP_MS = motionDurationMs(DISMISS_HOLD_DURATION);
 const COL_DEFAULT = FILE_COLUMNS.map((col) => col.defaultWidth);
 const COL_MIN = FILE_COLUMNS.map((col) => col.minWidth);
 
