@@ -60,7 +60,11 @@ pub fn log_clear(state: State<'_, AppState>, serial: String) -> Result<(), IpcEr
 
 #[tauri::command(rename = "log.clearDevice")]
 pub async fn log_clear_device(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
-    state.capture.clear_device_buffer(&serial).await.map_err(ipc)
+    state
+        .capture
+        .clear_device_buffer(&serial)
+        .await
+        .map_err(ipc)
 }
 
 #[tauri::command(rename = "log.replay")]
@@ -74,11 +78,19 @@ pub fn log_replay(state: State<'_, AppState>, req: ReplayRequest) -> Result<LogB
         None => ring.snapshot_page(req.from_seq, req.limit as usize),
     };
     let from_seq = lines.first().map(|l| l.seq).unwrap_or(req.from_seq);
-    Ok(LogBatch { serial: req.serial, from_seq, lines, truncated })
+    Ok(LogBatch {
+        serial: req.serial,
+        from_seq,
+        lines,
+        truncated,
+    })
 }
 
 #[tauri::command(rename = "log.export")]
-pub fn log_export(state: State<'_, AppState>, req: ExportRequest) -> Result<ExportResult, IpcError> {
+pub fn log_export(
+    state: State<'_, AppState>,
+    req: ExportRequest,
+) -> Result<ExportResult, IpcError> {
     let ring = state.capture.ring(&req.serial);
     let settings = state.settings.snapshot();
     let dest = req.path.filter(|p| !p.is_empty()).or_else(|| {

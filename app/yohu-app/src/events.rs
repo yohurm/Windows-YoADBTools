@@ -17,7 +17,12 @@ pub fn spawn_dispatcher(
     tauri::async_runtime::spawn(async move {
         let mut rx = rx;
         while let Some(event) = rx.recv().await {
-            if let AppEvent::CaptureState { serial, state: CaptureState::Stopped, .. } = &event {
+            if let AppEvent::CaptureState {
+                serial,
+                state: CaptureState::Stopped,
+                ..
+            } = &event
+            {
                 if let Some(app_state) = app.try_state::<AppState>() {
                     app_state.finish_capture_task(serial);
                 }

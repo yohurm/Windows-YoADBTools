@@ -18,7 +18,10 @@ use yohu_protocol::{IpcError, IpcErrorCode};
 
 /// core 错误 → IPC 错误（前端按 code 处理）。
 pub fn ipc(e: impl std::fmt::Display) -> IpcError {
-    IpcError { code: IpcErrorCode::Internal, message: e.to_string() }
+    IpcError {
+        code: IpcErrorCode::Internal,
+        message: e.to_string(),
+    }
 }
 
 /// ADB 错误 → IPC 错误（保留语义码）。
@@ -33,12 +36,18 @@ pub fn ipc_adb(e: AdbError) -> IpcError {
         AdbError::Timeout => IpcErrorCode::AdbError,
         AdbError::Io(_) => IpcErrorCode::Internal,
     };
-    IpcError { code, message: e.to_string() }
+    IpcError {
+        code,
+        message: e.to_string(),
+    }
 }
 
 /// 构造一个简单 IPC 错误。
 pub fn ipc_code(code: IpcErrorCode, message: impl Into<String>) -> IpcError {
-    IpcError { code, message: message.into() }
+    IpcError {
+        code,
+        message: message.into(),
+    }
 }
 
 /// 文件模块错误 → IPC（路径/安全根走 InvalidArgs，取消保留语义）。

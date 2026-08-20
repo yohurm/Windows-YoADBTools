@@ -4,9 +4,9 @@ use tauri::State;
 
 use crate::commands::ipc;
 use crate::state::AppState;
-use yohu_protocol::{AppSettings, IpcError};
 #[cfg(not(windows))]
 use yohu_protocol::IpcErrorCode;
+use yohu_protocol::{AppSettings, IpcError};
 
 /// `system.info`：关于/诊断信息。
 #[derive(serde::Serialize)]
@@ -56,7 +56,10 @@ pub fn system_open_path(path: String) -> Result<(), IpcError> {
     #[cfg(not(windows))]
     {
         let _ = path;
-        return Err(IpcError { code: IpcErrorCode::Internal, message: "仅支持 Windows".into() });
+        return Err(IpcError {
+            code: IpcErrorCode::Internal,
+            message: "仅支持 Windows".into(),
+        });
     }
     Ok(())
 }

@@ -23,7 +23,11 @@ pub(crate) async fn refresh_inner(state: &AppState) -> Result<Vec<DeviceInfo>, S
         .map_err(|e| e.to_string())?;
     *state.adb_in_use.lock().expect("adb_in_use lock poisoned") =
         Some(adb_used.to_string_lossy().into_owned());
-    tracing::info!("设备扫描成功（adb: {}），设备 {} 台", adb_used.display(), devices.len());
+    tracing::info!(
+        "设备扫描成功（adb: {}），设备 {} 台",
+        adb_used.display(),
+        devices.len()
+    );
 
     let serials: Vec<String> = devices.iter().map(|d| d.serial.clone()).collect();
 
@@ -40,11 +44,15 @@ pub(crate) async fn refresh_inner(state: &AppState) -> Result<Vec<DeviceInfo>, S
             state.finish_capture_task(&old.serial);
             let _ = state
                 .event_tx
-                .send(AppEvent::DeviceOffline { serial: old.serial.clone() })
+                .send(AppEvent::DeviceOffline {
+                    serial: old.serial.clone(),
+                })
                 .await;
         }
     }
 
-    let _ = state.event_tx.try_send(AppEvent::DevicesChanged { devices: devices.clone() });
+    let _ = state.event_tx.try_send(AppEvent::DevicesChanged {
+        devices: devices.clone(),
+    });
     Ok(devices)
 }

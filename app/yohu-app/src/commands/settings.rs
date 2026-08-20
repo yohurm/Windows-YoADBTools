@@ -53,6 +53,8 @@ pub fn settings_set(
         });
     }
 
-    let _ = state.event_tx.try_send(AppEvent::SettingsChanged { key: key.as_str().to_string() });
+    let _ = state.event_tx.try_send(AppEvent::SettingsChanged {
+        key: key.as_str().to_string(),
+    });
     Ok(updated)
 }

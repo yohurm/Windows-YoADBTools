@@ -52,7 +52,9 @@ fn write_default(file: &std::path::Path) -> Result<CommandLibrary, IpcError> {
 #[tauri::command(rename = "commandlib.save")]
 pub fn commandlib_save(state: State<'_, AppState>, dto: CommandLibraryDto) -> Result<(), IpcError> {
     let library = CommandLibrary::from_dto(&dto);
-    library.validate().map_err(|e| ipc_code(IpcErrorCode::InvalidArgs, e.to_string()))?;
+    library
+        .validate()
+        .map_err(|e| ipc_code(IpcErrorCode::InvalidArgs, e.to_string()))?;
 
     let file = state.paths.library_file();
     if let Some(parent) = file.parent() {
@@ -76,7 +78,10 @@ fn backup_corrupt(file: &std::path::Path, text: &str, reason: &str) -> Result<()
 
 fn timestamp_stamp() -> String {
     time::OffsetDateTime::now_local()
-        .map(|t| t.format(&time::format_description::well_known::Rfc3339).unwrap_or_default())
+        .map(|t| {
+            t.format(&time::format_description::well_known::Rfc3339)
+                .unwrap_or_default()
+        })
         .unwrap_or_default()
         .replace(':', "-")
 }

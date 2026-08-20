@@ -16,7 +16,12 @@ pub async fn adb_exec(
     state.require_online(&req.serial)?;
     state
         .client
-        .run(&req.serial, &req.argv, req.timeout_ms, CancellationToken::new())
+        .run(
+            &req.serial,
+            &req.argv,
+            req.timeout_ms,
+            CancellationToken::new(),
+        )
         .await
         .map_err(ipc_adb)
 }

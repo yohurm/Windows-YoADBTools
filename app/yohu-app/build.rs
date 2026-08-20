@@ -32,7 +32,10 @@ fn main() {
             let src = tools.join(name);
             let dst = profile_dir.join(name);
             if let Err(e) = std::fs::copy(&src, &dst) {
-                println!("cargo:warning=复制 sidecar {name} 到 {} 失败: {e}", profile_dir.display());
+                println!(
+                    "cargo:warning=复制 sidecar {name} 到 {} 失败: {e}",
+                    profile_dir.display()
+                );
             }
         }
     }

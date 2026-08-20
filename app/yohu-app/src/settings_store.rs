@@ -37,7 +37,10 @@ impl SettingsStore {
             .ok()
             .and_then(|text| serde_json::from_str::<AppSettings>(&text).ok())
             .unwrap_or_default();
-        Self { file, inner: RwLock::new(settings) }
+        Self {
+            file,
+            inner: RwLock::new(settings),
+        }
     }
 
     pub fn snapshot(&self) -> AppSettings {

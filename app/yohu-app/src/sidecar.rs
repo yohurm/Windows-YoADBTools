@@ -40,7 +40,10 @@ pub fn resolve_resource_dir(app: &App) -> PathBuf {
         }
     }
 
-    let fallback = dirs.into_iter().next().unwrap_or_else(|| PathBuf::from("."));
+    let fallback = dirs
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| PathBuf::from("."));
     tracing::warn!("未找到内置 adb.exe，将使用: {}", fallback.display());
     fallback
 }
@@ -62,7 +65,8 @@ mod tests {
 
     #[test]
     fn dir_with_adb_accepts_flat_and_nested() {
-        let root = std::env::temp_dir().join(format!("yohu-sidecar-{}-{}", std::process::id(), "adb"));
+        let root =
+            std::env::temp_dir().join(format!("yohu-sidecar-{}-{}", std::process::id(), "adb"));
         let _ = std::fs::remove_dir_all(&root);
         let flat = root.join("flat");
         let nested = root.join("nested").join("tools");

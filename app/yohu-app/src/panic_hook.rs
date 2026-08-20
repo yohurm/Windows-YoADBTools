@@ -9,7 +9,10 @@ pub fn install(logs_dir: PathBuf) {
         tracing::error!("PANIC: {message}");
         let _ = std::fs::create_dir_all(&logs_dir);
         let stamp = time::OffsetDateTime::now_local()
-            .map(|t| t.format(&time::format_description::well_known::Rfc3339).unwrap_or_default())
+            .map(|t| {
+                t.format(&time::format_description::well_known::Rfc3339)
+                    .unwrap_or_default()
+            })
             .unwrap_or_default()
             .replace(':', "-");
         let file = logs_dir.join(format!("panic-{stamp}.log"));

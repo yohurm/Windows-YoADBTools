@@ -6,10 +6,10 @@ use tokio_util::sync::CancellationToken;
 
 use crate::commands::{ipc_adb, ipc_code};
 use crate::state::AppState;
-use yohu_domain::{CommandDefinition, CommandEvaluator, GroupExecutor, Verdict, split_command_line};
-use yohu_protocol::{
-    AppEvent, CommandDto, GroupProgress, GroupRunRequest, IpcError, IpcErrorCode,
+use yohu_domain::{
+    split_command_line, CommandDefinition, CommandEvaluator, GroupExecutor, Verdict,
 };
+use yohu_protocol::{AppEvent, CommandDto, GroupProgress, GroupRunRequest, IpcError, IpcErrorCode};
 
 /// 单命令判定结果（wire）。
 #[derive(serde::Serialize)]
@@ -69,15 +69,31 @@ pub async fn group_run(
         .expect("library lock poisoned")
         .group(&req.group_id)
         .cloned()
-        .ok_or_else(|| ipc_code(IpcErrorCode::NotFound, format!("命令组不存在: {}", req.group_id)))?;
+        .ok_or_else(|| {
+            ipc_code(
+                IpcErrorCode::NotFound,
+                format!("命令组不存在: {}", req.group_id),
+            )
+        })?;
 
-    let run_id = state.group_next.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+    let run_id = state
+        .group_next
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        + 1;
     let cancel = CancellationToken::new();
-    state.group_runs.lock().expect("group lock poisoned").insert(run_id, cancel.clone());
+    state
+        .group_runs
+        .lock()
+        .expect("group lock poisoned")
+        .insert(run_id, cancel.clone());
 
     let task_id = state.tasks.register(
         format!("命令组: {}", group.name),
-        format!("{} 台设备 · {} 条命令", req.serials.len(), group.commands.len()),
+        format!(
+            "{} 台设备 · {} 条命令",
+            req.serials.len(),
+            group.commands.len()
+        ),
     );
     let (tx, mut rx) = mpsc::channel::<yohu_domain::GroupRunEvent>(64);
     let sink = state.event_tx.clone();
@@ -96,7 +112,11 @@ pub async fn group_run(
                     serial: e.serial,
                     name: Some(e.name),
                     ok: e.verdict.is_pass(),
-                    message: if message.is_empty() { None } else { Some(message) },
+                    message: if message.is_empty() {
+                        None
+                    } else {
+                        Some(message)
+                    },
                     duration_ms: e.duration_ms,
                 }));
             }
@@ -110,7 +130,11 @@ pub async fn group_run(
         let _ = forward.await;
 
         let state = app.state::<AppState>();
-        state.group_runs.lock().expect("group lock poisoned").remove(&run_id);
+        state
+            .group_runs
+            .lock()
+            .expect("group lock poisoned")
+            .remove(&run_id);
         state.tasks.finish(task_id);
     });
 
@@ -131,6 +155,9 @@ pub fn group_cancel(state: State<'_, AppState>, run_id: u32) -> Result<(), IpcEr
             c.cancel();
             Ok(())
         }
-        None => Err(ipc_code(IpcErrorCode::NotFound, format!("运行不存在: {run_id}"))),
+        None => Err(ipc_code(
+            IpcErrorCode::NotFound,
+            format!("运行不存在: {run_id}"),
+        )),
     }
 }
