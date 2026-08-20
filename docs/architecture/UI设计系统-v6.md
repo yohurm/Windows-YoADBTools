@@ -146,8 +146,9 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 ### 2.4 动效
 
 - 时长分级（HarmonyOS）：`--yohu-dur-fast: 100ms`（hover/按下）、`--yohu-dur-small: 150ms`（小范围）、`--yohu-dur-normal: 160ms`（面板/下拉）、`--yohu-dur-local: 200ms`（局部删除）、`--yohu-dur-slow: 300ms`（页面级）、`--yohu-dur-enter: 350ms`（入场）、`--yohu-dur-progress: 400ms`（进度最短感知）、`--yohu-dur-toast: 3s`；循环指示：`--yohu-dur-loop: 800ms`、`--yohu-dur-loop-slow: 1.2s`
-- 缓动：`--yohu-ease-standard: cubic-bezier(0.4,0,0.2,1)`（标准）、`--yohu-ease-decel: cubic-bezier(0,0,0.4,1)`（减速）、`--yohu-ease-loop: ease-in-out`（循环）
+- 缓动：`--yohu-ease-standard: cubic-bezier(0.4,0,0.2,1)`（标准）、`--yohu-ease-decel: cubic-bezier(0,0,0.4,1)`（减速）、`--yohu-ease-loop: ease-in-out`（循环）；**出场加速曲线与语义 MotionSpec 见《动画系统-v6.md》**（ADR-v6-017）
 - JS 消费侧经 `@yohu/ui` 导出 `MotionDuration` / `MotionEasing`（与 theme.css 契约测试强制一致）；动效时长硬编码由纪律 lint 拦截
+- 完整行为（Presence / Collapse / 侧栏 `rail` / 配方目录 / 虚拟列表禁动）以 `docs/architecture/动画系统-v6.md` 为准，本节只登记 token 数字
 - 用途克制：下拉展开/淡入淡出；**日志列表选中片无过渡**（性能优先，`.yohu-interactive` 默认无 transition）
 - **加载循环**：`YoIconButton loading` 给图标加 `yohu-icon-button--loading`，按 `--yohu-dur-loop` 线性旋转；加载期间按钮 `disabled` + `aria-busy`。设备栏刷新、文件刷新等长操作必须走该入口，禁止模块自写 spinner。
 
