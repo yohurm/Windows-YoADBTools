@@ -1,9 +1,27 @@
 //! threadtime 行解析。
 //!
 //! 格式：`MM-DD HH:MM:SS.mmm  PID  TID L TAG: MSG`（L = V/D/I/W/E/F）。
+//! `logcat -v threadtime,uid` 在 PID 前多一列 UID：数字或名（`root`/`shell`/`wifi`/`u0_a123`）。
 //! 宽容解析：格式漂移降级为「整行消息」（pid=0、level='?'），不中断采集。
 
 use yohu_protocol::LogLine;
+
+fn is_level_token(s: &str) -> bool {
+    matches!(s, "V" | "D" | "I" | "W" | "E" | "F" | "v" | "d" | "i" | "w" | "e" | "f")
+}
+
+fn parse_u32(s: &str) -> Option<u32> {
+    s.parse().ok()
+}
+
+fn level_tag_from<'a>(level_first: &'a str, rest: &[&'a str]) -> String {
+    let mut level_tag = (*level_first).to_string();
+    if !rest.is_empty() {
+        level_tag.push(' ');
+        level_tag.push_str(&rest.join(" "));
+    }
+    level_tag
+}
 
 /// 解析一行 threadtime 输出；`seq` 由环形缓冲分配（此处为 0）。
 pub fn parse_threadtime(raw: &str) -> LogLine {
@@ -35,39 +53,28 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
         return fallback();
     }
 
-    // pid / tid / 级别：可选 UID 列（Android 14+ `logcat -v threadtime,uid`）
+    // pid / tid / 级别：可选 UID 列（数字或名）
     let tokens: Vec<&str> = rest.split_whitespace().collect();
-    let is_level_token = |s: &str| -> bool {
-        matches!(s.as_bytes().first(), Some(b'V' | b'D' | b'I' | b'W' | b'E' | b'F' | b'v' | b'd' | b'i' | b'w' | b'e' | b'f'))
-    };
     let (pid, tid, uid, level_tag) = match tokens.as_slice() {
         [uid_str, pid_str, tid_str, level_first, rest @ ..]
-            if uid_str.parse::<u32>().is_ok()
-                && pid_str.parse::<u32>().is_ok()
-                && tid_str.parse::<u32>().is_ok()
-                && is_level_token(level_first) =>
+            if parse_u32(pid_str).is_some() && parse_u32(tid_str).is_some() && is_level_token(level_first) =>
         {
-            let uid = uid_str.parse().ok();
-            let pid = pid_str.parse().unwrap_or(0);
-            let tid = tid_str.parse().unwrap_or(0);
-            let mut level_tag = (*level_first).to_string();
-            if !rest.is_empty() {
-                level_tag.push(' ');
-                level_tag.push_str(&rest.join(" "));
-            }
-            (pid, tid, uid, level_tag)
+            (
+                parse_u32(pid_str).unwrap_or(0),
+                parse_u32(tid_str).unwrap_or(0),
+                Some((*uid_str).to_string()),
+                level_tag_from(level_first, rest),
+            )
         }
         [pid_str, tid_str, level_first, rest @ ..]
-            if pid_str.parse::<u32>().is_ok() && tid_str.parse::<u32>().is_ok() && is_level_token(level_first) =>
+            if parse_u32(pid_str).is_some() && parse_u32(tid_str).is_some() && is_level_token(level_first) =>
         {
-            let pid = pid_str.parse().unwrap_or(0);
-            let tid = tid_str.parse().unwrap_or(0);
-            let mut level_tag = (*level_first).to_string();
-            if !rest.is_empty() {
-                level_tag.push(' ');
-                level_tag.push_str(&rest.join(" "));
-            }
-            (pid, tid, None, level_tag)
+            (
+                parse_u32(pid_str).unwrap_or(0),
+                parse_u32(tid_str).unwrap_or(0),
+                None,
+                level_tag_from(level_first, rest),
+            )
         }
         _ => return fallback(),
     };
@@ -103,6 +110,7 @@ mod tests {
         assert_eq!(line.level, 'I');
         assert_eq!(line.tag, "ActivityManager");
         assert_eq!(line.msg, "Start proc 1234");
+        assert_eq!(line.uid, None);
     }
 
     #[test]
@@ -137,10 +145,34 @@ mod tests {
     #[test]
     fn parses_optional_uid_column() {
         let line = parse_threadtime("05-26 11:02:36.886  1000  5689  5689 D AndroidRuntime: CheckJNI is OFF");
-        assert_eq!(line.uid, Some(1000));
+        assert_eq!(line.uid.as_deref(), Some("1000"));
         assert_eq!(line.pid, 5689);
         assert_eq!(line.tid, 5689);
         assert_eq!(line.level, 'D');
         assert_eq!(line.tag, "AndroidRuntime");
+    }
+
+    #[test]
+    fn parses_named_uid() {
+        let line = parse_threadtime(
+            "08-20 18:48:42.359 shell  1705  1705 W binder:1705_2: type=1400 audit(0.0:2200040): avc: denied",
+        );
+        assert_eq!(line.uid.as_deref(), Some("shell"));
+        assert_eq!(line.pid, 1705);
+        assert_eq!(line.tid, 1705);
+        assert_eq!(line.level, 'W');
+        assert_eq!(line.tag, "binder");
+        assert!(line.msg.contains("type=1400"));
+    }
+
+    #[test]
+    fn parses_root_uid_empty_tag() {
+        let line = parse_threadtime("08-20 18:48:42.342  root     0     0 I         : [    C4] swpm_sp_routine");
+        assert_eq!(line.uid.as_deref(), Some("root"));
+        assert_eq!(line.pid, 0);
+        assert_eq!(line.tid, 0);
+        assert_eq!(line.level, 'I');
+        assert_eq!(line.tag, "");
+        assert!(line.msg.contains("swpm_sp_routine"));
     }
 }

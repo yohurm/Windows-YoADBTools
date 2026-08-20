@@ -13,9 +13,9 @@ pub struct LogLine {
     pub ts: String,
     pub pid: u32,
     pub tid: u32,
-    /// `logcat -v threadtime,uid` 的 UID；旧格式或缺列时为 None
+    /// `logcat -v threadtime,uid` 的 UID：数字或名（`root`/`shell`）；旧格式或缺列时为 None
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub uid: Option<u32>,
+    pub uid: Option<String>,
     /// 级别字母：V/D/I/W/E/F；解析失败时为 '?'
     pub level: char,
     pub tag: String,
@@ -25,10 +25,16 @@ pub struct LogLine {
 impl LogLine {
     /// 还原为导出的文本行（导出 txt 使用）。
     pub fn raw_text(&self) -> String {
-        format!(
-            "{} {:>5} {:>5} {} {}: {}",
-            self.ts, self.pid, self.tid, self.level, self.tag, self.msg
-        )
+        match &self.uid {
+            Some(uid) => format!(
+                "{} {:>8} {:>5} {:>5} {} {}: {}",
+                self.ts, uid, self.pid, self.tid, self.level, self.tag, self.msg
+            ),
+            None => format!(
+                "{} {:>5} {:>5} {} {}: {}",
+                self.ts, self.pid, self.tid, self.level, self.tag, self.msg
+            ),
+        }
     }
 }
 
@@ -181,7 +187,10 @@ mod tests {
 
     #[test]
     fn filter_min_level_inclusive() {
-        let f = LogFilter { min_level: Some('W'), ..Default::default() };
+        let f = LogFilter {
+            min_level: Some('W'),
+            ..Default::default()
+        };
         assert!(f.matches(&line('W', 1, "T", "m")));
         assert!(f.matches(&line('E', 1, "T", "m")));
         assert!(!f.matches(&line('I', 1, "T", "m")));
@@ -201,15 +210,24 @@ mod tests {
 
     #[test]
     fn filter_scope_pid_and_package() {
-        let exact = LogFilter { scope: LogScope::Pid { pid: 42 }, ..Default::default() };
+        let exact = LogFilter {
+            scope: LogScope::Pid { pid: 42 },
+            ..Default::default()
+        };
         assert!(exact.matches(&line('I', 42, "T", "m")));
         assert!(!exact.matches(&line('I', 43, "T", "m")));
 
-        let set = LogFilter { scope: LogScope::Package { pids: vec![42, 99] }, ..Default::default() };
+        let set = LogFilter {
+            scope: LogScope::Package { pids: vec![42, 99] },
+            ..Default::default()
+        };
         assert!(set.matches(&line('I', 99, "T", "m")));
         assert!(!set.matches(&line('I', 100, "T", "m")));
 
-        let empty = LogFilter { scope: LogScope::Package { pids: vec![] }, ..Default::default() };
+        let empty = LogFilter {
+            scope: LogScope::Package { pids: vec![] },
+            ..Default::default()
+        };
         assert!(!empty.matches(&line('I', 1, "T", "m")));
     }
 
@@ -223,12 +241,19 @@ mod tests {
     #[test]
     fn raw_text_roundtrip_shape() {
         let l = line('E', 1234, "AndroidRuntime", "FATAL EXCEPTION");
-        assert_eq!(l.raw_text(), "01-01 00:00:00.000  1234     1 E AndroidRuntime: FATAL EXCEPTION");
+        assert_eq!(
+            l.raw_text(),
+            "01-01 00:00:00.000  1234     1 E AndroidRuntime: FATAL EXCEPTION"
+        );
     }
 
     #[test]
     fn capture_start_status_snake_case() {
-        let start = CaptureStart { serial: "s1".into(), generation: 2, adopted: true };
+        let start = CaptureStart {
+            serial: "s1".into(),
+            generation: 2,
+            adopted: true,
+        };
         let v = serde_json::to_value(&start).unwrap();
         assert_eq!(v["serial"], "s1");
         assert_eq!(v["generation"], 2);

@@ -535,7 +535,7 @@ mod tests {
         assert_eq!(snap[0].pid, 1234);
         assert_eq!(snap[0].uid, None);
         assert_eq!(snap[1].pid, 1234);
-        assert_eq!(snap[1].uid, Some(1000));
+        assert_eq!(snap[1].uid.as_deref(), Some("1000"));
         assert_eq!(snap[1].level, 'W');
     }
 }

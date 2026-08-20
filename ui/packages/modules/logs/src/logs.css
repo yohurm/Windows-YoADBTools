@@ -1,6 +1,6 @@
 /* ============================================================================
  * 日志分析模块（UI设计系统-v6.md §4.1）。
- * 行结构列对齐等宽：[时间 18ch] [PID] [级别] [Tag ≤24ch] [消息]；
+ * 行结构列对齐等宽：[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 2ch] [Tag 24ch] [消息]；
  * 级别色字 + 3px 级别左条；Fatal 反色块；信号行底色 + Error 左条；
  * 日志列表不动效（性能优先，§2.4）。
  * ========================================================================== */
@@ -71,18 +71,23 @@
 }
 
 .yohu-logs__row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 18ch 10ch 6ch 6ch 2ch 24ch minmax(0, 1fr);
   align-items: center;
-  gap: var(--yohu-space-sm);
+  column-gap: var(--yohu-space-sm);
   height: 100%;
   padding: 0 var(--yohu-space-sm) 0 var(--yohu-space-xs);
   font-family: var(--yohu-font-mono);
   font-size: var(--yohu-font-caption);
   font-variant-numeric: tabular-nums;
-  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-left: var(--yohu-stroke-emphasis) solid transparent;
   white-space: nowrap;
   box-sizing: border-box;
+  user-select: none;
+}
+
+.yohu-logs__row--raw {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* 信号行（崩溃/ANR）：信号底色 + Error 左条；行 hover/选中由 YoVirtualList.yohu-interactive 承担。
@@ -104,24 +109,33 @@
 .yohu-logs__row--bar-e { border-left-color: var(--yohu-level-e); }
 .yohu-logs__row--bar-f { border-left-color: var(--yohu-level-f-bg); }
 
-/* 列对齐（等宽 + tabular-nums） */
-.yohu-logs__row-ts {
-  color: var(--yohu-fg-3);
-  width: 18ch;
-  flex-shrink: 0;
+/* 列对齐：每行独立 grid，轨道必须定宽（禁止 max-width / minmax 让消息列错位） */
+.yohu-logs__row-ts,
+.yohu-logs__row-uid,
+.yohu-logs__row-pid,
+.yohu-logs__row-tid,
+.yohu-logs__row-tag {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
-.yohu-logs__row-pid {
+.yohu-logs__row-ts {
+  color: var(--yohu-fg-3);
+}
+
+.yohu-logs__row-uid {
+  color: var(--yohu-fg-3);
+}
+
+.yohu-logs__row-pid,
+.yohu-logs__row-tid {
   color: var(--yohu-fg-2);
-  min-width: 5ch;
   text-align: right;
-  flex-shrink: 0;
 }
 
 .yohu-logs__row-level {
-  min-width: 2ch;
   font-weight: var(--yohu-font-weight-semibold);
-  flex-shrink: 0;
   text-align: center;
   box-sizing: border-box;
 }
@@ -144,17 +158,13 @@
 
 .yohu-logs__row-tag {
   color: var(--yohu-accent);
-  max-width: 24ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 0;
 }
 
 .yohu-logs__row-msg {
   color: var(--yohu-fg);
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
+  min-width: 0;
 }
 
 .yohu-logs__mark {

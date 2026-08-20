@@ -12,7 +12,6 @@ import {
   YoBadge,
   YoButton,
   YoChrome,
-  YoContextMenu,
   YoDialog,
   YoEmptyState,
   YoPage,
@@ -22,12 +21,19 @@ import {
   YoTextField,
   YoToaster,
   YoVirtualList,
+  allKeys,
+  attachPanelKeys,
+  closeContextMenu,
   createToaster,
-  type YoMenuItem,
+  nextKeys,
+  openContextMenu,
+  pointerSelectMode,
 } from "@yohu/ui";
 
 import { LEVELS, type ViewRow } from "./pipeline";
 import { NewSessionDialog } from "./NewSessionDialog";
+import { copyLogText, LOGS_KEY_BINDINGS, LOGS_LIST_SELECTOR, type LogsKeyAction } from "./keys";
+import { logsRowMenu, logsTabMenu } from "./menu";
 import { logStore } from "./store";
 import type { LogSessionState } from "./workspace";
 import "./logs.css";
@@ -146,8 +152,8 @@ function scopeLabel(session: { scope: { kind: string; pkg?: string; pid?: number
 
 export function LogAnalyzerView(props: DeviceSession) {
   const [newOpen, setNewOpen] = createSignal(false);
-  const [selectedKey, setSelectedKey] = createSignal<string | number | null>(null);
-  const [menu, setMenu] = createSignal<{ x: number; y: number; id: number } | null>(null);
+  const [selectedKeys, setSelectedKeys] = createSignal<Set<string>>(new Set());
+  const [pivotKey, setPivotKey] = createSignal<string | null>(null);
   const [renameTarget, setRenameTarget] = createSignal<number | null>(null);
   const [renameText, setRenameText] = createSignal("");
 
@@ -161,7 +167,9 @@ export function LogAnalyzerView(props: DeviceSession) {
 
   createEffect(() => {
     void logStore.state.activeSessionId;
-    setSelectedKey(null);
+    setSelectedKeys(new Set<string>());
+    setPivotKey(null);
+    closeContextMenu();
   });
 
   const active = createMemo(() => {
@@ -189,45 +197,73 @@ export function LogAnalyzerView(props: DeviceSession) {
 
   const windowSerial = (): string | null => active()?.serial ?? props.selectedSerials[0] ?? null;
 
-  const onKeydown = (e: KeyboardEvent): void => {
-    const target = e.target as HTMLElement | null;
-    const inInput = target !== null && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
-    if (e.key === " " && !inInput && active()?.capturing) {
-      e.preventDefault();
-      const id = logStore.state.activeSessionId;
-      if (id !== null) {
-        const session = logStore.state.sessions.find((s) => s.id === id);
-        if (session) logStore.patchFilter(id, { paused: !session.paused });
-      }
+  const visibleKeys = (): string[] => (active()?.visible ?? []).map(rowKey);
+
+  const togglePause = (): void => {
+    const id = logStore.state.activeSessionId;
+    if (id === null) return;
+    const session = logStore.state.sessions.find((s) => s.id === id);
+    if (session?.capturing) logStore.patchFilter(id, { paused: !session.paused });
+  };
+
+  const copySelected = (): void => {
+    const session = active();
+    if (!session) return;
+    const text = copyLogText(session.visible, selectedKeys(), rowKey);
+    if (!text) return;
+    void navigator.clipboard.writeText(text).catch((e) => toaster.show(`复制失败: ${errorMessage(e)}`, "error"));
+  };
+
+  const onKeyAction = (action: LogsKeyAction): void => {
+    const id = logStore.state.activeSessionId;
+    if (action === "pause") {
+      togglePause();
       return;
     }
-    if (!e.ctrlKey) return;
-    const key = e.key.toLowerCase();
-    const id = logStore.state.activeSessionId;
-    if (key === "l") {
-      e.preventDefault();
+    if (action === "clear") {
       if (id !== null) void logStore.clearVisible(id);
-    } else if (key === "f") {
-      e.preventDefault();
+      return;
+    }
+    if (action === "find") {
       keywordRef?.focus();
-    } else if (key === "t") {
-      e.preventDefault();
+      keywordRef?.select();
+      return;
+    }
+    if (action === "new-tab") {
       setNewOpen(true);
-    } else if (key === "w") {
-      e.preventDefault();
+      return;
+    }
+    if (action === "close-tab") {
       if (id !== null) logStore.closeSession(id);
-    } else if (key === "tab") {
-      e.preventDefault();
+      return;
+    }
+    if (action === "next-tab") {
       const ids = logStore.state.sessions.map((s) => s.id);
       if (id !== null) {
         const next = ids[(ids.indexOf(id) + 1) % ids.length];
         if (next !== undefined) logStore.setActive(next);
       }
+      return;
     }
+    if (action === "select-all") {
+      setSelectedKeys(allKeys(visibleKeys()));
+      return;
+    }
+    if (action === "copy") copySelected();
   };
 
-  onMount(() => window.addEventListener("keydown", onKeydown));
-  onCleanup(() => window.removeEventListener("keydown", onKeydown));
+  onMount(() => {
+    const stop = attachPanelKeys(window, {
+      ownership: "host",
+      listSelector: LOGS_LIST_SELECTOR,
+      bindings: LOGS_KEY_BINDINGS,
+      onAction: onKeyAction,
+    });
+    onCleanup(() => {
+      stop();
+      closeContextMenu();
+    });
+  });
 
   const doExport = async (): Promise<void> => {
     const id = logStore.state.activeSessionId;
@@ -255,12 +291,6 @@ export function LogAnalyzerView(props: DeviceSession) {
       toaster.show(`导出失败: ${errorMessage(e)}`, "error");
     }
   };
-
-  const menuItems = (): YoMenuItem[] => [
-    { id: "rename", label: "重命名" },
-    { id: "duplicate", label: "复制会话" },
-    { id: "close-others", label: "关闭其他" },
-  ];
 
   return (
     <YoPage class="yohu-logs">
@@ -331,7 +361,24 @@ export function LogAnalyzerView(props: DeviceSession) {
             onNew={() => setNewOpen(true)}
             onContextMenu={(id, event) => {
               event.preventDefault();
-              setMenu({ x: event.clientX, y: event.clientY, id: Number(id) });
+              const target = Number(id);
+              openContextMenu(logsTabMenu, {
+                x: event.clientX,
+                y: event.clientY,
+                ctx: {
+                  rename: () => {
+                    const session = logStore.state.sessions.find((s) => s.id === target);
+                    setRenameTarget(target);
+                    setRenameText(session?.title ?? "");
+                  },
+                  duplicate: () => {
+                    logStore.duplicateSession(target);
+                  },
+                  closeOthers: () => {
+                    logStore.closeOthers(target);
+                  },
+                },
+              });
             }}
           />
         </div>
@@ -387,27 +434,53 @@ export function LogAnalyzerView(props: DeviceSession) {
                       else logStore.detachFollow(session.id);
                     }}
                     ariaLabel="日志列表"
-                    selectedKey={selectedKey}
-                    onSelectRow={(row) => setSelectedKey(rowKey(row))}
+                    selectedKeys={selectedKeys}
+                    selectedKey={pivotKey}
+                    onSelectRow={(row, _key, event) => {
+                      const key = rowKey(row);
+                      const next = nextKeys(visibleKeys(), selectedKeys(), pivotKey(), key, pointerSelectMode(event));
+                      setSelectedKeys(next.keys);
+                      setPivotKey(next.pivot);
+                    }}
+                    onRowContextMenu={(row, _key, event) => {
+                      const key = rowKey(row);
+                      if (!selectedKeys().has(key)) {
+                        setSelectedKeys(new Set([key]));
+                        setPivotKey(key);
+                      }
+                      openContextMenu(logsRowMenu, {
+                        x: event.clientX,
+                        y: event.clientY,
+                        ctx: { canCopy: selectedKeys().size > 0, copy: copySelected },
+                      });
+                    }}
                     renderRow={(row) => (
                       <div
                         class="yohu-logs__row"
                         classList={{
                           [barClass(row.line.level)]: true,
                           "yohu-logs__row--signal": row.signal !== undefined,
+                          "yohu-logs__row--raw": row.line.level === "?",
                         }}
                       >
-                        <span class="yohu-logs__row-ts">{row.line.ts}</span>
-                        <span class="yohu-logs__row-pid">{row.line.pid}</span>
-                        <span class={`yohu-logs__row-level yohu-tone ${levelClass(row.line.level)}`}>{row.line.level}</span>
-                        <span class="yohu-logs__row-tag">{row.line.tag}</span>
-                        <span class="yohu-logs__row-msg">
-                          <For each={highlight(row.line.msg, session.keyword)}>
-                            {(part) => (typeof part === "string" ? part : <mark class="yohu-logs__mark yohu-tone">{part.mark}</mark>)}
-                          </For>
-                        </span>
-                        <Show when={row.collapsedAfter}>
-                          <span class="yohu-logs__row-fold">…{row.collapsedAfter} 帧折叠</span>
+                        <Show
+                          when={row.line.level !== "?"}
+                          fallback={<span class="yohu-logs__row-msg">{row.line.msg}</span>}
+                        >
+                          <span class="yohu-logs__row-ts">{row.line.ts}</span>
+                          <span class="yohu-logs__row-uid">{row.line.uid ?? ""}</span>
+                          <span class="yohu-logs__row-pid">{row.line.pid}</span>
+                          <span class="yohu-logs__row-tid">{row.line.tid}</span>
+                          <span class={`yohu-logs__row-level yohu-tone ${levelClass(row.line.level)}`}>{row.line.level}</span>
+                          <span class="yohu-logs__row-tag" title={row.line.tag}>{row.line.tag}</span>
+                          <span class="yohu-logs__row-msg">
+                            <For each={highlight(row.line.msg, session.keyword)}>
+                              {(part) => (typeof part === "string" ? part : <mark class="yohu-logs__mark yohu-tone">{part.mark}</mark>)}
+                            </For>
+                            <Show when={row.collapsedAfter}>
+                              <span class="yohu-logs__row-fold">…{row.collapsedAfter} 帧折叠</span>
+                            </Show>
+                          </span>
                         </Show>
                       </div>
                     )}
@@ -436,6 +509,9 @@ export function LogAnalyzerView(props: DeviceSession) {
                 </span>
                 <span>设备 {session.serial ?? "—"}</span>
                 <span>行数 {session.visible.length}</span>
+                <Show when={selectedKeys().size > 0}>
+                  <span>已选 {selectedKeys().size}</span>
+                </Show>
                 <span classList={{ "yohu-logs__status-signal": session.signalCount > 0 }}>
                   信号 {session.signalCount}
                 </span>
@@ -453,28 +529,6 @@ export function LogAnalyzerView(props: DeviceSession) {
         onClose={() => setNewOpen(false)}
         devices={props.devices}
         focusSerial={props.selectedSerials[0] ?? null}
-      />
-
-      <YoContextMenu
-        open={menu() !== null}
-        x={menu()?.x ?? 0}
-        y={menu()?.y ?? 0}
-        items={menuItems()}
-        onClose={() => setMenu(null)}
-        onSelect={(id) => {
-          const target = menu()?.id;
-          if (target === undefined) return;
-          if (id === "rename") {
-            const session = logStore.state.sessions.find((s) => s.id === target);
-            setRenameTarget(target);
-            setRenameText(session?.title ?? "");
-          } else if (id === "duplicate") {
-            logStore.duplicateSession(target);
-          } else if (id === "close-others") {
-            logStore.closeOthers(target);
-          }
-          setMenu(null);
-        }}
       />
 
       <YoDialog

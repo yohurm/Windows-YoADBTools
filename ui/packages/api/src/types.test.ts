@@ -35,12 +35,12 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       ts: "01-02 03:04:05.678",
       pid: 1234,
       tid: 5678,
-      uid: 1000,
+      uid: "1000",
       level: "I",
       tag: "T",
       msg: "m",
     };
-    expect(JSON.parse(JSON.stringify(withUid)).uid).toBe(1000);
+    expect(JSON.parse(JSON.stringify(withUid)).uid).toBe("1000");
   });
 
   it("LogFilter.scope 内部 tag 为 camelCase kind", () => {
@@ -113,6 +113,14 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       serial: "S",
       local: "C:/a.bin",
       remote: "/sdcard/a.bin",
+    });
+  });
+
+  it("DragOutRequest 为 serial + remotes", () => {
+    const req = { serial: "S", remotes: ["/sdcard/a.txt", "/sdcard/DCIM"] };
+    expect(JSON.parse(JSON.stringify(req))).toEqual({
+      serial: "S",
+      remotes: ["/sdcard/a.txt", "/sdcard/DCIM"],
     });
   });
 });

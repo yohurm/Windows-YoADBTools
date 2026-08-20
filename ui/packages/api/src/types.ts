@@ -33,7 +33,7 @@ export interface LogLine {
   ts: string;
   pid: number;
   tid: number;
-  uid?: number;
+  uid?: string;
   level: string;
   tag: string;
   msg: string;
@@ -185,6 +185,11 @@ export interface TransferRequest {
   serial: string;
   local: string;
   remote: string;
+}
+
+export interface DragOutRequest {
+  serial: string;
+  remotes: string[];
 }
 
 export interface GroupRunRequest {
