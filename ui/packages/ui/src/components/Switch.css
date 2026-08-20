@@ -1,0 +1,49 @@
+/* HarmonyOS Toggle Switch：胶囊轨；滑块半径 = h/2 − 2vp。 */
+.yohu-switch {
+  position: relative;
+  display: inline-block;
+  width: var(--yohu-layout-switch-w);
+  height: var(--yohu-layout-switch-h);
+  padding: 0;
+  border: none;
+  border-radius: var(--yohu-radius-pill);
+  background-color: var(--yohu-switch-off);
+  cursor: pointer;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: background-color var(--yohu-dur-small) var(--yohu-ease-standard);
+}
+
+.yohu-switch--on {
+  background-color: var(--yohu-accent);
+}
+
+.yohu-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(var(--yohu-layout-switch-h) - 4px);
+  height: calc(var(--yohu-layout-switch-h) - 4px);
+  border-radius: var(--yohu-radius-full);
+  background-color: var(--yohu-fg-on);
+  box-shadow: var(--yohu-shadow-xs);
+  pointer-events: none;
+  transition: transform var(--yohu-dur-small) var(--yohu-ease-standard);
+}
+
+.yohu-switch--on .yohu-switch__thumb {
+  transform: translateX(calc(var(--yohu-layout-switch-w) - var(--yohu-layout-switch-h)));
+}
+
+.yohu-switch:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--yohu-fg) 6%, var(--yohu-switch-off));
+}
+
+.yohu-switch--on:not(:disabled):hover {
+  background-color: var(--yohu-accent-hover);
+}
+
+.yohu-switch--disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}

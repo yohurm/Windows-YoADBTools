@@ -69,6 +69,9 @@ export type { YoSelectProps, YoSelectOption } from "./components/Select";
 export { YoCheckbox } from "./components/Checkbox";
 export type { YoCheckboxProps } from "./components/Checkbox";
 
+export { YoSwitch } from "./components/Switch";
+export type { YoSwitchProps } from "./components/Switch";
+
 export { YoBadge } from "./components/Badge";
 export type { YoBadgeProps, YoBadgeTone } from "./components/Badge";
 

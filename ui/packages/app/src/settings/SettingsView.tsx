@@ -1,6 +1,6 @@
 /**
  * 设置面板（UI设计系统-v6.md §4.4）：分组卡片（工具链/日志/外观）。
- * 每项 = 两列网格（标签+徽章 | 全宽控件）；页面滚动，面板不裁切。
+ * 每项 = 标签靠左、控件靠右 hug；启用类走 YoSwitch（无「启用」二字）。
  * 保存成功 toast；路径项旁浏览按钮（tauri-plugin-dialog）。
  */
 
@@ -11,9 +11,9 @@ import { open } from "@tauri-apps/plugin-dialog";
 import {
   YoBadge,
   YoButton,
-  YoCheckbox,
   YoPanel,
   YoSelect,
+  YoSwitch,
   YoTextField,
   YoToaster,
   createToaster,
@@ -98,7 +98,7 @@ export const SettingsView: Component = () => {
       <YoPanel title="工具链">
         <div class="yohu-settings__item">
           <ItemHead label="ADB 路径" effect="立即生效" />
-          <div class="yohu-settings__item-control">
+          <div class="yohu-settings__item-control yohu-settings__item-control--path">
             <YoTextField
               value={settingsStore.state.adb_path}
               placeholder="%LOCALAPPDATA%\YohuAdbTools\data\tools\adb\adb.exe"
@@ -115,7 +115,7 @@ export const SettingsView: Component = () => {
 
         <div class="yohu-settings__item">
           <ItemHead label="数据目录" effect="重启生效" />
-          <div class="yohu-settings__item-control">
+          <div class="yohu-settings__item-control yohu-settings__item-control--path">
             <YoTextField
               value={settingsStore.state.data_root}
               placeholder="留空 = 默认 %LOCALAPPDATA%\YohuAdbTools\data"
@@ -128,7 +128,7 @@ export const SettingsView: Component = () => {
 
         <div class="yohu-settings__item">
           <ItemHead label="设备自动刷新间隔（秒，0 = 关）" effect="重启生效" />
-          <div class="yohu-settings__item-control">
+          <div class="yohu-settings__item-control yohu-settings__item-control--number">
             <YoTextField
               type="number"
               value={String(settingsStore.state.devices_auto_refresh)}
@@ -147,7 +147,7 @@ export const SettingsView: Component = () => {
       <YoPanel title="日志分析">
         <div class="yohu-settings__item">
           <ItemHead label="缓冲最大行数" effect="窗口立即裁剪，采集环下次启动" />
-          <div class="yohu-settings__item-control">
+          <div class="yohu-settings__item-control yohu-settings__item-control--number">
             <YoTextField
               type="number"
               value={String(settingsStore.state.buffer_capacity)}
@@ -164,9 +164,9 @@ export const SettingsView: Component = () => {
 
         <div class="yohu-settings__item">
           <ItemHead label="开始采集前清空设备缓冲（logcat -c）" effect="下次采集生效" />
-          <div class="yohu-settings__item-control">
-            <YoCheckbox
-              label="启用"
+          <div class="yohu-settings__item-control yohu-settings__item-control--switch">
+            <YoSwitch
+              ariaLabel="开始采集前清空设备缓冲（logcat -c）"
               checked={settingsStore.state.clear_device_on_start}
               onChange={(v) => save("clear_device_on_start", v, "已保存（下次采集生效）")}
             />
@@ -175,7 +175,7 @@ export const SettingsView: Component = () => {
 
         <div class="yohu-settings__item">
           <ItemHead label="默认导出路径" effect="立即生效" />
-          <div class="yohu-settings__item-control">
+          <div class="yohu-settings__item-control yohu-settings__item-control--path">
             <YoTextField
               value={settingsStore.state.export_default_path}
               placeholder="留空 = 应用 exports 目录"
@@ -192,9 +192,9 @@ export const SettingsView: Component = () => {
 
         <div class="yohu-settings__item">
           <ItemHead label="每次导出询问保存位置" effect="立即生效" />
-          <div class="yohu-settings__item-control">
-            <YoCheckbox
-              label="启用"
+          <div class="yohu-settings__item-control yohu-settings__item-control--switch">
+            <YoSwitch
+              ariaLabel="每次导出询问保存位置"
               checked={settingsStore.state.export_ask_every_time}
               onChange={(v) => save("export_ask_every_time", v, "已保存（立即生效）")}
             />
@@ -203,7 +203,7 @@ export const SettingsView: Component = () => {
 
         <div class="yohu-settings__item">
           <ItemHead label="导出写入方式" effect="立即生效" />
-          <div class="yohu-settings__item-control">
+          <div class="yohu-settings__item-control yohu-settings__item-control--select">
             <YoSelect
               options={EXPORT_MODE_OPTIONS}
               value={settingsStore.state.export_write_mode}
@@ -217,7 +217,7 @@ export const SettingsView: Component = () => {
       <YoPanel title="外观">
         <div class="yohu-settings__item">
           <ItemHead label="主题" effect="立即生效" />
-          <div class="yohu-settings__item-control">
+          <div class="yohu-settings__item-control yohu-settings__item-control--select">
             <YoSelect
               options={THEME_OPTIONS}
               value={settingsStore.state.theme}
@@ -228,7 +228,7 @@ export const SettingsView: Component = () => {
 
         <div class="yohu-settings__item">
           <ItemHead label="密度" effect="立即生效" />
-          <div class="yohu-settings__item-control">
+          <div class="yohu-settings__item-control yohu-settings__item-control--select">
             <YoSelect
               options={DENSITY_OPTIONS}
               value={settingsStore.state.density}

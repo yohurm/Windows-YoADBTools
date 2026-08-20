@@ -304,6 +304,13 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
       expect(screen.getByText(/保存失败/)).toBeTruthy();
     });
   });
+
+  it("启用项为 YoSwitch，无「启用」字样", () => {
+    render(() => <SettingsView />);
+    expect(screen.getByRole("switch", { name: "开始采集前清空设备缓冲（logcat -c）" })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: "每次导出询问保存位置" })).toBeTruthy();
+    expect(screen.queryByText("启用")).toBeNull();
+  });
 });
 
 describe("settingsStore 外观应用", () => {
