@@ -25,10 +25,12 @@ $RECYCLE.BIN/
 .env.*
 !.env.example
 
-# —— 本地临时目录（截图、联调、一次性产物） ——
+# —— 本地临时目录（截图、联调、一次性产物、外部研究缓存） ——
 .tmp*/
 .tmp-*/
 .ui-review/
+/temp/
+/tmp/
 
 # —— 日志（仅仓库根 Logs/；勿写成 logs/ 以免误伤 ui/packages/modules/logs/） ——
 *.log
