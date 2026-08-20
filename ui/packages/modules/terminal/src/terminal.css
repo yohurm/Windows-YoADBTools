@@ -4,52 +4,12 @@
  * + 折叠输出区（等宽滚动，失败默认展开）。
  * ========================================================================== */
 
-.yohu-terminal {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  padding: var(--yohu-space-md);
-  gap: var(--yohu-space-md);
-  box-sizing: border-box;
-}
-
 .yohu-terminal__body {
   display: grid;
   grid-template-columns: var(--yohu-layout-sidebar) minmax(0, 1fr);
-  gap: var(--yohu-space-md);
+  gap: var(--yohu-layout-page-gap);
   flex: 1;
   min-height: 0;
-}
-
-.yohu-terminal__library {
-  overflow: auto;
-  background: var(--yohu-surface);
-  border-radius: var(--yohu-radius-md);
-  padding: var(--yohu-space-sm);
-}
-
-.yohu-terminal__results {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--yohu-surface);
-  border-radius: var(--yohu-radius-md);
-  overflow: hidden;
-}
-
-.yohu-terminal__results-head {
-  display: flex;
-  align-items: center;
-  gap: var(--yohu-space-sm);
-  padding: var(--yohu-space-sm) var(--yohu-space-md);
-  font-weight: var(--yohu-font-weight-semibold);
-  color: var(--yohu-fg);
-}
-
-.yohu-terminal__results-head > .yohu-icon-button {
-  margin-left: auto;
 }
 
 .yohu-terminal__results-list {

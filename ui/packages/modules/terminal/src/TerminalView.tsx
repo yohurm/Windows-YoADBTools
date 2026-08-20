@@ -13,6 +13,8 @@ import {
   YoDialog,
   YoEmptyState,
   YoIconButton,
+  YoPage,
+  YoPanel,
   YoTextField,
   YoTree,
   YoCollapse,
@@ -255,7 +257,7 @@ export function TerminalView(props: DeviceSession) {
   };
 
   return (
-    <div class="yohu-terminal">
+    <YoPage class="yohu-terminal">
       <YoChrome
         title="ADB 命令终端"
         leading={
@@ -287,7 +289,7 @@ export function TerminalView(props: DeviceSession) {
       </YoChrome>
 
       <div class="yohu-terminal__body">
-        <div class="yohu-terminal__library">
+        <YoPanel variant="pane" padding="sm">
           <Show
             when={treeData().length > 0}
             fallback={
@@ -300,21 +302,20 @@ export function TerminalView(props: DeviceSession) {
               onSelect={(key) => setSelectedKey(key)}
             />
           </Show>
-        </div>
+        </YoPanel>
 
-        <div class="yohu-terminal__results">
-          <div class="yohu-terminal__results-head">
-            <span>执行结果</span>
-            <Show when={running()}>
-              <YoBadge text="执行中" tone="warn" />
-            </Show>
-            <YoIconButton
-              icon="clear"
-              title="清屏"
-              disabled={!hasResults()}
-              onClick={clearPanel}
-            />
-          </div>
+        <YoPanel
+          variant="pane"
+          title="执行结果"
+          actions={
+            <>
+              <Show when={running()}>
+                <YoBadge text="执行中" tone="warn" />
+              </Show>
+              <YoIconButton icon="clear" title="清屏" disabled={!hasResults()} onClick={clearPanel} />
+            </>
+          }
+        >
           <div
             class="yohu-terminal__results-list"
             ref={(el) => {
@@ -360,7 +361,7 @@ export function TerminalView(props: DeviceSession) {
               </For>
             </Show>
           </div>
-        </div>
+        </YoPanel>
       </div>
 
       <CommandManager open={managerOpen} onClose={() => setManagerOpen(false)} />
@@ -380,6 +381,6 @@ export function TerminalView(props: DeviceSession) {
           }}
         />
       </Show>
-    </div>
+    </YoPage>
   );
 }
