@@ -13,7 +13,7 @@ registerModule({
   selectionMode: "none",
   isPlanned: true,
   Component: () => (
-    <YoPage>
+    <YoPage class="yohu-mirror">
       <YoChrome title="投屏显示" />
       <YoPanel variant="pane">
         <YoEmptyState icon="mirror" title="模块开发中" description="敬请期待" />
