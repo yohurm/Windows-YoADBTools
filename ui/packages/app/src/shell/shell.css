@@ -1,14 +1,24 @@
 /* ============================================================================
  * 工作台壳布局（UI设计系统-v6.md §3）。
- * 仅引用 Semantic/Component 层 token（--yohu-fg/--yohu-surface/--yohu-accent…）。
+ * 单一窗口 canvas（--yohu-canvas）；标题栏/侧栏/状态栏透明贴合，面板才用 surface。
  * ========================================================================== */
+
+.yohu-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--yohu-canvas);
+  color: var(--yohu-fg);
+}
 
 .yohu-layout {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   grid-template-columns: var(--yohu-layout-shell-nav) minmax(0, 1fr);
-  height: 100%;
-  max-height: 100%;
+  flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
 }
@@ -19,7 +29,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--yohu-surface-2);
+  background: transparent;
   border-right: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
@@ -31,7 +41,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: var(--yohu-bg-base);
+  background: transparent;
   padding: var(--yohu-space-md);
   box-sizing: border-box;
 }

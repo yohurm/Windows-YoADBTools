@@ -1,0 +1,125 @@
+/* HarmonyOS 电脑窗口标题栏：透明/canvas 背板贴合窗口；PC 去掉圆形底板。 */
+.yohu-titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--yohu-title-bar-height);
+  padding-left: var(--yohu-space-md);
+  background-color: var(--yohu-canvas);
+  color: var(--yohu-fg);
+  font-family: var(--yohu-font-sans);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.yohu-titlebar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--yohu-stroke-hairline);
+  background: var(--yohu-border);
+  pointer-events: none;
+}
+
+.yohu-titlebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--yohu-space-sm);
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.yohu-titlebar__icon {
+  display: inline-flex;
+  color: var(--yohu-fg);
+}
+
+.yohu-titlebar__title {
+  font-size: var(--yohu-font-caption);
+  font-weight: var(--yohu-font-weight-medium);
+  color: var(--yohu-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yohu-titlebar__center {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.yohu-titlebar__center > * {
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.yohu-titlebar__trailing {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.yohu-titlebar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--yohu-space-xs);
+  padding-right: var(--yohu-space-sm);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.yohu-titlebar__captions {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  gap: var(--yohu-layout-titlebar-caption-gap);
+  padding-right: var(--yohu-layout-titlebar-close-margin);
+}
+
+.yohu-titlebar__caption {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--yohu-layout-titlebar-caption);
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: var(--yohu-radius-none);
+  background: transparent;
+  color: var(--yohu-fg-2);
+  cursor: pointer;
+  box-sizing: border-box;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.yohu-titlebar__caption:hover {
+  background-color: var(--yohu-state-hover);
+  color: var(--yohu-fg);
+}
+
+.yohu-titlebar__caption:active {
+  background-color: var(--yohu-state-pressed);
+}
+
+.yohu-titlebar__caption--close:hover {
+  background-color: var(--yohu-error);
+  color: var(--yohu-fg-on);
+}
+
+.yohu-titlebar__caption--close:active {
+  background-color: color-mix(in srgb, var(--yohu-fg) 10%, var(--yohu-error));
+  color: var(--yohu-fg-on);
+}

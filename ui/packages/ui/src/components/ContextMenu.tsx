@@ -1,6 +1,7 @@
 /**
- * YoContextMenu —— 模块右键菜单（UI设计系统-v6.md §5）。
- * 定位到指针处；Esc / 点击外侧关闭；条目由调用方按模块给出。
+ * YoContextMenu —— 右键菜单。
+ * HarmonyOS 对照：Menu；电脑默认最小宽 224vp；Esc / 点击外侧关闭。
+ * 受控 API：open / x / y / items / onSelect / onClose。
  */
 import { For, Show, onCleanup, onMount } from "solid-js";
 import type { JSX } from "solid-js";

@@ -1,5 +1,7 @@
 /**
- * YoSelect —— 自绘下拉选择框（对齐 Kobalte Select 可达性模型）。
+ * YoSelect —— 自绘下拉选择框。
+ * HarmonyOS 对照：Select；触发钮 hug 内容，不默认拉满。
+ * 受控 API：options / value / onChange / disabled / placeholder。
  *
  * 交互：
  * - 点击展开、点击外部关闭、Esc 关闭（逐层退出）

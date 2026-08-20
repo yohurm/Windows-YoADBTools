@@ -28,7 +28,10 @@ export type IconName =
   | "trash"
   | "info"
   | "arrow-up"
-  | "arrow-down";
+  | "arrow-down"
+  | "window-max"
+  | "window-min"
+  | "window-restore";
 
 export interface IconProps {
   /** 图标名 */
@@ -142,6 +145,14 @@ const ICON_GLYPHS: Record<IconName, () => JSX.Element> = {
     <>
       <line x1="12" y1="5" x2="12" y2="19" />
       <polyline points="19 12 12 19 5 12" />
+    </>
+  ),
+  "window-max": () => <rect x="5" y="5" width="14" height="14" rx="1" />,
+  "window-min": () => <line x1="5" y1="12" x2="19" y2="12" />,
+  "window-restore": () => (
+    <>
+      <rect x="7" y="9" width="10" height="10" rx="1" />
+      <path d="M9 9V7a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2" />
     </>
   ),
 };

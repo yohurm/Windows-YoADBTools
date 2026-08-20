@@ -1,5 +1,7 @@
 /**
- * YoSegmentedButton —— HarmonyOS SegmentButtonV2 单选分段。
+ * YoSegmentedButton —— 单选分段按钮。
+ * HarmonyOS 对照：SegmentButtonV2；tab 白选择块 / capsule 强调块。
+ * 受控 API：items / value / onChange / type / size。
  *
  * 架构：
  * - 选中/键盘算法在 segmented-model.ts

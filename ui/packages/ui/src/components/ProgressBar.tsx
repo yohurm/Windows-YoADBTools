@@ -1,6 +1,7 @@
 /**
  * YoProgressBar —— 进度条。
- * value(0-100) 确定态；indeterminate 时为不定态动画。
+ * HarmonyOS 对照：Progress；确定态 0–100，不定态动画。
+ * 受控 API：value / indeterminate。
  */
 import type { JSX } from "solid-js";
 import "./ProgressBar.css";

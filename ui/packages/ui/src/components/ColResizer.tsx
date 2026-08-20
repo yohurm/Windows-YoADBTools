@@ -1,6 +1,7 @@
 /**
- * YoColResizer —— 表头列宽拖拽（资源管理器式）。
- * 按下后 pointer capture，把水平位移交给调用方累加到列宽。
+ * YoColResizer —— 表头列宽拖拽。
+ * HarmonyOS 对照：分栏拖拽条；按下后 pointer capture。
+ * 受控 API：onResize / label。
  */
 import type { JSX } from "solid-js";
 import "./ColResizer.css";

@@ -42,4 +42,8 @@ describe("Icon", () => {
     expect(folder?.getAttribute("fill")).toBe("none");
     expect(folder?.getAttribute("stroke")).toBe("currentColor");
   });
+
+  it("含窗口三键图标", () => {
+    expect(ICON_NAMES).toEqual(expect.arrayContaining(["window-max", "window-min", "window-restore"]));
+  });
 });

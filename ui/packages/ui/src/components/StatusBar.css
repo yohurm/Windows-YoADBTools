@@ -4,7 +4,7 @@
   justify-content: space-between;
   gap: var(--yohu-space-md);
   padding: var(--yohu-space-xs) var(--yohu-space-md);
-  background-color: var(--yohu-surface-2);
+  background-color: transparent;
   border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
   color: var(--yohu-fg-2);
   font-family: var(--yohu-font-sans);

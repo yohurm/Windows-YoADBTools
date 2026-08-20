@@ -3,7 +3,7 @@
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: var(--yohu-surface-2);
+  background-color: transparent;
   font-family: var(--yohu-font-sans);
   box-sizing: border-box;
 }

@@ -1,7 +1,7 @@
 /**
  * YoButton —— 通用按钮。
- * variants: primary / secondary / ghost / danger；size: sm / md。
- * primary 使用品牌色底 + font_on（--yohu-fg-on），hover 叠 interactive 5%。
+ * HarmonyOS 对照：Button；最大宽 448vp；primary = brand + font_on。
+ * 受控 API：variant / size / loading / disabled / onClick / type / children。
  */
 import type { JSX } from "solid-js";
 import "./Button.css";

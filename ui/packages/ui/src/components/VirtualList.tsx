@@ -1,5 +1,7 @@
 /**
- * YoVirtualList —— 定高行虚拟列表（自实现虚拟化）。
+ * YoVirtualList —— 定高行虚拟列表。
+ * HarmonyOS 对照：长列表虚拟化；背板透明贴合 canvas，行选中走 --yohu-state-*。
+ * 受控 API：items / selectedKey / onSelectRow / itemHeight / overscan。
  *
  * 泛型组件：外层滚动容器占满父高，内部以总高度撑起滚动区，
  * 仅绝对定位渲染可见行（含 overscan 缓冲），底部自动跟随滚动。

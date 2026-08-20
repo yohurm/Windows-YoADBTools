@@ -1,6 +1,7 @@
 /**
- * YoPanel —— 面板容器。
- * 白底、1px PanelBorder 边框、Radius.Md 圆角；可选标题与内边距（默认 md）。
+ * YoPanel —— 面板/卡片容器。
+ * HarmonyOS 对照：卡片；surface 底 + 边框 + Radius.Md（深浅均非纯白铺满）。
+ * 受控 API：title / padding / children。
  */
 import type { JSX } from "solid-js";
 import "./Panel.css";

@@ -1,6 +1,7 @@
 /**
  * YoIconButton —— 图标按钮。
- * 透明底，hover / pressed 走 --yohu-state-*；通过 title 提供悬浮提示。
+ * HarmonyOS 对照：Button / 图标按钮；透明底，hover/pressed 走 --yohu-state-*。
+ * 受控 API：icon / title / disabled / loading / size / onClick。
  */
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";

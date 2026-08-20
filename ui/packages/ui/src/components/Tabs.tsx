@@ -1,5 +1,7 @@
 /**
- * YoTabs —— 多会话标签页（对齐 Kobalte Tabs 可达性模型）。
+ * YoTabs —— 多会话标签页。
+ * HarmonyOS 对照：Tabs；激活项 Accent 下划线。
+ * 受控 API：tabs / activeId / onActivate / onClose / onNew / onContextMenu。
  *
  * 可达性：
  * - `role=tablist/tab` + `aria-selected` + **roving tabindex**（仅激活 tab 在 Tab 序中）

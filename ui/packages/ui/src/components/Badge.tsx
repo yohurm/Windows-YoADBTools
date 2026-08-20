@@ -1,6 +1,7 @@
 /**
- * YoBadge —— 小圆角胶囊徽章。
- * tone: neutral / accent / success / warn / error。
+ * YoBadge —— 状态胶囊徽章。
+ * HarmonyOS 对照：Chip / Badge；tone 走语义色。
+ * 受控 API：text / tone。
  */
 import type { JSX } from "solid-js";
 import "./Badge.css";

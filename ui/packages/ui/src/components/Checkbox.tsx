@@ -1,6 +1,7 @@
 /**
- * YoCheckbox —— 原生 checkbox + 自绘方框。
- * 受控（checked + onChange）；焦点环走 .yohu-focus-host。
+ * YoCheckbox —— 复选框（多选/条件，不是启用开关）。
+ * HarmonyOS 对照：Checkbox；启用类场景改走 YoSwitch。
+ * 受控 API：checked / onChange / label / disabled。
  */
 import { Show } from "solid-js";
 import type { JSX } from "solid-js";

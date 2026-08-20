@@ -1,5 +1,7 @@
 /**
- * YoDialog —— 模态对话框（对齐 Kobalte Dialog 可达性模型）。
+ * YoDialog —— 模态对话框。
+ * HarmonyOS 对照：弹出框；最大宽 400vp；遮罩 10% 中性，不点遮罩关闭。
+ * 受控 API：open / title / width / height / onClose / footer / children。
  *
  * 可达性：
  * - `role=dialog aria-modal`；打开后焦点移入面板（优先首个可聚焦元素）

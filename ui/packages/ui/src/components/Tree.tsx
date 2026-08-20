@@ -1,5 +1,7 @@
 /**
- * YoTree —— 泛型树（对齐 Kobalte/WAI-ARIA Tree 可达性模型）。
+ * YoTree —— 泛型树。
+ * HarmonyOS 对照：Tree；命令库等层级导航。
+ * 受控 API：data / onSelect / expandedKeys / defaultExpandedKeys。
  *
  * 键盘：
  * - ↑/↓ 在可见节点间移动焦点；→ 展开（有子节点时，否则移到下一节点）；← 收起（已展开时，否则移到父节点）

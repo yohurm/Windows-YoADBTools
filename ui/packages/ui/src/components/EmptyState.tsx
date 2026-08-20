@@ -1,6 +1,7 @@
 /**
  * YoEmptyState —— 空状态占位。
- * 居中灰字，可选图标与描述。
+ * HarmonyOS 对照：空态；居中说明，可选图标与描述。
+ * 受控 API：icon / title / description。
  */
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";

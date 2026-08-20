@@ -1,7 +1,7 @@
 /**
  * YoToast / YoToaster —— 轻量消息提示。
- * `createToaster()` 工厂返回 `{ toasts, show }`；每条 toast 自动消失（≤3s，鸿蒙即时反馈上限）。
- * tone 决定左边框颜色：success=Success、error=Error、info=Accent。
+ * HarmonyOS 对照：即时反馈 Toast；自动消失 ≤3s（`--yohu-dur-toast`）。
+ * 受控 API：createToaster().show；tone = success / error / info。
  */
 import { For, createSignal } from "solid-js";
 import type { JSX } from "solid-js";

@@ -1,6 +1,7 @@
 /**
- * YoStatusBar —— 底部状态栏。
- * 左/右两个插槽；NavBg 底、上边框。
+ * YoStatusBar —— 窗口底部状态栏。
+ * HarmonyOS 对照：应用状态栏；透明贴合 canvas，上边框分割。
+ * 受控 API：left / right。
  */
 import type { JSX } from "solid-js";
 import "./StatusBar.css";

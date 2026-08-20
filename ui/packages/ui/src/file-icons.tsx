@@ -1,7 +1,7 @@
 /**
- * 文件/目录图标（Material Icon Theme 风格子集，MIT：
- * https://github.com/material-extensions/vscode-material-icon-theme ）。
- * 工厂函数每次渲染新节点；模块只消费 YoFileIcon，不内联 SVG。
+ * 文件/目录图标（Material Icon Theme 风格子集）。
+ * HarmonyOS 对照：无系统文件图标控件；模块只消费 YoFileIcon。
+ * 受控 API：kind / name / size。
  */
 import type { JSX } from "solid-js";
 import "./file-icons.css";

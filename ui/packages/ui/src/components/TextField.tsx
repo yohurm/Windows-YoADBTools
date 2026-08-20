@@ -1,8 +1,7 @@
 /**
  * YoTextField —— 单行输入框。
- * 受控组件（value + onInput），focus 时边框高亮 Accent；
- * clearable 时右侧显示清除按钮。
- * 采用受控 value 绑定，SolidJS 原生处理输入法组合（IME 安全）。
+ * HarmonyOS 对照：TextInput；focus 边框 Accent；IME 走受控 value。
+ * 受控 API：value / onInput / label / placeholder / ariaLabel / clearable / type / disabled。
  */
 import { createUniqueId } from "solid-js";
 import type { JSX } from "solid-js";

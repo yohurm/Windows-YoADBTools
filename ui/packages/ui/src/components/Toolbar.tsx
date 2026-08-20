@@ -1,6 +1,7 @@
 /**
  * YoToolbar —— 模块工具栏。
- * 水平排列 children，间距 gap 8（Spacing.Sm），底部 margin 12（Spacing.Md）。
+ * HarmonyOS 对照：标题栏中区 / Toolbar；水平排列，间距 Spacing.Sm。
+ * 受控 API：children。
  */
 import type { JSX } from "solid-js";
 import "./Toolbar.css";

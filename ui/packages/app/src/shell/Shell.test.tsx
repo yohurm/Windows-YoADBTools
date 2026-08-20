@@ -86,6 +86,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 import { DeviceRail } from "./DeviceRail";
 import { NavList } from "./NavList";
 import { StatusBar } from "./StatusBar";
+import { AppLayout } from "./AppLayout";
 import { SettingsView } from "../settings/SettingsView";
 import { registerModule } from "../registry";
 import { deviceStore, settingsStore } from "../stores";
@@ -310,6 +311,17 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     expect(screen.getByRole("switch", { name: "开始采集前清空设备缓冲（logcat -c）" })).toBeTruthy();
     expect(screen.getByRole("switch", { name: "每次导出询问保存位置" })).toBeTruthy();
     expect(screen.queryByText("启用")).toBeNull();
+  });
+});
+
+describe("AppLayout 窗口铬", () => {
+  it("渲染标题栏且三键为最大化、最小化、关闭", () => {
+    render(() => <AppLayout activeModuleId={() => "adb-terminal"} onNavigate={() => undefined} />);
+    expect(screen.getByText("Yohu ADB Tools")).toBeTruthy();
+    const bar = document.querySelector(".yohu-titlebar");
+    const buttons = bar?.querySelectorAll(".yohu-titlebar__caption") ?? [];
+    expect([...buttons].map((b) => b.getAttribute("aria-label"))).toEqual(["最大化", "最小化", "关闭"]);
+    expect(document.querySelector(".yohu-window")).toBeTruthy();
   });
 });
 
