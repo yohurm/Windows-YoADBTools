@@ -229,7 +229,7 @@ describe("theme.css 变量", () => {
     expect(themeCss).toContain("--yohu-layout-rail-inset: 8px");
     expect(themeCss).toContain("--yohu-layout-settings-control-max: 360px");
     expect(themeCss).toContain("--yohu-layout-switch-w: 36px");
-    expect(themeCss).toContain("--yohu-title-bar-height: 56px");
+    expect(themeCss).toContain("--yohu-title-bar-height: 40px");
     expect(themeCss).toContain("--yohu-canvas: var(--yohu-bg-base)");
     expect(themeCss).toContain("color-scheme: light");
     expect(themeCss).toContain("color-scheme: dark");

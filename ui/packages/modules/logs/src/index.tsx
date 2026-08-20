@@ -10,6 +10,6 @@ registerModule({
   id: "log-analyzer",
   title: "日志分析",
   icon: "log",
-  selectionMode: "multiOptional",
+  selectionMode: "singleRequired",
   Component: LogAnalyzerView,
 });

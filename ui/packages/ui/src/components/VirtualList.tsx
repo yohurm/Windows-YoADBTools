@@ -10,7 +10,7 @@
  * roving tabindex（选中行 0 / 其余 -1 / 未选中时首可视行 0）、
  * ↑/↓/Home/End 移动、Enter/Space 选中、目标行自动滚入视野并聚焦、
  * `role=listbox/option` + `aria-selected`（对齐 UI设计系统-v6.md §5）。
- * 未开启选择模式时行不参与焦点序列，行为与旧版一致（日志列表性能优先）。
+ * 未开启选择模式时行不参与焦点序列（日志列表性能优先）。
  *
  * 注意：`itemHeight` / `overscan` / `rowHeight` 为功能性配置项（非主题 token），
  * 由调用方指定，仅用于定位计算；所有配色/字号/间距仍走 tokens。

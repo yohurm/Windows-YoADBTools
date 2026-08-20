@@ -23,6 +23,8 @@ export const Layout = {
   HitSplitter: 6,
   HitNudge: 3,
   IconTiny: 12,
+  /** 标题栏应用图标 / 窗口三键（HarmonyOS 小图标 16vp） */
+  IconSm: 16,
   /** 电脑窗口默认 1200×800vp */
   WindowDefaultW: 1200,
   WindowDefaultH: 800,
@@ -46,12 +48,12 @@ export const Layout = {
   /** HarmonyOS Toggle Switch 默认 {width:36vp, height:20vp} */
   SwitchW: 36,
   SwitchH: 20,
-  /** 窗口三键交互区宽（电脑去掉圆形底板，走竖条 hover）。 */
-  TitlebarCaption: 40,
-  /** HarmonyOS setDecorButtonStyle.spacingBetweenButtons 默认 12vp */
-  TitlebarCaptionGap: 12,
-  /** 关闭键距窗口右边距 */
-  TitlebarCloseMargin: 8,
+  /** 窗口三键与侧栏钮同一竖条宽（鸿蒙 PC 推荐热区 48vp）。 */
+  TitlebarCaption: 48,
+  /** 右侧铬条贴合，无圆形底板间距。 */
+  TitlebarCaptionGap: 0,
+  /** 关闭键贴窗口右缘（电脑去边距）。 */
+  TitlebarCloseMargin: 0,
   /** 标题栏渐变模糊下延 32vp（沉浸光感） */
   TitlebarBlur: 32,
   /** 12 列栅格 gutter（≥840vp） */

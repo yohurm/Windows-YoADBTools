@@ -15,13 +15,4 @@ describe("YoToolbar", () => {
     expect(toolbar?.className).toContain("yohu-toolbar");
     expect(screen.getByRole("button", { name: "导出" })).toBeTruthy();
   });
-
-  it("chrome 变体贴满标题栏（无页内底边距 class）", () => {
-    const { container } = render(() => (
-      <YoToolbar variant="chrome">
-        <YoButton>执行</YoButton>
-      </YoToolbar>
-    ));
-    expect(container.querySelector(".yohu-toolbar--chrome")).toBeTruthy();
-  });
 });

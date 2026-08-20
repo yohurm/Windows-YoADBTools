@@ -1,5 +1,6 @@
 /**
  * 终端模块 store：命令库状态 + 执行结果流（ADR-v6-009：判定在 core，此处只展示）。
+ * 执行目标 serials 由壳按 SelectionMode 注入，禁止再扫全部在线设备。
  */
 
 import { createStore } from "solid-js/store";
@@ -12,7 +13,6 @@ import {
   terminalEval,
 } from "@yohu/api";
 import type { CommandDto, CommandGroupDto, CommandLibraryDto } from "@yohu/api";
-import { deviceStore } from "@yohu/app";
 
 /** 一条执行结果（命令或组内命令）。 */
 export interface ResultEntry {
@@ -45,9 +45,6 @@ export function createTerminalStore() {
   const [library, setLibrary] = createStore<CommandLibraryDto>({ schema_version: 2, groups: [] });
   const [results, setResults] = createStore<ResultEntry[]>([]);
 
-  const onlineSerials = (): string[] =>
-    deviceStore.state.devices.filter((d) => d.state === "online").map((d) => d.serial);
-
   function push(entry: Omit<ResultEntry, "id" | "time">): void {
     setResults((r) => [...r, { ...entry, id: nextId++, time: nowText() }]);
   }
@@ -62,12 +59,18 @@ export function createTerminalStore() {
     setLibrary(dto);
   }
 
-  /** 执行单命令：多设备并行（每设备一条结果）。 */
-  async function runCommand(command: CommandDto, values: string[]): Promise<void> {
+  /** 执行单命令：对注入的目标 serials 并行（每设备一条结果）。 */
+  async function runCommand(serials: string[], command: CommandDto, values: string[]): Promise<void> {
     const filled: CommandDto = { ...command, template: fillPlaceholders(command.template, values) };
-    const serials = onlineSerials();
     if (serials.length === 0) {
-      push({ kind: "command", serial: "-", title: command.name, ok: false, message: "无在线设备", stdout: "" });
+      push({
+        kind: "command",
+        serial: "-",
+        title: command.name,
+        ok: false,
+        message: "未选择在线设备",
+        stdout: "",
+      });
       return;
     }
     await Promise.all(
@@ -91,10 +94,16 @@ export function createTerminalStore() {
   }
 
   /** 执行命令组（进度经 group.progress 事件回流为结果条目）。 */
-  async function runGroup(group: CommandGroupDto): Promise<void> {
-    const serials = onlineSerials();
+  async function runGroup(serials: string[], group: CommandGroupDto): Promise<void> {
     if (serials.length === 0) {
-      push({ kind: "group", serial: "-", title: `组: ${group.name}`, ok: false, message: "无在线设备", stdout: "" });
+      push({
+        kind: "group",
+        serial: "-",
+        title: `组: ${group.name}`,
+        ok: false,
+        message: "未选择在线设备",
+        stdout: "",
+      });
       return;
     }
     try {
@@ -116,6 +125,11 @@ export function createTerminalStore() {
     });
   });
 
+  /** 清屏：只清 UI 结果面板（不落盘、不影响命令库）。 */
+  function clearResults(): void {
+    setResults([]);
+  }
+
   return {
     library,
     results,
@@ -123,7 +137,7 @@ export function createTerminalStore() {
     save,
     runCommand,
     runGroup,
-    onlineCount: onlineSerials,
+    clearResults,
   };
 }
 

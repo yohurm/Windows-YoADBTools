@@ -31,6 +31,7 @@
   overflow: hidden;
   visibility: hidden;
   pointer-events: none;
+  border-right: none;
 }
 
 .yohu-layout__rail {
@@ -40,6 +41,7 @@
   flex-direction: column;
   overflow: hidden;
   background: transparent;
+  border-right: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
 .yohu-layout__content {
@@ -64,16 +66,6 @@
 .yohu-layout > :last-child {
   grid-row: 2;
   grid-column: 1 / span 2;
-}
-
-.yohu-module-title {
-  font-size: var(--yohu-font-subtitle);
-  font-weight: var(--yohu-font-weight-bold);
-  color: var(--yohu-fg);
-  margin-right: var(--yohu-space-sm);
-  line-height: var(--yohu-font-leading-tight);
-  display: inline-flex;
-  align-items: center;
 }
 
 /* ===== 设备栏（卡片式，§3） ===== */

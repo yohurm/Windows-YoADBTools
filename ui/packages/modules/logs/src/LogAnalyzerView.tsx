@@ -19,7 +19,6 @@ import {
   YoTabs,
   YoTextField,
   YoToaster,
-  YoToolbar,
   YoVirtualList,
   createToaster,
   type YoMenuItem,
@@ -153,7 +152,7 @@ export function LogAnalyzerView(props: DeviceSession) {
   let keywordRef: HTMLInputElement | undefined;
 
   createEffect(() => {
-    const serial = props.focusSerial;
+    const serial = props.selectedSerials[0] ?? null;
     void logStore.bindSerial(serial);
     untrack(() => logStore.ensureSession());
   });
@@ -186,7 +185,7 @@ export function LogAnalyzerView(props: DeviceSession) {
     return Boolean(session && (session.capturing || sessionPending(session)));
   };
 
-  const windowSerial = (): string | null => active()?.serial ?? props.focusSerial;
+  const windowSerial = (): string | null => active()?.serial ?? props.selectedSerials[0] ?? null;
 
   const onKeydown = (e: KeyboardEvent): void => {
     const target = e.target as HTMLElement | null;
@@ -263,9 +262,7 @@ export function LogAnalyzerView(props: DeviceSession) {
 
   return (
     <div class="yohu-logs">
-      <YoChrome>
-        <YoToolbar variant="chrome">
-        <span class="yohu-module-title">日志分析</span>
+      <YoChrome title="日志分析">
         <Show
           when={windowLive()}
           fallback={
@@ -311,7 +308,6 @@ export function LogAnalyzerView(props: DeviceSession) {
         <Show when={logStore.state.overflowed}>
           <YoBadge text="缓冲滞后（已回补）" tone="warn" />
         </Show>
-        </YoToolbar>
       </YoChrome>
 
       <Show
@@ -444,7 +440,12 @@ export function LogAnalyzerView(props: DeviceSession) {
         </Show>
       </Show>
 
-      <NewSessionDialog open={newOpen} onClose={() => setNewOpen(false)} />
+      <NewSessionDialog
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        devices={props.devices}
+        focusSerial={props.selectedSerials[0] ?? null}
+      />
 
       <YoContextMenu
         open={menu() !== null}

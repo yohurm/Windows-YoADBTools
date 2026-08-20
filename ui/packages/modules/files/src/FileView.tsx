@@ -6,7 +6,7 @@ import { For, Show, createEffect, createSignal } from "solid-js";
 
 import { open, save } from "@tauri-apps/plugin-dialog";
 import type { DeviceSession } from "@yohu/api";
-import { YoButton, YoChrome, YoContextMenu, YoDialog, YoEmptyState, YoIconButton, YoTextField, YoToolbar, type YoMenuItem } from "@yohu/ui";
+import { YoButton, YoChrome, YoContextMenu, YoDialog, YoEmptyState, YoIconButton, YoTextField, type YoMenuItem } from "@yohu/ui";
 
 import { FileTable } from "./FileTable";
 import { PreviewPane } from "./PreviewPane";
@@ -56,7 +56,7 @@ export function FileView(props: DeviceSession) {
   const [createError, setCreateError] = createSignal("");
 
   createEffect(() => {
-    fileStore.bindSerial(props.focusSerial);
+    fileStore.bindSerial(props.selectedSerials[0] ?? null);
   });
 
   const onUpload = async (): Promise<void> => {
@@ -116,9 +116,7 @@ export function FileView(props: DeviceSession) {
 
   return (
     <div class="yohu-files">
-      <YoChrome>
-        <YoToolbar variant="chrome">
-          <span class="yohu-module-title">文件管理</span>
+      <YoChrome title="文件管理">
           <YoButton onClick={() => void onUpload()}>上传</YoButton>
           <YoButton variant="secondary" disabled={fileStore.singleFile() === undefined} onClick={() => void onDownload()}>
             下载
@@ -132,7 +130,6 @@ export function FileView(props: DeviceSession) {
           <YoButton variant="ghost" onClick={() => fileStore.togglePreview()}>
             {fileStore.ui.previewOpen ? "收起预览" : "预览"}
           </YoButton>
-        </YoToolbar>
       </YoChrome>
 
       <Show when={fileStore.session.error}>
@@ -153,7 +150,7 @@ export function FileView(props: DeviceSession) {
             <Breadcrumb />
           </div>
           <Show
-            when={props.focusSerial !== null}
+            when={props.selectedSerials[0]}
             fallback={<YoEmptyState icon="folder" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
           >
             <FileTable onContextMenu={(x, y) => setMenu({ x, y })} />

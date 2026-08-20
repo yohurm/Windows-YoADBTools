@@ -18,7 +18,12 @@ export interface DeviceInfo {
 
 /** 壳注入到模块视图的设备会话（模块不得 import 壳 store）。 */
 export interface DeviceSession {
+  /** 全局焦点（日志新窗口默认设备；与 selectedSerials 可能不同） */
   focusSerial: string | null;
+  /** 当前模块解析后的执行目标（仅在线）。模块禁止再扫全部设备。 */
+  selectedSerials: string[];
+  /** 设备目录快照（与壳设备栏同一源） */
+  devices: DeviceInfo[];
 }
 
 // ===== log =====
@@ -98,7 +103,6 @@ export interface AppSettings {
   data_root: string;
   devices_auto_refresh: number;
   buffer_capacity: number;
-  display_limit: number;
   clear_device_on_start: boolean;
   theme: Theme;
   density: Density;
@@ -112,7 +116,6 @@ export type SettingKey =
   | "data_root"
   | "devices_auto_refresh"
   | "buffer_capacity"
-  | "display_limit"
   | "clear_device_on_start"
   | "theme"
   | "density"

@@ -1,6 +1,5 @@
-/* HarmonyOS 电脑窗口标题栏：透明/canvas 背板贴合窗口；PC 去掉圆形底板。 */
+/* HarmonyOS 电脑窗口标题栏：canvas 背板贴合窗口；PC 去掉圆形底板。 */
 .yohu-titlebar {
-  position: relative;
   display: flex;
   align-items: center;
   height: var(--yohu-title-bar-height);
@@ -13,17 +12,6 @@
   user-select: none;
   -webkit-app-region: drag;
   app-region: drag;
-}
-
-.yohu-titlebar::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--yohu-stroke-hairline);
-  background: var(--yohu-border);
-  pointer-events: none;
 }
 
 .yohu-titlebar__brand {
@@ -51,31 +39,8 @@
 
 .yohu-titlebar__center {
   flex: 1 1 auto;
-  display: flex;
-  align-items: stretch;
-  justify-content: flex-start;
   min-width: 0;
   height: 100%;
-  pointer-events: none;
-}
-
-.yohu-titlebar__center > * {
-  pointer-events: auto;
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-}
-
-/* HarmonyOS 电脑：标题栏内工具栏去掉圆形底板，控件走 Caption / control-sm */
-.yohu-titlebar .yohu-toolbar--chrome .yohu-button {
-  height: var(--yohu-control-height-sm);
-  padding: 0 var(--yohu-space-sm);
-  font-size: var(--yohu-font-caption);
-}
-
-.yohu-titlebar .yohu-toolbar--chrome .yohu-icon-button {
-  width: var(--yohu-control-height-sm);
-  height: var(--yohu-control-height-sm);
-  border-radius: var(--yohu-radius-none);
 }
 
 .yohu-titlebar__trailing {
@@ -86,30 +51,20 @@
   flex-shrink: 0;
 }
 
-.yohu-titlebar__actions {
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  gap: var(--yohu-space-xs);
-  padding-right: var(--yohu-space-sm);
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-}
-
-.yohu-titlebar__actions .yohu-icon-button {
-  width: var(--yohu-layout-titlebar-caption);
-  height: 100%;
-  border-radius: var(--yohu-radius-none);
-}
-
+.yohu-titlebar__actions,
 .yohu-titlebar__captions {
   display: flex;
   align-items: stretch;
   height: 100%;
   gap: var(--yohu-layout-titlebar-caption-gap);
-  padding-right: var(--yohu-layout-titlebar-close-margin);
 }
 
+.yohu-titlebar__actions {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.yohu-titlebar__actions .yohu-icon-button,
 .yohu-titlebar__caption {
   display: inline-flex;
   align-items: center;
@@ -127,13 +82,16 @@
   app-region: no-drag;
 }
 
+.yohu-titlebar__actions .yohu-icon-button:not(:disabled):hover,
 .yohu-titlebar__caption:hover {
   background-color: var(--yohu-state-hover);
   color: var(--yohu-fg);
 }
 
+.yohu-titlebar__actions .yohu-icon-button:not(:disabled):active,
 .yohu-titlebar__caption:active {
   background-color: var(--yohu-state-pressed);
+  color: var(--yohu-fg);
 }
 
 .yohu-titlebar__caption--close:hover {

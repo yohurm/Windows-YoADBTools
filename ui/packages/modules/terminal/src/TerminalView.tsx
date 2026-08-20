@@ -14,11 +14,10 @@ import {
   YoEmptyState,
   YoIconButton,
   YoTextField,
-  YoToolbar,
   YoTree,
 } from "@yohu/ui";
 import type { TreeNode } from "@yohu/ui";
-import type { CommandDto, CommandGroupDto } from "@yohu/api";
+import type { CommandDto, CommandGroupDto, DeviceSession } from "@yohu/api";
 
 import { CommandManager } from "./CommandManager";
 import { terminalStore, type ResultEntry } from "./store";
@@ -152,7 +151,7 @@ function ResultCard(props: {
   );
 }
 
-export function TerminalView() {
+export function TerminalView(props: DeviceSession) {
   const [running, setRunning] = createSignal(false);
   const [managerOpen, setManagerOpen] = createSignal(false);
   const [inputCommand, setInputCommand] = createSignal<CommandDto | null>(null);
@@ -230,6 +229,13 @@ export function TerminalView() {
     setExpanded((prev) => new Map(prev).set(entry.id, !isOpen(entry)));
   };
 
+  const clearPanel = (): void => {
+    terminalStore.clearResults();
+    setExpanded(new Map());
+  };
+
+  const hasResults = (): boolean => terminalStore.results.length > 0;
+
   const run = (): void => {
     const sel = selection();
     if (!sel) return;
@@ -240,25 +246,43 @@ export function TerminalView() {
         return;
       }
       setRunning(true);
-      void terminalStore.runCommand(sel.command, []).finally(() => setRunning(false));
+      void terminalStore.runCommand(props.selectedSerials, sel.command, []).finally(() => setRunning(false));
     } else {
       setRunning(true);
-      void terminalStore.runGroup(sel.group).finally(() => setRunning(false));
+      void terminalStore.runGroup(props.selectedSerials, sel.group).finally(() => setRunning(false));
     }
   };
 
   return (
     <div class="yohu-terminal">
-      <YoChrome>
-        <YoToolbar variant="chrome">
-          <span class="yohu-module-title">ADB 命令终端</span>
-          <YoButton onClick={run} loading={running()} disabled={!selection()}>
-            执行
-          </YoButton>
-          <YoButton variant="secondary" onClick={() => setManagerOpen(true)}>
-            命令管理
-          </YoButton>
-        </YoToolbar>
+      <YoChrome
+        title="ADB 命令终端"
+        leading={
+          <Show when={props.selectedSerials.length > 0}>
+            <YoBadge
+              text={
+                props.selectedSerials.length === 1
+                  ? props.selectedSerials[0]!
+                  : `${props.selectedSerials.length} 台`
+              }
+              tone="neutral"
+            />
+          </Show>
+        }
+      >
+        <YoButton
+          onClick={run}
+          loading={running()}
+          disabled={!selection() || props.selectedSerials.length === 0}
+        >
+          执行
+        </YoButton>
+        <YoButton variant="secondary" onClick={clearPanel} disabled={!hasResults()}>
+          清屏
+        </YoButton>
+        <YoButton variant="secondary" onClick={() => setManagerOpen(true)}>
+          命令管理
+        </YoButton>
       </YoChrome>
 
       <div class="yohu-terminal__body">
@@ -283,6 +307,12 @@ export function TerminalView() {
             <Show when={running()}>
               <YoBadge text="执行中" tone="warn" />
             </Show>
+            <YoIconButton
+              icon="clear"
+              title="清屏"
+              disabled={!hasResults()}
+              onClick={clearPanel}
+            />
           </div>
           <div
             class="yohu-terminal__results-list"
@@ -344,7 +374,7 @@ export function TerminalView() {
           }}
           onSubmit={(values) => {
             const command = inputCommand();
-            if (command) void terminalStore.runCommand(command, values);
+            if (command) void terminalStore.runCommand(props.selectedSerials, command, values);
             setInputCommand(null);
           }}
         />

@@ -63,7 +63,7 @@ export interface LogUiState {
   activeSessionId: number | null;
   processEntries: ProcessEntry[];
   indexDegraded: boolean;
-  /** 与 core `buffer.capacity` 对齐：镜像与可见区同一上限 */
+  /** 与 core `buffer_capacity` 对齐：镜像与可见区同一上限 */
   bufferCapacity: number;
 }
 

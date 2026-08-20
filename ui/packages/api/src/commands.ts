@@ -31,8 +31,6 @@ import type {
 
 // ===== device =====
 
-export const deviceList = () => invoke<DeviceInfo[]>("device.list");
-
 export const deviceRefresh = () => invoke<DeviceInfo[]>("device.refresh");
 
 // ===== adb =====
@@ -104,9 +102,6 @@ export const logExport = (req: ExportRequest) => invoke<ExportResult>("log.expor
 
 export const logProcessSnapshot = (serial: string) =>
   invoke<ProcessEntry[]>("log.processSnapshot", { serial });
-
-/** 预留：把设备 logcat 缓冲写入 core 环。功能面板不调用。 */
-export const logDump = (serial: string) => invoke<number>("log.dump", { serial });
 
 // ===== settings =====
 

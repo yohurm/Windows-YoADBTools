@@ -1,0 +1,40 @@
+/* 模块页眉：右侧内容区顶部，标题区 + 功能栏分区。 */
+
+.yohu-chrome {
+  display: flex;
+  align-items: center;
+  gap: var(--yohu-space-md);
+  flex-shrink: 0;
+  min-height: var(--yohu-control-height);
+  padding-bottom: var(--yohu-space-sm);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  box-sizing: border-box;
+}
+
+.yohu-chrome__title {
+  display: flex;
+  align-items: center;
+  gap: var(--yohu-space-sm);
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.yohu-module-title {
+  font-size: var(--yohu-font-subtitle);
+  font-weight: var(--yohu-font-weight-bold);
+  color: var(--yohu-fg);
+  line-height: var(--yohu-font-leading-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yohu-chrome__bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: var(--yohu-space-sm);
+  margin-left: auto;
+  min-width: 0;
+  overflow-x: auto;
+}

@@ -495,7 +495,7 @@ export function createCapture(
 
   void pullSettings();
   void onSettingsChanged((e) => {
-    if (e.key === "buffer.capacity" || e.key === "buffer_capacity") {
+    if (e.key === "buffer_capacity") {
       void pullSettings();
     }
   });

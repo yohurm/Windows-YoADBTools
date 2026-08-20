@@ -10,7 +10,6 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 
 const mocks = vi.hoisted(() => ({
   deviceRefresh: vi.fn(),
-  deviceList: vi.fn(),
   systemInfo: vi.fn(),
   settingsSet: vi.fn(),
   dialogOpen: vi.fn(),
@@ -23,7 +22,6 @@ vi.mock("@yohu/api", () => {
     throw new Error("测试未配置该命令 mock");
   });
   return {
-    deviceList: (...a: unknown[]) => mocks.deviceList(...a),
     deviceRefresh: (...a: unknown[]) => mocks.deviceRefresh(...a),
     systemInfo: (...a: unknown[]) => mocks.systemInfo(...a),
     settingsSet: (...a: unknown[]) => mocks.settingsSet(...a),
@@ -50,7 +48,6 @@ vi.mock("@yohu/api", () => {
     logReplay: notConfigured,
     logExport: notConfigured,
     logProcessSnapshot: notConfigured,
-    logDump: notConfigured,
     onDevicesChanged: noop,
     onDeviceOffline: noop,
     onLogBatch: noop,
@@ -127,7 +124,6 @@ const DEFAULT_SETTINGS = {
   data_root: "",
   devices_auto_refresh: 0,
   buffer_capacity: 10000,
-  display_limit: 2000,
   clear_device_on_start: true,
   theme: "light",
   density: "comfortable",
@@ -147,7 +143,6 @@ beforeEach(() => {
     return { ...DEFAULT_SETTINGS, [key]: value };
   });
   mocks.deviceRefresh.mockResolvedValue([]);
-  mocks.deviceList.mockResolvedValue([]);
   mocks.dialogOpen.mockResolvedValue(null);
 });
 
@@ -204,6 +199,51 @@ describe("DeviceRail（§3 设备卡片）", () => {
     expect(screen.getByText("无设备")).toBeTruthy();
     expect(container.querySelector(".yohu-device-rail__empty-error")?.textContent).toContain("adb 未找到");
     expect(screen.getByText("重试扫描")).toBeTruthy();
+  });
+
+  it("两台在线时执行目标仅为焦点，不广播全部在线设备", async () => {
+    mocks.deviceRefresh.mockResolvedValue([]);
+    await deviceStore.refresh();
+    mocks.deviceRefresh.mockResolvedValue([
+      { serial: "A1", model: "Moto X", state: "online", connection: "usb" },
+      { serial: "B2", model: "Moto Y", state: "online", connection: "usb" },
+    ]);
+    await deviceStore.refresh();
+    const { container } = render(() => (
+      <DeviceRail moduleId="adb-terminal" selectionMode="multiOptional" />
+    ));
+    expect(deviceStore.state.focusSerial).toBe("A1");
+    expect(deviceStore.selectedSerials("adb-terminal", "multiOptional")).toEqual(["A1"]);
+    expect(container.querySelector(".yohu-device-rail__list")?.getAttribute("aria-multiselectable")).toBe(
+      "true",
+    );
+    const items = Array.from(container.querySelectorAll('[role="option"]'));
+    fireEvent.click(items[1] as HTMLElement);
+    await Promise.resolve();
+    expect(deviceStore.state.focusSerial).toBe("B2");
+    expect(deviceStore.selectedSerials("adb-terminal", "multiOptional")).toEqual(["B2"]);
+    expect(items[0]?.getAttribute("aria-selected")).toBe("false");
+    expect(items[1]?.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("Ctrl+click 在 MultiOptional 下累加选择", async () => {
+    mocks.deviceRefresh.mockResolvedValue([]);
+    await deviceStore.refresh();
+    mocks.deviceRefresh.mockResolvedValue([
+      { serial: "A1", model: "Moto X", state: "online", connection: "usb" },
+      { serial: "B2", model: "Moto Y", state: "online", connection: "usb" },
+    ]);
+    await deviceStore.refresh();
+    const { container } = render(() => (
+      <DeviceRail moduleId="adb-terminal" selectionMode="multiOptional" />
+    ));
+    const items = Array.from(container.querySelectorAll('[role="option"]'));
+    fireEvent.click(items[0] as HTMLElement);
+    fireEvent.click(items[1] as HTMLElement, { ctrlKey: true });
+    await Promise.resolve();
+    expect(deviceStore.selectedSerials("adb-terminal", "multiOptional")).toEqual(["A1", "B2"]);
+    expect(items[0]?.getAttribute("aria-selected")).toBe("true");
+    expect(items[1]?.getAttribute("aria-selected")).toBe("true");
   });
 });
 
@@ -323,6 +363,13 @@ describe("AppLayout 窗口铬", () => {
     expect([...buttons].map((b) => b.getAttribute("aria-label"))).toEqual(["最大化", "最小化", "关闭"]);
     expect(document.querySelector(".yohu-window")).toBeTruthy();
     expect(document.querySelector(".yohu-titlebar__center")).toBeTruthy();
+  });
+
+  it("模块标题与功能栏在右侧内容区，不进窗口标题栏", () => {
+    render(() => <AppLayout activeModuleId={() => "settings"} onNavigate={() => undefined} />);
+    const titlebar = document.querySelector(".yohu-titlebar");
+    expect(titlebar?.textContent).not.toContain("设置");
+    expect(document.querySelector(".yohu-layout__content .yohu-chrome__title")?.textContent).toContain("设置");
   });
 
   it("侧栏可收起为抽屉", () => {

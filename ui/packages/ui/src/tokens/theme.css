@@ -95,7 +95,7 @@
   --yohu-row-height-header: 32px;
   --yohu-segment-single: 40px;
   --yohu-segment-hybrid: 56px;
-  --yohu-title-bar-height: 56px;
+  --yohu-title-bar-height: 40px;
   --yohu-layout-shell-nav: 232px;
   --yohu-layout-sidebar: 280px;
   --yohu-layout-preview: 240px;
@@ -113,6 +113,7 @@
   --yohu-layout-hit-splitter: 6px;
   --yohu-layout-hit-nudge: 3px;
   --yohu-layout-icon-tiny: 12px;
+  --yohu-layout-icon-sm: 16px;
   --yohu-layout-window-default-w: 1200px;
   --yohu-layout-window-default-h: 800px;
   --yohu-layout-window-min-w: 360px;
@@ -126,9 +127,9 @@
   --yohu-layout-rail-inset: 8px;
   --yohu-layout-switch-w: 36px;
   --yohu-layout-switch-h: 20px;
-  --yohu-layout-titlebar-caption: 40px;
-  --yohu-layout-titlebar-caption-gap: 12px;
-  --yohu-layout-titlebar-close-margin: 8px;
+  --yohu-layout-titlebar-caption: 48px;
+  --yohu-layout-titlebar-caption-gap: 0px;
+  --yohu-layout-titlebar-close-margin: 0px;
   --yohu-layout-titlebar-blur: 32px;
   --yohu-layout-gutter: 16px;
   --yohu-layout-grid-max: 2220px;

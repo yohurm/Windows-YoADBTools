@@ -1,6 +1,7 @@
 /**
  * YoTitleBar —— HarmonyOS 电脑窗口容器层（自定义标题栏）。
- * HarmonyOS 对照：窗口框架容器层；Default 56vp / Compact 40vp；PC 去掉圆形底板。
+ * HarmonyOS 对照：窗口框架容器层。页眉回内容区后走 Compact 40vp。
+ * 右侧铬条（侧栏钮 + 三键）等宽 48vp 贴合铺满栏高，无内边距；关闭悬停铺满该键。
  * 受控 API：title / icon / children / actions / maximized / onMinimize / onToggleMaximize / onClose。
  *
  * 三键从左到右：最大化（或还原）、最小化、关闭。拖动走 data-tauri-drag-region；按钮 no-drag。
@@ -8,7 +9,7 @@
  */
 import { Show, type JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
-import { YoChromeMount } from "./chrome";
+import { Layout } from "../tokens/layout";
 import "./TitleBar.css";
 
 export interface YoTitleBarProps {
@@ -16,7 +17,7 @@ export interface YoTitleBarProps {
   title: string;
   /** 应用图标 */
   icon?: IconName;
-  /** 中间区（工具栏 / 分段按钮，电脑普通标题栏） */
+  /** 中区留白（模块工具栏在内容区 YoChrome，不进标题栏） */
   children?: JSX.Element;
   /** 三键左侧操作（最多 3 个图标） */
   actions?: JSX.Element;
@@ -51,13 +52,13 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
         <Show when={props.icon}>
           {(name) => (
             <span class="yohu-titlebar__icon" aria-hidden="true">
-              <Icon name={name()} size={16} />
+              <Icon name={name()} size={Layout.IconSm} />
             </span>
           )}
         </Show>
         <span class="yohu-titlebar__title">{props.title}</span>
       </div>
-      <YoChromeMount class="yohu-titlebar__center">{props.children}</YoChromeMount>
+      <div class="yohu-titlebar__center">{props.children}</div>
       <div class="yohu-titlebar__trailing">
         <Show when={props.actions}>
           <div class="yohu-titlebar__actions">{props.actions}</div>
@@ -70,7 +71,7 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
             title={props.maximized ? "还原" : "最大化"}
             onClick={() => props.onToggleMaximize?.()}
           >
-            <Icon name={props.maximized ? "window-restore" : "window-max"} size={12} />
+            <Icon name={props.maximized ? "window-restore" : "window-max"} size={Layout.IconSm} />
           </button>
           <button
             type="button"
@@ -79,7 +80,7 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
             title="最小化"
             onClick={() => props.onMinimize?.()}
           >
-            <Icon name="window-min" size={12} />
+            <Icon name="window-min" size={Layout.IconSm} />
           </button>
           <button
             type="button"
@@ -88,7 +89,7 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
             title="关闭"
             onClick={() => props.onClose?.()}
           >
-            <Icon name="close" size={12} />
+            <Icon name="close" size={Layout.IconSm} />
           </button>
         </div>
       </div>

@@ -14,7 +14,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   data_root: "",
   devices_auto_refresh: 0,
   buffer_capacity: 10000,
-  display_limit: 2000,
   clear_device_on_start: true,
   theme: "system",
   density: "comfortable",

@@ -11,6 +11,7 @@
   min-height: 0;
   overflow: hidden;
   padding: var(--yohu-space-md);
+  gap: var(--yohu-space-md);
   box-sizing: border-box;
 }
 
@@ -45,6 +46,10 @@
   padding: var(--yohu-space-sm) var(--yohu-space-md);
   font-weight: var(--yohu-font-weight-semibold);
   color: var(--yohu-fg);
+}
+
+.yohu-terminal__results-head > .yohu-icon-button {
+  margin-left: auto;
 }
 
 .yohu-terminal__results-list {

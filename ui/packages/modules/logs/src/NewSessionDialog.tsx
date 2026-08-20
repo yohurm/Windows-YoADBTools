@@ -5,7 +5,7 @@
 
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 
-import { deviceList, type DeviceInfo } from "@yohu/api";
+import type { DeviceInfo } from "@yohu/api";
 import { Icon, YoButton, YoCheckbox, YoDialog, YoSegmentedButton, YoTextField } from "@yohu/ui";
 
 import type { SessionScope } from "./pipeline";
@@ -17,7 +17,12 @@ function deviceChipLabel(device: DeviceInfo): string {
   return name ? `${name} · ${short}` : device.serial;
 }
 
-export function NewSessionDialog(props: { open: () => boolean; onClose: () => void }) {
+export function NewSessionDialog(props: {
+  open: () => boolean;
+  onClose: () => void;
+  devices: DeviceInfo[];
+  focusSerial: string | null;
+}) {
   const [mode, setMode] = createSignal<"package" | "pid">("package");
   const [query, setQuery] = createSignal("");
   const [includeChild, setIncludeChild] = createSignal(false);
@@ -48,21 +53,12 @@ export function NewSessionDialog(props: { open: () => boolean; onClose: () => vo
     if (!props.open()) return;
     untrack(() => {
       resetForm();
-      const focus = logStore.serial() ?? "";
-      setDeviceSerial(focus);
-      setLoading(true);
-      void deviceList()
-        .then((list) => {
-          const online = list.filter((d) => d.state === "online");
-          setDevices(online);
-          const next =
-            focus && online.some((d) => d.serial === focus) ? focus : (online[0]?.serial ?? "");
-          loadDevice(next);
-        })
-        .catch(() => {
-          setDevices([]);
-          setLoading(false);
-        });
+      const online = props.devices.filter((d) => d.state === "online");
+      setDevices(online);
+      const focus = props.focusSerial ?? logStore.serial() ?? "";
+      const next =
+        focus && online.some((d) => d.serial === focus) ? focus : (online[0]?.serial ?? "");
+      loadDevice(next);
     });
   });
 

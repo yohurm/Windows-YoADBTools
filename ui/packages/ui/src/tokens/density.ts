@@ -16,7 +16,7 @@ export const Density = {
     /** V1 分段最小高 28vp */
     segmentSingle: 28,
     segmentHybrid: 44,
-    /** HarmonyOS 电脑 Compact 标题栏 40vp */
+    /** HarmonyOS 电脑 Compact：标题栏仅窗口铬（应用名/侧栏/三键），40vp */
     titleBarHeight: 40,
   },
   Comfortable: {
@@ -29,7 +29,7 @@ export const Density = {
     /** V2 singleline_background_height / doubleline_background_height */
     segmentSingle: 40,
     segmentHybrid: 56,
-    /** HarmonyOS 电脑 Default 标题栏 56vp */
-    titleBarHeight: 56,
+    /** 与 Compact 相同：页眉已回内容区，窗口铬不再走 Default 56vp */
+    titleBarHeight: 40,
   },
 } as const;

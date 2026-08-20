@@ -16,7 +16,6 @@ const mocks = vi.hoisted(() => ({
   logReplay: vi.fn(),
   logExport: vi.fn(),
   logProcessSnapshot: vi.fn(),
-  deviceList: vi.fn(),
   logBatchHandlers: [] as ((e: { batch: LogBatch }) => void)[],
   logOverflowHandlers: [] as ((e: { serial: string }) => void)[],
   processIndexHandlers: [] as ((e: unknown) => void)[],
@@ -31,7 +30,6 @@ vi.mock("@yohu/api", () => {
     throw new Error("测试未配置该命令 mock");
   });
   return {
-    deviceList: (...a: unknown[]) => mocks.deviceList(...a),
     deviceRefresh: notConfigured,
     systemInfo: notConfigured,
     settingsSet: notConfigured,
@@ -58,7 +56,6 @@ vi.mock("@yohu/api", () => {
     logReplay: (...a: unknown[]) => mocks.logReplay(...a),
     logExport: (...a: unknown[]) => mocks.logExport(...a),
     logProcessSnapshot: (...a: unknown[]) => mocks.logProcessSnapshot(...a),
-    logDump: notConfigured,
     onDevicesChanged: (h: (e: { devices: unknown[] }) => void): void => {
       mocks.devicesChangedHandlers.push(h);
     },
@@ -142,11 +139,9 @@ beforeEach(() => {
   mocks.logReplay.mockReset();
   mocks.logExport.mockReset();
   mocks.logProcessSnapshot.mockReset();
-  mocks.deviceList.mockReset();
   mocks.logReplay.mockResolvedValue({ serial: "S1", from_seq: 0, lines: [], truncated: false });
   mocks.logExport.mockResolvedValue({ path: "x.txt", lines: 0 });
   mocks.logProcessSnapshot.mockResolvedValue([]);
-  mocks.deviceList.mockResolvedValue([]);
   mocks.logCaptureStart.mockImplementation(async (serial: unknown) => ({
     serial,
     generation: 1,

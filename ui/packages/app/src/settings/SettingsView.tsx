@@ -17,7 +17,6 @@ import {
   YoSwitch,
   YoTextField,
   YoToaster,
-  YoToolbar,
   createToaster,
 } from "@yohu/ui";
 import type { Density, SettingKey, Theme } from "@yohu/api";
@@ -95,11 +94,7 @@ export const SettingsView: Component = () => {
 
   return (
     <div class="yohu-settings">
-      <YoChrome>
-        <YoToolbar variant="chrome">
-          <span class="yohu-module-title">设置</span>
-        </YoToolbar>
-      </YoChrome>
+      <YoChrome title="设置" />
 
       <YoPanel title="工具链">
         <div class="yohu-settings__item">

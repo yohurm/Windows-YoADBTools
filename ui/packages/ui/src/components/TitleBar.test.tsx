@@ -59,7 +59,16 @@ describe("YoTitleBar", () => {
     expect(onToggleMaximize).toHaveBeenCalledTimes(1);
   });
 
-  it("中区为通栏挂载点，可承载 children", () => {
+  it("侧栏操作与三键同在右侧铬条", () => {
+    const { container } = render(() => (
+      <YoTitleBar title="窗" actions={<button type="button" aria-label="侧栏" />} />
+    ));
+    const trailing = container.querySelector(".yohu-titlebar__trailing");
+    expect(trailing?.querySelector(".yohu-titlebar__actions")).toBeTruthy();
+    expect(trailing?.querySelectorAll(".yohu-titlebar__caption").length).toBe(3);
+  });
+
+  it("中区可承载 children（不再挂模块通栏）", () => {
     const { container } = render(() => (
       <YoTitleBar title="窗">
         <span>通栏</span>
