@@ -101,11 +101,45 @@ export type { YoVirtualListProps } from "./components/VirtualList";
 export { YoColResizer } from "./components/ColResizer";
 export type { YoColResizerProps } from "./components/ColResizer";
 
+export { YoColHeader } from "./components/ColHeader";
+export type { YoColHeaderProps, YoColHeaderAlign, YoColHeaderSort } from "./components/ColHeader";
+
 export { YoPanel } from "./components/Panel";
 export type { YoPanelProps, YoPanelPadding, YoPanelVariant } from "./components/Panel";
 
 export { YoPage } from "./components/Page";
 export type { YoPageProps } from "./components/Page";
+
+// —— 键盘作用域（L1；页面提供绑定表） ——
+export {
+  adjacentJoin,
+  allKeys,
+  attachPanelKeys,
+  eventKey,
+  isActionableTarget,
+  isEditableTarget,
+  isInside,
+  isModKey,
+  matchBindings,
+  matchesChord,
+  nextKeys,
+  panelKeyContext,
+  pointerSelectMode,
+  whenIdle,
+  whenList,
+  whenPanel,
+  whenPanelOrField,
+} from "./keymap";
+export type {
+  KeyBinding,
+  KeyChord,
+  PanelKeyContext,
+  PanelKeyHost,
+  PanelKeyOwnership,
+  PanelScopeOptions,
+  SelectJoin,
+  SelectMode,
+} from "./keymap";
 
 // —— 反馈 ——
 export { YoEmptyState } from "./components/EmptyState";
@@ -115,7 +149,26 @@ export { YoDialog } from "./components/Dialog";
 export type { YoDialogProps } from "./components/Dialog";
 
 export { YoContextMenu } from "./components/ContextMenu";
-export type { YoContextMenuProps, YoMenuItem } from "./components/ContextMenu";
+export type { YoContextMenuProps } from "./components/ContextMenu";
+// —— 右键菜单（L1；页面提供场景表，壳挂唯一 Host） ——
+export {
+  YoContextMenuHost,
+  clampContextMenuPoint,
+  closeContextMenu,
+  contextMenu,
+  createContextMenuController,
+  defineContextMenu,
+  estimateContextMenuHeight,
+  openContextMenu,
+} from "./context-menu";
+export type {
+  ContextMenuController,
+  ContextMenuRequest,
+  ContextMenuScene,
+  ContextMenuSession,
+  YoContextMenuHostProps,
+  YoMenuItem,
+} from "./context-menu";
 
 export { YoToast, YoToaster, createToaster } from "./components/Toast";
 export type { ToastItem, ToastTone, Toaster, YoToastProps, YoToasterProps } from "./components/Toast";

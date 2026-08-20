@@ -10,6 +10,7 @@
  * roving tabindex（选中行 0 / 其余 -1 / 未选中时首可视行 0）、
  * ↑/↓/Home/End 移动、Enter/Space 选中、目标行自动滚入视野并聚焦、
  * `role=listbox/option` + `aria-selected`（对齐 UI设计系统-v6.md §5）。
+ * 多选（`selectedKeys`）时按邻接关系挂 `--sel-start/mid/end`，连续选中合成一块圆角。
  * 未开启选择模式时行不参与焦点序列（日志列表性能优先）。
  *
  * 注意：`itemHeight` / `overscan` / `rowHeight` 为功能性配置项（非主题 token），
@@ -17,6 +18,7 @@
  */
 import { For, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type { Accessor, JSX } from "solid-js";
+import { adjacentJoin } from "../keymap/selection";
 import "./VirtualList.css";
 
 export interface YoVirtualListProps<T> {
@@ -44,7 +46,7 @@ export interface YoVirtualListProps<T> {
   selectedKeys?: Accessor<ReadonlySet<string | number>>;
   /** 选中变化回调（点击/键盘统一入口；由调用方更新 selectedKey） */
   onSelectRow?: (item: T, key: string | number, event?: MouseEvent | KeyboardEvent) => void;
-  /** 行右键（文件管理等） */
+  /** 行右键（统一交给 openContextMenu，页面不要自挂菜单） */
   onRowContextMenu?: (item: T, key: string | number, event: MouseEvent) => void;
   /** 选择模式下 listbox 的无障碍名称 */
   ariaLabel?: string;
@@ -162,6 +164,15 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
     if (props.selectedKeys) return props.selectedKeys().has(key);
     return props.selectedKey?.() === key;
   };
+
+  const neighborSelected = (index: number): boolean => {
+    const item = props.items()[index];
+    if (item === undefined) return false;
+    return isSelected(keyOf(item, index));
+  };
+
+  const rowJoin = (index: number, key: string | number) =>
+    adjacentJoin(isSelected(key), neighborSelected(index - 1), neighborSelected(index + 1));
 
   const rowTabIndex = (row: { index: number; key: string | number }): number | undefined => {
     if (!selectable()) return undefined;
@@ -309,6 +320,9 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
               classList={{
                 "yohu-interactive": selectable(),
                 "yohu-interactive--selected": selectable() && isSelected(row.key),
+                "yohu-interactive--sel-start": rowJoin(row.index, row.key) === "start",
+                "yohu-interactive--sel-mid": rowJoin(row.index, row.key) === "middle",
+                "yohu-interactive--sel-end": rowJoin(row.index, row.key) === "end",
                 "yohu-focus-ring--inset": selectable(),
               }}
               style={{

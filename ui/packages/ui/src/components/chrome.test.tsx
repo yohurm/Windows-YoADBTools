@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { render, screen } from "@solidjs/testing-library";
 import { YoChrome } from "./chrome";
+
+function loadChromeCss(): string {
+  const candidates = [
+    resolve(process.cwd(), "src/components/chrome.css"),
+    resolve(process.cwd(), "packages/ui/src/components/chrome.css"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return readFileSync(candidate, "utf-8");
+    }
+  }
+  return "";
+}
 
 describe("YoChrome", () => {
   it("在原地渲染标题区与功能栏，不传送", () => {
@@ -18,8 +33,19 @@ describe("YoChrome", () => {
   });
 
   it("无操作时只显示标题区", () => {
-    const { container } = render(() => <YoChrome title="设置" />);
-    expect(container.querySelector(".yohu-chrome__title")?.textContent).toBe("设置");
+    const { container } = render(() => <YoChrome title="投屏显示" />);
+    expect(container.querySelector(".yohu-chrome__title")?.textContent).toBe("投屏显示");
     expect(container.querySelector(".yohu-chrome__bar")).toBeNull();
+  });
+
+  it("标题行占位走 control-height，底垫走 chrome-pad（外壳不加 min-height）", () => {
+    const css = loadChromeCss();
+    expect(css.length).toBeGreaterThan(0);
+    expect(css).toMatch(
+      /\.yohu-chrome__title\s*\{[^}]*min-height:\s*var\(--yohu-control-height\)/,
+    );
+    expect(css).toMatch(/padding-bottom:\s*var\(--yohu-layout-chrome-pad\)/);
+    const chromeBlock = css.match(/\.yohu-chrome\s*\{[^}]+\}/)?.[0] ?? "";
+    expect(chromeBlock).not.toMatch(/min-height/);
   });
 });

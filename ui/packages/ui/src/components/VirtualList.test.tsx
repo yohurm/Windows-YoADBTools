@@ -179,4 +179,28 @@ describe("YoVirtualList", () => {
     expect(first?.getAttribute("aria-selected")).toBe("true");
     expect(document.activeElement).toBe(first);
   });
+
+  it("多选连续行挂 sel-start/mid/end，孤立行不挂", () => {
+    const items = makeItems(8);
+    const selected = new Set<string | number>(["row-1", "row-2", "row-3", "row-5"]);
+    const { container } = render(() => (
+      <YoVirtualList
+        items={() => items}
+        itemHeight={22}
+        getItemKey={(item) => item}
+        selectedKeys={() => selected}
+        onSelectRow={() => undefined}
+        renderRow={(item) => <span>{item}</span>}
+      />
+    ));
+    const row = (key: string): HTMLElement | null => container.querySelector(`[data-key="${key}"]`);
+    expect(row("row-1")?.classList.contains("yohu-interactive--sel-start")).toBe(true);
+    expect(row("row-2")?.classList.contains("yohu-interactive--sel-mid")).toBe(true);
+    expect(row("row-3")?.classList.contains("yohu-interactive--sel-end")).toBe(true);
+    expect(row("row-5")?.classList.contains("yohu-interactive--selected")).toBe(true);
+    expect(row("row-5")?.classList.contains("yohu-interactive--sel-start")).toBe(false);
+    expect(row("row-5")?.classList.contains("yohu-interactive--sel-mid")).toBe(false);
+    expect(row("row-5")?.classList.contains("yohu-interactive--sel-end")).toBe(false);
+    expect(row("row-0")?.classList.contains("yohu-interactive--selected")).toBe(false);
+  });
 });

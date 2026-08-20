@@ -1,19 +1,15 @@
 /**
- * YoContextMenu —— 右键菜单。
+ * YoContextMenu —— 右键菜单呈现（L0）。
  * HarmonyOS 对照：Menu；电脑默认最小宽 224vp；Esc / 点击外侧关闭。
- * 受控 API：open / x / y / items / onSelect / onClose。
+ * 页面不要直接挂本组件：走 defineContextMenu + openContextMenu + 壳上的 YoContextMenuHost。
  */
 import { For, onCleanup, onMount } from "solid-js";
 import type { JSX } from "solid-js";
+import type { YoMenuItem } from "../context-menu/types";
 import { YoPresence } from "../motion/presence";
 import "./ContextMenu.css";
 
-export interface YoMenuItem {
-  id: string;
-  label: string;
-  danger?: boolean;
-  disabled?: boolean;
-}
+export type { YoMenuItem };
 
 export interface YoContextMenuProps {
   open: boolean;

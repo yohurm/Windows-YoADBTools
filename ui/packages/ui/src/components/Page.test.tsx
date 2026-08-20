@@ -17,4 +17,14 @@ describe("YoPage", () => {
     expect(page?.querySelector(":scope > .yohu-chrome")).toBeTruthy();
     expect(page?.querySelector(".yohu-chrome__title")?.textContent).toBe("投屏显示");
   });
+
+  it("转发页根 ref 给快捷键宿主", () => {
+    let root: HTMLDivElement | undefined;
+    const { container } = render(() => (
+      <YoPage class="yohu-logs" ref={(el) => { root = el; }}>
+        <div>内容</div>
+      </YoPage>
+    ));
+    expect(root).toBe(container.querySelector(".yohu-page"));
+  });
 });

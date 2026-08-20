@@ -121,6 +121,7 @@
   --yohu-layout-page-margin: 40px;
   --yohu-layout-page-inset: 12px;
   --yohu-layout-page-gap: 12px;
+  --yohu-layout-chrome-pad: 8px;
   --yohu-layout-breakpoint-split: 600px;
   --yohu-layout-breakpoint-side: 840px;
   --yohu-layout-button-max: 448px;

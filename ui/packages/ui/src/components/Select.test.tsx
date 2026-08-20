@@ -83,6 +83,49 @@ describe("YoSelect", () => {
     expect(screen.getByRole("button").getAttribute("aria-activedescendant")).toBe("yohu-option-empty");
   });
 
+  it("菜单 Portal 到 body，并带自适应 placement", () => {
+    render(() => <YoSelect options={OPTIONS} placeholder="请选择" />);
+    fireEvent.click(screen.getByRole("button"));
+    const listbox = screen.getByRole("listbox");
+    expect(listbox.closest(".yohu-select")).toBeNull();
+    expect(listbox.getAttribute("data-placement")).toMatch(/^(top|bottom)$/);
+    expect(listbox.getAttribute("data-placed")).toBe("true");
+  });
+
+  it("触发钮贴视口底时向上展开，不往下撑", () => {
+    const viewport = {
+      width: 800,
+      height: 600,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    vi.stubGlobal("visualViewport", viewport);
+    vi.stubGlobal("innerHeight", 600);
+    vi.stubGlobal("innerWidth", 800);
+    try {
+      render(() => <YoSelect options={OPTIONS} placeholder="请选择" />);
+      const trigger = screen.getByRole("button");
+      vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue({
+        x: 100,
+        y: 560,
+        top: 560,
+        left: 100,
+        bottom: 592,
+        right: 220,
+        width: 120,
+        height: 32,
+        toJSON: () => ({}),
+      } as DOMRect);
+      fireEvent.click(trigger);
+      const listbox = screen.getByRole("listbox");
+      expect(listbox.getAttribute("data-placement")).toBe("top");
+      expect(listbox.style.top).toBe("auto");
+      expect(Number.parseFloat(listbox.style.bottom)).toBeGreaterThan(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("非空 value 的选中项同样标签可见且带 selected 态", () => {
     render(() => <YoSelect options={OPTIONS} value="c" />);
     fireEvent.click(screen.getByRole("button", { name: /选项C/ }));

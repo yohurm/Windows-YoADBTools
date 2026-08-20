@@ -1,5 +1,6 @@
 /**
  * 模块页眉：右侧内容区顶部的标题区 + 功能栏（不进窗口标题栏）。
+ * 标题行高度走 --yohu-control-height，有无操作同一占位，避免投屏/设置标题上移。
  */
 import { Show, type JSX } from "solid-js";
 import "./chrome.css";

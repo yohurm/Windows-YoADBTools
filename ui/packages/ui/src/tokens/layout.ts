@@ -39,6 +39,8 @@ export const Layout = {
   PageInset: Spacing.Md,
   /** 页眉与分区、分区间距；与 PageInset 同值 */
   PageGap: Spacing.Md,
+  /** 页眉标题行下方到分割线；数值单源 Spacing.Sm，经 YoChrome 消费 */
+  ChromePad: Spacing.Sm,
   /** 分栏布局触发 ≥600vp */
   BreakpointSplit: 600,
   /** 侧边页签触发 ≥840vp */

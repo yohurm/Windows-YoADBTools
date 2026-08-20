@@ -9,10 +9,22 @@ import "./page.css";
 export interface YoPageProps {
   /** BEM 根（yohu-terminal / yohu-files / yohu-logs）；页垫仍走 .yohu-page */
   class?: string;
+  /** 页根（模块快捷键作用域宿主） */
+  ref?: (el: HTMLDivElement) => void;
   children: JSX.Element;
 }
 
 /** 效率型模块根节点：页眉 + 分区同一套页垫，标题左缘对齐。 */
 export function YoPage(props: YoPageProps): JSX.Element {
-  return <div class={`yohu-page${props.class ? ` ${props.class}` : ""}`}>{props.children}</div>;
+  return (
+    <div
+      ref={(el) => {
+        const assign = props.ref;
+        if (assign) assign(el);
+      }}
+      class={`yohu-page${props.class ? ` ${props.class}` : ""}`}
+    >
+      {props.children}
+    </div>
+  );
 }

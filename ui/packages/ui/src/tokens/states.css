@@ -63,6 +63,21 @@
   background: var(--yohu-accent-pressed);
 }
 
+/* 连续选中：邻接边削平圆角，合成一块；hairline 用选中色补缝。 */
+.yohu-interactive--selected.yohu-interactive--sel-start::before {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.yohu-interactive--selected.yohu-interactive--sel-mid::before {
+  border-radius: 0;
+}
+
+.yohu-interactive--selected.yohu-interactive--sel-end::before {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
 .yohu-focus-ring:focus-visible {
   outline: var(--yohu-focus-width) solid var(--yohu-focus-ring);
   outline-offset: var(--yohu-focus-offset);
