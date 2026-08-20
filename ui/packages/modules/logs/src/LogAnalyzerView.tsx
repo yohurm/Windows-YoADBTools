@@ -15,6 +15,8 @@ import {
   YoContextMenu,
   YoDialog,
   YoEmptyState,
+  YoPage,
+  YoPanel,
   YoSelect,
   YoTabs,
   YoTextField,
@@ -261,7 +263,7 @@ export function LogAnalyzerView(props: DeviceSession) {
   ];
 
   return (
-    <div class="yohu-logs">
+    <YoPage class="yohu-logs">
       <YoChrome title="日志分析">
         <Show
           when={windowLive()}
@@ -312,7 +314,11 @@ export function LogAnalyzerView(props: DeviceSession) {
 
       <Show
         when={logStore.state.sessions.length > 0}
-        fallback={<YoEmptyState icon="log" title="未选择设备" description="请在左侧设备栏选择在线设备，或新建日志窗口" />}
+        fallback={
+          <YoPanel variant="pane">
+            <YoEmptyState icon="log" title="未选择设备" description="请在左侧设备栏选择在线设备，或新建日志窗口" />
+          </YoPanel>
+        }
       >
         <div class="yohu-logs__tabs">
           <YoTabs
@@ -330,7 +336,7 @@ export function LogAnalyzerView(props: DeviceSession) {
 
         <Show when={active()} keyed>
           {(session) => (
-            <div class="yohu-logs__session">
+            <YoPanel variant="pane">
               <div class="yohu-logs__filter">
                 <YoSelect
                   options={LEVEL_OPTIONS}
@@ -435,7 +441,7 @@ export function LogAnalyzerView(props: DeviceSession) {
                   <span class="yohu-logs__status-lag">缓冲滞后（已回补）</span>
                 </Show>
               </div>
-            </div>
+            </YoPanel>
           )}
         </Show>
       </Show>
@@ -495,6 +501,6 @@ export function LogAnalyzerView(props: DeviceSession) {
       </YoDialog>
 
       <YoToaster toaster={toaster} />
-    </div>
+    </YoPage>
   );
 }

@@ -5,29 +5,8 @@
  * 日志列表不动效（性能优先，§2.4）。
  * ========================================================================== */
 
-.yohu-logs {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  padding: var(--yohu-space-md);
-  gap: var(--yohu-space-md);
-  box-sizing: border-box;
-}
-
 .yohu-logs__tabs {
   flex-shrink: 0;
-}
-
-.yohu-logs__session {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  background: var(--yohu-surface);
-  border-radius: var(--yohu-radius-md);
-  overflow: hidden;
 }
 
 /* ===== 过滤栏（单行，控件走 --yohu-control-height） ===== */
