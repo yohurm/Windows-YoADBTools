@@ -120,8 +120,17 @@ export type { YoContextMenuProps, YoMenuItem } from "./components/ContextMenu";
 export { YoToast, YoToaster, createToaster } from "./components/Toast";
 export type { ToastItem, ToastTone, Toaster, YoToastProps, YoToasterProps } from "./components/Toast";
 
-export { YoPresence, YoCollapse, prefersReducedMotion, shouldSkipMotion } from "./motion";
-export type { YoPresenceProps, YoCollapseProps, PresenceRecipe } from "./motion";
+export {
+  YoPresence,
+  YoCollapse,
+  YoSwap,
+  prefersReducedMotion,
+  shouldSkipMotion,
+  PRESENCE_EXIT_DURATION,
+  SWAP_DURATION,
+  DISMISS_HOLD_DURATION,
+} from "./motion";
+export type { YoPresenceProps, YoCollapseProps, YoSwapProps, PresenceRecipe } from "./motion";
 
 // —— 窗口铬 ——
 export { YoChrome } from "./components/chrome";

@@ -31,6 +31,11 @@
   overflow: hidden;
 }
 
+/* 显式 width：放开弹出框 400 上限，仍受页边距约束（命令管理等整页对话框）。 */
+.yohu-dialog__panel--sized {
+  max-width: calc(100% - var(--yohu-layout-page-margin) * 2);
+}
+
 .yohu-dialog__panel:not(:focus-within) {
   box-shadow: var(--yohu-shadow-dialog-unfocused);
 }

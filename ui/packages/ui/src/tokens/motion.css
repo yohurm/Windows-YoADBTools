@@ -211,6 +211,38 @@
 
 .yohu-recipe-dismiss-fade {
   animation: yohu-fade-out var(--yohu-motion-spatial-panel) forwards;
+  animation-delay: calc(var(--yohu-dur-toast) - var(--yohu-dur-slow));
+}
+
+/*
+ * 配方 swap：与侧栏/预览栏同一套——锁固有宽、沿轴裁切、width 过渡。
+ * 默认贴 inline-end（往左展开/收起）。禁止交叉淡入淡出与 width 补间测按钮铬。
+ */
+.yohu-swap {
+  position: relative;
+  display: inline-flex;
+  vertical-align: bottom;
+}
+
+.yohu-swap__clip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.yohu-swap[data-anchor="start"] .yohu-swap__clip {
+  justify-content: flex-start;
+}
+
+.yohu-swap[data-resizing] .yohu-swap__clip {
+  transition: width var(--yohu-motion-spatial-panel);
+}
+
+.yohu-swap__inner {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 /* —— reduced-motion：配方统一降级；循环指示改为静止 —— */
@@ -227,7 +259,8 @@
   .yohu-button,
   .yohu-icon-button,
   .yohu-checkbox__box,
-  .yohu-text-field__control {
+  .yohu-text-field__control,
+  .yohu-swap[data-resizing] .yohu-swap__clip {
     transition-duration: 0.01ms !important;
   }
 

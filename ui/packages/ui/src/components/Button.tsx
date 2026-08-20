@@ -1,9 +1,11 @@
 /**
  * YoButton —— 通用按钮。
  * HarmonyOS 对照：Button；最大宽 448vp；primary = brand + font_on。
- * 受控 API：variant / size / loading / disabled / onClick / type / children。
+ * 文案切换交给 motion/YoSwap（沿轴裁切展开/收起），本文件只负责铬、变体、加载。
  */
+import { Show, children, createMemo } from "solid-js";
 import type { JSX } from "solid-js";
+import { YoSwap } from "../motion/swap";
 import "./Button.css";
 
 export type YoButtonVariant = "primary" | "secondary" | "ghost" | "danger";
@@ -27,10 +29,24 @@ export interface YoButtonProps {
   children: JSX.Element;
 }
 
+/** 只对纯文案走 Swap；复合 children 原样渲染。 */
+function labelText(node: unknown): string | null {
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+  if (Array.isArray(node) && node.length === 1) {
+    return labelText(node[0]);
+  }
+  return null;
+}
+
 /**
  * 渲染一个带语义变体与尺寸的按钮。
  */
 export function YoButton(props: YoButtonProps): JSX.Element {
+  const resolved = children(() => props.children);
+  const text = createMemo(() => labelText(resolved()));
+
   return (
     <button
       type={props.type ?? "button"}
@@ -45,7 +61,9 @@ export function YoButton(props: YoButtonProps): JSX.Element {
       onClick={props.onClick}
     >
       {props.loading ? <span class="yohu-button__spinner" aria-hidden="true" /> : null}
-      {props.children}
+      <Show when={text() !== null} fallback={resolved()}>
+        <YoSwap keys={text() as string}>{text()}</YoSwap>
+      </Show>
     </button>
   );
 }

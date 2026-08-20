@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { createSignal } from "solid-js";
 import { YoButton } from "./Button";
 
 describe("YoButton", () => {
@@ -43,5 +44,15 @@ describe("YoButton", () => {
     const btn = screen.getByRole("button") as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     expect(btn.querySelector(".yohu-button__spinner")).toBeTruthy();
+  });
+
+  it("文案切换后面名跟着变（测试环境跳过换牌等待）", () => {
+    const [label, setLabel] = createSignal("预览");
+    render(() => <YoButton>{label()}</YoButton>);
+    expect(screen.getByRole("button", { name: "预览" })).toBeTruthy();
+    setLabel("收起预览");
+    expect(screen.getByRole("button", { name: "收起预览" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "预览" })).toBeNull();
+    expect(document.querySelector(".yohu-swap")?.getAttribute("data-resizing")).toBeNull();
   });
 });

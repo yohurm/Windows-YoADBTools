@@ -76,13 +76,26 @@ describe("YoDialog", () => {
     expect(screen.getByRole("button", { name: "确定" })).toBeTruthy();
   });
 
-  it("默认宽度 560px，自定义宽度生效", () => {
+  it("未指定宽度时不写 inline，由 layout token 约束", () => {
     const { container } = render(() => (
       <YoDialog open onClose={() => {}}>
         内容
       </YoDialog>
     ));
-    expect((container.querySelector(".yohu-dialog__panel") as HTMLElement).style.width).toBe("560px");
+    const panel = container.querySelector(".yohu-dialog__panel") as HTMLElement;
+    expect(panel.style.width).toBe("");
+    expect(panel.classList.contains("yohu-dialog__panel--sized")).toBe(false);
+  });
+
+  it("显式宽度写入 inline 并覆盖弹出框上限", () => {
+    const { container } = render(() => (
+      <YoDialog open width={960} onClose={() => {}}>
+        内容
+      </YoDialog>
+    ));
+    const panel = container.querySelector(".yohu-dialog__panel") as HTMLElement;
+    expect(panel.style.width).toBe("960px");
+    expect(panel.classList.contains("yohu-dialog__panel--sized")).toBe(true);
   });
 
   it("open 支持 Accessor 形式（响应式开关）", () => {

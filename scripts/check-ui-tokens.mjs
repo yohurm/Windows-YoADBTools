@@ -4,7 +4,8 @@
  * 组件目录（tokens/ 之外）禁止硬编码色值（#hex / rgb( / hsl(）与硬编码字号（font-size: Npx）。
  * 设计 token 单源：所有色值/字号必须来自 tokens（theme.css 或 colors/typography.ts）。
  * 结构值（边框 1px、z-index 等）不受限。
- * 动效纪律（UI设计系统-v6.md §2.4）：transition/animation 时长必须走 var(--yohu-dur-*)。
+ * 动效纪律（UI设计系统-v6.md §2.4 / 动画系统-v6.md L5）：
+ * transition/animation 时长必须走 var(--yohu-dur-*)；模块禁止 animation 声明与私有 @keyframes。
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -65,6 +66,14 @@ for (const file of files) {
     }
     if (isCss && KEYFRAMES_RE.test(line) && !KEYFRAMES_ALLOW.has(rel) && !inTokens) {
       violations.push(`${rel}:${i + 1}: 禁止私有 @keyframes → ${line.trim()}（须写入 tokens/motion.css）`);
+    }
+    if (
+      isCss &&
+      rel.startsWith("packages/modules/") &&
+      /\banimation\s*:/.test(line) &&
+      !/^\s*\/\*/.test(line)
+    ) {
+      violations.push(`${rel}:${i + 1}: 模块禁止 animation 声明 → ${line.trim()}（须挂 @yohu/ui 配方 class）`);
     }
     if (isCss && DEPRECATED_ALIAS_RE.test(line)) {
       violations.push(`${rel}:${i + 1}: 引用废弃兼容别名 → ${line.trim()}（迁移到 Semantic / --yohu-state-*）`);

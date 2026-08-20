@@ -21,7 +21,7 @@ export interface YoDialogProps {
   open: boolean | Accessor<boolean>;
   /** 标题 */
   title?: string;
-  /** 面板宽度（px），默认 560 */
+  /** 面板宽度（px）。不设则走 `--yohu-layout-dialog-max`（弹出框 400）。显式值用于命令管理等整页对话框。 */
   width?: number;
   /** 面板高度（px）；不设则随内容，受 max-height 约束 */
   height?: number;
@@ -111,8 +111,9 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
           ref={(el) => {
             panel = el;
           }}
+          classList={{ "yohu-dialog__panel--sized": props.width !== undefined }}
           style={{
-            width: `${props.width ?? 560}px`,
+            ...(props.width !== undefined ? { width: `${props.width}px` } : {}),
             height: props.height !== undefined ? `${props.height}px` : undefined,
           }}
         >
