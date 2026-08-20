@@ -1,6 +1,6 @@
 import { For, Show } from "solid-js";
 
-import { Icon, YoBadge, YoIconButton, YoProgressBar } from "@yohu/ui";
+import { Icon, YoBadge, YoIconButton, YoPanel, YoProgressBar } from "@yohu/ui";
 
 import { formatSize } from "./model";
 import { fileStore } from "./store";
@@ -8,8 +8,7 @@ import { fileStore } from "./store";
 export function TransferPanel() {
   return (
     <Show when={fileStore.transfers.length > 0}>
-      <div class="yohu-files__transfers">
-        <div class="yohu-files__transfers-head">传输</div>
+      <YoPanel title="传输" padding="sm">
         <For each={fileStore.transfers}>
           {(transfer) => (
             <div
@@ -70,7 +69,7 @@ export function TransferPanel() {
             </div>
           )}
         </For>
-      </div>
+      </YoPanel>
     </Show>
   );
 }

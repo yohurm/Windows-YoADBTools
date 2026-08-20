@@ -6,7 +6,7 @@ import { For, Show, createEffect, createSignal } from "solid-js";
 
 import { open, save } from "@tauri-apps/plugin-dialog";
 import type { DeviceSession } from "@yohu/api";
-import { YoButton, YoChrome, YoContextMenu, YoDialog, YoEmptyState, YoIconButton, YoTextField, type YoMenuItem } from "@yohu/ui";
+import { YoButton, YoChrome, YoContextMenu, YoDialog, YoEmptyState, YoIconButton, YoPage, YoPanel, YoTextField, type YoMenuItem } from "@yohu/ui";
 
 import { FileTable } from "./FileTable";
 import { PreviewPane } from "./PreviewPane";
@@ -115,7 +115,7 @@ export function FileView(props: DeviceSession) {
   ];
 
   return (
-    <div class="yohu-files">
+    <YoPage class="yohu-files">
       <YoChrome title="文件管理">
           <YoButton onClick={() => void onUpload()}>上传</YoButton>
           <YoButton variant="secondary" disabled={fileStore.singleFile() === undefined} onClick={() => void onDownload()}>
@@ -146,23 +146,28 @@ export function FileView(props: DeviceSession) {
         class="yohu-files__stage yohu-recipe-rail"
         classList={{ "yohu-files__stage--preview-collapsed": !fileStore.ui.previewOpen }}
       >
-        <div class="yohu-files__explorer">
-          <div class="yohu-files__path">
-            <YoIconButton
-              icon="chevron-up"
-              title="上级目录"
-              disabled={parentWithinSafety(fileStore.session.path) === null}
-              onClick={() => void fileStore.goUp()}
-            />
-            <Breadcrumb />
-          </div>
+        <YoPanel
+          variant="pane"
+          class="yohu-files__explorer"
+          header={
+            <div class="yohu-files__path">
+              <YoIconButton
+                icon="chevron-up"
+                title="上级目录"
+                disabled={parentWithinSafety(fileStore.session.path) === null}
+                onClick={() => void fileStore.goUp()}
+              />
+              <Breadcrumb />
+            </div>
+          }
+        >
           <Show
             when={props.selectedSerials[0]}
             fallback={<YoEmptyState icon="folder" title="未选择设备" description="请在左侧设备栏选择在线设备" />}
           >
             <FileTable onContextMenu={(x, y) => setMenu({ x, y })} />
           </Show>
-        </div>
+        </YoPanel>
         <div class="yohu-files__preview-slot" attr:inert={!fileStore.ui.previewOpen ? true : undefined}>
           <PreviewPane />
         </div>
@@ -234,6 +239,6 @@ export function FileView(props: DeviceSession) {
           <div class="yohu-files__error">{createError()}</div>
         </Show>
       </YoDialog>
-    </div>
+    </YoPage>
   );
 }

@@ -4,17 +4,6 @@
  * + 独立预览分区 → 传输面板（卡片式；终态 3s 淡出）。
  * ========================================================================== */
 
-.yohu-files {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  padding: var(--yohu-space-md);
-  gap: var(--yohu-space-md);
-  box-sizing: border-box;
-}
-
 /* ===== 路径栏（面包屑化，逐级可点） ===== */
 
 .yohu-files__path {
@@ -73,7 +62,7 @@
 
 .yohu-files__stage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) calc(var(--yohu-space-md) + var(--yohu-layout-preview));
+  grid-template-columns: minmax(0, 1fr) calc(var(--yohu-layout-page-gap) + var(--yohu-layout-preview));
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -96,14 +85,8 @@
 }
 
 .yohu-files__explorer {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
   min-height: 0;
   min-width: 0;
-  background: var(--yohu-surface);
-  border-radius: var(--yohu-radius-md);
-  overflow: hidden;
 }
 
 .yohu-files__table {
@@ -253,8 +236,6 @@
 }
 
 .yohu-files__preview {
-  display: flex;
-  flex-direction: column;
   flex: 0 0 var(--yohu-layout-preview);
   box-sizing: border-box;
   width: var(--yohu-layout-preview);
@@ -262,19 +243,6 @@
   height: 100%;
   min-height: 0;
   margin-left: var(--yohu-space-md);
-  background: var(--yohu-surface);
-  border-radius: var(--yohu-radius-md);
-  overflow: hidden;
-}
-
-.yohu-files__preview-head {
-  height: var(--yohu-control-height);
-  padding: 0 var(--yohu-space-sm) 0 var(--yohu-space-md);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: var(--yohu-font-weight-semibold);
-  font-size: var(--yohu-font-caption);
 }
 
 .yohu-files__preview-empty {
@@ -317,31 +285,12 @@
 }
 
 .yohu-files__table-list .yohu-empty-state,
-.yohu-files__explorer > .yohu-empty-state {
+.yohu-files__explorer .yohu-empty-state {
   height: 100%;
   flex: 1 1 auto;
 }
 
-/* ===== 传输面板（卡片式；终态 3s 淡出） ===== */
-
-.yohu-files__transfers {
-  flex: none;
-  background: var(--yohu-surface);
-  border-radius: var(--yohu-radius-md);
-  padding: var(--yohu-space-sm) var(--yohu-space-md);
-}
-
-.yohu-files__transfers-head {
-  font-weight: var(--yohu-font-weight-semibold);
-  font-size: var(--yohu-font-body);
-  color: var(--yohu-fg);
-  margin-bottom: var(--yohu-space-xs);
-}
-
-.yohu-files__transfers-empty {
-  font-size: var(--yohu-font-caption);
-  color: var(--yohu-fg-3);
-}
+/* ===== 传输列表（容器走 YoPanel） ===== */
 
 .yohu-files__transfer {
   display: flex;
