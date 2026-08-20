@@ -1,10 +1,11 @@
 import { Show } from "solid-js";
 
-import { YoFileIcon } from "@yohu/ui";
+import { YoFileIcon, YoIconButton } from "@yohu/ui";
 
 import { fileTypeLabel, formatSize } from "./model";
 import { fileStore } from "./store";
 
+/** 独立预览分区（与文件列表卡片并列，不嵌在清单内）。 */
 export function PreviewPane() {
   const preview = () => {
     const list = fileStore.selectedEntries();
@@ -12,8 +13,11 @@ export function PreviewPane() {
   };
 
   return (
-    <aside class="yohu-files__preview" classList={{ "yohu-files__preview--open": fileStore.ui.previewOpen }}>
-      <div class="yohu-files__preview-head">预览</div>
+    <aside class="yohu-files__preview" aria-label="预览">
+      <div class="yohu-files__preview-head">
+        <span>预览</span>
+        <YoIconButton icon="close" title="收起预览" onClick={() => fileStore.togglePreview()} />
+      </div>
       <Show when={preview()} fallback={<div class="yohu-files__preview-empty">选择一个项目以预览</div>}>
         {(entry) => (
           <div class="yohu-files__preview-body">

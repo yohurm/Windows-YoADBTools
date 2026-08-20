@@ -58,4 +58,13 @@ describe("YoTitleBar", () => {
     fireEvent.dblClick(screen.getByRole("button", { name: "最小化" }));
     expect(onToggleMaximize).toHaveBeenCalledTimes(1);
   });
+
+  it("中区为通栏挂载点，可承载 children", () => {
+    const { container } = render(() => (
+      <YoTitleBar title="窗">
+        <span>通栏</span>
+      </YoTitleBar>
+    ));
+    expect(container.querySelector(".yohu-titlebar__center")?.textContent).toContain("通栏");
+  });
 });

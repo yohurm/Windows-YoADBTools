@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   height: var(--yohu-title-bar-height);
-  padding-left: var(--yohu-space-md);
+  padding-left: var(--yohu-space-lg);
   background-color: var(--yohu-canvas);
   color: var(--yohu-fg);
   font-family: var(--yohu-font-sans);
@@ -42,6 +42,7 @@
 .yohu-titlebar__title {
   font-size: var(--yohu-font-caption);
   font-weight: var(--yohu-font-weight-medium);
+  line-height: var(--yohu-font-leading-tight);
   color: var(--yohu-fg);
   white-space: nowrap;
   overflow: hidden;
@@ -51,9 +52,10 @@
 .yohu-titlebar__center {
   flex: 1 1 auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: flex-start;
   min-width: 0;
+  height: 100%;
   pointer-events: none;
 }
 
@@ -61,6 +63,19 @@
   pointer-events: auto;
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+
+/* HarmonyOS 电脑：标题栏内工具栏去掉圆形底板，控件走 Caption / control-sm */
+.yohu-titlebar .yohu-toolbar--chrome .yohu-button {
+  height: var(--yohu-control-height-sm);
+  padding: 0 var(--yohu-space-sm);
+  font-size: var(--yohu-font-caption);
+}
+
+.yohu-titlebar .yohu-toolbar--chrome .yohu-icon-button {
+  width: var(--yohu-control-height-sm);
+  height: var(--yohu-control-height-sm);
+  border-radius: var(--yohu-radius-none);
 }
 
 .yohu-titlebar__trailing {
@@ -73,11 +88,18 @@
 
 .yohu-titlebar__actions {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  height: 100%;
   gap: var(--yohu-space-xs);
   padding-right: var(--yohu-space-sm);
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+
+.yohu-titlebar__actions .yohu-icon-button {
+  width: var(--yohu-layout-titlebar-caption);
+  height: 100%;
+  border-radius: var(--yohu-radius-none);
 }
 
 .yohu-titlebar__captions {

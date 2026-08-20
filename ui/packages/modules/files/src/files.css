@@ -1,7 +1,7 @@
 /* ============================================================================
  * 文件管理（UI设计系统-v6.md §4.3）。
- * 面包屑路径栏 → 四列清单（名称定宽截断 / 类型 / 大小 / 日期吃剩余）+ 可收起预览
- * → 传输面板（卡片式；终态 3s 淡出）。
+ * 面包屑路径栏 → 四列清单（名称定宽截断 / 类型 / 大小 / 日期吃剩余）
+ * + 独立预览分区 → 传输面板（卡片式；终态 3s 淡出）。
  * ========================================================================== */
 
 .yohu-files {
@@ -10,6 +10,9 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  padding: var(--yohu-space-md);
+  gap: var(--yohu-space-md);
+  box-sizing: border-box;
 }
 
 /* ===== 路径栏（面包屑化，逐级可点） ===== */
@@ -18,7 +21,8 @@
   display: flex;
   align-items: center;
   gap: var(--yohu-space-sm);
-  margin-bottom: var(--yohu-space-sm);
+  padding: var(--yohu-space-xs) var(--yohu-space-sm);
+  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   flex-shrink: 0;
   min-width: 0;
 }
@@ -30,11 +34,11 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  padding: 0 var(--yohu-space-sm);
-  height: var(--yohu-control-height);
-  background: var(--yohu-surface);
-  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
-  border-radius: var(--yohu-radius-sm);
+  padding: 0;
+  height: var(--yohu-control-height-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--yohu-radius-none);
   box-sizing: border-box;
 }
 
@@ -65,23 +69,23 @@
   font-size: var(--yohu-font-caption);
 }
 
-/* ===== 主体：四列清单 + 可收起预览 + 传输 ===== */
+/* ===== 主体：圆角分区（清单 | 预览 | 传输） ===== */
 
-.yohu-files__body {
+.yohu-files__stage {
   display: flex;
-  flex-direction: column;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   gap: var(--yohu-space-md);
 }
 
 .yohu-files__explorer {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   min-width: 0;
   background: var(--yohu-surface);
-  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-radius: var(--yohu-radius-md);
   overflow: hidden;
 }
@@ -233,28 +237,24 @@
 }
 
 .yohu-files__preview {
-  flex: 0 0 0;
-  width: 0;
-  overflow: hidden;
-  border-left: 0;
-  transition: flex-basis var(--yohu-dur-normal) var(--yohu-ease-standard);
-}
-
-.yohu-files__preview--open {
-  flex-basis: var(--yohu-layout-preview);
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--yohu-layout-preview);
   width: var(--yohu-layout-preview);
-  border-left: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  min-height: 0;
+  background: var(--yohu-surface);
+  border-radius: var(--yohu-radius-md);
+  overflow: hidden;
 }
 
 .yohu-files__preview-head {
   height: var(--yohu-control-height);
-  padding: 0 var(--yohu-space-md);
+  padding: 0 var(--yohu-space-sm) 0 var(--yohu-space-md);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   font-weight: var(--yohu-font-weight-semibold);
   font-size: var(--yohu-font-caption);
-  background: var(--yohu-surface-2);
-  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
 .yohu-files__preview-empty {
@@ -296,16 +296,19 @@
   font-family: var(--yohu-font-mono);
 }
 
-.yohu-files__table-list .yohu-empty-state {
+.yohu-files__table-list .yohu-empty-state,
+.yohu-files__explorer > .yohu-empty-state {
   height: 100%;
+  flex: 1 1 auto;
 }
 
 /* ===== 传输面板（卡片式；终态 3s 淡出） ===== */
 
 .yohu-files__transfers {
   flex: none;
-  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
-  padding-top: var(--yohu-space-sm);
+  background: var(--yohu-surface);
+  border-radius: var(--yohu-radius-md);
+  padding: var(--yohu-space-sm) var(--yohu-space-md);
 }
 
 .yohu-files__transfers-head {
@@ -324,9 +327,9 @@
   display: flex;
   gap: var(--yohu-space-sm);
   padding: var(--yohu-space-sm) var(--yohu-space-md);
-  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
+  border: none;
   border-radius: var(--yohu-radius-sm);
-  background: var(--yohu-surface);
+  background: var(--yohu-surface-2);
   margin-bottom: var(--yohu-space-xs);
 }
 

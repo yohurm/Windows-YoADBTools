@@ -52,6 +52,7 @@
 
 .yohu-checkbox__label {
   font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-ui);
   color: var(--yohu-fg);
 }
 

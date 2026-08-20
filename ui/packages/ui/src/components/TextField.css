@@ -7,6 +7,7 @@
 
 .yohu-text-field__label {
   font-size: var(--yohu-font-caption);
+  line-height: var(--yohu-font-leading-tight);
   color: var(--yohu-fg-2);
 }
 
@@ -37,6 +38,7 @@
   color: var(--yohu-fg);
   font-family: inherit;
   font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-ui);
 }
 
 .yohu-text-field__input::placeholder {

@@ -14,4 +14,10 @@ describe("YoPanel", () => {
     const { container } = render(() => <YoPanel padding="lg">内容</YoPanel>);
     expect(container.querySelector(".yohu-panel--padding-lg")).toBeTruthy();
   });
+
+  it("pane 变体撑满分区，默认 none 内边距", () => {
+    const { container } = render(() => <YoPanel variant="pane">分栏</YoPanel>);
+    expect(container.querySelector(".yohu-panel--pane")).toBeTruthy();
+    expect(container.querySelector(".yohu-panel--padding-none")).toBeTruthy();
+  });
 });

@@ -11,10 +11,12 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  padding: var(--yohu-space-md);
+  gap: var(--yohu-space-md);
+  box-sizing: border-box;
 }
 
 .yohu-logs__tabs {
-  margin-bottom: var(--yohu-space-sm);
   flex-shrink: 0;
 }
 
@@ -24,7 +26,6 @@
   flex: 1;
   min-height: 0;
   background: var(--yohu-surface);
-  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-radius: var(--yohu-radius-md);
   overflow: hidden;
 }
@@ -36,7 +37,6 @@
   align-items: center;
   gap: var(--yohu-space-sm);
   padding: var(--yohu-space-sm) var(--yohu-space-md);
-  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   flex-shrink: 0;
   min-width: 0;
 }
@@ -198,7 +198,6 @@
   align-items: center;
   gap: var(--yohu-space-md);
   padding: var(--yohu-space-xs) var(--yohu-space-md);
-  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
   font-size: var(--yohu-font-caption);
   color: var(--yohu-fg-2);
 }

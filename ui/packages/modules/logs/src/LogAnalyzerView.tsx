@@ -11,6 +11,7 @@ import {
   Icon,
   YoBadge,
   YoButton,
+  YoChrome,
   YoContextMenu,
   YoDialog,
   YoEmptyState,
@@ -262,7 +263,8 @@ export function LogAnalyzerView(props: DeviceSession) {
 
   return (
     <div class="yohu-logs">
-      <YoToolbar>
+      <YoChrome>
+        <YoToolbar variant="chrome">
         <span class="yohu-module-title">日志分析</span>
         <Show
           when={windowLive()}
@@ -309,7 +311,8 @@ export function LogAnalyzerView(props: DeviceSession) {
         <Show when={logStore.state.overflowed}>
           <YoBadge text="缓冲滞后（已回补）" tone="warn" />
         </Show>
-      </YoToolbar>
+        </YoToolbar>
+      </YoChrome>
 
       <Show
         when={logStore.state.sessions.length > 0}

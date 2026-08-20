@@ -8,6 +8,7 @@
  */
 import { Show, type JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
+import { YoChromeMount } from "./chrome";
 import "./TitleBar.css";
 
 export interface YoTitleBarProps {
@@ -56,7 +57,7 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
         </Show>
         <span class="yohu-titlebar__title">{props.title}</span>
       </div>
-      <div class="yohu-titlebar__center">{props.children}</div>
+      <YoChromeMount class="yohu-titlebar__center">{props.children}</YoChromeMount>
       <div class="yohu-titlebar__trailing">
         <Show when={props.actions}>
           <div class="yohu-titlebar__actions">{props.actions}</div>

@@ -10,15 +10,8 @@
   overflow: auto;
   min-height: 0;
   padding-inline: var(--yohu-layout-page-margin);
+  padding-block: var(--yohu-space-lg);
   box-sizing: border-box;
-}
-
-.yohu-settings__title {
-  margin: 0;
-  font-size: var(--yohu-font-page-title);
-  font-weight: var(--yohu-font-weight-semibold);
-  color: var(--yohu-fg);
-  flex: 0 0 auto;
 }
 
 .yohu-settings .yohu-panel {

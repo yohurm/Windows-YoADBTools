@@ -17,6 +17,7 @@
   color: var(--yohu-fg);
   font-family: inherit;
   font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-ui);
   cursor: pointer;
   box-sizing: border-box;
 }
@@ -60,6 +61,7 @@
   min-height: var(--yohu-control-height);
   padding: 0 var(--yohu-space-sm);
   font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-ui);
   color: var(--yohu-fg);
   cursor: pointer;
   white-space: nowrap;

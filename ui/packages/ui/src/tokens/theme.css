@@ -44,13 +44,19 @@
   --yohu-state-pressed: #00000019;
   --yohu-state-selected: var(--yohu-accent);
   --yohu-state-selected-fg: var(--yohu-fg-on);
+  --yohu-font-caption-m: 10px;
   --yohu-font-caption: 12px;
   --yohu-font-body: 14px;
   --yohu-font-body-strong: 14px;
+  --yohu-font-subtitle-m: 14px;
   --yohu-font-subtitle: 16px;
   --yohu-font-page-title: 18px;
+  --yohu-font-leading-tight: 1.25;
+  --yohu-font-leading-ui: 1.55;
+  --yohu-font-leading-data: 1.4;
   --yohu-font-sans: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
   --yohu-font-mono: "Cascadia Mono", "Consolas", "Courier New", monospace;
+  --yohu-font-weight-light: 300;
   --yohu-font-weight-regular: 400;
   --yohu-font-weight-medium: 500;
   --yohu-font-weight-semibold: 600;
@@ -124,6 +130,8 @@
   --yohu-layout-titlebar-caption-gap: 12px;
   --yohu-layout-titlebar-close-margin: 8px;
   --yohu-layout-titlebar-blur: 32px;
+  --yohu-layout-gutter: 16px;
+  --yohu-layout-grid-max: 2220px;
   --yohu-dur-fast: 100ms;
   --yohu-dur-small: 150ms;
   --yohu-dur-normal: 160ms;
@@ -195,9 +203,11 @@
   --yohu-segment-single: 28px;
   --yohu-segment-hybrid: 44px;
   --yohu-title-bar-height: 40px;
+  --yohu-font-caption-m: 10px;
   --yohu-font-caption: 11px;
   --yohu-font-body: 12.5px;
   --yohu-font-body-strong: 13.5px;
+  --yohu-font-subtitle-m: 13px;
   --yohu-font-subtitle: 15px;
   --yohu-font-page-title: 18px;
 }
@@ -218,5 +228,39 @@ body,
   overflow: hidden;
   background-color: var(--yohu-canvas);
   font-family: var(--yohu-font-sans);
+  font-size: var(--yohu-font-body);
+  font-weight: var(--yohu-font-weight-regular);
+  line-height: var(--yohu-font-leading-ui);
+  line-break: strict;
   color: var(--yohu-fg);
+}
+
+.yohu-type-title {
+  font-size: var(--yohu-font-page-title);
+  font-weight: var(--yohu-font-weight-bold);
+  line-height: var(--yohu-font-leading-tight);
+}
+
+.yohu-type-subtitle {
+  font-size: var(--yohu-font-subtitle);
+  font-weight: var(--yohu-font-weight-medium);
+  line-height: var(--yohu-font-leading-tight);
+}
+
+.yohu-type-body {
+  font-size: var(--yohu-font-body);
+  font-weight: var(--yohu-font-weight-regular);
+  line-height: var(--yohu-font-leading-ui);
+}
+
+.yohu-type-caption {
+  font-size: var(--yohu-font-caption);
+  font-weight: var(--yohu-font-weight-medium);
+  line-height: var(--yohu-font-leading-tight);
+}
+
+.yohu-type-data {
+  font-family: var(--yohu-font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--yohu-font-leading-data);
 }

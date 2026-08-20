@@ -11,11 +11,13 @@ import { open } from "@tauri-apps/plugin-dialog";
 import {
   YoBadge,
   YoButton,
+  YoChrome,
   YoPanel,
   YoSelect,
   YoSwitch,
   YoTextField,
   YoToaster,
+  YoToolbar,
   createToaster,
 } from "@yohu/ui";
 import type { Density, SettingKey, Theme } from "@yohu/api";
@@ -93,7 +95,11 @@ export const SettingsView: Component = () => {
 
   return (
     <div class="yohu-settings">
-      <h1 class="yohu-settings__title">设置</h1>
+      <YoChrome>
+        <YoToolbar variant="chrome">
+          <span class="yohu-module-title">设置</span>
+        </YoToolbar>
+      </YoChrome>
 
       <YoPanel title="工具链">
         <div class="yohu-settings__item">

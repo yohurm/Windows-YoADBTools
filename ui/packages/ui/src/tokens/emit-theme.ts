@@ -10,7 +10,7 @@ import { MotionDuration, MotionEasing } from "./motion";
 import { Radius, RadiusShape } from "./radius";
 import { Spacing } from "./spacing";
 import { DarkStateFill, Ripple, StateFill } from "./state";
-import { FontFamilies, FontSizes, FontSizesCompact, FontWeights } from "./typography";
+import { FontFamilies, FontLeading, FontSizes, FontSizesCompact, FontWeights } from "./typography";
 
 function kebab(name: string): string {
   if (name === "TwoXs") return "2xs";
@@ -55,6 +55,10 @@ function fontSizeVars(sizes: Record<string, number>): Array<[string, string]> {
   return Object.entries(sizes).map(([name, value]) => [`--yohu-font-${kebab(name)}`, `${value}px`]);
 }
 
+function leadingVars(leads: Record<string, number>): Array<[string, string]> {
+  return Object.entries(leads).map(([name, value]) => [`--yohu-font-leading-${kebab(name)}`, String(value)]);
+}
+
 /** 排出完整 theme.css 文本（含页脚结构规则）。 */
 export function emitThemeCss(): string {
   const space: Array<[string, string]> = (Object.entries(Spacing) as Array<[string, number]>).map(
@@ -90,8 +94,10 @@ export function emitThemeCss(): string {
     ["--yohu-state-selected", StateFill.Selected],
     ["--yohu-state-selected-fg", StateFill.SelectedFg],
     ...fontSizeVars(FontSizes),
+    ...leadingVars(FontLeading),
     ["--yohu-font-sans", FontFamilies.Sans],
     ["--yohu-font-mono", FontFamilies.Mono],
+    ["--yohu-font-weight-light", String(FontWeights.Light)],
     ["--yohu-font-weight-regular", String(FontWeights.Regular)],
     ["--yohu-font-weight-medium", String(FontWeights.Medium)],
     ["--yohu-font-weight-semibold", String(FontWeights.Semibold)],
@@ -164,7 +170,41 @@ body,
   overflow: hidden;
   background-color: var(--yohu-canvas);
   font-family: var(--yohu-font-sans);
+  font-size: var(--yohu-font-body);
+  font-weight: var(--yohu-font-weight-regular);
+  line-height: var(--yohu-font-leading-ui);
+  line-break: strict;
   color: var(--yohu-fg);
+}
+
+.yohu-type-title {
+  font-size: var(--yohu-font-page-title);
+  font-weight: var(--yohu-font-weight-bold);
+  line-height: var(--yohu-font-leading-tight);
+}
+
+.yohu-type-subtitle {
+  font-size: var(--yohu-font-subtitle);
+  font-weight: var(--yohu-font-weight-medium);
+  line-height: var(--yohu-font-leading-tight);
+}
+
+.yohu-type-body {
+  font-size: var(--yohu-font-body);
+  font-weight: var(--yohu-font-weight-regular);
+  line-height: var(--yohu-font-leading-ui);
+}
+
+.yohu-type-caption {
+  font-size: var(--yohu-font-caption);
+  font-weight: var(--yohu-font-weight-medium);
+  line-height: var(--yohu-font-leading-tight);
+}
+
+.yohu-type-data {
+  font-family: var(--yohu-font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--yohu-font-leading-data);
 }
 `;
 }

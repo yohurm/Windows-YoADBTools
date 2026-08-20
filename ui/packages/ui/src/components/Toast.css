@@ -21,6 +21,7 @@
   background-color: var(--yohu-surface);
   color: var(--yohu-fg);
   font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-ui);
   box-sizing: border-box;
   animation: yohu-toast-in var(--yohu-dur-normal) var(--yohu-ease-decel);
 }

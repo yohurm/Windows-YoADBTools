@@ -10,6 +10,7 @@
 .yohu-cm {
   display: grid;
   grid-template-columns: minmax(var(--yohu-layout-cm-group-min), var(--yohu-layout-cm-group-max)) minmax(var(--yohu-layout-cm-cmd-min), var(--yohu-layout-cm-cmd-max)) minmax(0, 1fr);
+  gap: var(--yohu-space-xs);
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -22,7 +23,6 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border-right: var(--yohu-stroke-hairline) solid var(--yohu-border);
   background: var(--yohu-surface-2);
 }
 
@@ -30,7 +30,6 @@
 .yohu-cm__commands .yohu-toolbar {
   margin: 0;
   padding: var(--yohu-space-xs) var(--yohu-space-sm);
-  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
 .yohu-cm__caption {

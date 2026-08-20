@@ -28,6 +28,9 @@ const YO_PUBLIC = [
   "YoToast",
   "YoToaster",
   // 窗口铬
+  "YoChrome",
+  "YoChromeRoot",
+  "YoChromeMount",
   "YoTitleBar",
   "YoStatusBar",
 ] as const;

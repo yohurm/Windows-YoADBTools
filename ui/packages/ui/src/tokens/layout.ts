@@ -54,6 +54,20 @@ export const Layout = {
   TitlebarCloseMargin: 8,
   /** 标题栏渐变模糊下延 32vp（沉浸光感） */
   TitlebarBlur: 32,
+  /** 12 列栅格 gutter（≥840vp） */
+  Gutter: 16,
+  /** 栅格最大使用宽度 2220vp，超出左右留白 */
+  GridMax: 2220,
+} as const;
+
+/** 数量约束（不是 CSS px，禁止塞进 Layout）。 */
+export const LayoutLimits = {
+  /** 电脑标题栏右侧图标最多 3 个（含菜单） */
+  TitlebarMaxActions: 3,
+  /** 三分栏 C 栏工具栏最多 6 个图标 */
+  ToolbarMaxIcons: 6,
+  /** 侧边栏宽度 ≤ 窗口宽 40% */
+  SidebarMaxPercent: 40,
 } as const;
 
 /** 描边宽度（结构线 / 强调条）。 */

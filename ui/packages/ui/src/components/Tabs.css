@@ -17,6 +17,7 @@
   border-bottom: var(--yohu-stroke-accent) solid transparent;
   color: var(--yohu-fg-2);
   font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-tight);
   cursor: pointer;
   white-space: nowrap;
   user-select: none;

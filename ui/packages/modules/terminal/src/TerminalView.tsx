@@ -9,6 +9,7 @@ import { For, Show, createEffect, createMemo, createSignal, onMount } from "soli
 import {
   YoBadge,
   YoButton,
+  YoChrome,
   YoDialog,
   YoEmptyState,
   YoIconButton,
@@ -248,15 +249,17 @@ export function TerminalView() {
 
   return (
     <div class="yohu-terminal">
-      <YoToolbar>
-        <span class="yohu-module-title">ADB 命令终端</span>
-        <YoButton onClick={run} loading={running()} disabled={!selection()}>
-          执行
-        </YoButton>
-        <YoButton variant="secondary" onClick={() => setManagerOpen(true)}>
-          命令管理
-        </YoButton>
-      </YoToolbar>
+      <YoChrome>
+        <YoToolbar variant="chrome">
+          <span class="yohu-module-title">ADB 命令终端</span>
+          <YoButton onClick={run} loading={running()} disabled={!selection()}>
+            执行
+          </YoButton>
+          <YoButton variant="secondary" onClick={() => setManagerOpen(true)}>
+            命令管理
+          </YoButton>
+        </YoToolbar>
+      </YoChrome>
 
       <div class="yohu-terminal__body">
         <div class="yohu-terminal__library">

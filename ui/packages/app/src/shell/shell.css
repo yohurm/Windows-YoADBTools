@@ -23,6 +23,16 @@
   overflow: hidden;
 }
 
+.yohu-layout--rail-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+.yohu-layout--rail-collapsed .yohu-layout__rail {
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .yohu-layout__rail {
   grid-row: 1;
   grid-column: 1;
@@ -30,7 +40,6 @@
   flex-direction: column;
   overflow: hidden;
   background: transparent;
-  border-right: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
 .yohu-layout__content {
@@ -42,7 +51,7 @@
   min-height: 0;
   overflow: hidden;
   background: transparent;
-  padding: var(--yohu-space-md);
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -58,11 +67,11 @@
 }
 
 .yohu-module-title {
-  font-size: var(--yohu-font-page-title);
-  font-weight: var(--yohu-font-weight-semibold);
+  font-size: var(--yohu-font-subtitle);
+  font-weight: var(--yohu-font-weight-bold);
   color: var(--yohu-fg);
   margin-right: var(--yohu-space-sm);
-  line-height: 1;
+  line-height: var(--yohu-font-leading-tight);
   display: inline-flex;
   align-items: center;
 }
@@ -74,7 +83,6 @@
   flex-direction: column;
   gap: var(--yohu-space-sm);
   padding: var(--yohu-layout-rail-inset);
-  border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   flex: 0 1 auto;
   max-height: 42%;
   min-height: 0;
@@ -142,6 +150,7 @@
 .yohu-device-rail__info {
   display: flex;
   flex-direction: column;
+  gap: var(--yohu-space-2xs);
   min-width: 0;
   flex: 1;
 }
@@ -149,6 +158,7 @@
 .yohu-device-rail__model {
   font-weight: var(--yohu-font-weight-semibold);
   font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-tight);
   color: var(--yohu-fg);
   white-space: nowrap;
   overflow: hidden;
@@ -157,7 +167,9 @@
 
 .yohu-device-rail__serial {
   font-family: var(--yohu-font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--yohu-font-caption);
+  line-height: var(--yohu-font-leading-data);
   color: var(--yohu-fg-3);
   white-space: nowrap;
   overflow: hidden;
@@ -171,7 +183,7 @@
   align-items: flex-start;
   gap: var(--yohu-space-xs);
   padding: var(--yohu-space-sm) var(--yohu-space-md);
-  border: var(--yohu-stroke-hairline) dashed var(--yohu-border);
+  background: var(--yohu-surface);
   border-radius: var(--yohu-radius-sm);
   font-size: var(--yohu-font-caption);
   color: var(--yohu-fg-3);

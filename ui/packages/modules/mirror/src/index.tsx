@@ -3,7 +3,7 @@
  */
 
 import { registerModule } from "@yohu/app";
-import { YoEmptyState } from "@yohu/ui";
+import { YoChrome, YoEmptyState, YoToolbar } from "@yohu/ui";
 
 registerModule({
   id: "screen-mirror",
@@ -12,6 +12,13 @@ registerModule({
   selectionMode: "none",
   isPlanned: true,
   Component: () => (
-    <YoEmptyState icon="mirror" title="投屏显示" description="模块开发中，敬请期待" />
+    <>
+      <YoChrome>
+        <YoToolbar variant="chrome">
+          <span class="yohu-module-title">投屏显示</span>
+        </YoToolbar>
+      </YoChrome>
+      <YoEmptyState icon="mirror" title="投屏显示" description="模块开发中，敬请期待" />
+    </>
   ),
 });

@@ -77,5 +77,7 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
     expect(cssVarValue("--yohu-layout-rail-inset")).toBe(`${Layout.RailInset}px`);
     expect(cssVarValue("--yohu-layout-settings-control-max")).toBe(`${Layout.SettingsControlMax}px`);
     expect(cssVarValue("--yohu-layout-switch-w")).toBe(`${Layout.SwitchW}px`);
+    expect(cssVarValue("--yohu-layout-gutter")).toBe(`${Layout.Gutter}px`);
+    expect(cssVarValue("--yohu-layout-grid-max")).toBe(`${Layout.GridMax}px`);
   });
 });

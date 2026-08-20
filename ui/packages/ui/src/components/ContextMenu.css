@@ -21,6 +21,7 @@
   color: var(--yohu-fg);
   font: inherit;
   font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-ui);
   text-align: left;
   cursor: pointer;
 }

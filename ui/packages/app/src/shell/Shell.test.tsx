@@ -322,6 +322,15 @@ describe("AppLayout 窗口铬", () => {
     const buttons = bar?.querySelectorAll(".yohu-titlebar__caption") ?? [];
     expect([...buttons].map((b) => b.getAttribute("aria-label"))).toEqual(["最大化", "最小化", "关闭"]);
     expect(document.querySelector(".yohu-window")).toBeTruthy();
+    expect(document.querySelector(".yohu-titlebar__center")).toBeTruthy();
+  });
+
+  it("侧栏可收起为抽屉", () => {
+    render(() => <AppLayout activeModuleId={() => "adb-terminal"} onNavigate={() => undefined} />);
+    fireEvent.click(screen.getByRole("button", { name: "收起侧栏" }));
+    expect(document.querySelector(".yohu-layout--rail-collapsed")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "展开侧栏" }));
+    expect(document.querySelector(".yohu-layout--rail-collapsed")).toBeNull();
   });
 });
 

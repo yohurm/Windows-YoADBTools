@@ -8,6 +8,8 @@ export {
   Colors,
   DarkColors,
   FontSizes,
+  FontSizesCompact,
+  FontLeading,
   FontWeights,
   FontFamilies,
   Spacing,
@@ -15,6 +17,7 @@ export {
   Radius,
   RadiusShape,
   Layout,
+  LayoutLimits,
   Stroke,
   FocusRing,
   Elevation,
@@ -80,7 +83,7 @@ export type { YoProgressBarProps } from "./components/ProgressBar";
 
 // —— 导航 ——
 export { YoToolbar } from "./components/Toolbar";
-export type { YoToolbarProps } from "./components/Toolbar";
+export type { YoToolbarProps, YoToolbarVariant } from "./components/Toolbar";
 
 export { YoTabs } from "./components/Tabs";
 export type { YoTabsProps, YoTabItem, YoTabDot, YoTabDotTone } from "./components/Tabs";
@@ -95,7 +98,7 @@ export { YoColResizer } from "./components/ColResizer";
 export type { YoColResizerProps } from "./components/ColResizer";
 
 export { YoPanel } from "./components/Panel";
-export type { YoPanelProps, YoPanelPadding } from "./components/Panel";
+export type { YoPanelProps, YoPanelPadding, YoPanelVariant } from "./components/Panel";
 
 // —— 反馈 ——
 export { YoEmptyState } from "./components/EmptyState";
@@ -111,6 +114,7 @@ export { YoToast, YoToaster, createToaster } from "./components/Toast";
 export type { ToastItem, ToastTone, Toaster, YoToastProps, YoToasterProps } from "./components/Toast";
 
 // —— 窗口铬 ——
+export { YoChrome, YoChromeRoot, YoChromeMount } from "./components/chrome";
 export { YoTitleBar } from "./components/TitleBar";
 export type { YoTitleBarProps } from "./components/TitleBar";
 
