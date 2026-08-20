@@ -1,4 +1,5 @@
 .yohu-tabs {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: var(--yohu-space-xs);
@@ -23,14 +24,11 @@
   user-select: none;
   box-sizing: border-box;
   --yohu-ripple-inset: 0 0 var(--yohu-stroke-accent);
-  transition:
-    color var(--yohu-motion-effects-fast),
-    border-bottom-color var(--yohu-motion-spatial-small);
+  transition: color var(--yohu-motion-effects-fast);
 }
 
 .yohu-tabs__tab--active {
   color: var(--yohu-accent);
-  border-bottom-color: var(--yohu-accent);
 }
 
 .yohu-tabs__title {

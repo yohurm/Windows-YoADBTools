@@ -14,6 +14,7 @@ describe("YoSegmentedButton", () => {
     ));
     expect(screen.getByRole("radiogroup", { name: "划分方式" })).toBeTruthy();
     expect(container.querySelector(".yohu-segmented--tab")).toBeTruthy();
+    expect(container.querySelector(".yohu-recipe-indicator--thumb")).toBeTruthy();
     expect(screen.getByRole("radio", { name: "包名" }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByRole("radio", { name: "PID" }).getAttribute("aria-checked")).toBe("false");
   });

@@ -81,17 +81,49 @@ describe("动效 token 单一事实源契约", () => {
     expect(MotionDuration.toast).toBe("3s");
   });
 
-  it("标准/减速/加速曲线符合 HarmonyOS 规范值", () => {
+  it("标准/减速/加速/强调曲线符合规范值", () => {
     expect(MotionEasing.standard).toBe("cubic-bezier(0.4, 0, 0.2, 1)");
     expect(MotionEasing.decel).toBe("cubic-bezier(0, 0, 0.4, 1)");
     expect(MotionEasing.accel).toBe("cubic-bezier(0.4, 0, 1, 1)");
+    expect(MotionEasing.emphasized).toBe("cubic-bezier(0.2, 0, 0, 1)");
   });
 
-  it("弹簧常量为鸿蒙 interpolatingSpring 原值（v1 不发 CSS）", () => {
+  it("跟手弹簧写入 theme.css，且曲线过冲后回到 1", () => {
+    expect(MotionEasing.spring.startsWith("linear(")).toBe(true);
+    expect(cssVarValue("--yohu-ease-spring")).toBe(MotionEasing.spring);
+    const values = MotionEasing.spring
+      .slice("linear(".length, -1)
+      .split(",")
+      .map((part) => Number.parseFloat(part.trim()));
+    expect(values[0]).toBe(0);
+    expect(values[values.length - 1]).toBe(1);
+    expect(Math.max(...values)).toBeGreaterThan(1);
+    expect(MotionSpec.spatialSmall).toEqual({ duration: "small", easing: "spring" });
+    expect(MotionSpec.spatialStretch).toEqual({ duration: "local", easing: "springSoft" });
+    expect(MotionSpec.spatialLocal).toEqual({ duration: "local", easing: "emphasized" });
+  });
+
+  it("软弹簧过冲后回到 1，写入 spring-soft", () => {
+    expect(MotionEasing.springSoft.startsWith("linear(")).toBe(true);
+    expect(cssVarValue("--yohu-ease-spring-soft")).toBe(MotionEasing.springSoft);
+    const values = MotionEasing.springSoft
+      .slice("linear(".length, -1)
+      .split(",")
+      .map((part) => Number.parseFloat(part.trim()));
+    expect(values[0]).toBe(0);
+    expect(values[values.length - 1]).toBe(1);
+    expect(Math.max(...values)).toBeGreaterThan(1);
+  });
+
+  it("弹簧常量含鸿蒙原值、snap 位移与 soft 尺寸参数", () => {
     expect(MotionSpring.stiffness).toBe(128);
     expect(MotionSpring.damping).toBe(12);
     expect(MotionSpring.mass).toBe(1);
-    expect(themeCss).not.toContain("--yohu-spring");
+    expect(MotionSpring.snapStiffness).toBe(711);
+    expect(MotionSpring.snapDamping).toBe(40);
+    expect(MotionSpring.softStiffness).toBe(531);
+    expect(MotionSpring.softDamping).toBe(29);
+    expect(themeCss).not.toContain("--yohu-spring-stiffness");
   });
 
   it("motionDurationMs 解析 ms 与 s", () => {

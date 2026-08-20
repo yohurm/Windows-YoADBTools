@@ -5,7 +5,7 @@
  *
  * 架构：
  * - 选中/键盘算法在 segmented-model.ts
- * - 选择块几何按 item 实测盒（segmented-layout.ts），不靠 CSS 均分变量
+ * - 选择块走 YoIndicator（配方 indicator），几何按 item 实测盒
  * - 类型 tab / capsule 只换色板，不换交互
  *
  * 默认 tab：白选择块 + 32vp 圆角 + OUTER_DEFAULT_XS 阴影 + 主色字。
@@ -13,15 +13,14 @@
  *
  * 键盘：radiogroup + ←/→/↑/↓ 循环；Home/End 首尾；焦点跟随选中。
  */
-import { For, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { For } from "solid-js";
 import type { JSX } from "solid-js";
 
 import { Icon, type IconName } from "../icons";
-import { EMPTY_THUMB, measureThumb, thumbReady, type ThumbBox } from "./segmented-layout";
+import { YoIndicator } from "../motion/indicator";
 import {
   isHybridItems,
   resolveKeyIndex,
-  resolveSelectedIndex,
   type YoSegmentedButtonSize,
   type YoSegmentedType,
 } from "./segmented-model";
@@ -66,25 +65,12 @@ export interface YoSegmentedButtonProps {
  * 渲染单选分段按钮。
  */
 export function YoSegmentedButton(props: YoSegmentedButtonProps): JSX.Element {
-  let trackRef: HTMLDivElement | undefined;
   const itemRefs: Array<HTMLButtonElement | undefined> = [];
-  const [thumb, setThumb] = createSignal<ThumbBox>(EMPTY_THUMB);
 
-  const selectedIndex = (): number => resolveSelectedIndex(props.items, props.value);
   const kind = (): YoSegmentedType => props.type ?? "tab";
   const size = (): YoSegmentedButtonSize => props.size ?? "md";
   const hybrid = (): boolean => isHybridItems(props.items);
   const iconPx = (): number => (hybrid() ? 20 : size() === "sm" ? 16 : 20);
-
-  const layoutThumb = (): void => {
-    const track = trackRef;
-    const item = itemRefs[selectedIndex()];
-    if (!track || !item) {
-      setThumb(EMPTY_THUMB);
-      return;
-    }
-    setThumb(measureThumb(track.getBoundingClientRect(), item.getBoundingClientRect()));
-  };
 
   const commitIndex = (index: number, focus: boolean): void => {
     if (props.disabled) return;
@@ -107,36 +93,8 @@ export function YoSegmentedButton(props: YoSegmentedButtonProps): JSX.Element {
     commitIndex(next, true);
   };
 
-  createEffect(() => {
-    itemRefs.length = props.items.length;
-    props.value;
-    props.size;
-    props.type;
-    queueMicrotask(layoutThumb);
-  });
-
-  onMount(() => {
-    layoutThumb();
-    if (typeof ResizeObserver === "undefined" || !trackRef) return;
-    const observer = new ResizeObserver(() => layoutThumb());
-    observer.observe(trackRef);
-    onCleanup(() => observer.disconnect());
-  });
-
-  const thumbStyle = (): JSX.CSSProperties => {
-    const box = thumb();
-    return {
-      width: `${box.width}px`,
-      height: `${box.height}px`,
-      transform: `translate3d(${box.x}px, ${box.y}px, 0)`,
-    };
-  };
-
   return (
     <div
-      ref={(el) => {
-        trackRef = el;
-      }}
       class="yohu-segmented"
       classList={{
         [`yohu-segmented--${kind()}`]: true,
@@ -149,12 +107,7 @@ export function YoSegmentedButton(props: YoSegmentedButtonProps): JSX.Element {
       aria-disabled={props.disabled || undefined}
       onKeyDown={onGroupKeyDown}
     >
-      <div
-        class="yohu-segmented__thumb"
-        classList={{ "yohu-segmented__thumb--ready": thumbReady(thumb()) }}
-        style={thumbStyle()}
-        aria-hidden="true"
-      />
+      <YoIndicator follow={props.value} variant="thumb" selector=".yohu-segmented__item--selected" />
       <For each={props.items}>
         {(item, index) => {
           const selected = () => item.value === props.value;

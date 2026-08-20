@@ -29,23 +29,9 @@ export const MotionDuration = {
 
 export type MotionDurationName = keyof typeof MotionDuration;
 
-/** 缓动曲线：standard（持续）/ decel（进场）/ accel（出场）/ loop（循环指示器）。 */
-export const MotionEasing = {
-  /** 标准缓动 cubic-bezier(0.4, 0, 0.2, 1)：始终在视线内的物体 */
-  standard: "cubic-bezier(0.4, 0, 0.2, 1)",
-  /** 减速缓动 cubic-bezier(0, 0, 0.4, 1)：视线中新出现的物体 */
-  decel: "cubic-bezier(0, 0, 0.4, 1)",
-  /** 加速缓动 cubic-bezier(0.4, 0, 1, 1)：出场（配对减速） */
-  accel: "cubic-bezier(0.4, 0, 1, 1)",
-  /** 循环缓动 ease-in-out：不确定指示器扫动 */
-  loop: "ease-in-out",
-} as const;
-
-export type MotionEasingName = keyof typeof MotionEasing;
-
 /**
- * 鸿蒙弹簧参数（文档/测试常量，v1 不发 CSS）。
- * interpolatingSpring：Stiffness 128 / Damping 12 / Mass 1；springMotion 等价 Response 0.555 / DampingFraction 0.53。
+ * 鸿蒙弹簧：页面级 interpolatingSpring（Stiffness 128 / Damping 12 / Mass 1）。
+ * snap*：指示器位移（ζ≈0.75，约 4% 过冲）；soft*：尺寸滞后（更软、过冲略大）。
  */
 export const MotionSpring = {
   stiffness: 128,
@@ -54,7 +40,55 @@ export const MotionSpring = {
   velocity: 0,
   response: 0.555,
   dampingFraction: 0.53,
+  snapStiffness: 711,
+  snapDamping: 40,
+  softStiffness: 531,
+  softDamping: 29,
 } as const;
+
+/** 欠阻尼弹簧 0→1 采样为 CSS `linear()`（WebView2 Chromium）。 */
+export function springCssEasing(
+  stiffness: number = MotionSpring.snapStiffness,
+  damping: number = MotionSpring.snapDamping,
+  mass: number = MotionSpring.mass,
+  samples = 24,
+): string {
+  const omega = Math.sqrt(stiffness / mass);
+  const zeta = damping / (2 * Math.sqrt(stiffness * mass));
+  const wd = omega * Math.sqrt(Math.max(1e-6, 1 - zeta * zeta));
+  const settle = 4 / (zeta * omega);
+  const at = (time: number): number => {
+    const envelope = Math.exp(-zeta * omega * time);
+    return 1 - envelope * (Math.cos(wd * time) + ((zeta * omega) / wd) * Math.sin(wd * time));
+  };
+  const stops: string[] = ["0"];
+  for (let i = 1; i < samples; i++) {
+    const t = i / samples;
+    stops.push(`${at(t * settle).toFixed(4)} ${(t * 100).toFixed(1)}%`);
+  }
+  stops.push("1");
+  return `linear(${stops.join(", ")})`;
+}
+
+/** 缓动曲线：standard / decel / accel / emphasized / spring / springSoft / loop。 */
+export const MotionEasing = {
+  /** 标准缓动 cubic-bezier(0.4, 0, 0.2, 1)：始终在视线内的物体 */
+  standard: "cubic-bezier(0.4, 0, 0.2, 1)",
+  /** 减速缓动 cubic-bezier(0, 0, 0.4, 1)：视线中新出现的物体 */
+  decel: "cubic-bezier(0, 0, 0.4, 1)",
+  /** 加速缓动 cubic-bezier(0.4, 0, 1, 1)：出场（配对减速） */
+  accel: "cubic-bezier(0.4, 0, 1, 1)",
+  /** 强调减速 cubic-bezier(0.2, 0, 0, 1)：折叠等局部空间，尾段更长 */
+  emphasized: "cubic-bezier(0.2, 0, 0, 1)",
+  /** 循环缓动 ease-in-out：不确定指示器扫动 */
+  loop: "ease-in-out",
+  /** 跟手弹簧：位移 */
+  spring: springCssEasing(),
+  /** 软弹簧：滑块宽高滞后，形成拉伸回弹 */
+  springSoft: springCssEasing(MotionSpring.softStiffness, MotionSpring.softDamping),
+} as const;
+
+export type MotionEasingName = keyof typeof MotionEasing;
 
 /** 语义规格：组件引用名称，禁止自行拼 duration+easing。 */
 export const MotionSpec = {
@@ -64,10 +98,12 @@ export const MotionSpec = {
   effectsEnter: { duration: "normal", easing: "decel" },
   /** 淡出（比入场短） */
   effectsExit: { duration: "local", easing: "accel" },
-  /** 滑块 / 指示器 */
-  spatialSmall: { duration: "small", easing: "standard" },
+  /** 滑块位移 / 开关：150ms 弹簧 */
+  spatialSmall: { duration: "small", easing: "spring" },
+  /** 滑块宽高滞后：200ms 软弹簧（拉伸） */
+  spatialStretch: { duration: "local", easing: "springSoft" },
   /** 折叠高度 */
-  spatialLocal: { duration: "local", easing: "standard" },
+  spatialLocal: { duration: "local", easing: "emphasized" },
   /** 侧栏宽度 */
   spatialPanel: { duration: "slow", easing: "standard" },
   /** Dialog 入场 */

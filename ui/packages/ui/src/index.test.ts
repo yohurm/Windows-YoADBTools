@@ -33,6 +33,7 @@ const YO_PUBLIC = [
   "YoPresence",
   "YoCollapse",
   "YoSwap",
+  "YoIndicator",
   // 窗口铬
   "YoChrome",
   "YoTitleBar",

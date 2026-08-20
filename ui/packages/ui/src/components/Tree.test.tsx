@@ -75,6 +75,7 @@ describe("YoTree", () => {
     expect(row?.classList.contains("yohu-interactive--selected")).toBe(true);
     expect(row?.classList.contains("yohu-tree__row--selected")).toBe(false);
     expect(row?.getAttribute("aria-selected")).toBe("true");
+    expect(document.querySelector(".yohu-tree .yohu-recipe-indicator--fill")).toBeTruthy();
   });
 
   it("键盘 ← 未展开时跳到父节点", () => {

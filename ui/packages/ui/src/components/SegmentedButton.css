@@ -20,33 +20,15 @@
   min-height: var(--yohu-segment-hybrid);
 }
 
-.yohu-segmented__thumb {
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  left: 0;
-  border-radius: var(--yohu-radius-xl);
-  opacity: 0;
-  pointer-events: none;
-  box-sizing: border-box;
-  transition:
-    transform var(--yohu-motion-spatial-small),
-    width var(--yohu-motion-spatial-small),
-    height var(--yohu-motion-spatial-small),
-    opacity var(--yohu-motion-effects-fast);
-}
-
-.yohu-segmented__thumb--ready {
-  opacity: 1;
-}
-
-.yohu-segmented--tab .yohu-segmented__thumb {
+.yohu-segmented--tab .yohu-recipe-indicator--thumb {
   background: var(--yohu-surface);
   box-shadow: var(--yohu-shadow-xs);
+  border-radius: var(--yohu-radius-xl);
 }
 
-.yohu-segmented--capsule .yohu-segmented__thumb {
+.yohu-segmented--capsule .yohu-recipe-indicator--thumb {
   background: var(--yohu-accent);
+  border-radius: var(--yohu-radius-xl);
 }
 
 .yohu-segmented__item {

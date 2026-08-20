@@ -15,6 +15,7 @@ import { For, Show, createMemo, createSignal } from "solid-js";
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
 import { YoCollapse } from "../motion/collapse";
+import { YoIndicator } from "../motion/indicator";
 import { YoBadge } from "./Badge";
 import "./Tree.css";
 
@@ -223,6 +224,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
 
   return (
     <div class="yohu-tree" role="tree" aria-label="树" tabindex={0} onKeyDown={onTreeKeyDown}>
+      <YoIndicator follow={selected()} variant="fill" />
       {renderNodes(props.data, 0)}
     </div>
   );

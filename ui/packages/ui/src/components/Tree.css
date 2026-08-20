@@ -1,4 +1,5 @@
 .yohu-tree {
+  position: relative;
   font-family: var(--yohu-font-sans);
   color: var(--yohu-fg);
   background-color: var(--yohu-surface);

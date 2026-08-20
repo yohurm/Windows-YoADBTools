@@ -8,11 +8,12 @@
  * - ←/→ 循环切换（自动激活）；Home/End 首尾；Delete 关闭（提供 onClose 时，自动聚焦相邻）
  * - 关闭按钮 `aria-label=close`；`+` 新建按钮 `aria-label=new tab`
  *
- * 视觉：激活项 Accent 下划线（transition 用动效 token）；dot 为状态圆点。
+ * 视觉：激活项 Accent 下划线由 YoIndicator 在项之间滑动；hover 仍走 ripple。
  */
 import { For, createSignal, onMount } from "solid-js";
 import type { JSX } from "solid-js";
 import { Icon } from "../icons";
+import { YoIndicator } from "../motion/indicator";
 import "./Tabs.css";
 
 /** 圆点色调 */
@@ -119,6 +120,7 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
       aria-label="会话"
       onKeyDown={onTablistKeyDown}
     >
+      <YoIndicator follow={props.activeId} variant="underline" selector=".yohu-tabs__tab--active" />
       <For each={props.tabs}>
         {(tab) => {
           const active = (): boolean => tab.id === props.activeId;

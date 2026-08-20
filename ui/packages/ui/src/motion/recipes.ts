@@ -14,5 +14,8 @@ export const PRESENCE_EXIT_DURATION: Record<PresenceRecipe, MotionDurationName> 
 /** 按钮文案槽：与侧栏/预览栏同一 spatial-panel 宽度过渡。 */
 export const SWAP_DURATION: MotionDurationName = "slow";
 
+/** 选中滑块位移默认档：邻项 150ms 弹簧；短跳/跨栏由 YoIndicator 按行程改写。 */
+export const INDICATOR_DURATION: MotionDurationName = "small";
+
 /** 传输卡等一次性条目：停留后再播 dismiss-fade；须与 CSS calc(toast − slow) 对齐。 */
 export const DISMISS_HOLD_DURATION: MotionDurationName = "toast";

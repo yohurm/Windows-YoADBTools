@@ -14,6 +14,7 @@ import { For, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type { JSX } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Icon } from "../icons";
+import { YoIndicator } from "../motion/indicator";
 import { YoPresence } from "../motion/presence";
 import { Spacing } from "../tokens/spacing";
 import {
@@ -70,7 +71,7 @@ function estimateMenuHeight(menu: HTMLElement, optionCount: number, rowHeight: n
   return Math.max(measured, estimated);
 }
 
-function writeBox(menu: HTMLUListElement, box: PlacePopoverResult): void {
+function writeBox(menu: HTMLElement, box: PlacePopoverResult): void {
   const s = boxStyle(box);
   menu.style.top = String(s.top ?? "auto");
   menu.style.bottom = String(s.bottom ?? "auto");
@@ -91,7 +92,7 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
   const [menuStyle, setMenuStyle] = createSignal<JSX.CSSProperties>({});
   let rootRef: HTMLDivElement | undefined;
   let triggerRef: HTMLButtonElement | undefined;
-  let menuRef: HTMLUListElement | undefined;
+  let menuRef: HTMLDivElement | undefined;
 
   const selected = (): YoSelectOption | undefined => props.options.find((o) => o.value === props.value);
 
@@ -250,7 +251,7 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
       </button>
       <Portal mount={document.body}>
         <YoPresence when={open()} recipe="popover">
-          <ul
+          <div
             ref={(el) => {
               menuRef = el;
               if (el) layoutMenu();
@@ -260,9 +261,10 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
             role="listbox"
             style={menuStyle()}
           >
+            <YoIndicator follow={props.value} variant="fill" />
             <For each={props.options}>
               {(option, index) => (
-                <li
+                <div
                   id={optionDomId(option.value)}
                   class="yohu-select__option yohu-interactive"
                   classList={{
@@ -276,10 +278,10 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
                 >
                   {/* 包一层元素：.yohu-interactive > * 才能抬到选中片之上 */}
                   <span class="yohu-select__option-label">{option.label}</span>
-                </li>
+                </div>
               )}
             </For>
-          </ul>
+          </div>
         </YoPresence>
       </Portal>
     </div>

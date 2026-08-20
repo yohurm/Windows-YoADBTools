@@ -135,6 +135,7 @@ describe("YoVirtualList", () => {
     expect(rows[2]?.getAttribute("tabindex")).toBe("0");
     expect(rows[0]?.getAttribute("tabindex")).toBe("-1");
     expect(rows[0]?.getAttribute("aria-selected")).toBe("false");
+    expect(container.querySelector(".yohu-virtual-list__inner .yohu-recipe-indicator--fill")).toBeTruthy();
   });
 
   it("键盘 ArrowDown/ArrowUp 移动选中并聚焦目标行", async () => {

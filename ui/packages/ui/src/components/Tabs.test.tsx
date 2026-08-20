@@ -47,11 +47,12 @@ describe("YoTabs", () => {
   });
 
   it("roving tabindex：仅激活 tab 在 Tab 序中（可达性）", () => {
-    render(() => <YoTabs tabs={TABS} activeId="a" />);
+    const { container } = render(() => <YoTabs tabs={TABS} activeId="a" />);
     const tabs = screen.getAllByRole("tab");
     expect(tabs[0]!.getAttribute("tabindex")).toBe("0");
     expect(tabs[1]!.getAttribute("tabindex")).toBe("-1");
     expect(tabs[2]!.getAttribute("tabindex")).toBe("-1");
+    expect(container.querySelector(".yohu-recipe-indicator--underline")).toBeTruthy();
   });
 
   it("键盘 →/← 循环切换并激活", () => {

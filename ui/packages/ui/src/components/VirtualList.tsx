@@ -11,14 +11,17 @@
  * ↑/↓/Home/End 移动、Enter/Space 选中、目标行自动滚入视野并聚焦、
  * `role=listbox/option` + `aria-selected`（对齐 UI设计系统-v6.md §5）。
  * 多选（`selectedKeys`）时按邻接关系挂 `--sel-start/mid/end`，连续选中合成一块圆角。
+ * 单选高亮由 YoIndicator 按下标滑动（行本身无 transition）；多选 ≥2 退回每项 ::before。
  * 未开启选择模式时行不参与焦点序列（日志列表性能优先）。
  *
  * 注意：`itemHeight` / `overscan` / `rowHeight` 为功能性配置项（非主题 token），
  * 由调用方指定，仅用于定位计算；所有配色/字号/间距仍走 tokens。
  */
-import { For, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type { Accessor, JSX } from "solid-js";
 import { adjacentJoin } from "../keymap/selection";
+import { YoIndicator } from "../motion/indicator";
+import type { IndicatorBox } from "../motion/indicator-layout";
 import "./VirtualList.css";
 
 export interface YoVirtualListProps<T> {
@@ -192,6 +195,35 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
     props.onSelectRow(item, keyOf(item, index), event);
   };
 
+  const indicatorFollow = (): string | undefined => {
+    if (!selectable()) return undefined;
+    if (props.selectedKeys) {
+      const keys = [...props.selectedKeys()];
+      return keys.length === 1 ? String(keys[0]) : undefined;
+    }
+    const key = props.selectedKey?.();
+    return key == null ? undefined : String(key);
+  };
+
+  const indicatorAnchor = (): IndicatorBox | null => {
+    const follow = indicatorFollow();
+    if (follow == null) return null;
+    const items = props.items();
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item === undefined) break;
+      if (String(keyOf(item, i)) === follow) {
+        return {
+          x: 0,
+          y: i * itemHeight(),
+          width: container?.clientWidth ?? 0,
+          height: itemHeight(),
+        };
+      }
+    }
+    return null;
+  };
+
   const handleRowClick = (index: number, event: MouseEvent): void => {
     if (!selectable()) return;
     pendingFocusKey = null;
@@ -313,6 +345,9 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
       onScroll={handleScroll}
     >
       <div class="yohu-virtual-list__inner" style={{ height: `${totalHeight()}px` }}>
+        <Show when={selectable()}>
+          <YoIndicator follow={indicatorFollow()} variant="fill" anchor={indicatorAnchor} />
+        </Show>
         <For each={visibleRows()}>
           {(row) => (
             <div

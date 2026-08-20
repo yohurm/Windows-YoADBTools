@@ -28,6 +28,7 @@ export {
   MotionSpec,
   MotionSpring,
   motionDurationMs,
+  springCssEasing,
   StateFill,
   setTheme,
   getTheme,
@@ -177,13 +178,22 @@ export {
   YoPresence,
   YoCollapse,
   YoSwap,
+  YoIndicator,
   prefersReducedMotion,
   shouldSkipMotion,
   PRESENCE_EXIT_DURATION,
   SWAP_DURATION,
+  INDICATOR_DURATION,
   DISMISS_HOLD_DURATION,
 } from "./motion";
-export type { YoPresenceProps, YoCollapseProps, YoSwapProps, PresenceRecipe } from "./motion";
+export type {
+  YoPresenceProps,
+  YoCollapseProps,
+  YoSwapProps,
+  YoIndicatorProps,
+  IndicatorVariant,
+  PresenceRecipe,
+} from "./motion";
 
 // —— 窗口铬 ——
 export { YoChrome } from "./components/chrome";
