@@ -119,6 +119,8 @@
   --yohu-layout-window-min-w: 360px;
   --yohu-layout-window-min-h: 240px;
   --yohu-layout-page-margin: 40px;
+  --yohu-layout-page-inset: 12px;
+  --yohu-layout-page-gap: 12px;
   --yohu-layout-breakpoint-split: 600px;
   --yohu-layout-breakpoint-side: 840px;
   --yohu-layout-button-max: 448px;

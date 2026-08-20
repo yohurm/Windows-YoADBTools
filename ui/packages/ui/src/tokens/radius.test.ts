@@ -74,6 +74,10 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
     expect(cssVarValue("--yohu-layout-hit-splitter")).toBe(`${Layout.HitSplitter}px`);
     expect(cssVarValue("--yohu-layout-window-default-w")).toBe(`${Layout.WindowDefaultW}px`);
     expect(cssVarValue("--yohu-layout-page-margin")).toBe(`${Layout.PageMargin}px`);
+    expect(Layout.PageInset).toBe(Spacing.Md);
+    expect(Layout.PageGap).toBe(Spacing.Md);
+    expect(cssVarValue("--yohu-layout-page-inset")).toBe(`${Spacing.Md}px`);
+    expect(cssVarValue("--yohu-layout-page-gap")).toBe(`${Spacing.Md}px`);
     expect(cssVarValue("--yohu-layout-rail-inset")).toBe(`${Layout.RailInset}px`);
     expect(cssVarValue("--yohu-layout-settings-control-max")).toBe(`${Layout.SettingsControlMax}px`);
     expect(cssVarValue("--yohu-layout-switch-w")).toBe(`${Layout.SwitchW}px`);

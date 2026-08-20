@@ -160,6 +160,10 @@
   min-height: 0;
 }
 
+.yohu-presence[data-recipe="fade"] > .yohu-chrome {
+  flex: 0 0 auto;
+}
+
 .yohu-presence[data-recipe="fade"][data-state="open"] {
   animation: yohu-fade-in var(--yohu-motion-effects-enter) both;
 }

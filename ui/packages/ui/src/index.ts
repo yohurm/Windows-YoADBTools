@@ -104,6 +104,9 @@ export type { YoColResizerProps } from "./components/ColResizer";
 export { YoPanel } from "./components/Panel";
 export type { YoPanelProps, YoPanelPadding, YoPanelVariant } from "./components/Panel";
 
+export { YoPage } from "./components/Page";
+export type { YoPageProps } from "./components/Page";
+
 // —— 反馈 ——
 export { YoEmptyState } from "./components/EmptyState";
 export type { YoEmptyStateProps } from "./components/EmptyState";

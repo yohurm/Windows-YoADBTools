@@ -46,12 +46,12 @@ for (const file of files) {
   if (rel.includes("node_modules") || rel.includes("/dist/")) continue;
   const lines = readFileSync(file, "utf8").split(/\r?\n/);
   const inTokens = rel.startsWith(TOKEN_DIR);
+  const isCss = rel.endsWith(".css");
   lines.forEach((line, i) => {
     if (LEGACY_BRAND_RE.test(line)) {
       violations.push(`${rel}:${i + 1}: 残留 Yovo 命名空间 → ${line.trim()}（须为 yohu-* / @yohu/*）`);
     }
     if (inTokens) return;
-    const isCss = rel.endsWith(".css");
     if (COLOR_RE.test(line)) {
       if (!rel.endsWith("file-icons.tsx")) {
         violations.push(`${rel}:${i + 1}: 硬编码色值 → ${line.trim()}`);
@@ -71,11 +71,35 @@ for (const file of files) {
     }
     if (isCss && !/^\s*\/\*/.test(line)) {
       const radius = RADIUS_DECL_RE.exec(line);
-      if (radius && !/^var\(--yohu-radius-/.test(radius[1].trim())) {
+      if (radius && !/^var\(--yohu-radius-/.test(radius[1].trim()) && radius[1].trim() !== "inherit") {
         violations.push(`${rel}:${i + 1}: 硬编码圆角 → ${line.trim()}（须用 var(--yohu-radius-*)）`);
       }
     }
   });
+  if (isCss && rel.startsWith("packages/modules/") && rel !== "packages/ui/src/components/page.css") {
+    const pageBlocks = readFileSync(file, "utf8").split("}");
+    for (const block of pageBlocks) {
+      if (
+        /display\s*:\s*flex/.test(block) &&
+        /flex-direction\s*:\s*column/.test(block) &&
+        /height\s*:\s*100%/.test(block) &&
+        /padding\s*:\s*var\(--yohu-(?:space-md|layout-page-inset)\)/.test(block)
+      ) {
+        violations.push(`${rel}: 效率型页壳散落 → 须用 YoPage（禁止模块自写 height + page inset）`);
+      }
+    }
+  }
+  if (isCss && !inTokens && rel !== "packages/ui/src/components/Panel.css") {
+    const blocks = readFileSync(file, "utf8").split("}");
+    for (const block of blocks) {
+      if (
+        /background(?:-color)?\s*:\s*var\(--yohu-surface\)/.test(block) &&
+        /border-radius\s*:\s*var\(--yohu-radius-md\)/.test(block)
+      ) {
+        violations.push(`${rel}: 画布卡片铬散落 → 须用 YoPanel（禁止自写 surface + radius-md）`);
+      }
+    }
+  }
 }
 
 if (violations.length > 0) {

@@ -1,0 +1,16 @@
+/* 效率型模块页壳。padding/gap 只写这里，模块 CSS 禁止再铺一套。 */
+
+.yohu-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--yohu-layout-page-inset);
+  gap: var(--yohu-layout-page-gap);
+  box-sizing: border-box;
+}
+
+.yohu-page > .yohu-chrome {
+  flex: 0 0 auto;
+}

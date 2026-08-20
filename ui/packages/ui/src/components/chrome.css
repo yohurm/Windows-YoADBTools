@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   gap: var(--yohu-space-md);
-  flex-shrink: 0;
+  flex: 0 0 auto;
   min-height: var(--yohu-control-height);
   padding-bottom: var(--yohu-space-sm);
   border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);

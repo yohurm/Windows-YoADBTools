@@ -21,6 +21,7 @@ const YO_PUBLIC = [
   "YoVirtualList",
   "YoColResizer",
   "YoPanel",
+  "YoPage",
   // 反馈
   "YoEmptyState",
   "YoDialog",

@@ -1,3 +1,5 @@
+import { Spacing } from "./spacing";
+
 /**
  * 布局常量（不随密度变，UI设计系统-v6.md §2.3）。
  * 壳宽 / 侧栏 / 预览 / 设置页 / 命中区一律走这里，禁止模块再写裸 px。
@@ -31,8 +33,12 @@ export const Layout = {
   /** 电脑窗口最小 360×240vp */
   WindowMinW: 360,
   WindowMinH: 240,
-  /** PC 屏幕左右边距 40vp */
+  /** PC 屏幕左右边距 40vp（设置页） */
   PageMargin: 40,
+  /** 效率型模块页壳内边距；数值单源 Spacing.Md，经 YoPage 消费 */
+  PageInset: Spacing.Md,
+  /** 页眉与分区、分区间距；与 PageInset 同值 */
+  PageGap: Spacing.Md,
   /** 分栏布局触发 ≥600vp */
   BreakpointSplit: 600,
   /** 侧边页签触发 ≥840vp */
