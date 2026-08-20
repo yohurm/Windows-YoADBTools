@@ -504,7 +504,7 @@ HarmonyOS Symbol 以**描边（线性）**为主，几何型塑造，避免尖�
 | PC 正文 14 / Caption 12 / Title_S 18 | `--yohu-font-*` 默认；`[data-density=compact]` 收敛 |
 | Caption_M ≥10、Subtitle_M 14、行高 1.25/1.55/1.4 | `--yohu-font-caption-m` / `subtitle-m` / `--yohu-font-leading-*` |
 | 根节点 Body + `line-break: strict` | `theme.css` html/body；`.yohu-type-*` |
-| 效率型贴边、设置页 40vp 边距 | `.yohu-layout__content` padding 0；`YoPage` 消费 `--yohu-layout-page-inset` / `page-gap`；设置页眉/卡片共用 `--yohu-layout-page-margin` |
+| 效率型贴边、设置页 40vp 边距 | `.yohu-layout__content` padding 0；`YoPage` 消费 `--yohu-layout-page-inset` / `page-gap`；`YoChrome` 标题行 `--yohu-control-height`、底垫 `--yohu-layout-chrome-pad`；设置页眉/卡片共用 `--yohu-layout-page-margin` |
 | 栅格 gutter 16 / 最大宽 2220 | `--yohu-layout-gutter` / `grid-max` |
 | 电脑对话框阴影分层、不强遮罩 | `--yohu-shadow-dialog` / `-unfocused`；遮罩 `fg` 10%；浮层小圆角 `radius-sm` |
 | Toast ≤3s、最大宽 400；按钮最大 448；菜单最小 224 | `--yohu-dur-toast` / `--yohu-layout-dialog-max` / `button-max` / `menu-min` |

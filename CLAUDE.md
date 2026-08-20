@@ -4,13 +4,14 @@
 多模块 Windows 桌面设备工具工作台（Yohu ADB Tools）。**v6 全新架构（2026-08-14 定稿）：推倒重来，不兼容旧设计与旧代码**。C#/WPF（v5）已下线，不再作为实现依据。
 
 - 需求：`docs/requirements/需求分析.md`（v6 版）
-- 架构：`docs/architecture/架构设计-v6.md`（全细节 + ADR-v6-001~016）
+- 架构：`docs/architecture/架构设计-v6.md`（全细节 + ADR-v6-001~019）；右键菜单见 `docs/architecture/右键菜单-v6.md`
 
 ## 技术栈
 - **核心**：Rust（tokio），Cargo workspace：`yohu-protocol`（wire 类型）← `yohu-domain`（命令库/判定/安全路径）← `yohu-adb` / `yohu-logsrv` / `yohu-files`；**core 零 Tauri 依赖**（ADR-v6-005）
 - **桌面壳**：Tauri 2（窗口/sidecar/升级；IPC = invoke 命令 + 批量事件）；`app/yohu-app` 是唯一引用 Tauri 的 crate，commands 层禁止写业务逻辑
 - **UI**：TypeScript + SolidJS + Vite，pnpm monorepo（Turborepo）：`@yohu/api`（类型化 IPC）→ `@yohu/ui`（自研组件库）→ `@yohu/app`（壳）+ `@yohu/modules/*`
 - **组件库**：`@yohu/ui` 第一公民（公开组件 `Yo*` 标注；token 单源；lint 禁硬编码色值/字号/动效时长/圆角）；组件清单见架构文档 §7.2
+- **右键菜单（ADR-v6-019）**：引擎在 `@yohu/ui` `context-menu/`（`defineContextMenu` / `openContextMenu` / 壳唯一 `YoContextMenuHost`）；场景表按模块 `menu.ts` 收口；禁止模块自挂 `YoContextMenu`。详见 `docs/architecture/右键菜单-v6.md`
 - **目标平台**：Windows 10/11 x64；复用系统 WebView2（不捆绑运行时）
 - **打包**：Tauri bundler（NSIS per-user）+ WebView2 embedBootstrapper；安装包 **≤ 12 MB**；sidecar 官方 adb.exe（不重实现 ADB 协议，ADR-v6-008）
 
@@ -29,6 +30,7 @@
 - **成败判定分离**：ADB 客户端不判定；判定在 `yohu-domain`（CommandEvaluator）
 - **应用日志 vs 设备日志严格分离（ADR-v6-010）**：设备 logcat 自持；应用操作日志内存环形（不落盘）；崩溃经 Rust panic hook 写 `logs/panic-*.log`
 - **模块静态组合（ADR-v6-012）**：无插件热加载；模块 descriptor（id/title/icon/selectionMode/Component/createStore）注册进 `@yohu/app` 注册表
+- **右键菜单（ADR-v6-019）**：场景表在各模块 `menu.ts`；`openContextMenu` 打开；壳唯一 Host。禁止 View 自挂 `YoContextMenu`
 - **编辑即快照**：命令管理深拷贝编辑、保存全量提交（原子写：临时文件 + rename，损坏备份 `.corrupt-<ts>`）
 - **后台任务**：长任务（采集/传输/命令组）登记任务中心，状态栏展示；退出序列 = 根 CancellationToken cancel → 任务收敛（超时 3s 强杀 adb 进程树）→ 设置 flush
 - **占位模块**：投屏 `@yohu/module-mirror`（isPlanned）仅贡献导航 + "开发中"页
@@ -39,7 +41,7 @@
 ```
 docs/
 ├── requirements/需求分析.md            # v6 需求（量化成功标准 §3）
-└── architecture/架构设计-v6.md         # v6 全细节架构 + ADR-v6-001~015
+└── architecture/                       # 架构设计-v6.md + 右键菜单/拖拽/动效/UI 设计系统
 core/
 ├── yohu-protocol/                      # wire 类型（serde，无 IO）：DeviceInfo/LogLine/LogBatch/AppEvent…
 ├── yohu-domain/                        # 纯领域：命令库/CommandEvaluator/GroupExecutor/RemotePath/SafetyRoot/设置模型
@@ -51,7 +53,7 @@ app/
 ui/
 ├── packages/
 │   ├── api/                            # @yohu/api：类型化 invoke + 事件订阅
-│   ├── ui/                             # @yohu/ui：tokens + 组件（YoVirtualList/YoTabs/YoTree/…）
+│   ├── ui/                             # @yohu/ui：tokens + 组件 + keymap + context-menu
 │   ├── app/                            # @yohu/app：壳（设备栏/导航/状态栏/设置/注册表）
 │   └── modules/{terminal,files,logs,mirror}/
 └── apps/shell/                         # Vite 入口（frontendDist）
