@@ -5,7 +5,8 @@
  */
 import { For, createSignal } from "solid-js";
 import type { JSX } from "solid-js";
-import { MotionDuration } from "../tokens/motion";
+import { YoPresence } from "../motion/presence";
+import { motionDurationMs } from "../tokens/motion";
 import "./Toast.css";
 
 /** 消息色调 */
@@ -19,6 +20,8 @@ export interface ToastItem {
   text: string;
   /** 语义色调 */
   tone: ToastTone;
+  /** Presence 开关：false 后播出场再从列表移除 */
+  open: boolean;
 }
 
 /** createToaster() 的返回值 */
@@ -27,20 +30,12 @@ export interface Toaster {
   toasts: () => ToastItem[];
   /** 弹出一条消息 */
   show: (text: string, tone?: ToastTone) => void;
-}
-
-function motionToMs(token: string): number {
-  if (token.endsWith("ms")) {
-    return Number.parseFloat(token);
-  }
-  if (token.endsWith("s")) {
-    return Number.parseFloat(token) * 1000;
-  }
-  return Number.parseFloat(token);
+  /** 出场结束后移除 */
+  dismiss: (id: number) => void;
 }
 
 /** 单条 toast 自动消失时长（ms），对齐 `--yohu-dur-toast`。 */
-const TOAST_DURATION_MS = motionToMs(MotionDuration.toast);
+const TOAST_DURATION_MS = motionDurationMs("toast");
 
 /**
  * 创建一个 toaster 实例（每个实例独立维护自己的消息列表）。
@@ -49,15 +44,19 @@ export function createToaster(): Toaster {
   const [toasts, setToasts] = createSignal<ToastItem[]>([]);
   let nextId = 1;
 
+  const dismiss = (id: number): void => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
+
   const show = (text: string, tone: ToastTone = "info"): void => {
     const id = nextId++;
-    setToasts((prev) => [...prev, { id, text, tone }]);
+    setToasts((prev) => [...prev, { id, text, tone, open: true }]);
     setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+      setToasts((prev) => prev.map((toast) => (toast.id === id ? { ...toast, open: false } : toast)));
     }, TOAST_DURATION_MS);
   };
 
-  return { toasts, show };
+  return { toasts, show, dismiss };
 }
 
 export interface YoToastProps {
@@ -87,7 +86,13 @@ export interface YoToasterProps {
 export function YoToaster(props: YoToasterProps): JSX.Element {
   return (
     <div class="yohu-toaster" role="region" aria-label="notifications">
-      <For each={props.toaster.toasts()}>{(toast) => <YoToast toast={toast} />}</For>
+      <For each={props.toaster.toasts()}>
+        {(toast) => (
+          <YoPresence when={toast.open} recipe="toast" onExitComplete={() => props.toaster.dismiss(toast.id)}>
+            <YoToast toast={toast} />
+          </YoPresence>
+        )}
+      </For>
     </div>
   );
 }

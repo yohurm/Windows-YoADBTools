@@ -9,10 +9,12 @@
  *
  * ARIA：`role=tree/treeitem` + `aria-expanded` + roving tabindex（仅焦点节点 tabindex=0）。
  * 受控展开（expandedKeys）或默认展开（defaultExpandedKeys）。
+ * 子树用 YoCollapse，关闭后仍挂载（aria-hidden），高度 200ms 过渡。
  */
-import { For, createMemo, createSignal } from "solid-js";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
+import { YoCollapse } from "../motion/collapse";
 import { YoBadge } from "./Badge";
 import "./Tree.css";
 
@@ -140,7 +142,6 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
         if (hasChildren && isExpanded(current.node.key)) {
           toggle(current.node.key);
         } else {
-          // 移到父节点：向上找 depth 更小的最近节点
           for (let i = index - 1; i >= 0; i--) {
             const row = visible[i];
             if (row && row.depth < current.depth) {
@@ -159,13 +160,13 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
     }
   };
 
-  return (
-    <div class="yohu-tree" role="tree" aria-label="树" tabindex={0} onKeyDown={onTreeKeyDown}>
-      <For each={rows()}>
-        {({ node, depth }) => {
-          const hasChildren = !!node.children && node.children.length > 0;
-          const expandedNow = hasChildren && isExpanded(node.key);
-          return (
+  const renderNodes = (nodes: TreeNode<T>[], depth: number): JSX.Element => (
+    <For each={nodes}>
+      {(node) => {
+        const hasChildren = !!node.children && node.children.length > 0;
+        const expandedNow = (): boolean => hasChildren && isExpanded(node.key);
+        return (
+          <>
             <div
               data-tree-key={node.key}
               class="yohu-tree__row yohu-interactive yohu-focus-ring--inset"
@@ -173,7 +174,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
                 "yohu-interactive--selected": selected() === node.key,
               }}
               role="treeitem"
-              aria-expanded={hasChildren ? expandedNow : undefined}
+              aria-expanded={hasChildren ? expandedNow() : undefined}
               aria-selected={selected() === node.key}
               tabindex={focusedKey() === node.key ? 0 : -1}
               style={{
@@ -189,7 +190,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
                 <button
                   type="button"
                   class="yohu-tree__chevron"
-                  aria-label={expandedNow ? "collapse" : "expand"}
+                  aria-label={expandedNow() ? "collapse" : "expand"}
                   tabindex={-1}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -198,7 +199,9 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
                     toggle(node.key);
                   }}
                 >
-                  <Icon name={expandedNow ? "chevron-down" : "chevron-right"} size={14} />
+                  <span classList={{ "yohu-recipe-tree-chevron": true, "yohu-recipe-tree-chevron--open": expandedNow() }}>
+                    <Icon name="chevron-down" size={14} />
+                  </span>
                 </button>
               ) : (
                 <span class="yohu-tree__chevron yohu-tree__chevron--leaf" />
@@ -209,9 +212,18 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
               </span>
               {node.badge ? <YoBadge text={node.badge} /> : null}
             </div>
-          );
-        }}
-      </For>
+            <Show when={hasChildren}>
+              <YoCollapse open={expandedNow()}>{renderNodes(node.children!, depth + 1)}</YoCollapse>
+            </Show>
+          </>
+        );
+      }}
+    </For>
+  );
+
+  return (
+    <div class="yohu-tree" role="tree" aria-label="树" tabindex={0} onKeyDown={onTreeKeyDown}>
+      {renderNodes(props.data, 0)}
     </div>
   );
 }

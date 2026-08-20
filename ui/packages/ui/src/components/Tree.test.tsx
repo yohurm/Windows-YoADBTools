@@ -15,11 +15,12 @@ const DATA = [
 ];
 
 describe("YoTree", () => {
-  it("默认折叠：仅渲染根节点", () => {
+  it("默认折叠：仅可见根节点（子节点 aria-hidden）", () => {
     render(() => <YoTree data={DATA} />);
     expect(screen.getByText("根1")).toBeTruthy();
     expect(screen.getByText("根2")).toBeTruthy();
-    expect(screen.queryByText("子1")).toBeNull();
+    const child = document.querySelector('[data-tree-key="c1"]');
+    expect(child?.closest(".yohu-collapse__inner")?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("点击展开箭头显示子节点并选中该目录", () => {
@@ -51,7 +52,9 @@ describe("YoTree", () => {
     fireEvent.keyDown(tree, { key: "ArrowRight" });
     expect(screen.getByText("子1")).toBeTruthy();
     fireEvent.keyDown(tree, { key: "ArrowLeft" });
-    expect(screen.queryByText("子1")).toBeNull();
+    expect(document.querySelector('[data-tree-key="c1"]')?.closest(".yohu-collapse__inner")?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
   });
 
   it("键盘 ↓ 移动焦点（roving tabindex），Enter 选中", () => {

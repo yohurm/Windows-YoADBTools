@@ -3,8 +3,9 @@
  * HarmonyOS 对照：Menu；电脑默认最小宽 224vp；Esc / 点击外侧关闭。
  * 受控 API：open / x / y / items / onSelect / onClose。
  */
-import { For, Show, onCleanup, onMount } from "solid-js";
+import { For, onCleanup, onMount } from "solid-js";
 import type { JSX } from "solid-js";
+import { YoPresence } from "../motion/presence";
 import "./ContextMenu.css";
 
 export interface YoMenuItem {
@@ -45,7 +46,7 @@ export function YoContextMenu(props: YoContextMenuProps): JSX.Element {
   });
 
   return (
-    <Show when={props.open}>
+    <YoPresence when={props.open} recipe="popover">
       <div
         ref={(el) => {
           root = el;
@@ -73,6 +74,6 @@ export function YoContextMenu(props: YoContextMenuProps): JSX.Element {
           )}
         </For>
       </div>
-    </Show>
+    </YoPresence>
   );
 }

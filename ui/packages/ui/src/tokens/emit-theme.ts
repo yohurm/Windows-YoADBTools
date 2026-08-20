@@ -6,7 +6,7 @@ import { Colors, DarkColors, LogLevelDark, LogLevelLight } from "./colors";
 import { Density } from "./density";
 import { DarkElevation, Elevation } from "./elevation";
 import { FocusRing, Layout, Stroke } from "./layout";
-import { MotionDuration, MotionEasing } from "./motion";
+import { MotionDuration, MotionEasing, MotionSpec } from "./motion";
 import { Radius, RadiusShape } from "./radius";
 import { Spacing } from "./spacing";
 import { DarkStateFill, Ripple, StateFill } from "./state";
@@ -78,6 +78,10 @@ export function emitThemeCss(): string {
     `--yohu-ease-${kebab(name)}`,
     value,
   ]);
+  const specs: Array<[string, string]> = Object.entries(MotionSpec).map(([name, spec]) => [
+    `--yohu-motion-${kebab(name)}`,
+    `var(--yohu-dur-${kebab(spec.duration)}) var(--yohu-ease-${kebab(spec.easing)})`,
+  ]);
 
   const root: Array<[string, string]> = [
     ["color-scheme", "light"],
@@ -119,6 +123,7 @@ export function emitThemeCss(): string {
     ...layout,
     ...durs,
     ...eases,
+    ...specs,
   ];
 
   const dark: Array<[string, string]> = [
@@ -152,14 +157,6 @@ ${lines(dark)}
 
 [data-density="compact"] {
 ${lines(compact)}
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .yohu-dialog__backdrop,
-  .yohu-dialog__panel,
-  .yohu-toast {
-    animation: none;
-  }
 }
 
 html,

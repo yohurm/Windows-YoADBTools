@@ -1,0 +1,245 @@
+/**
+ * 动效原语与配方（动画系统-v6.md L2/L3）。
+ * 关键帧只允许出现在本文件；组件 CSS 只引用 animation-name。
+ */
+
+/* —— 关键帧 —— */
+
+@keyframes yohu-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes yohu-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes yohu-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--yohu-space-sm));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes yohu-rise-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(var(--yohu-space-sm));
+  }
+}
+
+@keyframes yohu-slide-end-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--yohu-space-md) * 2));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes yohu-slide-end-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--yohu-space-md) * 2));
+  }
+}
+
+@keyframes yohu-scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--yohu-space-lg) * -1)) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes yohu-scale-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--yohu-space-lg) * -1)) scale(0.98);
+  }
+}
+
+@keyframes yohu-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes yohu-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+/* —— Presence 宿主（不占盒，事件仍冒泡） —— */
+
+.yohu-presence {
+  display: contents;
+}
+
+/* —— 配方：浮层 —— */
+
+.yohu-presence[data-recipe="dialog"][data-state="open"] .yohu-dialog__backdrop {
+  animation: yohu-fade-in var(--yohu-motion-effects-enter) both;
+}
+
+.yohu-presence[data-recipe="dialog"][data-state="closed"] .yohu-dialog__backdrop {
+  animation: yohu-fade-out var(--yohu-motion-effects-exit) both;
+}
+
+.yohu-presence[data-recipe="dialog"][data-state="open"] .yohu-dialog__panel {
+  animation: yohu-scale-in var(--yohu-motion-spatial-enter) both;
+}
+
+.yohu-presence[data-recipe="dialog"][data-state="closed"] .yohu-dialog__panel {
+  animation: yohu-scale-out var(--yohu-motion-spatial-exit) both;
+}
+
+.yohu-presence[data-recipe="toast"][data-state="open"] .yohu-toast {
+  animation: yohu-slide-end-in var(--yohu-motion-effects-enter) both;
+}
+
+.yohu-presence[data-recipe="toast"][data-state="closed"] .yohu-toast {
+  animation: yohu-slide-end-out var(--yohu-motion-effects-exit) both;
+}
+
+.yohu-presence[data-recipe="popover"][data-state="open"] .yohu-select__menu,
+.yohu-presence[data-recipe="popover"][data-state="open"] .yohu-context-menu {
+  animation: yohu-rise-in var(--yohu-motion-effects-enter) both;
+}
+
+.yohu-presence[data-recipe="popover"][data-state="closed"] .yohu-select__menu,
+.yohu-presence[data-recipe="popover"][data-state="closed"] .yohu-context-menu {
+  animation: yohu-rise-out var(--yohu-motion-effects-exit) both;
+}
+
+.yohu-presence[data-recipe="fade"] {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.yohu-presence[data-recipe="fade"] > * {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.yohu-presence[data-recipe="fade"][data-state="open"] {
+  animation: yohu-fade-in var(--yohu-motion-effects-enter) both;
+}
+
+.yohu-presence[data-recipe="fade"][data-state="closed"] {
+  animation: yohu-fade-out var(--yohu-motion-effects-exit) both;
+}
+
+/* —— 配方：折叠 / 侧栏 / 指示 —— */
+
+.yohu-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--yohu-motion-spatial-local);
+}
+
+.yohu-collapse[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.yohu-collapse__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 高度动画只裁切，不把子项压扁。 */
+.yohu-collapse__inner > * {
+  min-height: min-content;
+  flex-shrink: 0;
+}
+
+.yohu-recipe-rail {
+  transition: grid-template-columns var(--yohu-motion-spatial-panel);
+}
+
+.yohu-recipe-tree-chevron {
+  display: inline-flex;
+  transition: transform var(--yohu-motion-spatial-small);
+  transform: rotate(-90deg);
+}
+
+.yohu-recipe-tree-chevron--open {
+  transform: rotate(0deg);
+}
+
+.yohu-recipe-dismiss-fade {
+  animation: yohu-fade-out var(--yohu-motion-spatial-panel) forwards;
+}
+
+/* —— reduced-motion：配方统一降级；循环指示改为静止 —— */
+
+@media (prefers-reduced-motion: reduce) {
+  .yohu-recipe-rail,
+  .yohu-collapse,
+  .yohu-switch,
+  .yohu-switch__thumb,
+  .yohu-segmented__thumb,
+  .yohu-tabs__tab,
+  .yohu-recipe-tree-chevron,
+  .yohu-progress__bar,
+  .yohu-button,
+  .yohu-icon-button,
+  .yohu-checkbox__box,
+  .yohu-text-field__control {
+    transition-duration: 0.01ms !important;
+  }
+
+  .yohu-dialog__backdrop,
+  .yohu-dialog__panel,
+  .yohu-toast,
+  .yohu-select__menu,
+  .yohu-context-menu,
+  .yohu-presence[data-recipe="fade"],
+  .yohu-recipe-dismiss-fade {
+    animation: none !important;
+  }
+
+  .yohu-button__spinner,
+  .yohu-icon-button--loading .yohu-icon,
+  .yohu-progress--indeterminate .yohu-progress__bar {
+    animation: none !important;
+  }
+}

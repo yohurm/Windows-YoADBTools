@@ -12,8 +12,8 @@
   cursor: pointer;
   box-sizing: border-box;
   transition:
-    background-color var(--yohu-dur-fast) var(--yohu-ease-standard),
-    color var(--yohu-dur-fast) var(--yohu-ease-standard);
+    background-color var(--yohu-motion-effects-fast),
+    color var(--yohu-motion-effects-fast);
 }
 
 .yohu-icon-button:not(:disabled):hover {
@@ -32,10 +32,4 @@
 
 .yohu-icon-button--loading .yohu-icon {
   animation: yohu-spin var(--yohu-dur-loop) linear infinite;
-}
-
-@keyframes yohu-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }

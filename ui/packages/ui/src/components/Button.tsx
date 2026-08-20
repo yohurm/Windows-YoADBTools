@@ -22,6 +22,8 @@ export interface YoButtonProps {
   onClick?: (event: MouseEvent) => void;
   /** 原生按钮类型 */
   type?: "button" | "submit" | "reset";
+  /** 展开控件（预览栏等） */
+  "aria-expanded"?: boolean;
   children: JSX.Element;
 }
 
@@ -39,6 +41,7 @@ export function YoButton(props: YoButtonProps): JSX.Element {
       }}
       disabled={props.disabled || props.loading}
       aria-busy={props.loading}
+      aria-expanded={props["aria-expanded"]}
       onClick={props.onClick}
     >
       {props.loading ? <span class="yohu-button__spinner" aria-hidden="true" /> : null}

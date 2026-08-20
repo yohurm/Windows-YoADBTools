@@ -9,9 +9,10 @@
  *   Enter/Space 选择、Tab 关闭并提交活动选项
  * - 触发钮 `aria-haspopup=listbox aria-expanded`；菜单 `role=listbox`；选项 `role=option`
  */
-import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
+import { For, createSignal, onCleanup, onMount } from "solid-js";
 import type { JSX } from "solid-js";
 import { Icon } from "../icons";
+import { YoPresence } from "../motion/presence";
 import "./Select.css";
 
 export interface YoSelectOption {
@@ -166,7 +167,7 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
         </span>
         <Icon name="chevron-down" size={14} />
       </button>
-      <Show when={open()}>
+      <YoPresence when={open()} recipe="popover">
         <ul class="yohu-select__menu" role="listbox">
           <For each={props.options}>
             {(option, index) => (
@@ -188,7 +189,7 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
             )}
           </For>
         </ul>
-      </Show>
+      </YoPresence>
     </div>
   );
 }

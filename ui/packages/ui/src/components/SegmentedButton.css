@@ -30,10 +30,10 @@
   pointer-events: none;
   box-sizing: border-box;
   transition:
-    transform var(--yohu-dur-small) var(--yohu-ease-standard),
-    width var(--yohu-dur-small) var(--yohu-ease-standard),
-    height var(--yohu-dur-small) var(--yohu-ease-standard),
-    opacity var(--yohu-dur-fast) var(--yohu-ease-standard);
+    transform var(--yohu-motion-spatial-small),
+    width var(--yohu-motion-spatial-small),
+    height var(--yohu-motion-spatial-small),
+    opacity var(--yohu-motion-effects-fast);
 }
 
 .yohu-segmented__thumb--ready {
@@ -97,10 +97,4 @@
 
 .yohu-segmented--disabled {
   opacity: 0.64;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .yohu-segmented__thumb {
-    transition: none;
-  }
 }

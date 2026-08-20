@@ -13,7 +13,6 @@
   inset: 0;
   /* 电脑弹出框不强遮罩：中性 10%（font_primary 叠透明） */
   background-color: color-mix(in srgb, var(--yohu-fg) 10%, transparent);
-  animation: yohu-fade-in var(--yohu-dur-normal) var(--yohu-ease-standard);
 }
 
 .yohu-dialog__panel {
@@ -30,31 +29,10 @@
   box-shadow: var(--yohu-shadow-dialog);
   box-sizing: border-box;
   overflow: hidden;
-  animation: yohu-dialog-in var(--yohu-dur-enter) var(--yohu-ease-decel);
 }
 
 .yohu-dialog__panel:not(:focus-within) {
   box-shadow: var(--yohu-shadow-dialog-unfocused);
-}
-
-@keyframes yohu-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes yohu-dialog-in {
-  from {
-    opacity: 0;
-    transform: translateY(calc(var(--yohu-space-lg) * -1)) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 .yohu-dialog__title {

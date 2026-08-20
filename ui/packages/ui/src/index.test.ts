@@ -27,6 +27,8 @@ const YO_PUBLIC = [
   "YoContextMenu",
   "YoToast",
   "YoToaster",
+  "YoPresence",
+  "YoCollapse",
   // 窗口铬
   "YoChrome",
   "YoTitleBar",

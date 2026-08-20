@@ -58,7 +58,7 @@ describe("createToaster + YoToaster", () => {
 
 describe("YoToast", () => {
   it("渲染单条 toast", () => {
-    render(() => <YoToast toast={{ id: 1, text: "单条", tone: "success" }} />);
+    render(() => <YoToast toast={{ id: 1, text: "单条", tone: "success", open: true }} />);
     const el = screen.getByText("单条");
     expect(el.className).toContain("yohu-toast");
     expect(el.className).toContain("yohu-toast--success");

@@ -18,6 +18,9 @@ const FONT_SIZE_RE = /font-size\s*:\s*\d/;
 const MOTION_RE = /(?:transition|animation)\s*:[^;]*\b\d+(?:\.\d+)?(?:ms|s)\b/;
 /** 圆角声明必须是 var(--yohu-radius-*)。 */
 const RADIUS_DECL_RE = /border-radius\s*:\s*([^;]+)/;
+/** 关键帧只允许 tokens/motion.css（动画系统-v6.md L5）。 */
+const KEYFRAMES_RE = /@keyframes\s+/;
+const KEYFRAMES_ALLOW = new Set(["packages/ui/src/tokens/motion.css"]);
 /** 已废弃的兼容别名与旧选中底（改走 --yohu-state-*）。 */
 const DEPRECATED_ALIAS_RE =
   /--yohu-(nav-bg|content-bg|panel-bg|panel-border|list-bg|list-border|text-primary|text-secondary|text-tertiary|accent-bg|nav-hover)\b/;
@@ -59,6 +62,9 @@ for (const file of files) {
     }
     if (isCss && MOTION_RE.test(line)) {
       violations.push(`${rel}:${i + 1}: 硬编码动效时长 → ${line.trim()}（须用 var(--yohu-dur-*)）`);
+    }
+    if (isCss && KEYFRAMES_RE.test(line) && !KEYFRAMES_ALLOW.has(rel) && !inTokens) {
+      violations.push(`${rel}:${i + 1}: 禁止私有 @keyframes → ${line.trim()}（须写入 tokens/motion.css）`);
     }
     if (isCss && DEPRECATED_ALIAS_RE.test(line)) {
       violations.push(`${rel}:${i + 1}: 引用废弃兼容别名 → ${line.trim()}（迁移到 Semantic / --yohu-state-*）`);

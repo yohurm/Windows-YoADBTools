@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { MotionDuration, MotionEasing } from "./motion";
+import {
+  MotionDuration,
+  MotionEasing,
+  MotionSpec,
+  MotionSpring,
+  motionDurationMs,
+} from "./motion";
 
 /**
  * 读取 theme.css 内容（与 colors.test.ts 相同策略）：
@@ -54,6 +60,16 @@ describe("动效 token 单一事实源契约", () => {
     }
   });
 
+  it("MotionSpec 成对变量与 duration/easing 名对齐", () => {
+    for (const [name, spec] of Object.entries(MotionSpec)) {
+      expect(spec.duration in MotionDuration, `${name}.duration`).toBe(true);
+      expect(spec.easing in MotionEasing, `${name}.easing`).toBe(true);
+      const varName = `--yohu-motion-${kebab(name)}`;
+      const expected = `var(--yohu-dur-${kebab(spec.duration)}) var(--yohu-ease-${kebab(spec.easing)})`;
+      expect(cssVarValue(varName), varName).toBe(expected);
+    }
+  });
+
   it("时长分级符合 HarmonyOS 100/150/160/200/300/350/400ms 规范", () => {
     expect(MotionDuration.fast).toBe("100ms");
     expect(MotionDuration.small).toBe("150ms");
@@ -65,8 +81,22 @@ describe("动效 token 单一事实源契约", () => {
     expect(MotionDuration.toast).toBe("3s");
   });
 
-  it("标准/减速曲线符合 HarmonyOS 规范值", () => {
+  it("标准/减速/加速曲线符合 HarmonyOS 规范值", () => {
     expect(MotionEasing.standard).toBe("cubic-bezier(0.4, 0, 0.2, 1)");
     expect(MotionEasing.decel).toBe("cubic-bezier(0, 0, 0.4, 1)");
+    expect(MotionEasing.accel).toBe("cubic-bezier(0.4, 0, 1, 1)");
+  });
+
+  it("弹簧常量为鸿蒙 interpolatingSpring 原值（v1 不发 CSS）", () => {
+    expect(MotionSpring.stiffness).toBe(128);
+    expect(MotionSpring.damping).toBe(12);
+    expect(MotionSpring.mass).toBe(1);
+    expect(themeCss).not.toContain("--yohu-spring");
+  });
+
+  it("motionDurationMs 解析 ms 与 s", () => {
+    expect(motionDurationMs("fast")).toBe(100);
+    expect(motionDurationMs("toast")).toBe(3000);
+    expect(motionDurationMs("loopSlow")).toBe(1200);
   });
 });

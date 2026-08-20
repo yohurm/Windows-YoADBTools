@@ -11,7 +11,7 @@
   cursor: pointer;
   flex-shrink: 0;
   box-sizing: border-box;
-  transition: background-color var(--yohu-dur-small) var(--yohu-ease-standard);
+  transition: background-color var(--yohu-motion-spatial-small);
 }
 
 .yohu-switch--on {
@@ -28,7 +28,7 @@
   background-color: var(--yohu-fg-on);
   box-shadow: var(--yohu-shadow-xs);
   pointer-events: none;
-  transition: transform var(--yohu-dur-small) var(--yohu-ease-standard);
+  transition: transform var(--yohu-motion-spatial-small);
 }
 
 .yohu-switch--on .yohu-switch__thumb {

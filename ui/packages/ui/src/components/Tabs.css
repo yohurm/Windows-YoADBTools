@@ -23,6 +23,9 @@
   user-select: none;
   box-sizing: border-box;
   --yohu-ripple-inset: 0 0 var(--yohu-stroke-accent);
+  transition:
+    color var(--yohu-motion-effects-fast),
+    border-bottom-color var(--yohu-motion-spatial-small);
 }
 
 .yohu-tabs__tab--active {

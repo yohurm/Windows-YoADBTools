@@ -15,9 +15,9 @@
   box-sizing: border-box;
   max-width: var(--yohu-layout-button-max);
   transition:
-    background-color var(--yohu-dur-fast) var(--yohu-ease-standard),
-    border-color var(--yohu-dur-fast) var(--yohu-ease-standard),
-    color var(--yohu-dur-fast) var(--yohu-ease-standard);
+    background-color var(--yohu-motion-effects-fast),
+    border-color var(--yohu-motion-effects-fast),
+    color var(--yohu-motion-effects-fast);
 }
 
 .yohu-button:disabled {
@@ -100,10 +100,4 @@
   border-radius: var(--yohu-radius-full);
   box-sizing: border-box;
   animation: yohu-spin var(--yohu-dur-loop) linear infinite;
-}
-
-@keyframes yohu-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }

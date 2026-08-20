@@ -25,6 +25,9 @@ export {
   Density,
   MotionDuration,
   MotionEasing,
+  MotionSpec,
+  MotionSpring,
+  motionDurationMs,
   StateFill,
   setTheme,
   getTheme,
@@ -39,6 +42,7 @@ export type {
   DensityName,
   MotionDurationName,
   MotionEasingName,
+  MotionSpecName,
 } from "./tokens";
 
 // —— icons ——
@@ -112,6 +116,9 @@ export type { YoContextMenuProps, YoMenuItem } from "./components/ContextMenu";
 
 export { YoToast, YoToaster, createToaster } from "./components/Toast";
 export type { ToastItem, ToastTone, Toaster, YoToastProps, YoToasterProps } from "./components/Toast";
+
+export { YoPresence, YoCollapse, prefersReducedMotion, shouldSkipMotion } from "./motion";
+export type { YoPresenceProps, YoCollapseProps, PresenceRecipe } from "./motion";
 
 // —— 窗口铬 ——
 export { YoChrome } from "./components/chrome";

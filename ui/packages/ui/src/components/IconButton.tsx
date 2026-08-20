@@ -20,6 +20,8 @@ export interface YoIconButtonProps {
   size?: number;
   /** 点击回调 */
   onClick?: (event: MouseEvent) => void;
+  /** 展开控件（侧栏等） */
+  "aria-expanded"?: boolean;
 }
 
 /**
@@ -34,6 +36,7 @@ export function YoIconButton(props: YoIconButtonProps): JSX.Element {
       title={props.title}
       aria-label={props.title}
       aria-busy={props.loading}
+      aria-expanded={props["aria-expanded"]}
       disabled={props.disabled || props.loading}
       onClick={props.onClick}
     >

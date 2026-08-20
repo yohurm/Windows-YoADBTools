@@ -20,8 +20,8 @@
   color: var(--yohu-fg-on);
   box-sizing: border-box;
   transition:
-    background-color var(--yohu-dur-fast) var(--yohu-ease-standard),
-    border-color var(--yohu-dur-fast) var(--yohu-ease-standard);
+    background-color var(--yohu-motion-effects-fast),
+    border-color var(--yohu-motion-effects-fast);
 }
 
 .yohu-checkbox__input {

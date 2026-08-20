@@ -21,7 +21,7 @@
   border-radius: var(--yohu-radius-sm);
   background-color: var(--yohu-surface);
   box-sizing: border-box;
-  transition: border-color var(--yohu-dur-fast) var(--yohu-ease-standard);
+  transition: border-color var(--yohu-motion-effects-fast);
 }
 
 .yohu-text-field__control:focus-within {

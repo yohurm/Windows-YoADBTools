@@ -145,7 +145,16 @@
   --yohu-dur-toast: 3s;
   --yohu-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --yohu-ease-decel: cubic-bezier(0, 0, 0.4, 1);
+  --yohu-ease-accel: cubic-bezier(0.4, 0, 1, 1);
   --yohu-ease-loop: ease-in-out;
+  --yohu-motion-effects-fast: var(--yohu-dur-fast) var(--yohu-ease-standard);
+  --yohu-motion-effects-enter: var(--yohu-dur-normal) var(--yohu-ease-decel);
+  --yohu-motion-effects-exit: var(--yohu-dur-local) var(--yohu-ease-accel);
+  --yohu-motion-spatial-small: var(--yohu-dur-small) var(--yohu-ease-standard);
+  --yohu-motion-spatial-local: var(--yohu-dur-local) var(--yohu-ease-standard);
+  --yohu-motion-spatial-panel: var(--yohu-dur-slow) var(--yohu-ease-standard);
+  --yohu-motion-spatial-enter: var(--yohu-dur-enter) var(--yohu-ease-decel);
+  --yohu-motion-spatial-exit: var(--yohu-dur-local) var(--yohu-ease-accel);
 }
 
 [data-theme="dark"] {
@@ -211,14 +220,6 @@
   --yohu-font-subtitle-m: 13px;
   --yohu-font-subtitle: 15px;
   --yohu-font-page-title: 18px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .yohu-dialog__backdrop,
-  .yohu-dialog__panel,
-  .yohu-toast {
-    animation: none;
-  }
 }
 
 html,

@@ -11,8 +11,9 @@
  *
  * `open` 支持 `boolean` 或响应式 `Accessor<boolean>`。
  */
-import { Show, createEffect, onCleanup } from "solid-js";
+import { createEffect, onCleanup } from "solid-js";
 import type { Accessor, JSX } from "solid-js";
+import { YoPresence } from "../motion/presence";
 import "./Dialog.css";
 
 export interface YoDialogProps {
@@ -98,7 +99,7 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
   });
 
   return (
-    <Show when={isOpen()}>
+    <YoPresence when={isOpen()} recipe="dialog">
       <div class="yohu-dialog">
         <div class="yohu-dialog__backdrop" aria-hidden="true" />
         <div
@@ -120,6 +121,6 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
           {props.footer ? <div class="yohu-dialog__footer">{props.footer}</div> : null}
         </div>
       </div>
-    </Show>
+    </YoPresence>
   );
 }

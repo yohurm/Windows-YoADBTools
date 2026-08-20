@@ -18,12 +18,3 @@
   width: 40%;
   animation: yohu-progress-indeterminate var(--yohu-dur-loop-slow) var(--yohu-ease-loop) infinite;
 }
-
-@keyframes yohu-progress-indeterminate {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(250%);
-  }
-}

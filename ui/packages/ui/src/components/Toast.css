@@ -23,18 +23,6 @@
   font-size: var(--yohu-font-body);
   line-height: var(--yohu-font-leading-ui);
   box-sizing: border-box;
-  animation: yohu-toast-in var(--yohu-dur-normal) var(--yohu-ease-decel);
-}
-
-@keyframes yohu-toast-in {
-  from {
-    opacity: 0;
-    transform: translateX(calc(var(--yohu-space-md) * 2));
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
 }
 
 .yohu-toast--success {
