@@ -99,8 +99,8 @@ import { StatusBar } from "./StatusBar";
 import { AppLayout } from "./AppLayout";
 import { SettingsView } from "../settings/SettingsView";
 import { registerModule } from "../registry";
-import { deviceStore, settingsStore } from "../stores";
-import { APP_IDENTITY, ModuleId, type DeviceSession } from "@yohu/api";
+import { deviceStore, settingsStore, updateStore } from "../stores";
+import { APP_IDENTITY, APP_SETTINGS_DEFAULT, ModuleId, type DeviceSession } from "@yohu/api";
 
 /** 探测壳注入的页眉设备名；用于断言切设备不依赖切模块。 */
 const SessionProbe: Component<DeviceSession> = (props) => (
@@ -139,27 +139,7 @@ registerModule({
   Component: () => null,
 });
 
-const DEFAULT_SETTINGS = {
-  adb_path: "",
-  data_root: "",
-  devices_auto_refresh: 0,
-  buffer_capacity: 10000,
-  clear_device_on_start: true,
-  theme: "light",
-  density: "comfortable",
-  export_default_path: "",
-  export_ask_every_time: true,
-  export_write_mode: "overwrite",
-  log_display_columns: {
-    ts: true,
-    uid: true,
-    pid: true,
-    tid: true,
-    level: true,
-    tag: true,
-  },
-  update_provider: "gitcode",
-} as const;
+const DEFAULT_SETTINGS = { ...APP_SETTINGS_DEFAULT, theme: "light" as const };
 
 const RESOLVED_ADB = "C:\\Users\\me\\AppData\\Local\\YohuAdbTools\\data\\tools\\adb\\adb.exe";
 const RESOLVED_LOCAL = "C:\\Users\\me\\AppData\\Local\\YohuAdbTools";
@@ -217,6 +197,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  updateStore.dismiss();
   document.documentElement.removeAttribute("data-theme");
   document.documentElement.removeAttribute("data-density");
 });
@@ -579,7 +560,7 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     render(() => <SettingsView />);
     await waitFor(() => {
       expect(screen.getByText("更新源")).toBeTruthy();
-      expect(screen.getByText(/yohurm\/ReleaseYoADBTools/)).toBeTruthy();
+      expect(screen.getByText(/当前仓库 yohurm\/ReleaseYoADBTools/)).toBeTruthy();
       expect(screen.getByRole("button", { name: "检查更新" })).toBeTruthy();
     });
     fireEvent.click(screen.getByRole("button", { name: "检查更新" }) as HTMLButtonElement);

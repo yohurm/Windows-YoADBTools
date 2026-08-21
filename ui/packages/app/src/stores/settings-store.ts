@@ -7,38 +7,9 @@
 
 import { createStore } from "solid-js/store";
 
-import { settingsSet, systemInfo } from "@yohu/api";
-import {
-  APP_IDENTITY,
-  EMPTY_PATH_CATALOG,
-  type AppIdentity,
-  type AppPathCatalog,
-  type AppSettings,
-  type SettingKey,
-} from "@yohu/api";
+import { APP_SETTINGS_DEFAULT, APP_IDENTITY, EMPTY_PATH_CATALOG, settingsSet, systemInfo } from "@yohu/api";
+import type { AppIdentity, AppPathCatalog, AppSettings, SettingKey } from "@yohu/api";
 import { setDensity, setTheme } from "@yohu/ui";
-
-const DEFAULT_SETTINGS: AppSettings = {
-  adb_path: "",
-  data_root: "",
-  devices_auto_refresh: 0,
-  buffer_capacity: 10000,
-  clear_device_on_start: true,
-  theme: "system",
-  density: "comfortable",
-  export_default_path: "",
-  export_ask_every_time: true,
-  export_write_mode: "overwrite",
-  log_display_columns: {
-    ts: true,
-    uid: true,
-    pid: true,
-    tid: true,
-    level: true,
-    tag: true,
-  },
-  update_provider: "gitcode",
-};
 
 const EMPTY_RESOLVED = {
   adb_path: "",
@@ -53,7 +24,7 @@ function applyAppearance(settings: AppSettings): void {
 }
 
 export function createSettingsStore() {
-  const [state, setState] = createStore<AppSettings>({ ...DEFAULT_SETTINGS });
+  const [state, setState] = createStore<AppSettings>({ ...APP_SETTINGS_DEFAULT });
   const [resolved, setResolved] = createStore({ ...EMPTY_RESOLVED });
   const [identity, setIdentity] = createStore<AppIdentity>({ ...APP_IDENTITY });
   const [paths, setPaths] = createStore<AppPathCatalog>({ ...EMPTY_PATH_CATALOG });

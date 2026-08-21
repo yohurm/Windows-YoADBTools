@@ -4,7 +4,7 @@
  * 文件位置项：只读展示框显示绝对路径 + 统一「浏览」；超长折叠中间。
  */
 
-import { Component, For, createSignal, onMount } from "solid-js";
+import { Component, For, onMount } from "solid-js";
 
 import {
   APP_ICON_SRC,
@@ -12,15 +12,10 @@ import {
   dialogOpenDirectory,
   dialogOpenFile,
   systemOpenPath,
-  updateCheck,
-  updateInfo,
-  updateOpen,
   type Density,
   type LogDisplayColumns,
-  type RemoteUpdate,
   type SettingKey,
   type Theme,
-  type UpdateChannelInfo,
   type UpdateProvider,
 } from "@yohu/api";
 import {
@@ -37,7 +32,7 @@ import {
   createToaster,
 } from "@yohu/ui";
 
-import { settingsStore } from "../stores";
+import { settingsStore, updateStore } from "../stores";
 import { effectivePath, splitPathEnds } from "./path-display";
 import "./settings.css";
 
@@ -143,20 +138,8 @@ function PathOpenField(props: { label: string; path: string }) {
 }
 
 export const SettingsView: Component = () => {
-  const [checking, setChecking] = createSignal(false);
-  const [pending, setPending] = createSignal<RemoteUpdate | null>(null);
-  const [channel, setChannel] = createSignal<UpdateChannelInfo | null>(null);
-
-  const refreshChannel = async (): Promise<void> => {
-    try {
-      setChannel(await updateInfo());
-    } catch {
-      setChannel(null);
-    }
-  };
-
   onMount(() => {
-    void settingsStore.load().then(() => refreshChannel());
+    void settingsStore.load().then(() => updateStore.refresh());
   });
 
   const save = (key: SettingKey, value: unknown, okText: string): void => {
@@ -167,29 +150,19 @@ export const SettingsView: Component = () => {
   };
 
   const checkAppUpdate = async (): Promise<void> => {
-    setChecking(true);
     try {
-      const result = await updateCheck();
+      const result = await updateStore.check();
       if (!result.has_new_version) {
         toaster.show("已是最新版本", "success");
-        return;
       }
-      setPending(result);
     } catch (e) {
       toaster.show(`检查更新失败: ${ipcMessage(e)}`, "error");
-    } finally {
-      setChecking(false);
     }
   };
 
   const openDownload = async (): Promise<void> => {
-    const update = pending();
-    if (!update) {
-      return;
-    }
     try {
-      await updateOpen(update.download_url);
-      setPending(null);
+      await updateStore.openDownload();
     } catch (e) {
       toaster.show(`打开下载失败: ${ipcMessage(e)}`, "error");
     }
@@ -392,7 +365,7 @@ export const SettingsView: Component = () => {
                 onChange={(v) => {
                   void settingsStore
                     .set("update_provider", v)
-                    .then(() => refreshChannel())
+                    .then(() => updateStore.refresh())
                     .then(() => toaster.show("已保存（立即生效）", "success"))
                     .catch((e) => toaster.show(`保存失败: ${String(e)}`, "error"));
                 }}
@@ -401,7 +374,7 @@ export const SettingsView: Component = () => {
             <div class="yohu-settings__item-hint">
               {settingsStore.state.update_provider === "pgyer"
                 ? "蒲公英需在设置目录的 update.json 填写 api_key / app_key"
-                : `当前仓库 ${channel()?.remote || "—"}`}
+                : `当前仓库 ${updateStore.channel()?.remote || "—"}`}
             </div>
           </div>
           <div class="yohu-settings__item">
@@ -409,10 +382,10 @@ export const SettingsView: Component = () => {
             <div class="yohu-settings__item-control">
               <YoButton
                 variant="secondary"
-                disabled={checking()}
+                disabled={updateStore.checking()}
                 onClick={() => void checkAppUpdate()}
               >
-                {checking() ? "检查中…" : "检查更新"}
+                {updateStore.checking() ? "检查中…" : "检查更新"}
               </YoButton>
             </div>
             <div class="yohu-settings__item-hint">
@@ -454,20 +427,20 @@ export const SettingsView: Component = () => {
       </div>
 
       <YoDialog
-        open={() => pending() !== null}
+        open={() => updateStore.pending() !== null}
         title="发现新版本"
-        onClose={() => setPending(null)}
+        onClose={() => updateStore.dismiss()}
         footer={
           <>
-            <YoButton variant="ghost" onClick={() => setPending(null)}>
+            <YoButton variant="ghost" onClick={() => updateStore.dismiss()}>
               稍后
             </YoButton>
             <YoButton onClick={() => void openDownload()}>前往下载</YoButton>
           </>
         }
       >
-        <p class="yohu-settings__update-ver">{pending()?.version}</p>
-        <p class="yohu-settings__update-desc">{pending()?.description || "有新版本可用。"}</p>
+        <p class="yohu-settings__update-ver">{updateStore.pending()?.version}</p>
+        <p class="yohu-settings__update-desc">{updateStore.pending()?.description || "有新版本可用。"}</p>
       </YoDialog>
 
       <YoToaster toaster={toaster} />
