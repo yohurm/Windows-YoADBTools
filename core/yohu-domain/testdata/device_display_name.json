@@ -1,0 +1,7 @@
+[
+  { "serial": "A1", "model": "Moto X", "expect": "Moto X" },
+  { "serial": "A1", "model": null, "expect": "A1" },
+  { "serial": "A1", "model": "", "expect": "A1" },
+  { "serial": "A1", "model": "  ", "expect": "A1" },
+  { "serial": "ZY22H4GQ9N", "model": "  motorola edge 60 pro  ", "expect": "motorola edge 60 pro" }
+]

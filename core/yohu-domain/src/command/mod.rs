@@ -7,5 +7,8 @@ pub mod library;
 
 pub use default_library::default_library;
 pub use evaluator::{CommandEvaluator, Verdict};
-pub use executor::{GroupExecutor, GroupRunEvent, RunError, Runner, split_command_line};
+pub use executor::{
+    run_and_evaluate, split_command_line, EvaluatedRun, GroupExecutor, GroupRunEvent, RunError,
+    Runner,
+};
 pub use library::{CommandDefinition, CommandGroup, CommandLibrary, InputField, LibraryError};

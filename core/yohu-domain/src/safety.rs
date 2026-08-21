@@ -34,7 +34,9 @@ impl RemotePath {
                 s => parts.push(s),
             }
         }
-        Ok(Self { normalized: format!("/{}", parts.join("/")) })
+        Ok(Self {
+            normalized: format!("/{}", parts.join("/")),
+        })
     }
 
     pub fn as_str(&self) -> &str {
@@ -44,12 +46,15 @@ impl RemotePath {
     /// 本路径是否等于 `root` 或位于其子路径。
     pub fn is_under(&self, root: &RemotePath) -> bool {
         self.normalized == root.normalized
-            || self.normalized.starts_with(&format!("{}/", root.normalized))
+            || self
+                .normalized
+                .starts_with(&format!("{}/", root.normalized))
     }
 
     /// 位于 `root` 之下（不含 root 本身）。`/sdcard/a` 是，`/sdcard` 不是。
     pub fn is_strictly_under(&self, root: &RemotePath) -> bool {
-        self.normalized.starts_with(&format!("{}/", root.normalized))
+        self.normalized
+            .starts_with(&format!("{}/", root.normalized))
     }
 
     /// 规范化路径的最后一段。`/` 为空串。
@@ -88,7 +93,7 @@ pub struct SafetyRoot {
 
 impl Default for SafetyRoot {
     fn default() -> Self {
-        Self::new(&["/sdcard", "/storage"]).expect("内置安全根恒有效")
+        Self::new(yohu_protocol::safety_root::ALL).expect("内置安全根恒有效")
     }
 }
 
@@ -136,16 +141,27 @@ mod tests {
 
     #[test]
     fn parse_rejects_traversal_and_relative() {
-        assert!(matches!(RemotePath::parse("sdcard/a"), Err(PathError::NotAbsolute(_))));
-        assert!(matches!(RemotePath::parse("/sdcard/../etc"), Err(PathError::Traversal(_))));
-        assert!(matches!(RemotePath::parse("/a/../../b"), Err(PathError::Traversal(_))));
+        assert!(matches!(
+            RemotePath::parse("sdcard/a"),
+            Err(PathError::NotAbsolute(_))
+        ));
+        assert!(matches!(
+            RemotePath::parse("/sdcard/../etc"),
+            Err(PathError::Traversal(_))
+        ));
+        assert!(matches!(
+            RemotePath::parse("/a/../../b"),
+            Err(PathError::Traversal(_))
+        ));
     }
 
     #[test]
     fn is_under_semantics() {
         let root = RemotePath::parse("/sdcard").unwrap();
         assert!(RemotePath::parse("/sdcard").unwrap().is_under(&root));
-        assert!(RemotePath::parse("/sdcard/DCIM/x.jpg").unwrap().is_under(&root));
+        assert!(RemotePath::parse("/sdcard/DCIM/x.jpg")
+            .unwrap()
+            .is_under(&root));
         // 前缀防伪：/sdcardevil 不算
         assert!(!RemotePath::parse("/sdcardevil").unwrap().is_under(&root));
     }
@@ -156,24 +172,48 @@ mod tests {
         assert!(safety.check("/sdcard/DCIM/a.jpg").is_ok());
         assert!(safety.check("/storage/emulated/0/b").is_ok());
         assert!(safety.check("/sdcard").is_ok());
-        assert!(matches!(safety.check("/"), Err(SafetyError::OutsideRoot(_))));
-        assert!(matches!(safety.check("/data/local/tmp/x"), Err(SafetyError::OutsideRoot(_))));
-        assert!(matches!(safety.check("/sdcard/../data/x"), Err(SafetyError::OutsideRoot(_))));
+        assert!(matches!(
+            safety.check("/"),
+            Err(SafetyError::OutsideRoot(_))
+        ));
+        assert!(matches!(
+            safety.check("/data/local/tmp/x"),
+            Err(SafetyError::OutsideRoot(_))
+        ));
+        assert!(matches!(
+            safety.check("/sdcard/../data/x"),
+            Err(SafetyError::OutsideRoot(_))
+        ));
     }
 
     #[test]
     fn mutate_forbids_safety_root_itself() {
         let safety = SafetyRoot::default();
         assert!(safety.check_descendant("/sdcard/DCIM/a.jpg").is_ok());
-        assert!(matches!(safety.check_descendant("/sdcard"), Err(SafetyError::OutsideRoot(_))));
-        assert!(matches!(safety.check_descendant("/sdcard/"), Err(SafetyError::OutsideRoot(_))));
-        assert!(matches!(safety.check_descendant("/storage"), Err(SafetyError::OutsideRoot(_))));
-        assert!(matches!(safety.check_descendant("/data/local/tmp/x"), Err(SafetyError::OutsideRoot(_))));
+        assert!(matches!(
+            safety.check_descendant("/sdcard"),
+            Err(SafetyError::OutsideRoot(_))
+        ));
+        assert!(matches!(
+            safety.check_descendant("/sdcard/"),
+            Err(SafetyError::OutsideRoot(_))
+        ));
+        assert!(matches!(
+            safety.check_descendant("/storage"),
+            Err(SafetyError::OutsideRoot(_))
+        ));
+        assert!(matches!(
+            safety.check_descendant("/data/local/tmp/x"),
+            Err(SafetyError::OutsideRoot(_))
+        ));
     }
 
     #[test]
     fn file_name_last_segment() {
-        assert_eq!(RemotePath::parse("/sdcard/a.txt").unwrap().file_name(), "a.txt");
+        assert_eq!(
+            RemotePath::parse("/sdcard/a.txt").unwrap().file_name(),
+            "a.txt"
+        );
         assert_eq!(RemotePath::parse("/sdcard").unwrap().file_name(), "sdcard");
         assert_eq!(RemotePath::parse("/").unwrap().file_name(), "");
     }

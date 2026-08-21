@@ -1,0 +1,22 @@
+[
+  {
+    "serials": ["B2", "A1"],
+    "catalog": [
+      { "serial": "A1", "model": "Moto X", "state": "online", "connection": "usb" },
+      { "serial": "B2", "model": "Moto Y", "state": "online", "connection": "usb" }
+    ],
+    "expect": ["B2", "A1"]
+  },
+  {
+    "serials": ["Z9", "A1"],
+    "catalog": [
+      { "serial": "A1", "model": "Moto X", "state": "online", "connection": "usb" }
+    ],
+    "expect": ["A1"]
+  },
+  {
+    "serials": ["A1"],
+    "catalog": [],
+    "expect": []
+  }
+]

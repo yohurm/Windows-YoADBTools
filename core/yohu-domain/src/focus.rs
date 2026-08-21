@@ -70,7 +70,10 @@ pub enum DeviceSessionError {
 }
 
 /// 校验单台设备当前在线（不信任调用方传入的 serial）。
-pub fn assert_device_online(serial: &str, devices: &[DeviceInfo]) -> Result<(), DeviceSessionError> {
+pub fn assert_device_online(
+    serial: &str,
+    devices: &[DeviceInfo],
+) -> Result<(), DeviceSessionError> {
     match devices.iter().find(|d| d.serial == serial) {
         Some(d) if d.state == DeviceState::Online => Ok(()),
         Some(d) if d.state == DeviceState::Unauthorized => {
@@ -82,7 +85,10 @@ pub fn assert_device_online(serial: &str, devices: &[DeviceInfo]) -> Result<(), 
 }
 
 /// 校验一组执行目标：非空且每一台都在线。
-pub fn assert_targets_online(serials: &[String], devices: &[DeviceInfo]) -> Result<(), DeviceSessionError> {
+pub fn assert_targets_online(
+    serials: &[String],
+    devices: &[DeviceInfo],
+) -> Result<(), DeviceSessionError> {
     if serials.is_empty() {
         return Err(DeviceSessionError::Empty);
     }
@@ -90,6 +96,34 @@ pub fn assert_targets_online(serials: &[String], devices: &[DeviceInfo]) -> Resu
         assert_device_online(serial, devices)?;
     }
     Ok(())
+}
+
+/// 人读设备名：型号去空白后非空则用之，否则 serial。
+/// 设备栏 / 页眉 / 选择器同一规则；禁止 UI 再写 `model ?? serial`。
+pub fn device_display_name(device: &DeviceInfo) -> &str {
+    match device.model.as_deref() {
+        Some(model) => {
+            let name = model.trim();
+            if name.is_empty() {
+                device.serial.as_str()
+            } else {
+                name
+            }
+        }
+        None => device.serial.as_str(),
+    }
+}
+
+/// 按 serials 顺序从目录取出设备（缺条跳过，保序）。
+/// 壳注入 `DeviceSession.selectedDevices` 与页眉同一切片。
+pub fn lookup_selected_devices<'a>(
+    serials: &[String],
+    catalog: &'a [DeviceInfo],
+) -> Vec<&'a DeviceInfo> {
+    serials
+        .iter()
+        .filter_map(|serial| catalog.iter().find(|d| d.serial == *serial))
+        .collect()
 }
 
 /// 目录刷新后的焦点收敛：仍在线则保持，否则落到第一台在线设备。
@@ -127,7 +161,8 @@ mod tests {
             expect: Option<String>,
         }
         let cases: Vec<Case> =
-            serde_json::from_str(include_str!("../testdata/reconcile_focus.json")).expect("fixture");
+            serde_json::from_str(include_str!("../testdata/reconcile_focus.json"))
+                .expect("fixture");
         for case in cases {
             assert_eq!(
                 reconcile_focus(case.focus.as_deref(), &case.online),
@@ -201,7 +236,8 @@ mod tests {
             expect: Vec<String>,
         }
         let cases: Vec<Case> =
-            serde_json::from_str(include_str!("../testdata/resolve_targets.json")).expect("fixture");
+            serde_json::from_str(include_str!("../testdata/resolve_targets.json"))
+                .expect("fixture");
         for case in cases {
             let mode = match case.mode.as_str() {
                 "none" => SelectionMode::None,
@@ -247,6 +283,60 @@ mod tests {
             assert_device_online("Z9", &devices),
             Err(DeviceSessionError::Unknown(_))
         ));
-        assert_eq!(assert_targets_online(&[], &devices), Err(DeviceSessionError::Empty));
+        assert_eq!(
+            assert_targets_online(&[], &devices),
+            Err(DeviceSessionError::Empty)
+        );
+    }
+
+    fn device_with_model(serial: &str, model: Option<&str>) -> DeviceInfo {
+        DeviceInfo {
+            serial: serial.into(),
+            model: model.map(str::to_string),
+            state: DeviceState::Online,
+            connection: "usb".into(),
+        }
+    }
+
+    #[test]
+    fn device_display_name_matches_shared_fixture() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            serial: String,
+            model: Option<String>,
+            expect: String,
+        }
+        let cases: Vec<Case> =
+            serde_json::from_str(include_str!("../testdata/device_display_name.json"))
+                .expect("fixture");
+        for case in cases {
+            let device = device_with_model(&case.serial, case.model.as_deref());
+            assert_eq!(
+                device_display_name(&device),
+                case.expect,
+                "serial={}",
+                case.serial
+            );
+        }
+    }
+
+    #[test]
+    fn lookup_selected_devices_matches_shared_fixture() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            serials: Vec<String>,
+            catalog: Vec<DeviceInfo>,
+            expect: Vec<String>,
+        }
+        let cases: Vec<Case> =
+            serde_json::from_str(include_str!("../testdata/lookup_selected_devices.json"))
+                .expect("fixture");
+        for case in cases {
+            let found: Vec<&str> = lookup_selected_devices(&case.serials, &case.catalog)
+                .iter()
+                .map(|d| d.serial.as_str())
+                .collect();
+            assert_eq!(found, case.expect, "serials={:?}", case.serials);
+        }
     }
 }

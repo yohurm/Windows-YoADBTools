@@ -11,8 +11,14 @@ pub fn default_library() -> CommandLibrary {
         commands,
     };
 
-    let c = |id: &str, name: &str, template: &str, inputs: Vec<InputField>,
-             failure: &str, success: &str, delay_ms: u64, abort: bool| CommandDefinition {
+    let c = |id: &str,
+             name: &str,
+             template: &str,
+             inputs: Vec<InputField>,
+             failure: &str,
+             success: &str,
+             delay_ms: u64,
+             abort: bool| CommandDefinition {
         id: id.into(),
         name: name.into(),
         template: template.into(),
@@ -119,7 +125,9 @@ pub fn default_library() -> CommandLibrary {
                         "c-ping",
                         "网络连通性（主机）",
                         "shell ping -c 3 {0}",
-                        vec![InputField { placeholder: "目标地址（如 8.8.8.8）".into() }],
+                        vec![InputField {
+                            placeholder: "目标地址（如 8.8.8.8）".into(),
+                        }],
                         "100% packet loss",
                         "",
                         0,
@@ -129,7 +137,9 @@ pub fn default_library() -> CommandLibrary {
                         "c-props",
                         "查询属性",
                         "shell getprop {0}",
-                        vec![InputField { placeholder: "属性名（如 ro.product.model）".into() }],
+                        vec![InputField {
+                            placeholder: "属性名（如 ro.product.model）".into(),
+                        }],
                         "not found",
                         "",
                         0,
@@ -150,7 +160,10 @@ mod tests {
         let lib = default_library();
         assert!(lib.validate().is_ok());
         assert_eq!(lib.groups.len(), 3);
-        assert_eq!(lib.groups.iter().map(|g| g.commands.len()).sum::<usize>(), 9);
+        assert_eq!(
+            lib.groups.iter().map(|g| g.commands.len()).sum::<usize>(),
+            9
+        );
     }
 
     #[test]

@@ -1,0 +1,57 @@
+[
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "W", "tag": "T", "msg": "m" },
+    "filter": { "min_level": "W", "scope": { "kind": "all" } },
+    "expect": true
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "E", "tag": "T", "msg": "m" },
+    "filter": { "min_level": "W", "scope": { "kind": "all" } },
+    "expect": true
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "I", "tag": "T", "msg": "m" },
+    "filter": { "min_level": "W", "scope": { "kind": "all" } },
+    "expect": false
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "I", "tag": "OkHttp-Async", "msg": "request Timeout" },
+    "filter": { "tag_contains": "okhttp", "message_contains": "timeout", "scope": { "kind": "all" } },
+    "expect": true
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "I", "tag": "Other", "msg": "request Timeout" },
+    "filter": { "tag_contains": "okhttp", "message_contains": "timeout", "scope": { "kind": "all" } },
+    "expect": false
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "I", "tag": "OkHttp", "msg": "ok" },
+    "filter": { "tag_contains": "okhttp", "message_contains": "timeout", "scope": { "kind": "all" } },
+    "expect": false
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 42, "tid": 1, "level": "I", "tag": "T", "msg": "m" },
+    "filter": { "scope": { "kind": "pid", "pid": 42 } },
+    "expect": true
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 43, "tid": 1, "level": "I", "tag": "T", "msg": "m" },
+    "filter": { "scope": { "kind": "pid", "pid": 42 } },
+    "expect": false
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 99, "tid": 1, "level": "I", "tag": "T", "msg": "m" },
+    "filter": { "scope": { "kind": "package", "pids": [42, 99] } },
+    "expect": true
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 100, "tid": 1, "level": "I", "tag": "T", "msg": "m" },
+    "filter": { "scope": { "kind": "package", "pids": [42, 99] } },
+    "expect": false
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "I", "tag": "T", "msg": "m" },
+    "filter": { "scope": { "kind": "package", "pids": [] } },
+    "expect": false
+  }
+]

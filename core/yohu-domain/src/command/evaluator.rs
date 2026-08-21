@@ -81,12 +81,19 @@ mod tests {
     }
 
     fn outcome(exit: i32, stdout: &str, stderr: &str) -> ExecOutcome {
-        ExecOutcome { exit_code: exit, stdout: stdout.into(), stderr: stderr.into() }
+        ExecOutcome {
+            exit_code: exit,
+            stdout: stdout.into(),
+            stderr: stderr.into(),
+        }
     }
 
     #[test]
     fn exit_code_zero_passes_without_regex() {
-        assert_eq!(CommandEvaluator::evaluate(&def("", ""), &outcome(0, "ok", "")), Verdict::Pass);
+        assert_eq!(
+            CommandEvaluator::evaluate(&def("", ""), &outcome(0, "ok", "")),
+            Verdict::Pass
+        );
     }
 
     #[test]
@@ -111,7 +118,10 @@ mod tests {
         let v = CommandEvaluator::evaluate(&def("", "expected-marker"), &outcome(0, "nope", ""));
         assert!(matches!(v, Verdict::Fail { reason } if reason.contains("成功正则")));
 
-        let v = CommandEvaluator::evaluate(&def("", "expected-marker"), &outcome(0, "expected-marker", ""));
+        let v = CommandEvaluator::evaluate(
+            &def("", "expected-marker"),
+            &outcome(0, "expected-marker", ""),
+        );
         assert_eq!(v, Verdict::Pass);
     }
 }

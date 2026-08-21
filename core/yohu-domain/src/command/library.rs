@@ -131,10 +131,15 @@ impl CommandLibrary {
                 });
             }
         }
-        for (name, re) in [("失败正则", &c.failure_regex), ("成功正则", &c.success_regex)] {
+        for (name, re) in [
+            ("失败正则", &c.failure_regex),
+            ("成功正则", &c.success_regex),
+        ] {
             if !re.is_empty() {
-                regex::Regex::new(re)
-                    .map_err(|e| LibraryError::InvalidRegex { id: c.id.clone(), reason: format!("{name} {re}: {e}") })?;
+                regex::Regex::new(re).map_err(|e| LibraryError::InvalidRegex {
+                    id: c.id.clone(),
+                    reason: format!("{name} {re}: {e}"),
+                })?;
             }
         }
         Ok(())
@@ -197,7 +202,13 @@ fn command_from_dto(c: &CommandDto) -> CommandDefinition {
         id: c.id.clone(),
         name: c.name.clone(),
         template: c.template.clone(),
-        inputs: c.inputs.iter().map(|i| InputField { placeholder: i.placeholder.clone() }).collect(),
+        inputs: c
+            .inputs
+            .iter()
+            .map(|i| InputField {
+                placeholder: i.placeholder.clone(),
+            })
+            .collect(),
         failure_regex: c.failure_regex.clone(),
         success_regex: c.success_regex.clone(),
         delay_ms: c.delay_ms,
@@ -210,7 +221,13 @@ fn command_to_dto(c: &CommandDefinition) -> CommandDto {
         id: c.id.clone(),
         name: c.name.clone(),
         template: c.template.clone(),
-        inputs: c.inputs.iter().map(|i| InputFieldDto { placeholder: i.placeholder.clone() }).collect(),
+        inputs: c
+            .inputs
+            .iter()
+            .map(|i| InputFieldDto {
+                placeholder: i.placeholder.clone(),
+            })
+            .collect(),
         failure_regex: c.failure_regex.clone(),
         success_regex: c.success_regex.clone(),
         delay_ms: c.delay_ms,
@@ -236,7 +253,12 @@ mod tests {
     }
 
     fn group(id: &str, commands: Vec<CommandDefinition>) -> CommandGroup {
-        CommandGroup { id: id.into(), name: format!("组{id}"), tags: vec![], commands }
+        CommandGroup {
+            id: id.into(),
+            name: format!("组{id}"),
+            tags: vec![],
+            commands,
+        }
     }
 
     #[test]
@@ -253,22 +275,41 @@ mod tests {
                 group("g1", vec![cmd("c2", "b", "echo 2")]),
             ],
         };
-        assert!(matches!(lib.validate(), Err(LibraryError::DuplicateGroupId(_))));
+        assert!(matches!(
+            lib.validate(),
+            Err(LibraryError::DuplicateGroupId(_))
+        ));
 
         let lib = CommandLibrary {
             schema_version: 2,
-            groups: vec![group("g1", vec![cmd("c1", "a", "echo 1"), cmd("c1", "b", "echo 2")])],
+            groups: vec![group(
+                "g1",
+                vec![cmd("c1", "a", "echo 1"), cmd("c1", "b", "echo 2")],
+            )],
         };
-        assert!(matches!(lib.validate(), Err(LibraryError::DuplicateCommandId(_))));
+        assert!(matches!(
+            lib.validate(),
+            Err(LibraryError::DuplicateCommandId(_))
+        ));
     }
 
     #[test]
     fn placeholder_count_mismatch_rejected() {
         let mut c = cmd("c1", "a", "shell getprop {0} {1}");
-        c.inputs = vec![InputField { placeholder: "key".into() }];
-        let lib = CommandLibrary { schema_version: 2, groups: vec![group("g1", vec![c])] };
+        c.inputs = vec![InputField {
+            placeholder: "key".into(),
+        }];
+        let lib = CommandLibrary {
+            schema_version: 2,
+            groups: vec![group("g1", vec![c])],
+        };
         match lib.validate() {
-            Err(LibraryError::PlaceholderMismatch { max_index, expected, actual, .. }) => {
+            Err(LibraryError::PlaceholderMismatch {
+                max_index,
+                expected,
+                actual,
+                ..
+            }) => {
                 assert_eq!((max_index, expected, actual), (1, 2, 1));
             }
             other => panic!("unexpected: {other:?}"),
@@ -279,8 +320,14 @@ mod tests {
     fn invalid_regex_rejected() {
         let mut c = cmd("c1", "a", "echo 1");
         c.failure_regex = "([unclosed".into();
-        let lib = CommandLibrary { schema_version: 2, groups: vec![group("g1", vec![c])] };
-        assert!(matches!(lib.validate(), Err(LibraryError::InvalidRegex { .. })));
+        let lib = CommandLibrary {
+            schema_version: 2,
+            groups: vec![group("g1", vec![c])],
+        };
+        assert!(matches!(
+            lib.validate(),
+            Err(LibraryError::InvalidRegex { .. })
+        ));
     }
 
     #[test]

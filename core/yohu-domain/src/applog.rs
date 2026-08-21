@@ -39,7 +39,10 @@ pub struct AppLog {
 
 impl AppLog {
     pub fn new(capacity: usize) -> Self {
-        Self { inner: Mutex::new(VecDeque::with_capacity(capacity)), capacity: capacity.max(1) }
+        Self {
+            inner: Mutex::new(VecDeque::with_capacity(capacity)),
+            capacity: capacity.max(1),
+        }
     }
 
     pub fn info(&self, text: impl Into<String>) {
@@ -58,7 +61,11 @@ impl AppLog {
             .map(|d| d.as_secs())
             .unwrap_or(0);
         let mut inner = self.inner.lock().expect("applog lock poisoned");
-        inner.push_back(AppLogEntry { ts, level, text: text.into() });
+        inner.push_back(AppLogEntry {
+            ts,
+            level,
+            text: text.into(),
+        });
         while inner.len() > self.capacity {
             inner.pop_front();
         }
@@ -66,7 +73,12 @@ impl AppLog {
 
     /// 快照（旧 → 新）。
     pub fn snapshot(&self) -> Vec<AppLogEntry> {
-        self.inner.lock().expect("applog lock poisoned").iter().cloned().collect()
+        self.inner
+            .lock()
+            .expect("applog lock poisoned")
+            .iter()
+            .cloned()
+            .collect()
     }
 }
 

@@ -52,6 +52,50 @@ impl<T: Runner + ?Sized> Runner for Arc<T> {
     }
 }
 
+/// 单命令：拆行 → 执行 → 领域判定。`RunError` 原样上抛（IPC 映射由壳完成）。
+pub async fn run_and_evaluate<R: Runner>(
+    runner: &R,
+    serial: &str,
+    command: &CommandDefinition,
+    cancel: CancellationToken,
+) -> Result<EvaluatedRun, RunError> {
+    let argv = split_command_line(&command.template);
+    let started = std::time::Instant::now();
+    let outcome = runner.run(serial, argv, None, cancel).await?;
+    let duration_ms = started.elapsed().as_millis() as u64;
+    let verdict = CommandEvaluator::evaluate(command, &outcome);
+    Ok(EvaluatedRun {
+        outcome,
+        verdict,
+        duration_ms,
+    })
+}
+
+/// 单命令执行 + 判定结果。
+#[derive(Debug, Clone, PartialEq)]
+pub struct EvaluatedRun {
+    pub outcome: ExecOutcome,
+    pub verdict: Verdict,
+    pub duration_ms: u64,
+}
+
+impl EvaluatedRun {
+    pub fn into_eval_result(self) -> yohu_protocol::EvalResult {
+        let (ok, message) = match self.verdict {
+            Verdict::Pass => (true, String::new()),
+            Verdict::Fail { reason } => (false, reason),
+        };
+        yohu_protocol::EvalResult {
+            ok,
+            message,
+            exit_code: self.outcome.exit_code,
+            stdout: self.outcome.stdout,
+            stderr: self.outcome.stderr,
+            duration_ms: self.duration_ms,
+        }
+    }
+}
+
 /// 组执行进度事件（每命令一条）。
 #[derive(Debug, Clone)]
 pub struct GroupRunEvent {
@@ -74,7 +118,9 @@ pub struct GroupExecutor<R: Runner> {
 
 impl<R: Runner> GroupExecutor<R> {
     pub fn new(runner: R) -> Self {
-        Self { runner: Arc::new(runner) }
+        Self {
+            runner: Arc::new(runner),
+        }
     }
 
     /// 对每个设备并行执行整组命令；组内串行，支持延时与失败中断。
@@ -121,20 +167,25 @@ impl<R: Runner> GroupExecutor<R> {
                     _ = cancel.cancelled() => return,
                 }
             }
-            let argv = split_command_line(&command.template);
             let started = std::time::Instant::now();
-            let outcome = self
-                .runner
-                .run(serial, argv, None, cancel.clone())
-                .await;
-            let duration_ms = started.elapsed().as_millis() as u64;
-            let (verdict, message) = match outcome {
-                Ok(o) => (
-                    CommandEvaluator::evaluate(command, &o),
-                    if o.stderr.is_empty() { o.stdout } else { o.stderr },
-                ),
-                Err(e) => (Verdict::Fail { reason: e.to_string() }, e.to_string()),
-            };
+            let (verdict, message, duration_ms) =
+                match run_and_evaluate(&*self.runner, serial, command, cancel.clone()).await {
+                    Ok(evaluated) => {
+                        let message = if evaluated.outcome.stderr.is_empty() {
+                            evaluated.outcome.stdout
+                        } else {
+                            evaluated.outcome.stderr
+                        };
+                        (evaluated.verdict, message, evaluated.duration_ms)
+                    }
+                    Err(e) => (
+                        Verdict::Fail {
+                            reason: e.to_string(),
+                        },
+                        e.to_string(),
+                        started.elapsed().as_millis() as u64,
+                    ),
+                };
             let abort = command.abort_on_fail && !verdict.is_pass();
             let _ = progress_tx.try_send(GroupRunEvent {
                 serial: serial.to_string(),
@@ -232,7 +283,11 @@ mod tests {
         ) -> Result<ExecOutcome, RunError> {
             let code = self.exit_codes.lock().unwrap().remove(0);
             self.calls.lock().unwrap().push((serial.to_string(), argv));
-            Ok(ExecOutcome { exit_code: code, stdout: String::new(), stderr: String::new() })
+            Ok(ExecOutcome {
+                exit_code: code,
+                stdout: String::new(),
+                stderr: String::new(),
+            })
         }
     }
 
@@ -260,7 +315,12 @@ mod tests {
         let (tx, mut rx) = mpsc::channel(16);
 
         executor
-            .run(&group, &["s1".into(), "s2".into()], tx, CancellationToken::new())
+            .run(
+                &group,
+                &["s1".into(), "s2".into()],
+                tx,
+                CancellationToken::new(),
+            )
             .await;
 
         let mut events = Vec::new();
@@ -336,5 +396,26 @@ mod tests {
 
         executor.run(&group, &["s1".into()], tx, cancel).await;
         assert!(rx.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn run_and_evaluate_maps_exit_code() {
+        let runner = FakeRunner {
+            calls: Mutex::new(vec![]),
+            exit_codes: Mutex::new(vec![0]),
+        };
+        let evaluated = run_and_evaluate(
+            &runner,
+            "s1",
+            &command("a", "echo a", true),
+            CancellationToken::new(),
+        )
+        .await
+        .unwrap();
+        assert!(evaluated.verdict.is_pass());
+        assert_eq!(evaluated.outcome.exit_code, 0);
+        let wire = evaluated.into_eval_result();
+        assert!(wire.ok);
+        assert_eq!(wire.exit_code, 0);
     }
 }
