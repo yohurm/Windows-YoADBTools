@@ -76,7 +76,10 @@ async fn wait_ring_lines(service: &Arc<CaptureService>, serial: &str, want: usiz
     }
 }
 
-async fn collect_lines(rx: &mut mpsc::Receiver<AppEvent>, want: usize) -> Vec<yohu_protocol::LogLine> {
+async fn collect_lines(
+    rx: &mut mpsc::Receiver<AppEvent>,
+    want: usize,
+) -> Vec<yohu_protocol::LogLine> {
     let mut lines = Vec::new();
     let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
     while lines.len() < want && tokio::time::Instant::now() < deadline {
@@ -142,7 +145,10 @@ async fn start_while_live_adopts_same_generation() {
     assert!(!first.adopted);
     assert!(service.is_capturing("R58M1234A"));
 
-    let second = service.start("R58M1234A", false).await.expect("二次开始应 adopt");
+    let second = service
+        .start("R58M1234A", false)
+        .await
+        .expect("二次开始应 adopt");
     assert!(second.adopted);
     assert_eq!(second.generation, first.generation);
     assert!(service.is_capturing("R58M1234A"));
@@ -185,7 +191,10 @@ async fn stop_during_start_releases_slot_and_allows_restart() {
     let starter = Arc::clone(&service);
     let start = tokio::spawn(async move { starter.start("R58M1234A", false).await });
     let deadline = tokio::time::Instant::now() + Duration::from_secs(4);
-    while !service.is_capturing("R58M1234A") && !start.is_finished() && tokio::time::Instant::now() < deadline {
+    while !service.is_capturing("R58M1234A")
+        && !start.is_finished()
+        && tokio::time::Instant::now() < deadline
+    {
         tokio::time::sleep(Duration::from_millis(2)).await;
     }
     service.stop("R58M1234A").await;
@@ -193,7 +202,10 @@ async fn stop_during_start_releases_slot_and_allows_restart() {
     assert!(!service.is_capturing("R58M1234A"));
     let status = service.status("R58M1234A");
     assert!(!status.capturing);
-    assert!(status.generation > 0, "Empty 后仍报告已结束世代，供 UI 对账");
+    assert!(
+        status.generation > 0,
+        "Empty 后仍报告已结束世代，供 UI 对账"
+    );
 
     let again = service
         .start("R58M1234A", false)
@@ -237,7 +249,9 @@ async fn start_during_stop_waits_then_opens_new_generation() {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(4);
     while tokio::time::Instant::now() < deadline {
         match tokio::time::timeout(Duration::from_millis(200), rx.recv()).await {
-            Ok(Some(AppEvent::CaptureState { generation, state, .. })) => {
+            Ok(Some(AppEvent::CaptureState {
+                generation, state, ..
+            })) => {
                 if state == yohu_protocol::CaptureState::Stopped && generation == first.generation {
                     stopped = true;
                 }
@@ -267,7 +281,10 @@ async fn start_after_follow_ends_opens_new_stream() {
     while service.is_capturing("R58M1234A") && tokio::time::Instant::now() < deadline {
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
-    assert!(!service.is_capturing("R58M1234A"), "流自然结束后槽位必须释放");
+    assert!(
+        !service.is_capturing("R58M1234A"),
+        "流自然结束后槽位必须释放"
+    );
     service
         .start("R58M1234A", false)
         .await
@@ -298,7 +315,10 @@ async fn device_offline_stream_ends_with_state_stopped() {
             while let Ok(event) = rx.try_recv() {
                 if matches!(
                     event,
-                    AppEvent::CaptureState { state: yohu_protocol::CaptureState::Stopped, .. }
+                    AppEvent::CaptureState {
+                        state: yohu_protocol::CaptureState::Stopped,
+                        ..
+                    }
                 ) {
                     saw_stopped = true;
                 }
@@ -306,7 +326,10 @@ async fn device_offline_stream_ends_with_state_stopped() {
             break;
         }
         match tokio::time::timeout(Duration::from_millis(100), rx.recv()).await {
-            Ok(Some(AppEvent::CaptureState { state: yohu_protocol::CaptureState::Stopped, .. })) => {
+            Ok(Some(AppEvent::CaptureState {
+                state: yohu_protocol::CaptureState::Stopped,
+                ..
+            })) => {
                 saw_stopped = true;
                 break;
             }
@@ -353,14 +376,16 @@ async fn detach_device_stops_and_clears() {
 
     service.detach_device("R58M1234A").await;
     assert!(!service.is_capturing("R58M1234A"));
-    assert!(service.ring("R58M1234A").is_empty(), "切换/掉线清缓冲（防串设备）");
+    assert!(
+        service.ring("R58M1234A").is_empty(),
+        "切换/掉线清缓冲（防串设备）"
+    );
 }
 
 #[tokio::test]
 async fn process_snapshot_reads_ps() {
-    let exe = isolated_fake_adb(
-        r#"{ "ps": "PID NAME\n1234 com.yohu.app\n5678 com.yohu.app:core\n" }"#,
-    );
+    let exe =
+        isolated_fake_adb(r#"{ "ps": "PID NAME\n1234 com.yohu.app\n5678 com.yohu.app:core\n" }"#);
     let (service, _rx) = build_service(exe);
     let entries = service.process_snapshot("R58M1234A").await.expect("ps");
     assert_eq!(entries.len(), 2);
@@ -391,7 +416,10 @@ async fn adb_client_devices_parse_via_fake() {
         r#"{ "devices": ["R58M1234A device product:x model:Yohu_Phone transport_id:1", "Z9X unauthorized"] }"#,
     );
     let client = AdbClient::new(tool(exe), 4);
-    let devices = client.devices(CancellationToken::new()).await.expect("扫描");
+    let devices = client
+        .devices(CancellationToken::new())
+        .await
+        .expect("扫描");
     assert_eq!(devices.len(), 2);
     assert_eq!(devices[0].model.as_deref(), Some("Yohu Phone"));
     assert_eq!(devices[0].state, yohu_protocol::DeviceState::Online);

@@ -7,6 +7,7 @@
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
+use yohu_domain::log_filter_matches;
 use yohu_protocol::{LogFilter, LogLine};
 
 struct State {
@@ -73,7 +74,7 @@ impl RingBuffer {
         state
             .buf
             .iter()
-            .filter(|l| filter.matches(l))
+            .filter(|l| log_filter_matches(filter, l))
             .take(limit)
             .cloned()
             .collect()

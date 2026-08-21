@@ -106,7 +106,12 @@ fn flush(
         return;
     }
     let from_seq = lines[0].seq;
-    let batch = LogBatch { serial: serial.to_string(), from_seq, lines, truncated: false };
+    let batch = LogBatch {
+        serial: serial.to_string(),
+        from_seq,
+        lines,
+        truncated: false,
+    };
     match sink.try_send(AppEvent::LogBatch(LogBatchPayload { batch })) {
         Ok(()) => {
             if *dropped_batches > 0 {
@@ -125,7 +130,10 @@ fn emit_overflow(sink: &mpsc::Sender<AppEvent>, serial: &str, dropped: &mut u64)
     if *dropped == 0 {
         return;
     }
-    let event = AppEvent::LogOverflow { serial: serial.to_string(), dropped_batches: *dropped };
+    let event = AppEvent::LogOverflow {
+        serial: serial.to_string(),
+        dropped_batches: *dropped,
+    };
     if sink.try_send(event).is_ok() {
         *dropped = 0;
     }
@@ -226,7 +234,9 @@ mod tests {
         while tokio::time::Instant::now() < deadline && !(saw_batch && saw_overflow) {
             match sink_rx.recv().await {
                 Some(AppEvent::LogBatch(_)) => saw_batch = true,
-                Some(AppEvent::LogOverflow { dropped_batches, .. }) => {
+                Some(AppEvent::LogOverflow {
+                    dropped_batches, ..
+                }) => {
                     assert!(dropped_batches > 0);
                     saw_overflow = true;
                 }

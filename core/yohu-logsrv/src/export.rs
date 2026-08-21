@@ -17,6 +17,22 @@ impl ExportService {
         Self { exports_dir }
     }
 
+    /// 用户指定路径优先；否则设置里的默认目录 + `logcat-{serial}.txt`；都空则走服务默认导出目录。
+    pub fn resolve_dest(
+        requested: Option<&str>,
+        default_dir: &str,
+        serial: &str,
+    ) -> Option<PathBuf> {
+        if let Some(p) = requested.filter(|s| !s.is_empty()) {
+            return Some(PathBuf::from(p));
+        }
+        if default_dir.is_empty() {
+            return None;
+        }
+        let dir = default_dir.trim_end_matches(['/', '\\']);
+        Some(PathBuf::from(format!("{dir}/logcat-{serial}.txt")))
+    }
+
     /// 导出过滤后快照为 txt；`dest` 为空则写入默认目录的时间戳文件。
     pub fn export(
         &self,
@@ -63,13 +79,19 @@ impl ExportService {
             }
         }
 
-        Ok(ExportResult { path: path_to_string(&path), lines: lines.len() as u64 })
+        Ok(ExportResult {
+            path: path_to_string(&path),
+            lines: lines.len() as u64,
+        })
     }
 }
 
 fn default_name(serial: &str) -> String {
     let stamp = time::OffsetDateTime::now_local()
-        .map(|t| t.format(&time::format_description::well_known::Rfc3339).unwrap_or_default())
+        .map(|t| {
+            t.format(&time::format_description::well_known::Rfc3339)
+                .unwrap_or_default()
+        })
         .unwrap_or_default();
     let safe_stamp = stamp.replace([':', '+'], "-");
     let safe_serial: String = serial
@@ -111,9 +133,19 @@ mod tests {
         ring.push(line(1, 'E'));
         ring.push(line(2, 'W'));
 
-        let filter = LogFilter { min_level: Some('W'), ..Default::default() };
+        let filter = LogFilter {
+            min_level: Some('W'),
+            ..Default::default()
+        };
         let result = svc
-            .export("s1", &ring, Some(&filter), 1000, None, ExportWriteMode::Overwrite)
+            .export(
+                "s1",
+                &ring,
+                Some(&filter),
+                1000,
+                None,
+                ExportWriteMode::Overwrite,
+            )
             .unwrap();
         assert_eq!(result.lines, 2);
         let text = std::fs::read_to_string(&result.path).unwrap();
@@ -131,11 +163,33 @@ mod tests {
         let ring = RingBuffer::new(10);
         ring.push(line(0, 'I'));
         let dest = dir.join("keep.txt");
-        svc.export("s1", &ring, None, 10, Some(&dest), ExportWriteMode::Overwrite).unwrap();
+        svc.export(
+            "s1",
+            &ring,
+            None,
+            10,
+            Some(&dest),
+            ExportWriteMode::Overwrite,
+        )
+        .unwrap();
         ring.push(line(1, 'E'));
-        svc.export("s1", &ring, None, 10, Some(&dest), ExportWriteMode::Append).unwrap();
+        svc.export("s1", &ring, None, 10, Some(&dest), ExportWriteMode::Append)
+            .unwrap();
         let text = std::fs::read_to_string(&dest).unwrap();
         assert!(text.matches("T: m").count() >= 3);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_dest_prefers_requested_then_default_dir() {
+        assert_eq!(
+            ExportService::resolve_dest(Some("C:/out.txt"), "D:/exports", "s1"),
+            Some(PathBuf::from("C:/out.txt"))
+        );
+        assert_eq!(
+            ExportService::resolve_dest(Some(""), "D:/exports/", "s1"),
+            Some(PathBuf::from("D:/exports/logcat-s1.txt"))
+        );
+        assert_eq!(ExportService::resolve_dest(None, "", "s1"), None);
     }
 }

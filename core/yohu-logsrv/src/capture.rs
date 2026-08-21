@@ -57,13 +57,18 @@ struct Inner {
 
 enum StartDecision {
     Adopt(CaptureStart),
-    Begin { generation: u64, cancel: CancellationToken },
+    Begin {
+        generation: u64,
+        cancel: CancellationToken,
+    },
     Wait,
 }
 
 fn remember_and_remove(inner: &mut Inner, serial: &str) -> Option<CaptureSlot> {
     let slot = inner.captures.remove(serial)?;
-    inner.last_generation.insert(serial.to_string(), slot.generation);
+    inner
+        .last_generation
+        .insert(serial.to_string(), slot.generation);
     Some(slot)
 }
 
@@ -77,13 +82,21 @@ pub struct CaptureService {
 
 fn follow_argv(exec_out: bool) -> Vec<String> {
     if exec_out {
-        vec!["exec-out".into(), "logcat".into(), "-v".into(), LOGCAT_FORMAT.into()]
+        vec![
+            "exec-out".into(),
+            "logcat".into(),
+            "-v".into(),
+            LOGCAT_FORMAT.into(),
+        ]
     } else {
         vec!["logcat".into(), "-v".into(), LOGCAT_FORMAT.into()]
     }
 }
 
-pub fn ingest_raw_lines(ring: &RingBuffer, raw_lines: impl IntoIterator<Item = impl AsRef<str>>) -> u64 {
+pub fn ingest_raw_lines(
+    ring: &RingBuffer,
+    raw_lines: impl IntoIterator<Item = impl AsRef<str>>,
+) -> u64 {
     let mut added = 0u64;
     for raw in raw_lines {
         let raw = raw.as_ref();
@@ -126,7 +139,10 @@ async fn run_follow(
         let serial = serial.clone();
         let tx = line_tx.clone();
         let token = probe_cancel.clone();
-        tokio::spawn(async move { adb.stream_lines(&serial, &follow_argv(true), token, tx).await })
+        tokio::spawn(async move {
+            adb.stream_lines(&serial, &follow_argv(true), token, tx)
+                .await
+        })
     };
 
     let deadline = tokio::time::Instant::now() + EXEC_OUT_PROBE;
@@ -145,7 +161,12 @@ async fn run_follow(
             if seen.load(Ordering::Relaxed) == 0 && !cancel.is_cancelled() {
                 tracing::warn!("exec-out logcat 未产出，回退 adb logcat");
                 let _ = adb
-                    .stream_lines(&serial, &follow_argv(false), cancel.clone(), line_tx.clone())
+                    .stream_lines(
+                        &serial,
+                        &follow_argv(false),
+                        cancel.clone(),
+                        line_tx.clone(),
+                    )
                     .await;
             }
             break;
@@ -156,7 +177,12 @@ async fn run_follow(
             if seen.load(Ordering::Relaxed) == 0 && !cancel.is_cancelled() {
                 tracing::warn!("exec-out logcat 超时无行，回退 adb logcat");
                 let _ = adb
-                    .stream_lines(&serial, &follow_argv(false), cancel.clone(), line_tx.clone())
+                    .stream_lines(
+                        &serial,
+                        &follow_argv(false),
+                        cancel.clone(),
+                        line_tx.clone(),
+                    )
                     .await;
             }
             break;
@@ -177,7 +203,11 @@ async fn run_follow(
 }
 
 impl CaptureService {
-    pub fn new(adb: Arc<AdbClient>, sink: mpsc::Sender<AppEvent>, ring_capacity: usize) -> Arc<Self> {
+    pub fn new(
+        adb: Arc<AdbClient>,
+        sink: mpsc::Sender<AppEvent>,
+        ring_capacity: usize,
+    ) -> Arc<Self> {
         Arc::new(Self {
             adb,
             sink,
@@ -230,13 +260,11 @@ impl CaptureService {
     fn decide_start(&self, serial: &str) -> StartDecision {
         let mut inner = self.inner.lock().expect("capture lock poisoned");
         match inner.captures.get(serial) {
-            Some(slot) if slot.phase == Phase::Live => {
-                StartDecision::Adopt(CaptureStart {
-                    serial: serial.to_string(),
-                    generation: slot.generation,
-                    adopted: true,
-                })
-            }
+            Some(slot) if slot.phase == Phase::Live => StartDecision::Adopt(CaptureStart {
+                serial: serial.to_string(),
+                generation: slot.generation,
+                adopted: true,
+            }),
             Some(_) => StartDecision::Wait,
             None => {
                 inner.next_generation += 1;
@@ -266,7 +294,11 @@ impl CaptureService {
     }
 
     /// 开始跟流。仅 Live 可 adopt。Starting/Stopping 等待后再决定。新流跟流前清空本设备环。
-    pub async fn start(self: &Arc<Self>, serial: &str, clear_device: bool) -> Result<CaptureStart, LogError> {
+    pub async fn start(
+        self: &Arc<Self>,
+        serial: &str,
+        clear_device: bool,
+    ) -> Result<CaptureStart, LogError> {
         let (my_generation, cancel) = loop {
             match self.decide_start(serial) {
                 StartDecision::Adopt(result) => {
@@ -318,7 +350,9 @@ impl CaptureService {
         let follow_cancel = cancel.clone();
         let capture_handle = tokio::spawn(async move {
             run_follow(adb, serial_owned.clone(), ring, batcher, follow_cancel).await;
-            service.release_if_current(&serial_owned, my_generation).await;
+            service
+                .release_if_current(&serial_owned, my_generation)
+                .await;
         });
 
         let index_handle = tokio::spawn(crate::index::run(
@@ -334,9 +368,7 @@ impl CaptureService {
         let published = {
             let mut inner = self.inner.lock().expect("capture lock poisoned");
             match inner.captures.get_mut(serial) {
-                Some(slot)
-                    if slot.generation == my_generation && slot.phase == Phase::Starting =>
-                {
+                Some(slot) if slot.generation == my_generation && slot.phase == Phase::Starting => {
                     slot.phase = Phase::Live;
                     slot.capture_handle = capture_handle.take();
                     slot.index_handle = index_handle.take();
@@ -356,7 +388,8 @@ impl CaptureService {
             }
             return Err(LogError::Cancelled);
         }
-        self.emit_state(serial, my_generation, CaptureState::Running).await;
+        self.emit_state(serial, my_generation, CaptureState::Running)
+            .await;
         self.changed.notify_waiters();
         tracing::info!(serial, generation = my_generation, "采集开始");
         Ok(CaptureStart {
@@ -409,9 +442,10 @@ impl CaptureService {
 
         let emit = {
             let mut inner = self.inner.lock().expect("capture lock poisoned");
-            let matches = inner.captures.get(serial).is_some_and(|slot| {
-                slot.generation == generation && slot.phase == Phase::Stopping
-            });
+            let matches = inner
+                .captures
+                .get(serial)
+                .is_some_and(|slot| slot.generation == generation && slot.phase == Phase::Stopping);
             if matches {
                 let _ = remember_and_remove(&mut inner, serial);
                 true
@@ -420,7 +454,8 @@ impl CaptureService {
             }
         };
         if emit {
-            self.emit_state(serial, generation, CaptureState::Stopped).await;
+            self.emit_state(serial, generation, CaptureState::Stopped)
+                .await;
             tracing::info!(serial, generation, "采集停止");
         } else {
             tracing::info!(serial, generation, "采集停止被更新世代取代，丢弃 Stopped");
@@ -474,9 +509,10 @@ impl CaptureService {
     async fn abandon_starting(&self, serial: &str, generation: u64) {
         let dropped = {
             let mut inner = self.inner.lock().expect("capture lock poisoned");
-            let matches = inner.captures.get(serial).is_some_and(|slot| {
-                slot.generation == generation && slot.phase == Phase::Starting
-            });
+            let matches = inner
+                .captures
+                .get(serial)
+                .is_some_and(|slot| slot.generation == generation && slot.phase == Phase::Starting);
             if matches {
                 let _ = remember_and_remove(&mut inner, serial);
                 true
@@ -485,7 +521,8 @@ impl CaptureService {
             }
         };
         if dropped {
-            self.emit_state(serial, generation, CaptureState::Stopped).await;
+            self.emit_state(serial, generation, CaptureState::Stopped)
+                .await;
             tracing::info!(serial, generation, "采集 Starting 已放弃");
             self.changed.notify_waiters();
         }
@@ -506,7 +543,8 @@ impl CaptureService {
         };
         if let Some(slot) = taken {
             slot.cancel.cancel();
-            self.emit_state(serial, generation, CaptureState::Stopped).await;
+            self.emit_state(serial, generation, CaptureState::Stopped)
+                .await;
             tracing::info!(serial, generation, "采集流结束");
             self.changed.notify_waiters();
         }

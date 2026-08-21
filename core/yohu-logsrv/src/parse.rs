@@ -7,7 +7,10 @@
 use yohu_protocol::LogLine;
 
 fn is_level_token(s: &str) -> bool {
-    matches!(s, "V" | "D" | "I" | "W" | "E" | "F" | "v" | "d" | "i" | "w" | "e" | "f")
+    matches!(
+        s,
+        "V" | "D" | "I" | "W" | "E" | "F" | "v" | "d" | "i" | "w" | "e" | "f"
+    )
 }
 
 fn parse_u32(s: &str) -> Option<u32> {
@@ -46,7 +49,10 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
     if raw.len() < 18 || raw.as_bytes().get(2) != Some(&b'-') {
         return fallback();
     }
-    let ts_end = raw.find(' ').and_then(|i| raw[i + 1..].find(' ').map(|j| i + 1 + j)).unwrap_or(18);
+    let ts_end = raw
+        .find(' ')
+        .and_then(|i| raw[i + 1..].find(' ').map(|j| i + 1 + j))
+        .unwrap_or(18);
     let ts = raw[..ts_end].to_string();
     let rest = raw[ts_end..].trim_start();
     if rest.is_empty() {
@@ -57,7 +63,9 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
     let tokens: Vec<&str> = rest.split_whitespace().collect();
     let (pid, tid, uid, level_tag) = match tokens.as_slice() {
         [uid_str, pid_str, tid_str, level_first, rest @ ..]
-            if parse_u32(pid_str).is_some() && parse_u32(tid_str).is_some() && is_level_token(level_first) =>
+            if parse_u32(pid_str).is_some()
+                && parse_u32(tid_str).is_some()
+                && is_level_token(level_first) =>
         {
             (
                 parse_u32(pid_str).unwrap_or(0),
@@ -67,7 +75,9 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
             )
         }
         [pid_str, tid_str, level_first, rest @ ..]
-            if parse_u32(pid_str).is_some() && parse_u32(tid_str).is_some() && is_level_token(level_first) =>
+            if parse_u32(pid_str).is_some()
+                && parse_u32(tid_str).is_some()
+                && is_level_token(level_first) =>
         {
             (
                 parse_u32(pid_str).unwrap_or(0),
@@ -94,7 +104,16 @@ pub fn parse_threadtime(raw: &str) -> LogLine {
         None => (String::new(), after_level.trim_start().to_string()),
     };
 
-    LogLine { seq: 0, ts, pid, tid, uid, level, tag, msg }
+    LogLine {
+        seq: 0,
+        ts,
+        pid,
+        tid,
+        uid,
+        level,
+        tag,
+        msg,
+    }
 }
 
 #[cfg(test)]
@@ -103,7 +122,8 @@ mod tests {
 
     #[test]
     fn parses_normal_line() {
-        let line = parse_threadtime("01-02 03:04:05.678  1234  5678 I ActivityManager: Start proc 1234");
+        let line =
+            parse_threadtime("01-02 03:04:05.678  1234  5678 I ActivityManager: Start proc 1234");
         assert_eq!(line.ts, "01-02 03:04:05.678");
         assert_eq!(line.pid, 1234);
         assert_eq!(line.tid, 5678);
@@ -144,7 +164,9 @@ mod tests {
 
     #[test]
     fn parses_optional_uid_column() {
-        let line = parse_threadtime("05-26 11:02:36.886  1000  5689  5689 D AndroidRuntime: CheckJNI is OFF");
+        let line = parse_threadtime(
+            "05-26 11:02:36.886  1000  5689  5689 D AndroidRuntime: CheckJNI is OFF",
+        );
         assert_eq!(line.uid.as_deref(), Some("1000"));
         assert_eq!(line.pid, 5689);
         assert_eq!(line.tid, 5689);
@@ -167,7 +189,9 @@ mod tests {
 
     #[test]
     fn parses_root_uid_empty_tag() {
-        let line = parse_threadtime("08-20 18:48:42.342  root     0     0 I         : [    C4] swpm_sp_routine");
+        let line = parse_threadtime(
+            "08-20 18:48:42.342  root     0     0 I         : [    C4] swpm_sp_routine",
+        );
         assert_eq!(line.uid.as_deref(), Some("root"));
         assert_eq!(line.pid, 0);
         assert_eq!(line.tid, 0);

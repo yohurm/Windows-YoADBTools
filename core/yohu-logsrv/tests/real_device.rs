@@ -19,7 +19,10 @@ fn real_adb() -> PathBuf {
 }
 
 async fn online_device(client: &AdbClient) -> Option<String> {
-    let devices = client.devices(tokio_util::sync::CancellationToken::new()).await.ok()?;
+    let devices = client
+        .devices(tokio_util::sync::CancellationToken::new())
+        .await
+        .ok()?;
     devices
         .into_iter()
         .find(|d| d.state == yohu_protocol::DeviceState::Online)
@@ -77,8 +80,15 @@ async fn real_capture_stream_batch_and_ring() {
         sample.tag
     );
     // threadtime 解析质量：多数行应有时间戳与级别
-    let parsed_ok = lines.iter().filter(|l| !l.ts.is_empty() && l.level != '?').count();
-    assert!(parsed_ok * 10 >= lines.len() * 8, "解析质量不足: {parsed_ok}/{}", lines.len());
+    let parsed_ok = lines
+        .iter()
+        .filter(|l| !l.ts.is_empty() && l.level != '?')
+        .count();
+    assert!(
+        parsed_ok * 10 >= lines.len() * 8,
+        "解析质量不足: {parsed_ok}/{}",
+        lines.len()
+    );
 
     service.stop(&serial).await;
     assert!(!service.is_capturing(&serial));
@@ -99,7 +109,10 @@ async fn real_capture_with_clear_device() {
     let service = CaptureService::new(client, tx, 50_000);
 
     // 开采前 logcat -c：start(clear_device=true) 内部执行
-    service.start(&serial, true).await.expect("开始采集（先清设备缓冲）");
+    service
+        .start(&serial, true)
+        .await
+        .expect("开始采集（先清设备缓冲）");
     let lines = collect_events(&mut rx, 3, Duration::from_secs(30)).await;
     assert!(!lines.is_empty(), "清缓冲后仍应采集到新日志");
     eprintln!("[真机] 清缓冲重采 {} 行", lines.len());
@@ -126,14 +139,21 @@ async fn real_detach_clears_ring() {
     tokio::time::sleep(Duration::from_secs(3)).await;
     service.detach_device(&serial).await;
     assert!(!service.is_capturing(&serial));
-    assert!(service.ring(&serial).is_empty(), "切换/掉线清缓冲（防串设备）");
+    assert!(
+        service.ring(&serial).is_empty(),
+        "切换/掉线清缓冲（防串设备）"
+    );
 }
 
 /// 日志导出端到端：采集 → 停止 → 过滤导出 txt → 文件内容与过滤一致。
 #[tokio::test]
 async fn real_export_filtered_txt() {
     let client = Arc::new(AdbClient::new(
-        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a2"), PathBuf::from("n/a2")),
+        ToolResolver::new(
+            Some(real_adb()),
+            PathBuf::from("n/a2"),
+            PathBuf::from("n/a2"),
+        ),
         4,
     ));
     let Some(serial) = online_device(&client).await else {
@@ -176,7 +196,7 @@ async fn real_export_filtered_txt() {
     for line in content.lines() {
         let level = yohu_logsrv::parse_threadtime(line).level;
         assert!(
-            yohu_protocol::level_rank(level) >= yohu_protocol::level_rank('W'),
+            yohu_domain::level_rank(level) >= yohu_domain::level_rank('W'),
             "导出应只含 W 及以上级别，实际 {level}: {line}"
         );
     }
