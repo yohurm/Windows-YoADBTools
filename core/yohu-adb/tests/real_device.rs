@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use yohu_adb::{AdbClient, ToolResolver};
-use yohu_domain::{default_library, GroupExecutor, Verdict};
+use yohu_domain::{default_library, run_and_evaluate, GroupExecutor, Verdict};
 
 fn real_adb() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tools/adb.exe")
@@ -219,5 +219,39 @@ async fn real_device_group_run_end_to_end() {
     assert!(
         events.iter().any(|e| matches!(e.verdict, Verdict::Pass)),
         "至少一条 Pass"
+    );
+}
+
+/// 占位符在 domain 填充后再判定：`c-props` 填 `ro.product.model`。
+#[tokio::test]
+async fn real_device_fill_then_evaluate_getprop() {
+    let client = client();
+    let Some(serial) = online_device(&client).await else {
+        eprintln!("跳过：无在线设备");
+        return;
+    };
+    let cmd = default_library()
+        .command("c-props")
+        .cloned()
+        .expect("默认库含 c-props");
+    let filled = cmd
+        .fill(&["ro.product.model".into()])
+        .expect("填充属性名");
+    assert!(
+        !filled.template.contains("{0}"),
+        "填充后模板不应残留占位符"
+    );
+    let evaluated = run_and_evaluate(&client, &serial, &filled, CancellationToken::new())
+        .await
+        .expect("eval");
+    eprintln!(
+        "[真机] fill+eval stdout={} verdict={:?}",
+        evaluated.outcome.stdout.trim(),
+        evaluated.verdict
+    );
+    assert!(evaluated.verdict.is_pass(), "查询属性应通过");
+    assert!(
+        !evaluated.outcome.stdout.trim().is_empty(),
+        "型号不应为空"
     );
 }
