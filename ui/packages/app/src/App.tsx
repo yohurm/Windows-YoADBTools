@@ -5,10 +5,11 @@
 
 import { Component, createSignal, onCleanup, onMount } from "solid-js";
 
-import { systemReportError } from "@yohu/api";
+import { ModuleId, systemReportError } from "@yohu/api";
 import { setDensity, setTheme } from "@yohu/ui";
 
 import { registerModule } from "./registry";
+import { SettingsView } from "./settings/SettingsView";
 import { AppLayout } from "./shell/AppLayout";
 import {
   listenWindowResize,
@@ -19,13 +20,10 @@ import {
 } from "./shell/window-chrome";
 import { deviceStore, settingsStore } from "./stores";
 
-// ===== 模块静态组合在 apps/shell 入口完成（shell → modules → app 单向依赖，无环） =====
-
-// 设置页作为壳内建模块
-import { SettingsView } from "./settings/SettingsView";
+// 工作区模块由 apps/shell 注册。设置页是壳内建，不走 modules 包。
 
 registerModule({
-  id: "settings",
+  id: ModuleId.Settings,
   title: "设置",
   icon: "settings",
   selectionMode: "none",
@@ -34,7 +32,7 @@ registerModule({
 });
 
 export const App: Component = () => {
-  const [activeModuleId, setActiveModuleId] = createSignal("adb-terminal");
+  const [activeModuleId, setActiveModuleId] = createSignal(ModuleId.Terminal);
   const [maximized, setMaximized] = createSignal(false);
 
   onMount(() => {

@@ -7,14 +7,19 @@ import { Component, For, Show } from "solid-js";
 
 import { YoStatusBar } from "@yohu/ui";
 
-import { deviceStore, taskStore } from "../stores";
+import { deviceStore, settingsStore, taskStore } from "../stores";
 
 export const StatusBar: Component = () => {
   const activeTasks = () => taskStore.state.tasks.filter((t) => t.active);
+  const versionLabel = () => {
+    const name = settingsStore.identity.display_name;
+    const ver = settingsStore.identity.version;
+    return ver ? `${name} v${ver}` : name;
+  };
 
   return (
     <YoStatusBar
-      left={<span class="yohu-status__version">Yohu ADB Tools v0.1.0</span>}
+      left={<span class="yohu-status__version">{versionLabel()}</span>}
       right={
         <span class="yohu-status__right">
           <span class="yohu-status__device">设备: {deviceStore.state.statusText}</span>

@@ -1,6 +1,7 @@
 /**
  * 模块注册表（ADR-v6-012）：静态组合，无插件热加载。
- * 模块间零 import（depcheck 强制）；模块只依赖 @yohu/api + @yohu/ui。
+ * 组合点是 apps/shell（registerModule）。模块只依赖 @yohu/api + @yohu/ui，
+ * 禁止依赖 @yohu/app 或其它模块（scripts/check-ui-deps.mjs）。
  */
 
 import type { Component } from "solid-js";
@@ -34,7 +35,7 @@ export interface ModuleDescriptor {
 
 const registry: ModuleDescriptor[] = [];
 
-/** 注册模块（各模块包在入口调用）。 */
+/** 注册模块（仅 apps/shell 与壳内建页调用）。 */
 export function registerModule(descriptor: ModuleDescriptor): void {
   if (registry.some((m) => m.id === descriptor.id)) {
     throw new Error(`模块重复注册: ${descriptor.id}`);

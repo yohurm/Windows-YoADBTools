@@ -2,6 +2,7 @@
  * 设备栏（UI设计系统-v6.md §3）：卡片式设备列表。
  * 设备卡片：在线点 + 型号一行 + serial 等宽一行 + 未授权徽章；
  * 选中 = `.yohu-interactive--selected`（全表面同一配方）；空态引导 + 错误明细 + 重试。
+ * 滑块在 list 宿主内裁切；项滚动走内层 scroller，避免弹簧过冲撑出 Windows 双滚动条。
  * 键盘：roving tabindex（焦点行 0）+ Enter/Space 选择，role=listbox/option。
  * MultiOptional：单击替换勾选；Ctrl/Meta+click 加减选。高亮 = 解析后的执行目标。
  */
@@ -9,7 +10,7 @@
 import { Component, For, Show, createSignal } from "solid-js";
 
 import { YoBadge, YoButton, YoCollapse, YoIconButton, YoIndicator } from "@yohu/ui";
-import type { DeviceInfo } from "@yohu/api";
+import { deviceDisplayName, type DeviceInfo } from "@yohu/api";
 
 import type { SelectionMode } from "../registry";
 import { deviceStore } from "../stores";
@@ -91,41 +92,43 @@ export const DeviceRail: Component<{
           aria-multiselectable={multi() || undefined}
         >
           <YoIndicator follow={indicatorFollow()} variant="fill" />
-          <For each={deviceStore.state.devices}>
-            {(device, index) => {
-              const focused = () => deviceStore.state.focusSerial === device.serial;
-              return (
-                <div
-                  class="yohu-device-rail__item yohu-interactive yohu-focus-ring"
-                  classList={{
-                    "yohu-interactive--selected": isSelected(device.serial),
-                  }}
-                  role="option"
-                  aria-selected={isSelected(device.serial)}
-                  tabIndex={focused() || (deviceStore.state.focusSerial === null && index() === 0) ? 0 : -1}
-                  title={`${device.model ?? device.serial} · ${device.serial} · ${stateText(device.state)}`}
-                  onClick={(event) => select(device.serial, event)}
-                  onKeyDown={(event) => onItemKeyDown(device.serial, event)}
-                >
-                  <span
-                    class="yohu-device-rail__dot"
+          <div class="yohu-device-rail__scroller">
+            <For each={deviceStore.state.devices}>
+              {(device, index) => {
+                const focused = () => deviceStore.state.focusSerial === device.serial;
+                return (
+                  <div
+                    class="yohu-device-rail__item yohu-interactive yohu-focus-ring"
                     classList={{
-                      "yohu-device-rail__dot--online": device.state === "online",
-                      "yohu-device-rail__dot--off": device.state !== "online",
+                      "yohu-interactive--selected": isSelected(device.serial),
                     }}
-                    aria-hidden="true"
-                  />
-                  <span class="yohu-device-rail__info">
-                    <span class="yohu-device-rail__model">{device.model ?? device.serial}</span>
-                    <span class="yohu-device-rail__serial">{device.serial}</span>
-                  </span>
-                  <Show when={device.state === "unauthorized"}>
-                    <YoBadge text="未授权" tone="warn" />
-                  </Show>
-                </div>
-              );
-            }}
-          </For>
+                    role="option"
+                    aria-selected={isSelected(device.serial)}
+                    tabIndex={focused() || (deviceStore.state.focusSerial === null && index() === 0) ? 0 : -1}
+                    title={`${deviceDisplayName(device)} · ${device.serial} · ${stateText(device.state)}`}
+                    onClick={(event) => select(device.serial, event)}
+                    onKeyDown={(event) => onItemKeyDown(device.serial, event)}
+                  >
+                    <span
+                      class="yohu-device-rail__dot"
+                      classList={{
+                        "yohu-device-rail__dot--online": device.state === "online",
+                        "yohu-device-rail__dot--off": device.state !== "online",
+                      }}
+                      aria-hidden="true"
+                    />
+                    <span class="yohu-device-rail__info">
+                      <span class="yohu-device-rail__model">{deviceDisplayName(device)}</span>
+                      <span class="yohu-device-rail__serial">{device.serial}</span>
+                    </span>
+                    <Show when={device.state === "unauthorized"}>
+                      <YoBadge text="未授权" tone="warn" />
+                    </Show>
+                  </div>
+                );
+              }}
+            </For>
+          </div>
         </div>
         <Show when={deviceStore.state.devices.length === 0}>
           <div class="yohu-device-rail__empty">

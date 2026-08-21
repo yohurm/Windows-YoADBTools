@@ -1,13 +1,22 @@
 /**
- * 设置面板（UI设计系统-v6.md §4.5）：分组卡片（工具链/日志/外观）。
+ * 设置面板（UI设计系统-v6.md §4.5）：分组卡片（工具链/日志/外观/关于）。
  * 每项 = 标签靠左、控件靠右 hug；启用类走 YoSwitch（无「启用」二字）。
  * 文件位置项：只读展示框显示绝对路径 + 统一「浏览」；超长折叠中间。
  */
 
 import { Component, For, onMount } from "solid-js";
 
-import { open } from "@tauri-apps/plugin-dialog";
-
+import {
+  APP_ICON_SRC,
+  DATA_DIR_NAME,
+  dialogOpenDirectory,
+  dialogOpenFile,
+  systemOpenPath,
+  type Density,
+  type LogDisplayColumns,
+  type SettingKey,
+  type Theme,
+} from "@yohu/api";
 import {
   YoBadge,
   YoButton,
@@ -20,7 +29,6 @@ import {
   YoToaster,
   createToaster,
 } from "@yohu/ui";
-import type { Density, LogDisplayColumns, SettingKey, Theme } from "@yohu/api";
 
 import { settingsStore } from "../stores";
 import { effectivePath, splitPathEnds } from "./path-display";
@@ -85,6 +93,29 @@ function PathField(props: { label: string; path: string; onBrowse: () => void })
   );
 }
 
+/** 只读路径 + 打开资源管理器。 */
+function PathOpenField(props: { label: string; path: string }) {
+  const parts = () => splitPathEnds(props.path);
+  return (
+    <div class="yohu-settings__item">
+      <span class="yohu-settings__item-label">{props.label}</span>
+      <div class="yohu-settings__item-control yohu-settings__item-control--path">
+        <div class="yohu-settings__path" title={props.path || undefined} aria-label={props.label}>
+          <span class="yohu-settings__path-head">{parts().head}</span>
+          <span class="yohu-settings__path-tail">{parts().tail}</span>
+        </div>
+        <YoButton
+          variant="secondary"
+          disabled={!props.path}
+          onClick={() => void systemOpenPath(props.path)}
+        >
+          打开
+        </YoButton>
+      </div>
+    </div>
+  );
+}
+
 export const SettingsView: Component = () => {
   onMount(() => {
     void settingsStore.load();
@@ -103,14 +134,14 @@ export const SettingsView: Component = () => {
     okText: string,
     filters: { name: string; extensions: string[] }[],
   ): Promise<void> => {
-    const selected = await open({ title, multiple: false, filters });
+    const selected = await dialogOpenFile({ title, filters });
     if (typeof selected === "string") {
       save(key, selected, okText);
     }
   };
 
   const browseDir = async (key: SettingKey, title: string, okText: string): Promise<void> => {
-    const selected = await open({ title, directory: true, multiple: false });
+    const selected = await dialogOpenDirectory({ title });
     if (typeof selected === "string") {
       save(key, selected, okText);
     }
@@ -146,6 +177,10 @@ export const SettingsView: Component = () => {
             path={effectivePath(settingsStore.state.data_root, settingsStore.resolved.data_root)}
             onBrowse={() => void browseDir("data_root", "选择数据目录", "已保存（重启生效）")}
           />
+          <div class="yohu-settings__item-hint">
+            默认 %LOCALAPPDATA%\{DATA_DIR_NAME}\data。其下为 tools/adb 与 modules/（adb-terminal /
+            file-manager / log-analyzer）。设置文件与应用日志固定在 LocalAppData，不随本目录迁移。
+          </div>
         </div>
 
         <div class="yohu-settings__item">
@@ -278,6 +313,37 @@ export const SettingsView: Component = () => {
             />
           </div>
         </div>
+        </YoPanel>
+
+        <YoPanel title="关于">
+          <div class="yohu-settings__about">
+            <img
+              class="yohu-settings__about-icon"
+              src={APP_ICON_SRC}
+              alt=""
+              width={48}
+              height={48}
+            />
+            <div class="yohu-settings__about-copy">
+              <div class="yohu-settings__about-name">{settingsStore.identity.display_name}</div>
+              <div class="yohu-settings__item-hint">{settingsStore.identity.description}</div>
+            </div>
+          </div>
+          <div class="yohu-settings__item">
+            <span class="yohu-settings__item-label">版本</span>
+            <span class="yohu-settings__item-value">{settingsStore.identity.version}</span>
+          </div>
+          <div class="yohu-settings__item">
+            <span class="yohu-settings__item-label">标识</span>
+            <span class="yohu-settings__item-value">{settingsStore.identity.identifier}</span>
+          </div>
+          <div class="yohu-settings__item">
+            <span class="yohu-settings__item-label">版权</span>
+            <span class="yohu-settings__item-value">{settingsStore.identity.copyright}</span>
+          </div>
+          <PathOpenField label="数据根" path={settingsStore.paths.data_root} />
+          <PathOpenField label="设置目录" path={settingsStore.paths.settings_dir} />
+          <PathOpenField label="应用日志" path={settingsStore.paths.logs_dir} />
         </YoPanel>
       </div>
 

@@ -79,6 +79,9 @@ importers:
       '@tauri-apps/api':
         specifier: ^2.9.0
         version: 2.11.1
+      '@tauri-apps/plugin-dialog':
+        specifier: ^2.4.0
+        version: 2.7.2
 
   packages/app:
     dependencies:
@@ -100,9 +103,6 @@ importers:
       '@yohu/api':
         specifier: workspace:*
         version: link:../../api
-      '@yohu/app':
-        specifier: workspace:*
-        version: link:../../app
       '@yohu/ui':
         specifier: workspace:*
         version: link:../../ui
@@ -115,9 +115,6 @@ importers:
       '@yohu/api':
         specifier: workspace:*
         version: link:../../api
-      '@yohu/app':
-        specifier: workspace:*
-        version: link:../../app
       '@yohu/ui':
         specifier: workspace:*
         version: link:../../ui
@@ -130,9 +127,6 @@ importers:
       '@yohu/api':
         specifier: workspace:*
         version: link:../../api
-      '@yohu/app':
-        specifier: workspace:*
-        version: link:../../app
       '@yohu/ui':
         specifier: workspace:*
         version: link:../../ui
@@ -145,9 +139,6 @@ importers:
       '@yohu/api':
         specifier: workspace:*
         version: link:../../api
-      '@yohu/app':
-        specifier: workspace:*
-        version: link:../../app
       '@yohu/ui':
         specifier: workspace:*
         version: link:../../ui

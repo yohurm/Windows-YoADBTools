@@ -142,3 +142,39 @@
   font-size: var(--yohu-font-caption);
   color: var(--yohu-fg-3);
 }
+
+.yohu-settings__item-value {
+  font-size: var(--yohu-font-body);
+  line-height: var(--yohu-font-leading-ui);
+  color: var(--yohu-fg-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.yohu-settings__about {
+  display: flex;
+  align-items: center;
+  gap: var(--yohu-space-md);
+  padding: var(--yohu-space-md) 0;
+}
+
+.yohu-settings__about + .yohu-settings__item {
+  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
+}
+
+.yohu-settings__about-icon {
+  width: var(--yohu-layout-titlebar-caption);
+  height: var(--yohu-layout-titlebar-caption);
+  border-radius: var(--yohu-radius-none);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.yohu-settings__about-copy {
+  min-width: 0;
+}
+
+.yohu-settings__about-name {
+  font-size: var(--yohu-font-body);
+  font-weight: var(--yohu-font-weight-semibold);
+  color: var(--yohu-fg);
+}

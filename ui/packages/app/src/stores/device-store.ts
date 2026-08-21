@@ -5,7 +5,7 @@
 
 import { createStore } from "solid-js/store";
 
-import { deviceRefresh, onDevicesChanged, systemInfo } from "@yohu/api";
+import { deviceRefresh, lookupSelectedDevices, onDevicesChanged, systemInfo } from "@yohu/api";
 import type { DeviceInfo } from "@yohu/api";
 
 import type { SelectionMode } from "../registry";
@@ -122,13 +122,18 @@ export function createDeviceStore() {
     return resolveTargetSerials(mode, state.focusSerial, state.selectedByModule[moduleId] ?? [], online);
   }
 
+  /** 执行目标在目录中的切片（与 selectedSerials 同序）。 */
+  function selectedDevices(moduleId: string, mode: SelectionMode): DeviceInfo[] {
+    return lookupSelectedDevices(selectedSerials(moduleId, mode), state.devices);
+  }
+
   // ===== 事件订阅（一次性；store 生命周期 = 应用生命周期） =====
   void onDevicesChanged((e) => {
     setState("lastError", "");
     applyDevices(e.devices);
   });
 
-  return { state, refresh, setFocus, selectDevice, selectedSerials };
+  return { state, refresh, setFocus, selectDevice, selectedSerials, selectedDevices };
 }
 
 export type DeviceStoreApi = ReturnType<typeof createDeviceStore>;

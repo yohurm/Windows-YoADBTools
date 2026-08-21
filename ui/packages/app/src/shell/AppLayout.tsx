@@ -4,8 +4,9 @@
  * 单一 canvas 铺满窗口；标题栏/侧栏/状态栏不刷互打架的实底。
  */
 
-import { type Component, Show, createEffect, createSignal } from "solid-js";
+import { type Component, Show, createEffect, createMemo, createSignal } from "solid-js";
 
+import { APP_ICON_SRC, selectedDeviceLabel } from "@yohu/api";
 import { YoContextMenuHost, YoIconButton, YoPresence, YoTitleBar, closeContextMenu, shouldSkipMotion } from "@yohu/ui";
 
 import { modules, type ModuleDescriptor } from "../registry";
@@ -15,6 +16,24 @@ import { NavList } from "./NavList";
 import { StatusBar } from "./StatusBar";
 
 /** 模块区：PC 层级转场淡入淡出（动画系统-v6.md 配方 module-fade）。 */
+const ModuleView: Component<{ mod: ModuleDescriptor }> = (props) => {
+  // 独立组件：keyed Show 回调在 untrack 内，必须在此追踪 deviceStore / settingsStore。
+  const selected = createMemo(() =>
+    deviceStore.selectedDevices(props.mod.id, props.mod.selectionMode),
+  );
+  const View = props.mod.Component;
+  return (
+    <View
+      focusSerial={deviceStore.state.focusSerial}
+      selectedSerials={selected().map((d) => d.serial)}
+      selectedDevices={selected()}
+      selectedLabel={selectedDeviceLabel(selected())}
+      devices={deviceStore.state.devices}
+      settings={settingsStore.state}
+    />
+  );
+};
+
 const ModuleStage: Component<{
   current: ModuleDescriptor | undefined;
 }> = (props) => {
@@ -43,17 +62,7 @@ const ModuleStage: Component<{
       }}
     >
       <Show when={shown()} keyed>
-        {(mod) => {
-          const C = mod.Component;
-          return (
-            <C
-              focusSerial={deviceStore.state.focusSerial}
-              selectedSerials={deviceStore.selectedSerials(mod.id, mod.selectionMode)}
-              devices={deviceStore.state.devices}
-              settings={settingsStore.state}
-            />
-          );
-        }}
+        {(mod) => <ModuleView mod={mod} />}
       </Show>
     </YoPresence>
   );
@@ -79,8 +88,8 @@ export const AppLayout: Component<{
   return (
     <div class="yohu-window">
       <YoTitleBar
-        title="Yohu ADB Tools"
-        icon="terminal"
+        title={settingsStore.identity.display_name}
+        logoSrc={APP_ICON_SRC}
         maximized={props.maximized}
         onMinimize={props.onMinimize}
         onToggleMaximize={props.onToggleMaximize}
@@ -98,7 +107,7 @@ export const AppLayout: Component<{
         class="yohu-layout yohu-recipe-rail"
         classList={{ "yohu-layout--rail-collapsed": !railOpen() }}
       >
-        <aside class="yohu-layout__rail" attr:inert={!railOpen() ? true : undefined}>
+        <aside class="yohu-layout__rail" inert={!railOpen() ? true : undefined}>
           <div class="yohu-layout__rail-inner">
             <DeviceRail moduleId={props.activeModuleId()} selectionMode={current()?.selectionMode} />
             <NavList activeId={props.activeModuleId()} onNavigate={props.onNavigate} />

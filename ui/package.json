@@ -8,7 +8,8 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "lint:tokens": "node ../scripts/check-ui-tokens.mjs",
-    "lint": "pnpm lint:tokens"
+    "lint:deps": "node ../scripts/check-ui-deps.mjs",
+    "lint": "pnpm lint:tokens && pnpm lint:deps"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0",
