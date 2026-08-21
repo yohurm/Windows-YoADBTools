@@ -73,6 +73,18 @@ pub struct GroupRunRequest {
     pub serials: Vec<String>,
 }
 
+/// `terminal.eval` 响应：原始执行结果 + 领域判定。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EvalResult {
+    pub ok: bool,
+    pub message: String,
+    pub exit_code: i32,
+    pub stdout: String,
+    pub stderr: String,
+    /// 执行用时（毫秒）
+    pub duration_ms: u64,
+}
+
 // ===== 命令库 wire 结构（schemaVersion 2） =====
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -130,6 +142,22 @@ mod tests {
                 .unwrap();
         assert_eq!(parsed.serial, "S");
         assert_eq!(parsed.remote, "/sdcard/a.bin");
+    }
+
+    #[test]
+    fn eval_result_snake_case() {
+        let v = serde_json::to_value(EvalResult {
+            ok: false,
+            message: "退出码 1".into(),
+            exit_code: 1,
+            stdout: "out".into(),
+            stderr: "err".into(),
+            duration_ms: 12,
+        })
+        .unwrap();
+        assert_eq!(v["exit_code"], 1);
+        assert_eq!(v["duration_ms"], 12);
+        assert_eq!(v["ok"], false);
     }
 
     #[test]

@@ -5,7 +5,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{CaptureState, DeviceInfo, LogBatch, ProcessIndexSnapshot, TransferProgress};
+use crate::{
+    AppSettings, CaptureState, DeviceInfo, LogBatch, ProcessIndexSnapshot, TransferProgress,
+};
 
 /// 后台任务登记信息（状态栏）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -62,6 +64,8 @@ pub enum AppEvent {
     },
     SettingsChanged {
         key: String,
+        /// 变更后的全量快照（模块投影用，禁止再 `settings.get`）。
+        settings: AppSettings,
     },
 }
 
@@ -107,7 +111,7 @@ impl AppEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::LogBatch;
+    use crate::{AppSettings, CaptureState, LogBatch};
 
     #[test]
     fn log_batch_event_json_has_kind_and_batch() {
@@ -137,5 +141,17 @@ mod tests {
         assert_eq!(v["serial"], "s1");
         assert_eq!(v["generation"], 3);
         assert_eq!(v["state"], "running");
+    }
+
+    #[test]
+    fn settings_changed_event_carries_snapshot() {
+        let event = AppEvent::SettingsChanged {
+            key: "buffer_capacity".into(),
+            settings: AppSettings::default(),
+        };
+        let v = serde_json::to_value(&event).expect("serialize");
+        assert_eq!(v["kind"], "settingsChanged");
+        assert_eq!(v["key"], "buffer_capacity");
+        assert_eq!(v["settings"]["buffer_capacity"], 10_000);
     }
 }

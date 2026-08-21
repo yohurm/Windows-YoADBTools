@@ -70,7 +70,7 @@ pub struct AppSettings {
     /// 自定义 adb 路径；空 = 自动解析（用户设置 → 应用旁 → 内置解压）
     #[serde(default)]
     pub adb_path: String,
-    /// 数据目录；空 = 默认 `%LOCALAPPDATA%\YohuAdbTools\data`（重启生效）
+    /// 数据目录；空 = 默认 `%LOCALAPPDATA%\<DATA_DIR_NAME>\data`（重启生效）
     #[serde(default)]
     pub data_root: String,
     /// 设备自动刷新间隔（秒），0 = 关
@@ -228,7 +228,10 @@ mod tests {
             json!("log_display_columns")
         );
         assert_eq!(SettingKey::BufferCapacity.as_str(), "buffer_capacity");
-        assert_eq!(SettingKey::LogDisplayColumns.as_str(), "log_display_columns");
+        assert_eq!(
+            SettingKey::LogDisplayColumns.as_str(),
+            "log_display_columns"
+        );
         assert_eq!(
             SettingKey::BufferCapacity.as_str(),
             serde_json::to_value(SettingKey::BufferCapacity)

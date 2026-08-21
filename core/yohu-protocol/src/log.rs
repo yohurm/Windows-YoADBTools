@@ -49,19 +49,6 @@ pub struct LogBatch {
     pub truncated: bool,
 }
 
-/// 级别序（用于「最低级别含以上」过滤）：V < D < I < W < E < F；未知为 0。
-pub fn level_rank(level: char) -> u8 {
-    match level {
-        'V' | 'v' => 1,
-        'D' | 'd' => 2,
-        'I' | 'i' => 3,
-        'W' | 'w' => 4,
-        'E' | 'e' => 5,
-        'F' | 'f' => 6,
-        _ => 0,
-    }
-}
-
 /// 采集状态（wire 上必须带 `generation`，见 [`crate::AppEvent::CaptureState`]）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -132,32 +119,6 @@ pub struct LogFilter {
     pub scope: LogScope,
 }
 
-impl LogFilter {
-    /// 单行匹配。`Package { pids: [] }` 不命中任何行。
-    pub fn matches(&self, line: &LogLine) -> bool {
-        if let Some(min) = self.min_level {
-            if level_rank(line.level) < level_rank(min) {
-                return false;
-            }
-        }
-        if let Some(tag) = &self.tag_contains {
-            if !line.tag.to_lowercase().contains(&tag.to_lowercase()) {
-                return false;
-            }
-        }
-        if let Some(msg) = &self.message_contains {
-            if !line.msg.to_lowercase().contains(&msg.to_lowercase()) {
-                return false;
-            }
-        }
-        match &self.scope {
-            LogScope::All => true,
-            LogScope::Pid { pid } => line.pid == *pid,
-            LogScope::Package { pids } => pids.contains(&line.pid),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -173,62 +134,6 @@ mod tests {
             tag: tag.into(),
             msg: msg.into(),
         }
-    }
-
-    #[test]
-    fn level_rank_order() {
-        assert!(level_rank('V') < level_rank('D'));
-        assert!(level_rank('D') < level_rank('I'));
-        assert!(level_rank('I') < level_rank('W'));
-        assert!(level_rank('W') < level_rank('E'));
-        assert!(level_rank('E') < level_rank('F'));
-        assert_eq!(level_rank('?'), 0);
-    }
-
-    #[test]
-    fn filter_min_level_inclusive() {
-        let f = LogFilter {
-            min_level: Some('W'),
-            ..Default::default()
-        };
-        assert!(f.matches(&line('W', 1, "T", "m")));
-        assert!(f.matches(&line('E', 1, "T", "m")));
-        assert!(!f.matches(&line('I', 1, "T", "m")));
-    }
-
-    #[test]
-    fn filter_tag_message_case_insensitive() {
-        let f = LogFilter {
-            tag_contains: Some("okhttp".into()),
-            message_contains: Some("timeout".into()),
-            ..Default::default()
-        };
-        assert!(f.matches(&line('I', 1, "OkHttp-Async", "request Timeout")));
-        assert!(!f.matches(&line('I', 1, "Other", "request Timeout")));
-        assert!(!f.matches(&line('I', 1, "OkHttp", "ok")));
-    }
-
-    #[test]
-    fn filter_scope_pid_and_package() {
-        let exact = LogFilter {
-            scope: LogScope::Pid { pid: 42 },
-            ..Default::default()
-        };
-        assert!(exact.matches(&line('I', 42, "T", "m")));
-        assert!(!exact.matches(&line('I', 43, "T", "m")));
-
-        let set = LogFilter {
-            scope: LogScope::Package { pids: vec![42, 99] },
-            ..Default::default()
-        };
-        assert!(set.matches(&line('I', 99, "T", "m")));
-        assert!(!set.matches(&line('I', 100, "T", "m")));
-
-        let empty = LogFilter {
-            scope: LogScope::Package { pids: vec![] },
-            ..Default::default()
-        };
-        assert!(!empty.matches(&line('I', 1, "T", "m")));
     }
 
     #[test]
