@@ -3,7 +3,7 @@
 //! 架构边界（ADR-v6-005）：
 //! - 本 crate 是**唯一**引用 Tauri 的地方；
 //! - `commands/` 是薄命令层：参数反序列化 → core API → 结果序列化，**禁止业务逻辑**；
-//! - 所有业务能力在 core crates（domain/adb/logsrv/files）。
+//! - 所有业务能力在 core crates（domain/adb/logsrv/files/update）。
 
 mod commands;
 mod device_catalog;
@@ -58,8 +58,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let (writer, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "yohu_app=info,yohu_adb=info,yohu_logsrv=info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                "yohu_app=info,yohu_adb=info,yohu_logsrv=info,yohu_update=info".into()
+            }),
         )
         .with_writer(writer)
         .init();
@@ -80,7 +81,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         panic_hook::install(paths.logs_dir.clone());
         tracing::info!("数据根: {}", paths.data_root.display());
 
-        // 3) sidecar 资源目录：安装包 resources / 可执行文件旁 / 仓库 tools/
+        // 3) sidecar 资源目录：应用旁 tools/（开发与 NSIS 默认）/ resources / 仓库 tools/
         let resource_dir = sidecar::resolve_resource_dir(app);
 
         // 4) core 服务装配
@@ -186,6 +187,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::system::system_info,
             commands::system::system_open_path,
             commands::system::system_report_error,
+            commands::update::update_check,
+            commands::update::update_info,
+            commands::update::update_open,
         ])
         .build(tauri::generate_context!())?;
 

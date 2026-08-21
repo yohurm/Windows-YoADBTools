@@ -4,7 +4,7 @@
  * 文件位置项：只读展示框显示绝对路径 + 统一「浏览」；超长折叠中间。
  */
 
-import { Component, For, onMount } from "solid-js";
+import { Component, For, createSignal, onMount } from "solid-js";
 
 import {
   APP_ICON_SRC,
@@ -12,16 +12,23 @@ import {
   dialogOpenDirectory,
   dialogOpenFile,
   systemOpenPath,
+  updateCheck,
+  updateInfo,
+  updateOpen,
   type Density,
   type LogDisplayColumns,
+  type RemoteUpdate,
   type SettingKey,
   type Theme,
+  type UpdateChannelInfo,
+  type UpdateProvider,
 } from "@yohu/api";
 import {
   YoBadge,
   YoButton,
   YoCheckbox,
   YoChrome,
+  YoDialog,
   YoPanel,
   YoSelect,
   YoSwitch,
@@ -45,6 +52,12 @@ const DENSITY_OPTIONS: { value: Density; label: string }[] = [
   { value: "compact", label: "紧凑" },
 ];
 
+const UPDATE_PROVIDER_OPTIONS: { value: UpdateProvider; label: string }[] = [
+  { value: "gitcode", label: "GitCode（默认）" },
+  { value: "github", label: "GitHub" },
+  { value: "pgyer", label: "蒲公英" },
+];
+
 const EXPORT_MODE_OPTIONS = [
   { value: "overwrite", label: "覆盖" },
   { value: "append", label: "续写" },
@@ -61,6 +74,19 @@ const LOG_COLUMN_OPTIONS: { key: keyof LogDisplayColumns; label: string }[] = [
 
 /** 设置页级 toaster（模块生命周期 = 应用生命周期）。 */
 const toaster = createToaster();
+
+function ipcMessage(error: unknown): string {
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message: unknown }).message;
+    if (typeof message === "string" && message.length > 0) {
+      return message;
+    }
+  }
+  return String(error);
+}
 
 /** 生效说明徽章。 */
 function EffectBadge(props: { text: string }) {
@@ -117,8 +143,20 @@ function PathOpenField(props: { label: string; path: string }) {
 }
 
 export const SettingsView: Component = () => {
+  const [checking, setChecking] = createSignal(false);
+  const [pending, setPending] = createSignal<RemoteUpdate | null>(null);
+  const [channel, setChannel] = createSignal<UpdateChannelInfo | null>(null);
+
+  const refreshChannel = async (): Promise<void> => {
+    try {
+      setChannel(await updateInfo());
+    } catch {
+      setChannel(null);
+    }
+  };
+
   onMount(() => {
-    void settingsStore.load();
+    void settingsStore.load().then(() => refreshChannel());
   });
 
   const save = (key: SettingKey, value: unknown, okText: string): void => {
@@ -126,6 +164,35 @@ export const SettingsView: Component = () => {
       .set(key, value)
       .then(() => toaster.show(okText, "success"))
       .catch((e) => toaster.show(`保存失败: ${String(e)}`, "error"));
+  };
+
+  const checkAppUpdate = async (): Promise<void> => {
+    setChecking(true);
+    try {
+      const result = await updateCheck();
+      if (!result.has_new_version) {
+        toaster.show("已是最新版本", "success");
+        return;
+      }
+      setPending(result);
+    } catch (e) {
+      toaster.show(`检查更新失败: ${ipcMessage(e)}`, "error");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const openDownload = async (): Promise<void> => {
+    const update = pending();
+    if (!update) {
+      return;
+    }
+    try {
+      await updateOpen(update.download_url);
+      setPending(null);
+    } catch (e) {
+      toaster.show(`打开下载失败: ${ipcMessage(e)}`, "error");
+    }
   };
 
   const browseFile = async (
@@ -315,6 +382,45 @@ export const SettingsView: Component = () => {
         </div>
         </YoPanel>
 
+        <YoPanel title="更新">
+          <div class="yohu-settings__item">
+            <ItemHead label="更新源" effect="立即生效" />
+            <div class="yohu-settings__item-control yohu-settings__item-control--select">
+              <YoSelect
+                options={UPDATE_PROVIDER_OPTIONS}
+                value={settingsStore.state.update_provider}
+                onChange={(v) => {
+                  void settingsStore
+                    .set("update_provider", v)
+                    .then(() => refreshChannel())
+                    .then(() => toaster.show("已保存（立即生效）", "success"))
+                    .catch((e) => toaster.show(`保存失败: ${String(e)}`, "error"));
+                }}
+              />
+            </div>
+            <div class="yohu-settings__item-hint">
+              {settingsStore.state.update_provider === "pgyer"
+                ? "蒲公英需在设置目录的 update.json 填写 api_key / app_key"
+                : `当前仓库 ${channel()?.remote || "—"}`}
+            </div>
+          </div>
+          <div class="yohu-settings__item">
+            <ItemHead label="检查更新" effect="立即生效" />
+            <div class="yohu-settings__item-control">
+              <YoButton
+                variant="secondary"
+                disabled={checking()}
+                onClick={() => void checkAppUpdate()}
+              >
+                {checking() ? "检查中…" : "检查更新"}
+              </YoButton>
+            </div>
+            <div class="yohu-settings__item-hint">
+              默认从 GitCode 仓库 yohurm/ReleaseYoADBTools 拉取 Windows x64 安装包
+            </div>
+          </div>
+        </YoPanel>
+
         <YoPanel title="关于">
           <div class="yohu-settings__about">
             <img
@@ -346,6 +452,23 @@ export const SettingsView: Component = () => {
           <PathOpenField label="应用日志" path={settingsStore.paths.logs_dir} />
         </YoPanel>
       </div>
+
+      <YoDialog
+        open={() => pending() !== null}
+        title="发现新版本"
+        onClose={() => setPending(null)}
+        footer={
+          <>
+            <YoButton variant="ghost" onClick={() => setPending(null)}>
+              稍后
+            </YoButton>
+            <YoButton onClick={() => void openDownload()}>前往下载</YoButton>
+          </>
+        }
+      >
+        <p class="yohu-settings__update-ver">{pending()?.version}</p>
+        <p class="yohu-settings__update-desc">{pending()?.description || "有新版本可用。"}</p>
+      </YoDialog>
 
       <YoToaster toaster={toaster} />
     </div>

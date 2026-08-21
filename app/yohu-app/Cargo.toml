@@ -27,6 +27,7 @@ yohu-domain.workspace = true
 yohu-adb.workspace = true
 yohu-logsrv.workspace = true
 yohu-files.workspace = true
+yohu-update.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.61"

@@ -107,6 +107,14 @@ impl SettingsStore {
                     )
                 })?;
             }
+            SettingKey::UpdateProvider => {
+                s.update_provider = match value.as_str() {
+                    Some("gitcode") => yohu_protocol::UpdateProvider::Gitcode,
+                    Some("github") => yohu_protocol::UpdateProvider::Github,
+                    Some("pgyer") => yohu_protocol::UpdateProvider::Pgyer,
+                    _ => return Err(format!("{} 必须是 gitcode、github 或 pgyer", key.as_str())),
+                };
+            }
         }
         *self.inner.write().expect("settings lock poisoned") = s.clone();
         self.save_atomic()?;

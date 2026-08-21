@@ -11,11 +11,13 @@ pub mod log;
 pub mod settings;
 pub mod system;
 pub mod terminal;
+pub mod update;
 
 use yohu_adb::AdbError;
 use yohu_domain::RunError;
 use yohu_files::FileError;
 use yohu_protocol::{IpcError, IpcErrorCode};
+use yohu_update::UpdateError;
 
 /// core 错误 → IPC 错误（前端按 code 处理）。
 pub fn ipc(e: impl std::fmt::Display) -> IpcError {
@@ -73,5 +75,21 @@ pub fn ipc_file(e: FileError) -> IpcError {
         }
         FileError::LocalNotFound(message) => ipc_code(IpcErrorCode::NotFound, message),
         FileError::Adb(adb) => ipc_adb(adb),
+    }
+}
+
+/// 更新检查错误 → IPC。
+pub fn ipc_update(e: UpdateError) -> IpcError {
+    let code = match e {
+        UpdateError::NotConfigured | UpdateError::InvalidUrl => IpcErrorCode::InvalidArgs,
+        UpdateError::NoDownloadUrl => IpcErrorCode::NotFound,
+        UpdateError::Platform(_)
+        | UpdateError::Http(_)
+        | UpdateError::Network(_)
+        | UpdateError::Parse(_) => IpcErrorCode::Internal,
+    };
+    IpcError {
+        code,
+        message: e.to_string(),
     }
 }

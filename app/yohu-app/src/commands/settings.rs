@@ -24,6 +24,7 @@ pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::
         SettingKey::ExportAskEveryTime => serde_json::json!(s.export_ask_every_time),
         SettingKey::ExportWriteMode => serde_json::json!(s.export_write_mode),
         SettingKey::LogDisplayColumns => serde_json::json!(s.log_display_columns),
+        SettingKey::UpdateProvider => serde_json::json!(s.update_provider),
     }
 }
 

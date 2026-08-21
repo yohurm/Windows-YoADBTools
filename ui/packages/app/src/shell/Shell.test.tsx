@@ -18,6 +18,9 @@ const mocks = vi.hoisted(() => ({
   systemOpenPath: vi.fn(),
   dialogOpenFile: vi.fn(),
   dialogOpenDirectory: vi.fn(),
+  updateCheck: vi.fn(),
+  updateInfo: vi.fn(),
+  updateOpen: vi.fn(),
   taskHandler: null as null | ((e: unknown) => void),
 }));
 
@@ -36,6 +39,9 @@ vi.mock("@yohu/api", async (importOriginal) => {
     systemOpenPath: (...a: unknown[]) => mocks.systemOpenPath(...a),
     dialogOpenFile: (...a: unknown[]) => mocks.dialogOpenFile(...a),
     dialogOpenDirectory: (...a: unknown[]) => mocks.dialogOpenDirectory(...a),
+    updateCheck: (...a: unknown[]) => mocks.updateCheck(...a),
+    updateInfo: (...a: unknown[]) => mocks.updateInfo(...a),
+    updateOpen: (...a: unknown[]) => mocks.updateOpen(...a),
     settingsGet: notConfigured,
     adbExec: notConfigured,
     terminalEval: notConfigured,
@@ -152,6 +158,7 @@ const DEFAULT_SETTINGS = {
     level: true,
     tag: true,
   },
+  update_provider: "gitcode",
 } as const;
 
 const RESOLVED_ADB = "C:\\Users\\me\\AppData\\Local\\YohuAdbTools\\data\\tools\\adb\\adb.exe";
@@ -190,6 +197,23 @@ beforeEach(() => {
   mocks.dialogOpenFile.mockResolvedValue(null);
   mocks.dialogOpenDirectory.mockResolvedValue(null);
   mocks.systemOpenPath.mockResolvedValue(undefined);
+  mocks.updateInfo.mockResolvedValue({
+    provider: "gitcode",
+    remote: "yohurm/ReleaseYoADBTools",
+    page_url: "https://gitcode.com/yohurm/ReleaseYoADBTools",
+  });
+  mocks.updateCheck.mockResolvedValue({
+    has_new_version: false,
+    version: "0.1.0",
+    version_code: 0,
+    description: "",
+    download_url: "",
+    force_update: false,
+    md5: "",
+    sha256: "",
+    size_bytes: 0,
+  });
+  mocks.updateOpen.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -548,6 +572,42 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     fireEvent.click(openButtons[2] as HTMLButtonElement);
     await waitFor(() => {
       expect(mocks.systemOpenPath).toHaveBeenCalledWith(RESOLVED_PATHS.logs_dir);
+    });
+  });
+
+  it("更新面板默认 GitCode；检查更新已最新提示；有新版本则打开下载", async () => {
+    render(() => <SettingsView />);
+    await waitFor(() => {
+      expect(screen.getByText("更新源")).toBeTruthy();
+      expect(screen.getByText(/yohurm\/ReleaseYoADBTools/)).toBeTruthy();
+      expect(screen.getByRole("button", { name: "检查更新" })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "检查更新" }) as HTMLButtonElement);
+    await waitFor(() => {
+      expect(mocks.updateCheck).toHaveBeenCalled();
+      expect(screen.getByText("已是最新版本")).toBeTruthy();
+    });
+
+    mocks.updateCheck.mockResolvedValueOnce({
+      has_new_version: true,
+      version: "1.2.0",
+      version_code: 12,
+      description: "修复若干问题",
+      download_url: "https://example.com/setup.exe",
+      force_update: false,
+      md5: "",
+      sha256: "",
+      size_bytes: 0,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "检查更新" }) as HTMLButtonElement);
+    await waitFor(() => {
+      expect(screen.getByText("发现新版本")).toBeTruthy();
+      expect(screen.getByText("1.2.0")).toBeTruthy();
+      expect(screen.getByText("修复若干问题")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "前往下载" }) as HTMLButtonElement);
+    await waitFor(() => {
+      expect(mocks.updateOpen).toHaveBeenCalledWith("https://example.com/setup.exe");
     });
   });
 });

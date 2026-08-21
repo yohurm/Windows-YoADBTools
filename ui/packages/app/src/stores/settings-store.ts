@@ -37,6 +37,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     level: true,
     tag: true,
   },
+  update_provider: "gitcode",
 };
 
 const EMPTY_RESOLVED = {
