@@ -197,6 +197,11 @@ mod tests {
         assert!(s.export_default_path.is_empty());
         assert_eq!(s.log_display_columns, LogDisplayColumns::default());
         assert_eq!(s.update_provider, UpdateProvider::Gitcode);
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../testdata/app_settings_default.json"))
+                .expect("fixture");
+        let serialized = serde_json::to_value(&s).expect("default json");
+        assert_eq!(serialized, fixture);
     }
 
     #[test]

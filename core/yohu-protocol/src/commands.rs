@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ExportWriteMode, LogFilter};
 
+/// 命令库 schema（domain `CommandLibrary::SCHEMA_VERSION` 与 UI 常量共用）。
+pub const COMMAND_LIBRARY_SCHEMA_VERSION: u32 = 2;
+
 /// `adb.exec` 请求。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AdbExecRequest {
@@ -66,11 +69,32 @@ pub struct DragOutRequest {
     pub remotes: Vec<String>,
 }
 
-/// `group.run` 请求（命令模板已由 UI 完成占位符填充）。
+/// `group.run` 请求。组内模板从命令库读取；组执行不接受运行时占位符。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GroupRunRequest {
     pub group_id: String,
     pub serials: Vec<String>,
+}
+
+/// `terminal.eval` 请求：按库 id 查找、领域填充占位符、多设备并行判定。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TerminalEvalRequest {
+    pub command_id: String,
+    #[serde(default)]
+    pub values: Vec<String>,
+    pub serials: Vec<String>,
+}
+
+/// 单台设备的 `terminal.eval` 结果。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SerialEvalResult {
+    pub serial: String,
+    pub ok: bool,
+    pub message: String,
+    pub exit_code: i32,
+    pub stdout: String,
+    pub stderr: String,
+    pub duration_ms: u64,
 }
 
 /// `terminal.eval` 响应：原始执行结果 + 领域判定。
@@ -96,7 +120,7 @@ pub struct InputFieldDto {
 pub struct CommandDto {
     pub id: String,
     pub name: String,
-    /// 已填充占位符的完整命令行（core 负责按引号规则拆分为 argv）
+    /// 命令库模板，可含 `{0}` `{1}`；执行前由 domain `fill`，不信任 UI 改写后的行
     pub template: String,
     #[serde(default)]
     pub inputs: Vec<InputFieldDto>,
@@ -167,5 +191,17 @@ mod tests {
                 .unwrap();
         assert_eq!(parsed.serial, "S");
         assert_eq!(parsed.remotes.len(), 2);
+    }
+
+    #[test]
+    fn terminal_eval_request_is_id_values_serials() {
+        let parsed: TerminalEvalRequest = serde_json::from_str(
+            r#"{"command_id":"c1","values":["8.8.8.8"],"serials":["S1","S2"]}"#,
+        )
+        .unwrap();
+        assert_eq!(parsed.command_id, "c1");
+        assert_eq!(parsed.values, vec!["8.8.8.8"]);
+        assert_eq!(parsed.serials.len(), 2);
+        assert_eq!(COMMAND_LIBRARY_SCHEMA_VERSION, 2);
     }
 }

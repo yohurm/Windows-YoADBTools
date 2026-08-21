@@ -1,0 +1,21 @@
+{
+  "adb_path": "",
+  "data_root": "",
+  "devices_auto_refresh": 0,
+  "buffer_capacity": 10000,
+  "clear_device_on_start": true,
+  "theme": "system",
+  "density": "comfortable",
+  "export_default_path": "",
+  "export_ask_every_time": true,
+  "export_write_mode": "overwrite",
+  "log_display_columns": {
+    "ts": true,
+    "uid": true,
+    "pid": true,
+    "tid": true,
+    "level": true,
+    "tag": true
+  },
+  "update_provider": "gitcode"
+}
