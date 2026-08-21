@@ -4,7 +4,7 @@
  */
 
 import { createStore } from "solid-js/store";
-import type { ProcessEntry } from "@yohu/api";
+import { APP_SETTINGS_DEFAULT, type ProcessEntry } from "@yohu/api";
 
 import { createCapture } from "./capture";
 import { MirrorBank } from "./pipeline";
@@ -27,10 +27,10 @@ export function createLogStore() {
     activeSessionId: null,
     processEntries: [] as ProcessEntry[],
     indexDegraded: false,
-    bufferCapacity: 10_000,
+    bufferCapacity: APP_SETTINGS_DEFAULT.buffer_capacity,
   });
 
-  const mirrors = new MirrorBank(10_000);
+  const mirrors = new MirrorBank(APP_SETTINGS_DEFAULT.buffer_capacity);
   const workspace = createWorkspace(state, setState, mirrors);
   const capture = createCapture(state, setState, mirrors, workspace);
 

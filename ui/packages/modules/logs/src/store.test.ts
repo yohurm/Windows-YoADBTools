@@ -31,6 +31,7 @@ vi.mock("@yohu/api", () => {
     throw new Error("测试未配置该命令 mock");
   });
   return {
+    APP_SETTINGS_DEFAULT: { buffer_capacity: 10_000 },
     deviceRefresh: notConfigured,
     systemInfo: notConfigured,
     settingsSet: notConfigured,

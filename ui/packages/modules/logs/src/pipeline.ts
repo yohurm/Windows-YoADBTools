@@ -10,10 +10,10 @@ import type { LogBatch, LogFilter, LogLine, ProcessEntry } from "@yohu/api";
 
 export const LEVELS = ["V", "D", "I", "W", "E", "F"] as const;
 
-/** 级别序：V<D<I<W<E<F；未知返回 -1（恒不匹配「含以上」） */
+/** 级别序：未知=0，V=1 … F=6（与 yohu-domain::level_rank 对齐）。 */
 export function levelRank(level: string): number {
   const idx = (LEVELS as readonly string[]).indexOf(level.toUpperCase());
-  return idx;
+  return idx < 0 ? 0 : idx + 1;
 }
 
 // ===== 会话作用域 =====

@@ -43,8 +43,8 @@ describe("levelRank", () => {
   it("级别序与未知", () => {
     expect(levelRank("V")).toBeLessThan(levelRank("D"));
     expect(levelRank("W")).toBeLessThan(levelRank("E"));
-    expect(levelRank("F")).toBe(5);
-    expect(levelRank("?")).toBe(-1);
+    expect(levelRank("F")).toBe(6);
+    expect(levelRank("?")).toBe(0);
   });
 });
 
