@@ -1,8 +1,16 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.36（2026-08-20，设置项控件靠右）    
+> **状态：** v1.40（2026-08-20，设备栏选中滑块过冲）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（token 单源 + 组件）+ `@yohu/app`（壳）+ `@yohu/modules/*`（三模块）。所有改动必须同步更新本文件。
+>
+> **v1.40 变更（设备栏选中滑块过冲）**：`YoIndicator` fill 宿主 `overflow-x: hidden`，裁切软弹簧宽过冲。设备列表宿主只 `overflow: hidden`；项滚动走内层 scroller（`overflow-x: hidden` + `overflow-y: auto`）。禁止在滑块宿主上写 `overflow: auto`——双轴 auto 会在 Windows 画出横竖条并互相锁死（同 v1.37）。
+>
+> **v1.39 变更（页眉选中设备名）**：终端 / 文件 / 日志 `YoChrome` 标题后统一展示选中设备名（`deviceLabel`，中性徽章）。数据链：`DeviceInfo.model` → domain `device_display_name` → `DeviceSession.selectedLabel`。一台用型号（无型号回退 serial）；终端多台「首台名 等 n 台」；无选中不显示。设置 / 投屏不展示。禁止模块自拼 serial 或再扫目录取型号。
+>
+> **v1.38 变更（应用身份与数据目录）**：展示名 / 版本 / 图标 / LocalAppData 目录走 `system.info.identity` + `paths`（protocol 常量单源）。标题栏用应用位图（`YoTitleBar.logoSrc`），不用终端字形冒充品牌。设置页新增「关于」。状态栏版本禁止写死。数据目录说明写清 `data/` 与固定的 `settings/`、`logs/` 分层。
+>
+> **v1.37 变更（Select 浮层 hug）**：下拉菜单铬层只负责落点（`popover-place`）；内容 hug。`min-width` = 触发钮，禁止锁死 `width`。默认 `overflow: hidden`；仅内容高于可用空间才 `overflow-y: auto`，横向永远 hidden——`overflow-y: auto` 会把 `overflow-x` 算成 auto，Windows 画出底部「宽度调整条」。选中/键盘索引在 `select-model.ts`。
 >
 > **v1.36 变更（设置项控件靠右）**：设置表单项统一「标签+生效徽章靠左、功能控件靠右 hug」。日志显示列的 `YoCheckbox` 组走同一控件槽，禁止整行左起铺开；说明文字仍独占下一行。
 >
@@ -30,7 +38,7 @@
 >
 > **v1.24 变更（文件清单行分割）**：文件四列清单行间画 hairline；表头与清单背板改 `--yohu-canvas`，与面板 `surface` 分层。路径栏不再对清单拉分割线。表头排序走 `.yohu-interactive`（禁止自写 hover 底）。选中宿主仍透明，不盖住 ripple。
 >
-> **v1.23 变更（Select 自适应展开）**：`YoSelect` 菜单默认 Portal 出滚动容器，按视口剩余空间向下或向上展开并限制高度，避免设置页底部主题/密度等被裁切。
+> **v1.23 变更（Select 自适应展开）**：`YoSelect` 菜单默认 Portal 出滚动容器，按视口剩余空间向下或向上展开。v1.37 起高度 hug 内容、宽度不锁死。
 >
 > **v1.22 变更（设置路径项）**：ADB 路径 / 数据目录 / 默认导出路径统一为只读展示框（绝对路径）+ 「浏览」。展示框宽 ≤ `--yohu-layout-settings-control-max`，超长折叠中间并保留末段。空值显示 `system.info` 解析出的绝对路径。
 >
@@ -190,6 +198,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 ### 2.5 图标
 
+- **应用品牌图标**：`app/yohu-app/icons/icon.png`（1024，圆角矩形底板 + 透明四角，宇宙蓝）+ `icon.ico`。标题栏 / 关于 / favicon 走 `APP_ICON_SRC`（`/app-icon.png`），经 `YoTitleBar.logoSrc`；展示时不再二次裁圆角。禁止用模块字形（如 `terminal`）冒充应用图标。
 - **唯一入口**：`@yohu/ui` 的 `<Icon name size>`；模块注册表 `icon: IconName`；工具栏用 `YoIconButton`（内部仍走 `Icon`）。
 - **文件类型图标**：`<YoFileIcon name kind size>`（`file-icons.tsx` 工厂）。模块禁止内联文件 SVG；色值仅允许出现在该文件（纪律脚本豁免）。
 - **禁止**：模块内再写一份 SVG、emoji 当图标、静态对象缓存 JSX 节点。
@@ -254,7 +263,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│ TitleBar（图标+应用名 │ 留白 │ 侧栏钮 │ 三键）                   │
+│ TitleBar（应用图标+应用名 │ 留白 │ 侧栏钮 │ 三键）                   │
 ├──────────────────┬─────────────────────────────────────────┤
 │ 设备栏            │  模块标题区        功能栏（执行/清屏/…） │
 │ 在线设备          │ ───────────────────────────────────── │
@@ -266,12 +275,12 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **设备栏**：标题行 = 折叠钮 +「设备」+ 数量徽章（徽章紧跟标题，不推到最右）+ 刷新（`YoIconButton loading` 旋转）；设备行（型号一行 + serial 等宽一行，主次上下间隔 2vp + 在线点 + 未授权徽章，无白卡片）；空态给引导文案；选中只加 `.yohu-interactive--selected`（高亮 = 当前模块解析后的执行目标）。MultiOptional（终端）：单击替换勾选，Ctrl/Meta+click 加减选；未勾选回退全局焦点，不把全部在线设备当作已选。
+- **设备栏**：标题行 = 折叠钮 +「设备」+ 数量徽章（徽章紧跟标题，不推到最右）+ 刷新（`YoIconButton loading` 旋转）；设备行（型号一行 + serial 等宽一行，主次上下间隔 2vp + 在线点 + 未授权徽章，无白卡片）；空态给引导文案；选中只加 `.yohu-interactive--selected`（高亮 = 当前模块解析后的执行目标）。单选实底由 `YoIndicator` fill 在 list 宿主内滑动，宿主 `overflow: hidden` 裁切弹簧过冲；项滚动在 `__scroller`（横向 hidden、纵向 auto）。禁止把 `overflow: auto` 写在滑块宿主上。MultiOptional（终端）：单击替换勾选，Ctrl/Meta+click 加减选；未勾选回退全局焦点，不把全部在线设备当作已选。
 - **导航**：图标 16px（`<Icon>` 单源，currentColor）+ 标题；激活只加 `.yohu-interactive--selected`；Planned 项「开发中」胶囊徽章。图标节点每次渲染新建。设备栏与导航共用 `--yohu-layout-rail-inset`。侧栏可整栏收起（标题栏 `sidebar` 抽屉钮）。
-- **模块页眉**：在右侧内容区顶部（`YoChrome`）。左侧为功能标题区（Subtitle Bold），右侧为功能栏；与窗口标题栏分离，不挤进中区。无操作的模块（设置/投屏）只显示标题，但标题行高度仍是 `--yohu-control-height`（与有按钮的页同一占位）。底垫 `--yohu-layout-chrome-pad`。页眉是页壳的第一子节点（`flex: 0 0 auto`），禁止与内容区作为 fragment 兄弟交给模块转场。
+- **模块页眉**：在右侧内容区顶部（`YoChrome`）。左侧为功能标题区（Subtitle Bold）+ 选中设备名（`deviceLabel` 中性徽章，文案来自 `DeviceSession.selectedLabel`），右侧为功能栏；与窗口标题栏分离，不挤进中区。无操作的模块（设置/投屏）只显示标题，但标题行高度仍是 `--yohu-control-height`（与有按钮的页同一占位）。底垫 `--yohu-layout-chrome-pad`。页眉是页壳的第一子节点（`flex: 0 0 auto`），禁止与内容区作为 fragment 兄弟交给模块转场。
 - **模块页壳**：效率型与占位模块（终端/文件/日志/投屏）根节点一律 `YoPage`（`.yohu-page`：`padding: page-inset`、`gap: page-gap`）。`YoChrome` 是第一子节点。内容进 `YoPanel`（`variant=pane` 撑满）。禁止模块再写一套页垫。空态文案不得复写页眉模块名。设置页分组走 `YoPanel` 默认 card，边距仍是 `page-margin`。
 - **通铺与分区**：窗口 `--yohu-canvas` 通铺；标题栏与工作区、状态栏不拉结构分割线。侧栏展开时与内容区之间画 hairline。模块分区 = `YoPanel`（surface + radius-md + hairline 描边 + XS 阴影）。分割线还用于：页签指示、表头/列、数据行、对话框头尾、输入类控件。路径栏与清单靠 canvas 分层，不另拉线。
-- **状态栏**：左版本/中留白/右「设备 · 任务 · 状态」；任务悬停显示明细。透明贴合 canvas。Caption + leading-tight。
+- **状态栏**：左「展示名 v版本」（`system.info.identity`）/ 中留白 / 右「设备 · 任务 · 状态」；任务悬停显示明细。透明贴合 canvas。Caption + leading-tight。
 - **对话框**：Title_S Bold；PC 小圆角 `radius-sm`；宽 ≤400、高 ≤90%；**不要**把窗口最小 360×240 套到浮层确认框。
 - **快捷键统一表（v6.1 目标）**：`Ctrl+K` 命令面板（模块跳转/刷新设备/开始采集…）；模块内快捷键不变。
 
@@ -281,14 +290,14 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 ### 4.1 日志分析（核心打磨对象）
 
-- 布局：内容区顶部模块页眉（标题 + 采集操作）→ 会话 Tab（canvas 上）→ `YoPanel` 会话分区（过滤 / **固定表头** + 虚拟列表 / 状态行）。
+- 布局：内容区顶部模块页眉（标题 + 选中设备名 + 采集操作）→ 会话 Tab（canvas 上）→ `YoPanel` 会话分区（过滤 / **固定表头** + 虚拟列表 / 状态行）。
 - 行结构（列对齐，等宽，**定宽 grid 轨道**）：`[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 4ch] [Tag 24ch] [消息 →]`。UID 来自 `logcat -v threadtime,uid`（数字或 `root`/`shell`/`wifi` 名）。禁止 `max-width` / 不定宽 flex 让消息列左右错位。解析失败（level=`?`）整行消息通栏，禁止画 `0 ?` 假列。级别用色字 + `--yohu-stroke-emphasis` 左条；Fatal 反色块（`radius-2xs`）；级别与检索高亮挂 `.yohu-tone`；行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。行间 hairline 走 VirtualList 单源。
 - **固定表头**：列名钉在滚动区外，与行共用 `.yohu-logs__cols`；高度 `--yohu-row-height-header`；背板 `--yohu-canvas`。无排序、无列宽拖拽，禁止改走 `YoColHeader`。禁止把表头放进虚拟列表行。显示列读壳注入的 `DeviceSession.settings.log_display_columns`（消息始终在），`grid-template-columns` 按可见列内联写入。禁止模块再 `settings.get` 或把显示列拷进 logStore。
 - 信号行（崩溃/ANR）行底色 `--yohu-signal-bg` + 左侧 Error 条；选中时信号底让位给选中片，左条保留。
 - 过滤栏：级别含以上 / Tag / 关键字检索（放大镜图标 + 「清除」；过滤生效时检索框 accent 边框）+ 会话 scope 用 `YoBadge tone=accent`；控件走 `--yohu-control-height`。
 - 会话 Tab：标题 + 采集绿点/信号红点 + 关闭 × + 新建 +；Tab 溢出可横向滚动；右键菜单（关闭其他/重命名/复制会话）走 `logs.tab` 场景。
 - 日志行：右键走 `logs.row`（复制选中行；未选中则先选该行）。与 Ctrl+C 同一 `copyLogText`。禁止在本页再挂 `YoContextMenu`。
-- 新建窗口划分用 `YoSegmentedButton`（包名 / PID，无左侧标题；高度走 `--yohu-segment-single`）。
+- 新建窗口：设备走 `YoSelect block`（触发钮显示选中设备，菜单独立定位层 Portal；禁止芯片/空触发钮）；划分用 `YoSegmentedButton`（包名 / PID，无左侧标题；高度走 `--yohu-segment-single`）。
 - 状态行：`采集指示（绿点/灰点）· 设备 · 缓冲 n · 可见 n · 信号 n · 进程索引 n s 前 · 滞后回补提示`。
 - 空态：未采集 → 插画图标 + 「点击开始采集」主按钮；采集中空 → 等待输出；过滤无命中 → 「无匹配日志，调整过滤条件」。
 - **采集可见性**：点「开始」先清空 UI 镜像与可见区，core 同步 `ring.clear()`，只展示启动之后的 logcat；失败 toast 出错误。
@@ -296,14 +305,14 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 ### 4.2 ADB 命令终端
 
-- 布局：内容区顶部模块页眉（标题 + 执行/清屏/命令管理）→ 左侧命令库 `YoPanel` + 右侧结果 `YoPanel`（间距 12vp）。
+- 布局：内容区顶部模块页眉（标题 + 选中设备名 + 执行/清屏/命令管理）→ 左侧命令库 `YoPanel` + 右侧结果 `YoPanel`（间距 12vp）。
 - 命令库树：组节点加命令数徽章；点击组行或展开箭头即选中该组；选中/hover 走 `.yohu-interactive`。
 - **命令管理**：`YoDialog` 定高三栏。列表项同样走 `.yohu-interactive`，禁止自写圆角底。
 - 结果区为结构化卡片列表；设备维度分组；结果区标题栏与模块功能栏均可「清屏」（只清 UI 结果，不影响命令库）。
 
 ### 4.3 文件管理
 
-- 布局：内容区顶部模块页眉（标题 + 上传/下载/刷新/预览）→ `YoPanel` 资源分区（路径栏 | 四列清单）与独立预览 `YoPanel` 并列 → 有任务时另起传输 `YoPanel`。
+- 布局：内容区顶部模块页眉（标题 + 选中设备名 + 上传/下载/刷新/预览）→ `YoPanel` 资源分区（路径栏 | 四列清单）与独立预览 `YoPanel` 并列 → 有任务时另起传输 `YoPanel`。
 - 四列清单：`YoVirtualList` 选择模式（含 ripple 与多选邻接圆角）。表头走 `YoColHeader`（轨道 + 分割线 + 前三列 `YoColResizer`）；排序钮铺满列格，走 `.yohu-interactive`（宿主 padding 0）。悬浮片铺满列矩形（inset 0 / radius-none）；「名称」左缘由首列 `--yohu-col-header-content-pad`（写在 `.yohu-col-header__label`）与行内 `.yohu-files__name` 左垫对齐，不靠行容器左右 padding，也不靠 button 宿主 padding。行间 hairline 走 VirtualList 单源（`--yohu-border`）；表头与清单背板 `--yohu-canvas`（与面板 surface 分层）；选中宿主保持透明。清单视口与日志相同：`overflow: hidden` 给虚拟列表确定高度。禁止模块再写 `.yohu-virtual-list__row` 分割线。
 - 面包屑：祖先 `--yohu-fg-2`，当前段 `--yohu-fg` + semibold（不是全段 accent，也不是选中实底）；ripple 圆角覆盖为 `radius-xs`。路径栏与清单之间不拉分割线。
 - 预览是独立 `YoPanel`（宽 `--yohu-layout-preview`），不嵌进清单卡片；右键走 `files.list` 场景（新建/下载/复制路径/删除），由壳 `YoContextMenuHost` 呈现。
@@ -318,6 +327,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - 页眉与卡片左缘共用 `--yohu-layout-page-margin`（PC 40vp）；页宽 `--yohu-layout-settings-max` 只约束滚动列，不把标题挤进 920 列。
 - 表单项同一行：标签 + 生效徽章靠左，功能控件靠右 hug（`.yohu-settings__item-control` + `margin-left: auto`）。开关 / 数字 / 下拉 / 多选复选共用该槽，禁止某一项整行左起铺开。说明文字（`.yohu-settings__item-hint`）独占下一行。
 - 文件位置项（ADB 路径 / 数据目录 / 默认导出路径）统一：只读展示框显示绝对路径 + 「浏览」；展示框宽 ≤ `--yohu-layout-settings-control-max`，超长折叠中间（目录头 ellipsis、末段完整）。空值显示 `system.info` 解析路径。数字/下拉仍走 `YoTextField`/`YoSelect`。
+- **关于**：末张分组卡片。应用图标（与安装包同源）+ 展示名 + 定位；版本 / 标识 / 版权；数据根、设置目录、应用日志只读路径 + 「打开」（`system.openPath`）。禁止再写死版本号。
 - 日志显示列：多选走 `YoCheckbox`（不是启用开关），控件组靠右 hug、过窄时组内折行；消息列始终显示、不提供开关。立即生效。
 - `YoDialog`：中性 10% 遮罩 + `--yohu-shadow-dialog`（失焦 `-unfocused`）；最大宽 400、高 90%；标题 Title_S Bold；电脑小圆角 `radius-sm`。最小 360×240 仅适用于独立子窗口，不套浮层。
 - `YoToast`：描边；最大宽 400；展示 ≤ `--yohu-dur-toast`（3s）。
@@ -330,7 +340,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 |------|------|------|
 | YoDialog | Esc 关；焦点陷阱；打开后聚焦面板；关闭后还原焦点 | `role=dialog aria-modal` |
 | YoTabs | ←/→ 切换；Home/End；Delete 关闭（可关时）；Ctrl+Tab 循环 | `role=tablist/tab/tabpanel` |
-| YoSelect | 展开后 ↑/↓ 选项；Enter 选；Esc 关；**默认按视口自适应上下展开** | `role=combobox aria-expanded aria-activedescendant` |
+| YoSelect | 展开后 ↑/↓ 选项；Enter 选；Esc 关；Portal 上下展开；宽 hug（min=触发钮）；仅超出才纵向滚动 | `aria-haspopup=listbox aria-expanded aria-activedescendant` |
 | YoTree | ↑/↓ 移动；→ 展开/← 收起；Enter 选中 | `role=tree/treeitem aria-expanded` |
 | YoVirtualList | 选择模式：roving tabindex + ↑/↓/Home/End/Enter/Space | 选择模式 `role=listbox/option` + `aria-selected` |
 | YoContextMenu | Esc 关闭；点击项执行；点击外部关闭 | `role=menu/menuitem` |
