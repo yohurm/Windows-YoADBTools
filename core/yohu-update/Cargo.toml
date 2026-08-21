@@ -1,0 +1,18 @@
+[package]
+name = "yohu-update"
+description = "Yohu ADB Tools v6 — 应用更新检查（Provider 可替换；默认 GitCode）"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+tracing.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+yohu-protocol.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
