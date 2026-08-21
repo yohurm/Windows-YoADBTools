@@ -16,6 +16,12 @@ export const DATA_DIR_NAME = PRODUCT_NAME;
 /** 设备路径安全根（与 yohu-protocol::safety_root 对齐；core SafetyRoot 强制校验）。 */
 export const SAFETY_ROOTS = ["/sdcard", "/storage"] as const;
 
+/** 文件模块默认浏览根（protocol `safety_root::SDCARD`）。 */
+export const DEFAULT_BROWSE_ROOT = SAFETY_ROOTS[0];
+
+/** 命令库 schema（与 yohu-protocol::COMMAND_LIBRARY_SCHEMA_VERSION 对齐）。 */
+export const COMMAND_LIBRARY_SCHEMA_VERSION = 2;
+
 /** 标题栏 / 关于页 / favicon 共用的应用图标（与 `app/yohu-app/icons/icon.png` 同源）。 */
 export const APP_ICON_SRC = "/app-icon.png";
 

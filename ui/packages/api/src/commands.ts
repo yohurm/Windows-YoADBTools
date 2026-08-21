@@ -13,10 +13,8 @@ import type {
   AppSettings,
   CaptureStart,
   CaptureStatus,
-  CommandDto,
   CommandLibraryDto,
   DeviceInfo,
-  EvalResult,
   ExecOutcome,
   ExportRequest,
   ExportResult,
@@ -26,8 +24,10 @@ import type {
   ProcessEntry,
   ReplayRequest,
   RemoteEntry,
+  SerialEvalResult,
   SettingKey,
   SystemInfo,
+  TerminalEvalRequest,
   TransferRequest,
   DragOutRequest,
   RemoteUpdate,
@@ -44,8 +44,8 @@ export const adbExec = (req: AdbExecRequest) => invoke<ExecOutcome>("adb.exec", 
 
 // ===== terminal =====
 
-export const terminalEval = (serial: string, command: CommandDto) =>
-  invoke<EvalResult>("terminal.eval", { serial, command });
+export const terminalEval = (req: TerminalEvalRequest) =>
+  invoke<SerialEvalResult[]>("terminal.eval", { req });
 
 export const groupRun = (req: GroupRunRequest) => invoke<number>("group.run", { req });
 

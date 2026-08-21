@@ -4,9 +4,13 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type { AppEvent, EvalResult, LogDisplayColumns, LogFilter, LogLine, RemoteEntry, RemoteUpdate, TransferRequest, UpdateChannelInfo } from "./types";
-import { SAFETY_ROOTS } from "./identity";
+import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
+import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -228,5 +232,21 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       page_url: "https://gitcode.com/yohurm/ReleaseYoADBTools",
     };
     expect(JSON.parse(JSON.stringify(info))).toEqual(info);
+  });
+
+  it("APP_SETTINGS_DEFAULT 与 protocol testdata 对齐", () => {
+    const fixturePath = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../../core/yohu-protocol/testdata/app_settings_default.json",
+    );
+    const fixture = JSON.parse(readFileSync(fixturePath, "utf8")) as typeof APP_SETTINGS_DEFAULT;
+    expect(APP_SETTINGS_DEFAULT).toEqual(fixture);
+    expect(COMMAND_LIBRARY_SCHEMA_VERSION).toBe(2);
+    expect(DEFAULT_BROWSE_ROOT).toBe(SAFETY_ROOTS[0]);
+  });
+
+  it("TerminalEvalRequest 字段为 snake_case", () => {
+    const req = { command_id: "c1", values: ["a"], serials: ["S"] };
+    expect(JSON.parse(JSON.stringify(req))).toEqual(req);
   });
 });

@@ -253,7 +253,25 @@ export interface GroupRunRequest {
   serials: string[];
 }
 
-/** `terminal.eval` 响应：原始执行结果 + 领域判定。 */
+/** `terminal.eval`：按命令库 id 填充并多设备并行。 */
+export interface TerminalEvalRequest {
+  command_id: string;
+  values: string[];
+  serials: string[];
+}
+
+/** 单台设备的 `terminal.eval` 结果。 */
+export interface SerialEvalResult {
+  serial: string;
+  ok: boolean;
+  message: string;
+  exit_code: number;
+  stdout: string;
+  stderr: string;
+  duration_ms: number;
+}
+
+/** `terminal.eval` 单台判定字段（不含 serial）。 */
 export interface EvalResult {
   ok: boolean;
   message: string;
