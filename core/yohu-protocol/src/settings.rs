@@ -30,6 +30,16 @@ pub enum ExportWriteMode {
     Append,
 }
 
+/// 应用更新源（默认 GitCode；GitHub / 蒲公英可选）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UpdateProvider {
+    #[default]
+    Gitcode,
+    Github,
+    Pgyer,
+}
+
 fn default_true() -> bool {
     true
 }
@@ -99,6 +109,9 @@ pub struct AppSettings {
     /// 日志清单显示列（立即生效；消息列始终在）
     #[serde(default)]
     pub log_display_columns: LogDisplayColumns,
+    /// 应用更新源（立即生效；默认 GitCode `yohurm/ReleaseYoADBTools`）
+    #[serde(default)]
+    pub update_provider: UpdateProvider,
 }
 
 fn default_buffer_capacity() -> usize {
@@ -125,6 +138,7 @@ impl Default for AppSettings {
             export_ask_every_time: default_export_ask(),
             export_write_mode: ExportWriteMode::Overwrite,
             log_display_columns: LogDisplayColumns::default(),
+            update_provider: UpdateProvider::Gitcode,
         }
     }
 }
@@ -144,6 +158,7 @@ pub enum SettingKey {
     ExportAskEveryTime,
     ExportWriteMode,
     LogDisplayColumns,
+    UpdateProvider,
 }
 
 impl SettingKey {
@@ -161,6 +176,7 @@ impl SettingKey {
             SettingKey::ExportAskEveryTime => "export_ask_every_time",
             SettingKey::ExportWriteMode => "export_write_mode",
             SettingKey::LogDisplayColumns => "log_display_columns",
+            SettingKey::UpdateProvider => "update_provider",
         }
     }
 }
@@ -180,6 +196,7 @@ mod tests {
         assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
         assert!(s.export_default_path.is_empty());
         assert_eq!(s.log_display_columns, LogDisplayColumns::default());
+        assert_eq!(s.update_provider, UpdateProvider::Gitcode);
     }
 
     #[test]
@@ -198,6 +215,7 @@ mod tests {
         assert_eq!(s.density, Density::Comfortable);
         assert!(s.export_ask_every_time);
         assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
+        assert_eq!(s.update_provider, UpdateProvider::Gitcode);
     }
 
     #[test]
@@ -227,6 +245,10 @@ mod tests {
             serde_json::to_value(SettingKey::LogDisplayColumns).unwrap(),
             json!("log_display_columns")
         );
+        assert_eq!(
+            serde_json::to_value(SettingKey::UpdateProvider).unwrap(),
+            json!("update_provider")
+        );
         assert_eq!(SettingKey::BufferCapacity.as_str(), "buffer_capacity");
         assert_eq!(
             SettingKey::LogDisplayColumns.as_str(),
@@ -250,6 +272,22 @@ mod tests {
         assert_eq!(
             serde_json::to_value(Density::Comfortable).unwrap(),
             serde_json::json!("comfortable")
+        );
+    }
+
+    #[test]
+    fn update_provider_serializes_lowercase() {
+        assert_eq!(
+            serde_json::to_value(UpdateProvider::Gitcode).unwrap(),
+            serde_json::json!("gitcode")
+        );
+        assert_eq!(
+            serde_json::to_value(UpdateProvider::Github).unwrap(),
+            serde_json::json!("github")
+        );
+        assert_eq!(
+            serde_json::to_value(UpdateProvider::Pgyer).unwrap(),
+            serde_json::json!("pgyer")
         );
     }
 

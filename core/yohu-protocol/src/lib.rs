@@ -12,6 +12,7 @@ pub mod log;
 pub mod process;
 pub mod settings;
 pub mod transfer;
+pub mod update;
 
 pub use commands::*;
 pub use device::*;
@@ -22,3 +23,4 @@ pub use log::*;
 pub use process::*;
 pub use settings::*;
 pub use transfer::*;
+pub use update::*;
