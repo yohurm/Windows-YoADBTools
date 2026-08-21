@@ -82,10 +82,18 @@ impl ProcessRunner {
         let (stderr_tx, mut stderr_rx) = mpsc::channel::<String>(128);
         let mut readers = Vec::new();
         if let Some(out) = stdout {
-            readers.push(tokio::spawn(read_lines_bounded(out, stdout_tx, STDOUT_BUDGET)));
+            readers.push(tokio::spawn(read_lines_bounded(
+                out,
+                stdout_tx,
+                STDOUT_BUDGET,
+            )));
         }
         if let Some(err) = stderr {
-            readers.push(tokio::spawn(read_lines_bounded(err, stderr_tx, STDERR_BUDGET)));
+            readers.push(tokio::spawn(read_lines_bounded(
+                err,
+                stderr_tx,
+                STDERR_BUDGET,
+            )));
         }
 
         let mut stdout_text = String::new();
@@ -139,7 +147,11 @@ impl ProcessRunner {
         if exit_code != 0 && is_device_offline(&stderr_text) {
             return Err(AdbError::DeviceOffline(stderr_text.trim().to_string()));
         }
-        Ok(ExecOutcome { exit_code, stdout: stdout_text, stderr: stderr_text })
+        Ok(ExecOutcome {
+            exit_code,
+            stdout: stdout_text,
+            stderr: stderr_text,
+        })
     }
 
     /// 运行流式命令：stdout 逐行经 `line_tx` 转发；返回最终退出码（正常退出）。
@@ -158,7 +170,11 @@ impl ProcessRunner {
         let mut stderr_task = None;
         let mut stderr_text = String::new();
         if let Some(err) = stderr {
-            stderr_task = Some(tokio::spawn(read_lines_bounded(err, stderr_tx, STDERR_BUDGET)));
+            stderr_task = Some(tokio::spawn(read_lines_bounded(
+                err,
+                stderr_tx,
+                STDERR_BUDGET,
+            )));
         }
 
         if let Some(stdout) = stdout {
@@ -265,7 +281,12 @@ where
 /// adb 掉线/无设备特征（stderr 判定）。
 fn is_device_offline(stderr: &str) -> bool {
     let lower = stderr.to_lowercase();
-    ["device offline", "device not found", "no devices/emulators found", "device 'offline'"]
-        .iter()
-        .any(|k| lower.contains(k))
+    [
+        "device offline",
+        "device not found",
+        "no devices/emulators found",
+        "device 'offline'",
+    ]
+    .iter()
+    .any(|k| lower.contains(k))
 }

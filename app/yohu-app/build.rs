@@ -1,10 +1,10 @@
 //! 构建期封装官方 adb 三件套（ADR-v6-008）。
 //!
 //! - 校验仓库 `tools/` 已由 `scripts/setup-adb.ps1` 放入官方 platform-tools；
-//! - 复制到当前 profile 输出目录（与 `YohuAdbTools.exe` 同级），
+//! - 复制到当前 profile 的 `tools/`（与开发仓库布局一致），
 //!   使 `cargo tauri build --no-bundle` / `cargo run` 也能解析内置 adb。
 //!
-//! NSIS 安装包仍走 `tauri.conf.json` 的 `bundle.resources`。
+//! NSIS 安装包仍走 `tauri.conf.json` 的 `bundle.resources`（目标同样是 `tools/`）。
 
 use std::path::{Path, PathBuf};
 
@@ -27,16 +27,19 @@ fn main() {
     }
 
     if let Some(profile_dir) = profile_output_dir() {
-        let _ = std::fs::create_dir_all(&profile_dir);
+        let dest_dir = profile_dir.join(yohu_protocol::dir::TOOLS);
+        let _ = std::fs::create_dir_all(&dest_dir);
         for name in ADB_FILES {
             let src = tools.join(name);
-            let dst = profile_dir.join(name);
+            let dst = dest_dir.join(name);
             if let Err(e) = std::fs::copy(&src, &dst) {
                 println!(
                     "cargo:warning=复制 sidecar {name} 到 {} 失败: {e}",
-                    profile_dir.display()
+                    dest_dir.display()
                 );
             }
+            // 旧布局曾平铺到 exe 旁；避免和 tools/ 双份抢解析。
+            let _ = std::fs::remove_file(profile_dir.join(name));
         }
     }
 

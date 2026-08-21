@@ -41,8 +41,20 @@ PID NAME
     fn parses_rows_skips_header() {
         let entries = parse_ps(SAMPLE);
         assert_eq!(entries.len(), 4);
-        assert_eq!(entries[0], ProcessEntry { pid: 1, name: "init".into() });
-        assert_eq!(entries[3], ProcessEntry { pid: 5678, name: "com.example.app:remote".into() });
+        assert_eq!(
+            entries[0],
+            ProcessEntry {
+                pid: 1,
+                name: "init".into()
+            }
+        );
+        assert_eq!(
+            entries[3],
+            ProcessEntry {
+                pid: 5678,
+                name: "com.example.app:remote".into()
+            }
+        );
     }
 
     #[test]

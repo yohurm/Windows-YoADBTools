@@ -109,7 +109,8 @@ async fn all_candidates_fail_yields_detailed_error() {
         std::thread::current().id()
     ));
     let resource_dir = data_dir.join("res");
-    let broken = isolated_fake_adb(r#"{ "devices_exit_code": 1, "devices_stderr": "adb: no daemon" }"#);
+    let broken =
+        isolated_fake_adb(r#"{ "devices_exit_code": 1, "devices_stderr": "adb: no daemon" }"#);
     let tool = ToolResolver::new(Some(broken), resource_dir, data_dir.join("tools"));
     let client = AdbClient::new(tool, 4);
     let err = client
@@ -117,6 +118,9 @@ async fn all_candidates_fail_yields_detailed_error() {
         .await
         .expect_err("全部失败应报错");
     let text = err.to_string();
-    assert!(text.contains("全部 adb 候选扫描失败"), "错误应含候选明细: {text}");
+    assert!(
+        text.contains("全部 adb 候选扫描失败"),
+        "错误应含候选明细: {text}"
+    );
     assert!(text.contains("no daemon"), "错误应含根因: {text}");
 }

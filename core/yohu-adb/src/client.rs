@@ -61,7 +61,11 @@ impl AdbClient {
         timeout_ms: Option<u64>,
         cancel: CancellationToken,
     ) -> Result<ExecOutcome, AdbError> {
-        let _permit = self.limit.acquire().await.map_err(|_| AdbError::Cancelled)?;
+        let _permit = self
+            .limit
+            .acquire()
+            .await
+            .map_err(|_| AdbError::Cancelled)?;
         let timeout = timeout_ms.map(Duration::from_millis);
         let adb = self.resolve_adb()?;
         self.runner
@@ -118,7 +122,11 @@ impl AdbClient {
                 }
                 Ok(out) => {
                     failures.push(format!("{} (退出码 {})", out.stderr.trim(), out.exit_code));
-                    tracing::warn!("adb 候选失败 {}: {}", adb.display(), failures.last().unwrap_or(&String::new()));
+                    tracing::warn!(
+                        "adb 候选失败 {}: {}",
+                        adb.display(),
+                        failures.last().unwrap_or(&String::new())
+                    );
                 }
                 Err(e) => {
                     failures.push(e.to_string());
@@ -139,10 +147,18 @@ impl AdbClient {
     /// 清设备日志缓冲（`logcat -c`）。
     pub async fn clear_log(&self, serial: &str, cancel: CancellationToken) -> Result<(), AdbError> {
         let out = self
-            .run(serial, &["logcat".into(), "-c".into()], Some(10_000), cancel)
+            .run(
+                serial,
+                &["logcat".into(), "-c".into()],
+                Some(10_000),
+                cancel,
+            )
             .await?;
         if out.exit_code != 0 {
-            return Err(AdbError::BadExit { exit_code: out.exit_code, stderr: out.stderr });
+            return Err(AdbError::BadExit {
+                exit_code: out.exit_code,
+                stderr: out.stderr,
+            });
         }
         Ok(())
     }
@@ -150,17 +166,29 @@ impl AdbClient {
     /// 一次性转储设备 logcat 缓冲（`logcat -d`），不跟流。
     ///
     /// 预留给后续「拉历史缓冲」能力；当前 UI 不调用。
-    pub async fn dump_log(&self, serial: &str, cancel: CancellationToken) -> Result<Vec<String>, AdbError> {
+    pub async fn dump_log(
+        &self,
+        serial: &str,
+        cancel: CancellationToken,
+    ) -> Result<Vec<String>, AdbError> {
         let out = self
             .run(
                 serial,
-                &["logcat".into(), "-d".into(), "-v".into(), "threadtime,uid".into()],
+                &[
+                    "logcat".into(),
+                    "-d".into(),
+                    "-v".into(),
+                    "threadtime,uid".into(),
+                ],
                 Some(30_000),
                 cancel,
             )
             .await?;
         if out.exit_code != 0 {
-            return Err(AdbError::BadExit { exit_code: out.exit_code, stderr: out.stderr });
+            return Err(AdbError::BadExit {
+                exit_code: out.exit_code,
+                stderr: out.stderr,
+            });
         }
         Ok(out
             .stdout
@@ -178,26 +206,47 @@ impl AdbClient {
         cancel: CancellationToken,
     ) -> Result<Vec<RemoteEntry>, AdbError> {
         let out = self
-            .run(serial, &["shell".into(), "ls".into(), "-la".into(), path.into()], Some(15_000), cancel)
-            .await?;
-        if out.exit_code != 0 {
-            return Err(AdbError::BadExit { exit_code: out.exit_code, stderr: out.stderr });
-        }
-        Ok(ls_parse::parse_ls(&out.stdout))
-    }
-
-    /// 进程索引。
-    pub async fn ps(&self, serial: &str, cancel: CancellationToken) -> Result<Vec<ProcessEntry>, AdbError> {
-        let out = self
             .run(
                 serial,
-                &["shell".into(), "ps".into(), "-A".into(), "-o".into(), "PID,NAME".into()],
+                &["shell".into(), "ls".into(), "-la".into(), path.into()],
                 Some(15_000),
                 cancel,
             )
             .await?;
         if out.exit_code != 0 {
-            return Err(AdbError::BadExit { exit_code: out.exit_code, stderr: out.stderr });
+            return Err(AdbError::BadExit {
+                exit_code: out.exit_code,
+                stderr: out.stderr,
+            });
+        }
+        Ok(ls_parse::parse_ls(&out.stdout))
+    }
+
+    /// 进程索引。
+    pub async fn ps(
+        &self,
+        serial: &str,
+        cancel: CancellationToken,
+    ) -> Result<Vec<ProcessEntry>, AdbError> {
+        let out = self
+            .run(
+                serial,
+                &[
+                    "shell".into(),
+                    "ps".into(),
+                    "-A".into(),
+                    "-o".into(),
+                    "PID,NAME".into(),
+                ],
+                Some(15_000),
+                cancel,
+            )
+            .await?;
+        if out.exit_code != 0 {
+            return Err(AdbError::BadExit {
+                exit_code: out.exit_code,
+                stderr: out.stderr,
+            });
         }
         Ok(ps_parse::parse_ps(&out.stdout))
     }
@@ -212,6 +261,8 @@ impl yohu_domain::Runner for AdbClient {
         timeout_ms: Option<u64>,
         cancel: CancellationToken,
     ) -> Result<ExecOutcome, yohu_domain::RunError> {
-        self.run(serial, &argv, timeout_ms, cancel).await.map_err(Into::into)
+        self.run(serial, &argv, timeout_ms, cancel)
+            .await
+            .map_err(Into::into)
     }
 }

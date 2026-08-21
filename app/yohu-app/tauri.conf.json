@@ -38,9 +38,9 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../../tools/adb.exe": "adb.exe",
-      "../../tools/AdbWinApi.dll": "AdbWinApi.dll",
-      "../../tools/AdbWinUsbApi.dll": "AdbWinUsbApi.dll"
+      "../../tools/adb.exe": "tools/adb.exe",
+      "../../tools/AdbWinApi.dll": "tools/AdbWinApi.dll",
+      "../../tools/AdbWinUsbApi.dll": "tools/AdbWinUsbApi.dll"
     },
     "windows": {
       "webviewInstallMode": {

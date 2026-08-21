@@ -24,7 +24,11 @@ pub struct ToolResolver {
 
 impl ToolResolver {
     pub fn new(user_path: Option<PathBuf>, resource_dir: PathBuf, data_tools_dir: PathBuf) -> Self {
-        Self { user_path: Arc::new(RwLock::new(user_path)), resource_dir, data_tools_dir }
+        Self {
+            user_path: Arc::new(RwLock::new(user_path)),
+            resource_dir,
+            data_tools_dir,
+        }
     }
 
     /// 更新用户自定义路径（设置 `adb.path` 立即生效）。

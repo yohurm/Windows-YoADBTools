@@ -13,8 +13,7 @@ use yohu_adb::{AdbClient, ToolResolver};
 use yohu_domain::{default_library, GroupExecutor, Verdict};
 
 fn real_adb() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/adb.exe")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tools/adb.exe")
 }
 
 /// 探测在线设备；无设备返回 None（测试自动跳过）。
@@ -44,9 +43,18 @@ async fn real_device_scan_and_model() {
         eprintln!("跳过：无在线设备");
         return;
     };
-    let devices = client.devices(CancellationToken::new()).await.expect("扫描失败");
-    let me = devices.iter().find(|d| d.serial == serial).expect("设备在列表中");
-    eprintln!("[真机] serial={serial} model={:?} connection={}", me.model, me.connection);
+    let devices = client
+        .devices(CancellationToken::new())
+        .await
+        .expect("扫描失败");
+    let me = devices
+        .iter()
+        .find(|d| d.serial == serial)
+        .expect("设备在列表中");
+    eprintln!(
+        "[真机] serial={serial} model={:?} connection={}",
+        me.model, me.connection
+    );
     assert!(me.model.is_some(), "devices -l 应解析出型号");
 }
 
@@ -58,7 +66,12 @@ async fn real_device_getprop_roundtrip() {
         return;
     };
     let out = client
-        .run(&serial, &["shell".into(), "getprop".into(), "ro.product.model".into()], Some(15_000), CancellationToken::new())
+        .run(
+            &serial,
+            &["shell".into(), "getprop".into(), "ro.product.model".into()],
+            Some(15_000),
+            CancellationToken::new(),
+        )
         .await
         .expect("getprop 失败");
     assert_eq!(out.exit_code, 0, "stderr={}", out.stderr);
@@ -74,13 +87,28 @@ async fn real_device_ls_parse() {
         return;
     };
     // /storage/emulated/0 为真实内容目录（/sdcard 在部分机型是符号链接，裸 ls 只列链接本身）
-    let entries = client.ls(&serial, "/storage/emulated/0/", CancellationToken::new()).await.expect("ls 失败");
-    assert!(entries.len() >= 3, "真实存储应有多条目，实际 {}", entries.len());
-    eprintln!("[真机] /storage/emulated/0 条目数 = {}，前 5:", entries.len());
+    let entries = client
+        .ls(&serial, "/storage/emulated/0/", CancellationToken::new())
+        .await
+        .expect("ls 失败");
+    assert!(
+        entries.len() >= 3,
+        "真实存储应有多条目，实际 {}",
+        entries.len()
+    );
+    eprintln!(
+        "[真机] /storage/emulated/0 条目数 = {}，前 5:",
+        entries.len()
+    );
     for e in entries.iter().take(5) {
         eprintln!("  [{:?}] {} ({})", e.kind, e.name, e.permission);
     }
-    assert!(entries.iter().any(|e| e.kind == yohu_protocol::EntryKind::Dir), "应含目录条目");
+    assert!(
+        entries
+            .iter()
+            .any(|e| e.kind == yohu_protocol::EntryKind::Dir),
+        "应含目录条目"
+    );
 }
 
 #[tokio::test]
@@ -90,10 +118,17 @@ async fn real_device_ps_parse() {
         eprintln!("跳过：无在线设备");
         return;
     };
-    let entries = client.ps(&serial, CancellationToken::new()).await.expect("ps 失败");
+    let entries = client
+        .ps(&serial, CancellationToken::new())
+        .await
+        .expect("ps 失败");
     assert!(!entries.is_empty(), "ps 应有进程");
     assert!(entries.iter().any(|e| e.pid == 1), "应有 pid=1(init)");
-    eprintln!("[真机] 进程数 = {}，含 init={}", entries.len(), entries.iter().any(|e| e.name == "init"));
+    eprintln!(
+        "[真机] 进程数 = {}，含 init={}",
+        entries.len(),
+        entries.iter().any(|e| e.name == "init")
+    );
 }
 
 #[tokio::test]
@@ -157,7 +192,12 @@ async fn real_device_group_run_end_to_end() {
     let executor = GroupExecutor::new(client);
     let (tx, mut rx) = mpsc::channel::<yohu_domain::GroupRunEvent>(16);
     executor
-        .run(&group.commands, std::slice::from_ref(&serial), tx, CancellationToken::new())
+        .run(
+            &group.commands,
+            std::slice::from_ref(&serial),
+            tx,
+            CancellationToken::new(),
+        )
         .await;
 
     let mut events = Vec::new();
@@ -168,9 +208,7 @@ async fn real_device_group_run_end_to_end() {
     for e in &events {
         eprintln!(
             "[真机] 组命令 {}: verdict={:?} msg={:.60}",
-            e.name,
-            e.verdict,
-            e.message
+            e.name, e.verdict, e.message
         );
         assert_eq!(e.serial, serial);
     }
@@ -178,5 +216,8 @@ async fn real_device_group_run_end_to_end() {
         events.iter().all(|e| e.verdict.is_pass()),
         "设备信息组在真机上应全部通过"
     );
-    assert!(events.iter().any(|e| matches!(e.verdict, Verdict::Pass)), "至少一条 Pass");
+    assert!(
+        events.iter().any(|e| matches!(e.verdict, Verdict::Pass)),
+        "至少一条 Pass"
+    );
 }

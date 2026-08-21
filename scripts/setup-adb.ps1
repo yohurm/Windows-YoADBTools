@@ -3,7 +3,7 @@
 # 本脚本从 Google platform-tools 下载并解出 adb.exe / AdbWinApi.dll / AdbWinUsbApi.dll。
 # 用法：
 #   powershell -ExecutionPolicy Bypass -File scripts/setup-adb.ps1
-# 后续：构建/打包时 tauri.conf.json 的 bundle.resources 会引用 tools/ 下文件。
+# 后续：构建/打包时 tauri.conf.json 的 bundle.resources 会把三件套放到安装目录 tools/（与仓库布局一致）。
 
 $ErrorActionPreference = "Stop"
 

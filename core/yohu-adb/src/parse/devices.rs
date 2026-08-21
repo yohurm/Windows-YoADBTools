@@ -40,7 +40,12 @@ pub fn parse_devices_list(output: &str) -> Vec<DeviceInfo> {
                     }
                 }
             }
-            Some(DeviceInfo { serial, model, state, connection })
+            Some(DeviceInfo {
+                serial,
+                model,
+                state,
+                connection,
+            })
         })
         .collect()
 }
@@ -72,7 +77,9 @@ FAKE1234        offline
 
     #[test]
     fn ignores_daemon_noise() {
-        let devices = parse_devices_list("* daemon not running; starting now at tcp:5037\nList of devices attached\n\n");
+        let devices = parse_devices_list(
+            "* daemon not running; starting now at tcp:5037\nList of devices attached\n\n",
+        );
         assert!(devices.is_empty());
     }
 }

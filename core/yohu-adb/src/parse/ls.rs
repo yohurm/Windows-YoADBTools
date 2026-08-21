@@ -53,7 +53,10 @@ pub fn parse_ls(output: &str) -> Vec<RemoteEntry> {
 /// toybox：`2026-01-01 12:00 name`；认不出日期则整段当名称、mtime 空（不丢行）。
 fn split_mtime_and_name(rest: &[&str]) -> (Option<String>, String) {
     if rest.len() >= 3 && looks_date(rest[0]) && looks_time(rest[1]) {
-        return (Some(format!("{} {}", rest[0], rest[1])), rest[2..].join(" "));
+        return (
+            Some(format!("{} {}", rest[0], rest[1])),
+            rest[2..].join(" "),
+        );
     }
     (None, rest.join(" "))
 }
