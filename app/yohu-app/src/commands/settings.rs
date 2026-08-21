@@ -59,6 +59,7 @@ pub async fn settings_set(
         .event_tx
         .send(AppEvent::SettingsChanged {
             key: key.as_str().to_string(),
+            settings: updated.clone(),
         })
         .await;
     Ok(updated)

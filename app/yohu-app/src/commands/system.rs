@@ -6,21 +6,9 @@ use crate::commands::ipc;
 use crate::state::AppState;
 #[cfg(not(windows))]
 use yohu_protocol::IpcErrorCode;
-use yohu_protocol::{AppSettings, IpcError};
+use yohu_protocol::{AppIdentity, IpcError, SystemInfo};
 
 /// `system.info`：关于/诊断信息。
-#[derive(serde::Serialize)]
-pub struct SystemInfo {
-    pub version: String,
-    pub data_root: String,
-    pub adb_path: String,
-    /// 最近一次设备扫描实际使用的 adb（诊断「cmd 有设备、应用没有」类问题）
-    pub adb_in_use: Option<String>,
-    /// 日志默认导出目录（未配置 export_default_path 时的绝对路径）
-    pub exports_dir: String,
-    pub settings: AppSettings,
-}
-
 #[tauri::command(rename = "system.info")]
 pub fn system_info(state: State<'_, AppState>) -> Result<SystemInfo, IpcError> {
     let adb_path = state
@@ -34,24 +22,27 @@ pub fn system_info(state: State<'_, AppState>) -> Result<SystemInfo, IpcError> {
         .expect("adb_in_use lock poisoned")
         .clone();
     Ok(SystemInfo {
-        version: env!("CARGO_PKG_VERSION").to_string(),
-        data_root: state.paths.data_root.to_string_lossy().into_owned(),
+        identity: AppIdentity::with_version(env!("CARGO_PKG_VERSION")),
+        paths: state.paths.catalog(),
         adb_path,
         adb_in_use,
-        exports_dir: state.paths.exports_dir().to_string_lossy().into_owned(),
         settings: state.settings.snapshot(),
     })
 }
 
-/// `system.openPath`：用资源管理器打开路径（导出的 txt 等）。
+/// `system.openPath`：用资源管理器打开目录，或选中文件。
 #[tauri::command(rename = "system.openPath")]
 pub fn system_open_path(path: String) -> Result<(), IpcError> {
     #[cfg(windows)]
     {
-        std::process::Command::new("explorer")
-            .arg(&path)
-            .spawn()
-            .map_err(ipc)?;
+        let target = std::path::Path::new(&path);
+        let mut cmd = std::process::Command::new("explorer");
+        if target.is_file() {
+            cmd.arg(format!("/select,{path}"));
+        } else {
+            cmd.arg(&path);
+        }
+        cmd.spawn().map_err(ipc)?;
     }
     #[cfg(not(windows))]
     {

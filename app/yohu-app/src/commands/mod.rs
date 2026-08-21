@@ -13,6 +13,7 @@ pub mod system;
 pub mod terminal;
 
 use yohu_adb::AdbError;
+use yohu_domain::RunError;
 use yohu_files::FileError;
 use yohu_protocol::{IpcError, IpcErrorCode};
 
@@ -35,6 +36,20 @@ pub fn ipc_adb(e: AdbError) -> IpcError {
         }
         AdbError::Timeout => IpcErrorCode::AdbError,
         AdbError::Io(_) => IpcErrorCode::Internal,
+    };
+    IpcError {
+        code,
+        message: e.to_string(),
+    }
+}
+
+/// domain 执行端口错误 → IPC。
+pub fn ipc_run(e: RunError) -> IpcError {
+    let code = match &e {
+        RunError::DeviceOffline(_) => IpcErrorCode::DeviceOffline,
+        RunError::Unauthorized => IpcErrorCode::Unauthorized,
+        RunError::Cancelled => IpcErrorCode::Cancelled,
+        RunError::Timeout | RunError::Adb(_) => IpcErrorCode::AdbError,
     };
     IpcError {
         code,

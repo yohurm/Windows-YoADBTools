@@ -101,7 +101,10 @@ impl SettingsStore {
             }
             SettingKey::LogDisplayColumns => {
                 s.log_display_columns = serde_json::from_value(value.clone()).map_err(|_| {
-                    format!("{} 必须是列开关对象（ts/uid/pid/tid/level/tag）", key.as_str())
+                    format!(
+                        "{} 必须是列开关对象（ts/uid/pid/tid/level/tag）",
+                        key.as_str()
+                    )
                 })?;
             }
         }

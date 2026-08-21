@@ -93,17 +93,11 @@ pub fn log_export(
 ) -> Result<ExportResult, IpcError> {
     let ring = state.capture.ring(&req.serial);
     let settings = state.settings.snapshot();
-    let dest = req.path.filter(|p| !p.is_empty()).or_else(|| {
-        if settings.export_default_path.is_empty() {
-            None
-        } else {
-            Some(format!(
-                "{}/logcat-{}.txt",
-                settings.export_default_path.trim_end_matches(['/', '\\']),
-                req.serial
-            ))
-        }
-    });
+    let dest = yohu_logsrv::ExportService::resolve_dest(
+        req.path.as_deref(),
+        &settings.export_default_path,
+        &req.serial,
+    );
     let result = state
         .export
         .export(
@@ -111,7 +105,7 @@ pub fn log_export(
             &ring,
             req.filter.as_ref(),
             ring.capacity(),
-            dest.as_deref().map(std::path::Path::new),
+            dest.as_deref(),
             req.write_mode,
         )
         .map_err(ipc)?;

@@ -6,8 +6,11 @@
 //! - 所有业务能力在 core crates（domain/adb/logsrv/files）。
 
 mod commands;
+mod device_catalog;
 mod dnd;
 mod events;
+mod group_runs;
+mod library_store;
 mod panic_hook;
 mod paths;
 mod settings_store;
@@ -44,7 +47,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     // 诊断日志：release（windows_subsystem）无控制台 → 落盘 logs/app.log（滚动 1MB×3）
     // 与设备日志严格分离（ADR-v6-010）；AppLog 内存环仍不落盘。
-    let logs_dir = AppPaths::local_root().join("logs");
+    let logs_dir = AppPaths::default_logs_dir();
     let file_appender = tracing_appender::rolling::Builder::new()
         .rotation(tracing_appender::rolling::Rotation::DAILY)
         .max_log_files(7)
@@ -128,7 +131,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         tauri::async_runtime::spawn(async move {
             let state = warm_handle.state::<AppState>();
             state.tool.warm_up().await;
-            if let Err(e) = commands::device::refresh_inner(&state).await {
+            if let Err(e) = crate::device_catalog::refresh(&state).await {
                 tracing::warn!("启动设备扫描失败: {e}");
             }
         });
@@ -142,7 +145,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 loop {
                     ticker.tick().await;
                     let state = handle.state::<AppState>();
-                    if let Err(e) = commands::device::refresh_inner(&state).await {
+                    if let Err(e) = crate::device_catalog::refresh(&state).await {
                         tracing::warn!("自动刷新失败: {e}");
                     }
                 }

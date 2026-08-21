@@ -41,10 +41,44 @@ fn main() {
     }
 
     tauri_build::build();
+
+    let conf_path = manifest.join("tauri.conf.json");
+    println!("cargo:rerun-if-changed={}", conf_path.display());
+    assert_identity_sync(&conf_path);
 }
 
 /// `OUT_DIR` = `target/<profile>/build/<crate>-<hash>/out` → `<profile>` 目录。
 fn profile_output_dir() -> Option<PathBuf> {
     let out = PathBuf::from(std::env::var("OUT_DIR").ok()?);
     out.ancestors().nth(3).map(Path::to_path_buf)
+}
+
+fn assert_identity_sync(conf_path: &Path) {
+    let conf = std::fs::read_to_string(conf_path)
+        .unwrap_or_else(|e| panic!("读取 {} 失败: {e}", conf_path.display()));
+    let json: serde_json::Value = serde_json::from_str(&conf)
+        .unwrap_or_else(|e| panic!("解析 {} 失败: {e}", conf_path.display()));
+    let version = env!("CARGO_PKG_VERSION");
+    let product = json["productName"].as_str().unwrap_or("");
+    let identifier = json["identifier"].as_str().unwrap_or("");
+    let title = json["app"]["windows"][0]["title"].as_str().unwrap_or("");
+    let conf_version = json["version"].as_str().unwrap_or("");
+    if product != yohu_protocol::PRODUCT_NAME
+        || identifier != yohu_protocol::IDENTIFIER
+        || title != yohu_protocol::DISPLAY_NAME
+        || conf_version != version
+    {
+        panic!(
+            "tauri.conf.json 身份须与 yohu-protocol 常量及 CARGO_PKG_VERSION 一致：\
+             productName={}/{}, identifier={}/{}, title={}/{}, version={}/{}",
+            product,
+            yohu_protocol::PRODUCT_NAME,
+            identifier,
+            yohu_protocol::IDENTIFIER,
+            title,
+            yohu_protocol::DISPLAY_NAME,
+            conf_version,
+            version
+        );
+    }
 }
