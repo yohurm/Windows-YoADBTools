@@ -4,8 +4,7 @@
 
 import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 
-import { open, save } from "@tauri-apps/plugin-dialog";
-import { onNativeDragDrop, type DeviceSession } from "@yohu/api";
+import { onNativeDragDrop, dialogOpenFile, dialogSaveFile, type DeviceSession } from "@yohu/api";
 import {
   YoButton,
   YoChrome,
@@ -102,7 +101,7 @@ export function FileView(props: DeviceSession) {
   };
 
   const onUpload = async (): Promise<void> => {
-    const selectedPath = await open({ multiple: false, title: "选择要上传的文件" });
+    const selectedPath = await dialogOpenFile({ title: "选择要上传的文件" });
     if (typeof selectedPath === "string") {
       const name = selectedPath.split(/[\\/]/).pop() ?? "upload.bin";
       void fileStore.push(selectedPath, name);
@@ -112,7 +111,7 @@ export function FileView(props: DeviceSession) {
   const onDownload = async (): Promise<void> => {
     const file = fileStore.singleFile();
     if (!file) return;
-    const dest = await save({ defaultPath: file.name, title: "保存到本机" });
+    const dest = await dialogSaveFile({ defaultPath: file.name, title: "保存到本机" });
     if (typeof dest === "string") void fileStore.pull(file.name, dest);
   };
 
@@ -247,7 +246,7 @@ export function FileView(props: DeviceSession) {
   return (
     <YoPage class="yohu-files" ref={(el) => { pageEl = el; }}>
       <div data-drop="ignore">
-        <YoChrome title="文件管理">
+        <YoChrome title="文件管理" deviceLabel={props.selectedLabel ?? undefined}>
           <YoButton onClick={() => void onUpload()}>上传</YoButton>
           <YoButton variant="secondary" disabled={fileStore.singleFile() === undefined} onClick={() => void onDownload()}>
             下载
@@ -305,7 +304,7 @@ export function FileView(props: DeviceSession) {
             </Show>
           </YoPanel>
         </div>
-        <div class="yohu-files__preview-slot" data-drop="ignore" attr:inert={!fileStore.ui.previewOpen ? true : undefined}>
+        <div class="yohu-files__preview-slot" data-drop="ignore" inert={!fileStore.ui.previewOpen ? true : undefined}>
           <PreviewPane />
         </div>
       </div>

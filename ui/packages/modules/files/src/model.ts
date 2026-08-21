@@ -3,6 +3,9 @@
  */
 
 import type { RemoteEntry } from "@yohu/api";
+import { SAFETY_ROOTS } from "@yohu/api";
+
+export { SAFETY_ROOTS };
 
 export function joinPath(dir: string, name: string): string {
   if (dir === "/") return `/${name}`;
@@ -18,8 +21,6 @@ export function parentOf(path: string): string | null {
 }
 
 /** 与 domain SafetyRoot::default 一致；上级停在根上，不逃到 `/`。 */
-export const SAFETY_ROOTS = ["/sdcard", "/storage"] as const;
-
 export function parentWithinSafety(path: string, roots: readonly string[] = SAFETY_ROOTS): string | null {
   const parent = parentOf(path);
   if (parent === null || parent === "/") return null;
