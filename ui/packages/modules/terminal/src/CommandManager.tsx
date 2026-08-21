@@ -7,7 +7,7 @@ import { createStore } from "solid-js/store";
 
 import { YoBadge, YoButton, YoCheckbox, YoDialog, YoIconButton, YoIndicator, YoPanel, YoTextField, YoToolbar } from "@yohu/ui";
 
-import type { CommandLibraryDto } from "@yohu/api";
+import { COMMAND_LIBRARY_SCHEMA_VERSION, type CommandLibraryDto } from "@yohu/api";
 import { terminalStore } from "./store";
 import "./command-manager.css";
 
@@ -74,7 +74,7 @@ export function toDraft(library: CommandLibraryDto): DraftState {
 /** 编辑器草稿 → 命令库 DTO（提交前转换；校验在 core）。 */
 export function fromDraft(draft: DraftState): CommandLibraryDto {
   return {
-    schema_version: 2,
+    schema_version: COMMAND_LIBRARY_SCHEMA_VERSION,
     groups: draft.groups.map((g) => ({
       id: g.id,
       name: g.name,

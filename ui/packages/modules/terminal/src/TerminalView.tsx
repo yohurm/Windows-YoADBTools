@@ -154,7 +154,7 @@ function ResultCard(props: {
 }
 
 export function TerminalView(props: DeviceSession) {
-  const [running, setRunning] = createSignal(false);
+  const [busy, setBusy] = createSignal<"idle" | "command" | "group">("idle");
   const [managerOpen, setManagerOpen] = createSignal(false);
   const [inputCommand, setInputCommand] = createSignal<CommandDto | null>(null);
   const [inputOpen, setInputOpen] = createSignal(false);
@@ -247,11 +247,11 @@ export function TerminalView(props: DeviceSession) {
         setInputOpen(true);
         return;
       }
-      setRunning(true);
-      void terminalStore.runCommand(props.selectedSerials, sel.command, []).finally(() => setRunning(false));
+      setBusy("command");
+      void terminalStore.runCommand(props.selectedSerials, sel.command, []).finally(() => setBusy("idle"));
     } else {
-      setRunning(true);
-      void terminalStore.runGroup(props.selectedSerials, sel.group).finally(() => setRunning(false));
+      setBusy("group");
+      void terminalStore.runGroup(props.selectedSerials, sel.group).finally(() => setBusy("idle"));
     }
   };
 
@@ -260,10 +260,19 @@ export function TerminalView(props: DeviceSession) {
       <YoChrome title="ADB 命令终端" deviceLabel={props.selectedLabel ?? undefined}>
         <YoButton
           onClick={run}
-          loading={running()}
-          disabled={!selection() || props.selectedSerials.length === 0}
+          loading={busy() !== "idle"}
+          disabled={!selection() || props.selectedSerials.length === 0 || busy() !== "idle"}
         >
           执行
+        </YoButton>
+        <YoButton
+          variant="secondary"
+          disabled={busy() !== "group"}
+          onClick={() => {
+            void terminalStore.cancelGroup().finally(() => setBusy("idle"));
+          }}
+        >
+          取消
         </YoButton>
         <YoButton variant="secondary" onClick={clearPanel} disabled={!hasResults()}>
           清屏
@@ -294,7 +303,7 @@ export function TerminalView(props: DeviceSession) {
           title="执行结果"
           actions={
             <>
-              <Show when={running()}>
+              <Show when={busy() !== "idle"}>
                 <YoBadge text="执行中" tone="warn" />
               </Show>
               <YoIconButton icon="clear" title="清屏" disabled={!hasResults()} onClick={clearPanel} />
@@ -361,7 +370,12 @@ export function TerminalView(props: DeviceSession) {
           }}
           onSubmit={(values) => {
             const command = inputCommand();
-            if (command) void terminalStore.runCommand(props.selectedSerials, command, values);
+            if (command) {
+              setBusy("command");
+              void terminalStore
+                .runCommand(props.selectedSerials, command, values)
+                .finally(() => setBusy("idle"));
+            }
             setInputCommand(null);
           }}
         />

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { CommandLibraryDto } from "@yohu/api";
+import { COMMAND_LIBRARY_SCHEMA_VERSION, type CommandLibraryDto } from "@yohu/api";
 
 import { fromDraft, toDraft } from "./CommandManager";
 
 const sample: CommandLibraryDto = {
-  schema_version: 2,
+  schema_version: COMMAND_LIBRARY_SCHEMA_VERSION,
   groups: [
     {
       id: "g1",

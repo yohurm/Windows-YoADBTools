@@ -1,13 +1,16 @@
 /**
- * 终端模块 store：命令库状态 + 执行结果流（ADR-v6-009：判定在 core，此处只展示）。
+ * 终端模块 store：命令库状态 + 执行结果流。
+ * 填充与多设备并行在 domain（terminal.eval）；此处只展示。
  * 执行目标 serials 由壳按 SelectionMode 注入，禁止再扫全部在线设备。
  */
 
 import { createStore } from "solid-js/store";
 
 import {
+  COMMAND_LIBRARY_SCHEMA_VERSION,
   commandlibLoad,
   commandlibSave,
+  groupCancel,
   groupRun,
   onGroupProgress,
   terminalEval,
@@ -29,20 +32,15 @@ export interface ResultEntry {
 }
 
 let nextId = 1;
+let activeGroupRun: number | null = null;
 
 const nowText = (): string => new Date().toLocaleTimeString("zh-CN", { hour12: false });
 
-/** 占位符填充（纯函数，可单测）：`{0}{1}` 按序替换。 */
-export function fillPlaceholders(template: string, values: string[]): string {
-  let out = template;
-  values.forEach((value, index) => {
-    out = out.split(`{${index}}`).join(value);
-  });
-  return out;
-}
-
 export function createTerminalStore() {
-  const [library, setLibrary] = createStore<CommandLibraryDto>({ schema_version: 2, groups: [] });
+  const [library, setLibrary] = createStore<CommandLibraryDto>({
+    schema_version: COMMAND_LIBRARY_SCHEMA_VERSION,
+    groups: [],
+  });
   const [results, setResults] = createStore<ResultEntry[]>([]);
 
   function push(entry: Omit<ResultEntry, "id" | "time">): void {
@@ -59,9 +57,8 @@ export function createTerminalStore() {
     setLibrary(dto);
   }
 
-  /** 执行单命令：对注入的目标 serials 并行（每设备一条结果）。 */
+  /** 执行单命令：IPC 一次带全部 serials，填充与并行在 core。 */
   async function runCommand(serials: string[], command: CommandDto, values: string[]): Promise<void> {
-    const filled: CommandDto = { ...command, template: fillPlaceholders(command.template, values) };
     if (serials.length === 0) {
       push({
         kind: "command",
@@ -73,28 +70,49 @@ export function createTerminalStore() {
       });
       return;
     }
-    await Promise.all(
-      serials.map(async (serial) => {
-        try {
-          const r = await terminalEval(serial, filled);
-          push({
-            kind: "command",
-            serial,
-            title: command.name,
-            ok: r.ok,
-            message: r.message,
-            stdout: r.stdout,
-            durationMs: r.duration_ms,
-          });
-        } catch (e) {
-          push({ kind: "command", serial, title: command.name, ok: false, message: String(e), stdout: "" });
-        }
-      }),
-    );
+    try {
+      const rows = await terminalEval({
+        command_id: command.id,
+        values,
+        serials,
+      });
+      for (const row of rows) {
+        push({
+          kind: "command",
+          serial: row.serial,
+          title: command.name,
+          ok: row.ok,
+          message: row.message,
+          stdout: row.stdout,
+          durationMs: row.duration_ms,
+        });
+      }
+    } catch (e) {
+      push({
+        kind: "command",
+        serial: "-",
+        title: command.name,
+        ok: false,
+        message: String(e),
+        stdout: "",
+      });
+    }
   }
 
   /** 执行命令组（进度经 group.progress 事件回流为结果条目）。 */
   async function runGroup(serials: string[], group: CommandGroupDto): Promise<void> {
+    const needing = group.commands.find((c) => c.inputs.length > 0);
+    if (needing) {
+      push({
+        kind: "group",
+        serial: "-",
+        title: `组: ${group.name}`,
+        ok: false,
+        message: `命令组含需填值的命令（${needing.name}），请逐条执行`,
+        stdout: "",
+      });
+      return;
+    }
     if (serials.length === 0) {
       push({
         kind: "group",
@@ -107,9 +125,20 @@ export function createTerminalStore() {
       return;
     }
     try {
-      await groupRun({ group_id: group.id, serials });
+      activeGroupRun = await groupRun({ group_id: group.id, serials });
     } catch (e) {
+      activeGroupRun = null;
       push({ kind: "group", serial: "-", title: `组: ${group.name}`, ok: false, message: String(e), stdout: "" });
+    }
+  }
+
+  async function cancelGroup(): Promise<void> {
+    const runId = activeGroupRun;
+    if (runId === null) return;
+    try {
+      await groupCancel(runId);
+    } finally {
+      activeGroupRun = null;
     }
   }
 
@@ -137,9 +166,11 @@ export function createTerminalStore() {
     save,
     runCommand,
     runGroup,
+    cancelGroup,
     clearResults,
   };
 }
 
-/** 模块级单例（与壳 store 同生命周期）。 */
+export type TerminalStoreApi = ReturnType<typeof createTerminalStore>;
+
 export const terminalStore = createTerminalStore();
