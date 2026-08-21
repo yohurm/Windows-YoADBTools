@@ -257,21 +257,7 @@ export function TerminalView(props: DeviceSession) {
 
   return (
     <YoPage class="yohu-terminal">
-      <YoChrome
-        title="ADB 命令终端"
-        leading={
-          <Show when={props.selectedSerials.length > 0}>
-            <YoBadge
-              text={
-                props.selectedSerials.length === 1
-                  ? props.selectedSerials[0]!
-                  : `${props.selectedSerials.length} 台`
-              }
-              tone="neutral"
-            />
-          </Show>
-        }
-      >
+      <YoChrome title="ADB 命令终端" deviceLabel={props.selectedLabel ?? undefined}>
         <YoButton
           onClick={run}
           loading={running()}
