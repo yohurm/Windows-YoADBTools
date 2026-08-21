@@ -9,12 +9,11 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tauri::AppHandle;
 use tokio_util::sync::CancellationToken;
 use yohu_files::TransferRunner;
-use yohu_protocol::{AppEvent, DragOutRequest, IpcError, IpcErrorCode};
+use yohu_protocol::{AppEvent, DragOutRequest, AppError, ErrorCode};
 
-use crate::commands::{ipc_code, ipc_file};
+use crate::commands::{err_code, err_file};
 use crate::state::AppState;
 use crate::tasks::TaskCenter;
 
@@ -27,39 +26,35 @@ pub fn cleanup_stale(drag_out_root: &Path) {
     }
 }
 
-pub async fn drag_out(
-    app: &AppHandle,
-    state: &AppState,
-    req: DragOutRequest,
-) -> Result<(), IpcError> {
+pub async fn drag_out(state: &Arc<AppState>, req: DragOutRequest) -> Result<(), AppError> {
     if req.remotes.is_empty() {
-        return Err(ipc_code(IpcErrorCode::InvalidArgs, "未选择文件"));
+        return Err(err_code(ErrorCode::InvalidArgs, "未选择文件"));
     }
     let tree = state
         .browser
         .list_tree(&req.serial, &req.remotes, CancellationToken::new())
         .await
-        .map_err(ipc_file)?;
+        .map_err(err_file)?;
     let items: Vec<_> = tree
         .into_iter()
         .filter(|e| windows_relative_ok(&e.relative))
         .collect();
     if items.is_empty() {
-        return Err(ipc_code(
-            IpcErrorCode::InvalidArgs,
+        return Err(err_code(
+            ErrorCode::InvalidArgs,
             "没有可拖出的项目（名称在 Windows 上非法）",
         ));
     }
 
     let root = state.paths.drag_out_dir();
-    fs::create_dir_all(&root).map_err(|e| ipc_code(IpcErrorCode::Internal, e.to_string()))?;
+    fs::create_dir_all(&root).map_err(|e| err_code(ErrorCode::Internal, e.to_string()))?;
     let session_id = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     let session_dir = root.join(format!("{session_id}"));
     fs::create_dir_all(&session_dir)
-        .map_err(|e| ipc_code(IpcErrorCode::Internal, e.to_string()))?;
+        .map_err(|e| err_code(ErrorCode::Internal, e.to_string()))?;
 
     let payload = DragPayload {
         items,
@@ -75,20 +70,15 @@ pub async fn drag_out(
 
     #[cfg(windows)]
     {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        app.run_on_main_thread(move || {
-            let result = ole::do_drag_drop(payload);
-            let _ = tx.send(result);
-        })
-        .map_err(|e| ipc_code(IpcErrorCode::Internal, e.to_string()))?;
-        rx.await
-            .map_err(|_| ipc_code(IpcErrorCode::Internal, "拖出已中断"))?
+        // OLE DoDragDrop 需要 STA 主线程。由调用方保证在 UI 线程执行；
+        // 当前无 UI 阶段直接在本线程运行（未来 rust-slint 接入时改为 UI 线程回调）。
+        ole::do_drag_drop(payload)
     }
     #[cfg(not(windows))]
     {
-        let _ = (app, payload);
+        let _ = payload;
         let _ = fs::remove_dir_all(&session_dir);
-        Err(ipc_code(IpcErrorCode::Internal, "拖出仅支持 Windows"))
+        Err(err_code(ErrorCode::Internal, "拖出仅支持 Windows"))
     }
 }
 

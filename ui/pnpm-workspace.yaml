@@ -1,8 +1,0 @@
-packages:
-  - "packages/*"
-  - "packages/modules/*"
-  - "apps/*"
-
-# pnpm 11：批准 esbuild 运行构建脚本（平台二进制校验）
-allowBuilds:
-  esbuild: true

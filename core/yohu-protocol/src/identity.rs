@@ -11,7 +11,7 @@ use crate::settings::AppSettings;
 pub const PRODUCT_NAME: &str = "YohuAdbTools";
 /// 窗口标题、状态栏、关于页展示名。
 pub const DISPLAY_NAME: &str = "Yohu ADB Tools";
-/// 包标识（Tauri `identifier`）。
+/// 包标识（安装包/关于页共用）。
 pub const IDENTIFIER: &str = "com.yohu.adbtools";
 /// 一句话定位（关于页）。
 pub const DESCRIPTION: &str = "设备工具工作台";

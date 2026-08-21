@@ -1,4 +1,4 @@
-//! 应用更新检查的 IPC wire 类型。
+//! 应用更新检查的 wire 类型。
 
 use serde::{Deserialize, Serialize};
 

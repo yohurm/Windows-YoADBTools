@@ -1,4 +1,4 @@
-//! invoke 命令的请求/响应 DTO 与命令库 wire 结构。
+//! 命令的请求/响应 DTO 与命令库 wire 结构。
 
 use serde::{Deserialize, Serialize};
 

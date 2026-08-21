@@ -1,7 +1,8 @@
-//! 命令层：Tauri invoke 处理器。
+//! 命令层：服务 API（参数校验 → core API → 结果）。
 //!
-//! **薄命令层纪律**（ADR-v6-005）：只做参数反序列化 → core API → 结果序列化。
-//! 业务逻辑一律在 core crates。错误统一映射为 [`IpcError`]。
+//! **薄命令层纪律**（ADR-v6-005）：只做参数校验 → core API → 结果。
+//! 业务逻辑一律在 core crates。错误统一映射为 [`AppError`]。
+//! UI 层（rust-slint）进程内直接调用这些函数。
 
 pub mod adb;
 pub mod commandlib;
@@ -16,79 +17,79 @@ pub mod update;
 use yohu_adb::AdbError;
 use yohu_domain::RunError;
 use yohu_files::FileError;
-use yohu_protocol::{IpcError, IpcErrorCode};
+use yohu_protocol::{AppError, ErrorCode};
 use yohu_update::UpdateError;
 
-/// core 错误 → IPC 错误（前端按 code 处理）。
-pub fn ipc(e: impl std::fmt::Display) -> IpcError {
-    IpcError {
-        code: IpcErrorCode::Internal,
+/// core 错误 → 应用错误（UI 按 code 处理）。
+pub fn err_internal(e: impl std::fmt::Display) -> AppError {
+    AppError {
+        code: ErrorCode::Internal,
         message: e.to_string(),
     }
 }
 
-/// ADB 错误 → IPC 错误（保留语义码）。
-pub fn ipc_adb(e: AdbError) -> IpcError {
+/// ADB 错误 → 应用错误（保留语义码）。
+pub fn err_adb(e: AdbError) -> AppError {
     let code = match &e {
-        AdbError::DeviceOffline(_) => IpcErrorCode::DeviceOffline,
-        AdbError::Unauthorized => IpcErrorCode::Unauthorized,
-        AdbError::Cancelled => IpcErrorCode::Cancelled,
+        AdbError::DeviceOffline(_) => ErrorCode::DeviceOffline,
+        AdbError::Unauthorized => ErrorCode::Unauthorized,
+        AdbError::Cancelled => ErrorCode::Cancelled,
         AdbError::ToolUnavailable(_) | AdbError::BadExit { .. } | AdbError::Parse(_) => {
-            IpcErrorCode::AdbError
+            ErrorCode::AdbError
         }
-        AdbError::Timeout => IpcErrorCode::AdbError,
-        AdbError::Io(_) => IpcErrorCode::Internal,
+        AdbError::Timeout => ErrorCode::AdbError,
+        AdbError::Io(_) => ErrorCode::Internal,
     };
-    IpcError {
+    AppError {
         code,
         message: e.to_string(),
     }
 }
 
-/// domain 执行端口错误 → IPC。
-pub fn ipc_run(e: RunError) -> IpcError {
+/// domain 执行端口错误 → 应用错误。
+pub fn err_run(e: RunError) -> AppError {
     let code = match &e {
-        RunError::DeviceOffline(_) => IpcErrorCode::DeviceOffline,
-        RunError::Unauthorized => IpcErrorCode::Unauthorized,
-        RunError::Cancelled => IpcErrorCode::Cancelled,
-        RunError::Timeout | RunError::Adb(_) => IpcErrorCode::AdbError,
+        RunError::DeviceOffline(_) => ErrorCode::DeviceOffline,
+        RunError::Unauthorized => ErrorCode::Unauthorized,
+        RunError::Cancelled => ErrorCode::Cancelled,
+        RunError::Timeout | RunError::Adb(_) => ErrorCode::AdbError,
     };
-    IpcError {
+    AppError {
         code,
         message: e.to_string(),
     }
 }
 
-/// 构造一个简单 IPC 错误。
-pub fn ipc_code(code: IpcErrorCode, message: impl Into<String>) -> IpcError {
-    IpcError {
+/// 构造一个简单应用错误。
+pub fn err_code(code: ErrorCode, message: impl Into<String>) -> AppError {
+    AppError {
         code,
         message: message.into(),
     }
 }
 
-/// 文件模块错误 → IPC（路径/安全根走 InvalidArgs，取消保留语义）。
-pub fn ipc_file(e: FileError) -> IpcError {
+/// 文件模块错误 → 应用错误（路径/安全根走 InvalidArgs，取消保留语义）。
+pub fn err_file(e: FileError) -> AppError {
     match e {
         FileError::Path(message) | FileError::OutsideRoot(message) => {
-            ipc_code(IpcErrorCode::InvalidArgs, message)
+            err_code(ErrorCode::InvalidArgs, message)
         }
-        FileError::LocalNotFound(message) => ipc_code(IpcErrorCode::NotFound, message),
-        FileError::Adb(adb) => ipc_adb(adb),
+        FileError::LocalNotFound(message) => err_code(ErrorCode::NotFound, message),
+        FileError::Adb(adb) => err_adb(adb),
     }
 }
 
-/// 更新检查错误 → IPC。
-pub fn ipc_update(e: UpdateError) -> IpcError {
+/// 更新检查错误 → 应用错误。
+pub fn err_update(e: UpdateError) -> AppError {
     let code = match e {
-        UpdateError::NotConfigured | UpdateError::InvalidUrl => IpcErrorCode::InvalidArgs,
-        UpdateError::NoDownloadUrl => IpcErrorCode::NotFound,
+        UpdateError::NotConfigured | UpdateError::InvalidUrl => ErrorCode::InvalidArgs,
+        UpdateError::NoDownloadUrl => ErrorCode::NotFound,
         UpdateError::Platform(_)
         | UpdateError::Http(_)
         | UpdateError::Network(_)
-        | UpdateError::Parse(_) => IpcErrorCode::Internal,
+        | UpdateError::Parse(_) => ErrorCode::Internal,
     };
-    IpcError {
+    AppError {
         code,
         message: e.to_string(),
     }

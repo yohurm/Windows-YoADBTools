@@ -1,7 +1,7 @@
 //! sidecar adb 工具解析（需求文档 §4.3）。
 //!
 //! 解析顺序：用户设置（`adb.path`，可运行时更新、立即生效）→ 应用旁/资源目录 →
-//! `DataRoot/tools/adb/` 解压。本模块零 Tauri 依赖：目录由 app 层解析后传入。
+//! `DataRoot/tools/adb/` 解压。本模块零 UI 依赖：目录由 app 层解析后传入。
 
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};

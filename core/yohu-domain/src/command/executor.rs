@@ -52,7 +52,7 @@ impl<T: Runner + ?Sized> Runner for Arc<T> {
     }
 }
 
-/// 单命令：拆行 → 执行 → 领域判定。`RunError` 原样上抛（IPC 映射由壳完成）。
+/// 单命令：拆行 → 执行 → 领域判定。`RunError` 原样上抛（映射由壳完成）。
 pub async fn run_and_evaluate<R: Runner>(
     runner: &R,
     serial: &str,

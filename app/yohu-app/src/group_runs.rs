@@ -1,16 +1,17 @@
 //! 命令组运行生命周期：任务中心登记、进度转发、取消。判定仍在 domain GroupExecutor。
 
-use tauri::{AppHandle, Manager};
+use std::sync::Arc;
+
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
-use crate::commands::ipc_code;
+use crate::commands::err_code;
 use crate::state::AppState;
 use yohu_domain::{CommandGroup, GroupExecutor, Verdict};
-use yohu_protocol::{AppEvent, GroupProgress, IpcError, IpcErrorCode};
+use yohu_protocol::{AppEvent, GroupProgress, AppError, ErrorCode};
 
 /// 登记并异步跑一组命令；立即返回 run_id。
-pub fn start(app: AppHandle, state: &AppState, group: CommandGroup, serials: Vec<String>) -> u32 {
+pub fn start(state: &Arc<AppState>, group: CommandGroup, serials: Vec<String>) -> u32 {
     let run_id = state
         .group_next
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
@@ -28,7 +29,9 @@ pub fn start(app: AppHandle, state: &AppState, group: CommandGroup, serials: Vec
     );
     let (tx, mut rx) = mpsc::channel::<yohu_domain::GroupRunEvent>(64);
     let sink = state.event_tx.clone();
+    let client = state.client.clone();
     let commands = group.commands.clone();
+    let state = Arc::clone(state);
 
     tokio::spawn(async move {
         let forward = tokio::spawn(async move {
@@ -52,14 +55,10 @@ pub fn start(app: AppHandle, state: &AppState, group: CommandGroup, serials: Vec
             }
         });
 
-        let executor = GroupExecutor::new({
-            let state = app.state::<AppState>();
-            state.client.clone()
-        });
+        let executor = GroupExecutor::new(client);
         executor.run(&commands, &serials, tx, cancel).await;
         let _ = forward.await;
 
-        let state = app.state::<AppState>();
         state
             .group_runs
             .lock()
@@ -71,7 +70,7 @@ pub fn start(app: AppHandle, state: &AppState, group: CommandGroup, serials: Vec
     run_id
 }
 
-pub fn cancel(state: &AppState, run_id: u32) -> Result<(), IpcError> {
+pub fn cancel(state: &AppState, run_id: u32) -> Result<(), AppError> {
     let token = state
         .group_runs
         .lock()
@@ -83,8 +82,8 @@ pub fn cancel(state: &AppState, run_id: u32) -> Result<(), IpcError> {
             c.cancel();
             Ok(())
         }
-        None => Err(ipc_code(
-            IpcErrorCode::NotFound,
+        None => Err(err_code(
+            ErrorCode::NotFound,
             format!("运行不存在: {run_id}"),
         )),
     }

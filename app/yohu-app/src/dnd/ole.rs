@@ -36,10 +36,10 @@ use windows::Win32::UI::Shell::{
 use windows_core::{implement, BOOL};
 
 use yohu_files::{TransferSpec, TreeEntry};
-use yohu_protocol::{Direction, IpcError, IpcErrorCode};
+use yohu_protocol::{Direction, AppError, ErrorCode};
 
 use super::DragPayload;
-use crate::commands::ipc_code;
+use crate::commands::err_code;
 
 fn clip(name: PCWSTR) -> u16 {
     unsafe { RegisterClipboardFormatW(name) as u16 }
@@ -99,7 +99,7 @@ impl IDropSource_Impl for CopySource_Impl {
             self.seen_press.store(true, Ordering::SeqCst);
             return S_OK;
         }
-        // DoDragDrop 若在 IPC/list_tree 之后才启动，此时键可能已松开：必须 CANCEL，不能对当前窗口 DROP。
+        // DoDragDrop 若在 err_internal/list_tree 之后才启动，此时键可能已松开：必须 CANCEL，不能对当前窗口 DROP。
         if !self.seen_press.load(Ordering::SeqCst) {
             return DRAGDROP_S_CANCEL;
         }
@@ -440,7 +440,7 @@ impl IDataObjectAsyncCapability_Impl for VirtualFiles_Impl {
     }
 }
 
-pub(super) fn do_drag_drop(payload: DragPayload) -> Result<(), IpcError> {
+pub(super) fn do_drag_drop(payload: DragPayload) -> Result<(), AppError> {
     static OLE_INIT: Once = Once::new();
     OLE_INIT.call_once(|| {
         let _ = unsafe { OleInitialize(None) };
@@ -468,8 +468,8 @@ pub(super) fn do_drag_drop(payload: DragPayload) -> Result<(), IpcError> {
     if hr == DRAGDROP_S_DROP || hr == DRAGDROP_S_CANCEL || hr == S_OK {
         Ok(())
     } else {
-        Err(ipc_code(
-            IpcErrorCode::Internal,
+        Err(err_code(
+            ErrorCode::Internal,
             format!("DoDragDrop 失败: {hr:?}"),
         ))
     }

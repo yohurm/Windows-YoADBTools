@@ -92,7 +92,7 @@ impl AppPaths {
         self.module_data(module_id::FILES).join(dir::DRAG_OUT)
     }
 
-    /// IPC / 关于页用的绝对路径目录。
+    /// 关于页/诊断用的绝对路径目录。
     pub fn catalog(&self) -> AppPathCatalog {
         AppPathCatalog {
             local_root: path_string(&self.local_root),

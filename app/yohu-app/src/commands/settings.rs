@@ -2,15 +2,12 @@
 
 use std::path::PathBuf;
 
-use tauri::State;
-
-use crate::commands::ipc_code;
+use crate::commands::err_code;
 use crate::state::AppState;
-use yohu_protocol::{AppEvent, AppSettings, IpcError, IpcErrorCode, SettingKey};
+use yohu_protocol::{AppEvent, AppSettings, AppError, ErrorCode, SettingKey};
 
 /// `settings.get`：单键值。
-#[tauri::command(rename = "settings.get")]
-pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::Value {
+pub fn settings_get(state: &AppState, key: SettingKey) -> serde_json::Value {
     let s = state.settings.snapshot();
     match key {
         SettingKey::AdbPath => serde_json::json!(s.adb_path),
@@ -30,16 +27,15 @@ pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::
 
 /// `settings.set`：更新单键并落盘；返回全量快照。
 /// `settings.changed` 是控制面（无环可重放），`send().await` 必达，禁止 try_send。
-#[tauri::command(rename = "settings.set")]
 pub async fn settings_set(
-    state: State<'_, AppState>,
+    state: &AppState,
     key: SettingKey,
     value: serde_json::Value,
-) -> Result<AppSettings, IpcError> {
+) -> Result<AppSettings, AppError> {
     let updated = state
         .settings
         .set(key, &value)
-        .map_err(|e| ipc_code(IpcErrorCode::InvalidArgs, e))?;
+        .map_err(|e| err_code(ErrorCode::InvalidArgs, e))?;
 
     if key == SettingKey::BufferCapacity {
         state.capture.set_ring_capacity(updated.buffer_capacity);

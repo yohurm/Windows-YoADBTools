@@ -1,20 +1,17 @@
 //! 日志模块命令：薄转发 CaptureService / ExportService。
 
-use tauri::State;
-
-use crate::commands::{ipc, ipc_code};
+use crate::commands::{err_internal, err_code};
 use crate::state::AppState;
 use yohu_logsrv::LogError;
 use yohu_protocol::{
-    CaptureStart, CaptureStatus, ExportRequest, ExportResult, IpcError, IpcErrorCode, LogBatch,
+    CaptureStart, CaptureStatus, ExportRequest, ExportResult, AppError, ErrorCode, LogBatch,
     ProcessEntry, ReplayRequest,
 };
 
-#[tauri::command(rename = "log.capture.start")]
 pub async fn log_capture_start(
-    state: State<'_, AppState>,
+    state: &AppState,
     serial: String,
-) -> Result<CaptureStart, IpcError> {
+) -> Result<CaptureStart, AppError> {
     state.require_online(&serial)?;
     let snap = state.settings.snapshot();
     state.capture.set_ring_capacity(snap.buffer_capacity);
@@ -22,9 +19,9 @@ pub async fn log_capture_start(
     let result = match state.capture.start(&serial, clear).await {
         Ok(result) => result,
         Err(LogError::Cancelled) => {
-            return Err(ipc_code(IpcErrorCode::Cancelled, "采集已取消"));
+            return Err(err_code(ErrorCode::Cancelled, "采集已取消"));
         }
-        Err(e) => return Err(ipc(e)),
+        Err(e) => return Err(err_internal(e)),
     };
 
     if !result.adopted {
@@ -40,35 +37,30 @@ pub async fn log_capture_start(
     Ok(result)
 }
 
-#[tauri::command(rename = "log.capture.stop")]
-pub async fn log_capture_stop(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
+pub async fn log_capture_stop(state: &AppState, serial: String) -> Result<(), AppError> {
     state.capture.stop(&serial).await;
     state.finish_capture_task(&serial);
     Ok(())
 }
 
-#[tauri::command(rename = "log.capture.status")]
-pub fn log_capture_status(state: State<'_, AppState>, serial: String) -> CaptureStatus {
+pub fn log_capture_status(state: &AppState, serial: String) -> CaptureStatus {
     state.capture.status(&serial)
 }
 
-#[tauri::command(rename = "log.clear")]
-pub fn log_clear(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
+pub fn log_clear(state: &AppState, serial: String) -> Result<(), AppError> {
     state.capture.clear(&serial);
     Ok(())
 }
 
-#[tauri::command(rename = "log.clearDevice")]
-pub async fn log_clear_device(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
+pub async fn log_clear_device(state: &AppState, serial: String) -> Result<(), AppError> {
     state
         .capture
         .clear_device_buffer(&serial)
         .await
-        .map_err(ipc)
+        .map_err(err_internal)
 }
 
-#[tauri::command(rename = "log.replay")]
-pub fn log_replay(state: State<'_, AppState>, req: ReplayRequest) -> Result<LogBatch, IpcError> {
+pub fn log_replay(state: &AppState, req: ReplayRequest) -> Result<LogBatch, AppError> {
     let ring = state.capture.ring(&req.serial);
     let (lines, truncated) = match &req.filter {
         Some(filter) => {
@@ -86,11 +78,10 @@ pub fn log_replay(state: State<'_, AppState>, req: ReplayRequest) -> Result<LogB
     })
 }
 
-#[tauri::command(rename = "log.export")]
 pub fn log_export(
-    state: State<'_, AppState>,
+    state: &AppState,
     req: ExportRequest,
-) -> Result<ExportResult, IpcError> {
+) -> Result<ExportResult, AppError> {
     let ring = state.capture.ring(&req.serial);
     let settings = state.settings.snapshot();
     let dest = yohu_logsrv::ExportService::resolve_dest(
@@ -108,15 +99,14 @@ pub fn log_export(
             dest.as_deref(),
             req.write_mode,
         )
-        .map_err(ipc)?;
+        .map_err(err_internal)?;
     state.app_log.info(format!("日志已导出: {}", result.path));
     Ok(result)
 }
 
-#[tauri::command(rename = "log.processSnapshot")]
 pub async fn log_process_snapshot(
-    state: State<'_, AppState>,
+    state: &AppState,
     serial: String,
-) -> Result<Vec<ProcessEntry>, IpcError> {
-    state.capture.process_snapshot(&serial).await.map_err(ipc)
+) -> Result<Vec<ProcessEntry>, AppError> {
+    state.capture.process_snapshot(&serial).await.map_err(err_internal)
 }

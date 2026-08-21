@@ -1,21 +1,21 @@
 //! 文件模块命令：浏览/传输/取消/删除/新建。
 
-use tauri::{AppHandle, Manager, State};
+use std::sync::Arc;
+
 use tokio_util::sync::CancellationToken;
 
-use crate::commands::ipc_file;
+use crate::commands::err_file;
 use crate::state::AppState;
 use yohu_protocol::{
-    Direction, DragOutRequest, IpcError, PathOpRequest, RemoteEntry, TransferRequest,
+    Direction, DragOutRequest, AppError, PathOpRequest, RemoteEntry, TransferRequest,
 };
 
 /// `files.list`：浏览设备目录。
-#[tauri::command(rename = "files.list")]
 pub async fn files_list(
-    state: State<'_, AppState>,
+    state: &AppState,
     serial: String,
     path: String,
-) -> Result<Vec<RemoteEntry>, IpcError> {
+) -> Result<Vec<RemoteEntry>, AppError> {
     state.require_online(&serial)?;
     let cancel = {
         let mut slot = state.browse_cancel.lock().expect("browse lock poisoned");
@@ -28,35 +28,30 @@ pub async fn files_list(
         .browser
         .list(&serial, &path, cancel)
         .await
-        .map_err(ipc_file)
+        .map_err(err_file)
 }
 
 /// `files.push`：本机 → 设备（异步传输，进度经 `transfer.progress` 事件）。
-#[tauri::command(rename = "files.push")]
 pub async fn files_push(
-    state: State<'_, AppState>,
-    app: AppHandle,
+    state: &Arc<AppState>,
     req: TransferRequest,
-) -> Result<u32, IpcError> {
-    spawn_transfer(state, app, req, Direction::Push)
+) -> Result<u32, AppError> {
+    spawn_transfer(state, req, Direction::Push)
 }
 
 /// `files.pull`：设备 → 本机。
-#[tauri::command(rename = "files.pull")]
 pub async fn files_pull(
-    state: State<'_, AppState>,
-    app: AppHandle,
+    state: &Arc<AppState>,
     req: TransferRequest,
-) -> Result<u32, IpcError> {
-    spawn_transfer(state, app, req, Direction::Pull)
+) -> Result<u32, AppError> {
+    spawn_transfer(state, req, Direction::Pull)
 }
 
 fn spawn_transfer(
-    state: State<'_, AppState>,
-    app: AppHandle,
+    state: &Arc<AppState>,
     req: TransferRequest,
     direction: Direction,
-) -> Result<u32, IpcError> {
+) -> Result<u32, AppError> {
     state.require_online(&req.serial)?;
     let id = state
         .transfer_next
@@ -89,9 +84,9 @@ fn spawn_transfer(
         local: req.local.clone(),
         remote: req.remote.clone(),
     };
+    let state = Arc::clone(state);
     tokio::spawn(async move {
         let result = transfers.run(spec, cancel, sink).await;
-        let state = app.state::<AppState>();
         state
             .transfer_cancels
             .lock()
@@ -106,8 +101,7 @@ fn spawn_transfer(
 }
 
 /// `files.cancel`：取消传输。
-#[tauri::command(rename = "files.cancel")]
-pub fn files_cancel(state: State<'_, AppState>, id: u32) -> Result<(), IpcError> {
+pub fn files_cancel(state: &AppState, id: u32) -> Result<(), AppError> {
     let cancel = state
         .transfer_cancels
         .lock()
@@ -119,51 +113,46 @@ pub fn files_cancel(state: State<'_, AppState>, id: u32) -> Result<(), IpcError>
             c.cancel();
             Ok(())
         }
-        // 传输已结束：invoke 返回前卡可能仍显示 running，取消必须可关。
+        // 传输已结束：调用返回前卡可能仍显示 running，取消必须可关。
         None => Ok(()),
     }
 }
 
 /// `files.delete`：删除（core 侧 SafetyRoot 强制校验，ADR-v6-013）。
-#[tauri::command(rename = "files.delete")]
-pub async fn files_delete(state: State<'_, AppState>, req: PathOpRequest) -> Result<(), IpcError> {
+pub async fn files_delete(state: &AppState, req: PathOpRequest) -> Result<(), AppError> {
     state.require_online(&req.serial)?;
     state
         .mutator
         .delete(&req.serial, &req.path, CancellationToken::new())
         .await
-        .map_err(ipc_file)
+        .map_err(err_file)
 }
 
 /// `files.mkdir`：新建目录。
-#[tauri::command(rename = "files.mkdir")]
-pub async fn files_mkdir(state: State<'_, AppState>, req: PathOpRequest) -> Result<(), IpcError> {
+pub async fn files_mkdir(state: &AppState, req: PathOpRequest) -> Result<(), AppError> {
     state.require_online(&req.serial)?;
     state
         .mutator
         .mkdir(&req.serial, &req.path, CancellationToken::new())
         .await
-        .map_err(ipc_file)
+        .map_err(err_file)
 }
 
 /// `files.create`：新建空文件（SafetyRoot 校验）。
-#[tauri::command(rename = "files.create")]
-pub async fn files_create(state: State<'_, AppState>, req: PathOpRequest) -> Result<(), IpcError> {
+pub async fn files_create(state: &AppState, req: PathOpRequest) -> Result<(), AppError> {
     state.require_online(&req.serial)?;
     state
         .mutator
         .create_file(&req.serial, &req.path, CancellationToken::new())
         .await
-        .map_err(ipc_file)
+        .map_err(err_file)
 }
 
 /// `files.dragOut`：虚拟文件拖出（DoDragDrop 结束后返回）。OLE 在 `dnd/`。
-#[tauri::command(rename = "files.dragOut")]
 pub async fn files_drag_out(
-    state: State<'_, AppState>,
-    app: AppHandle,
+    state: &Arc<AppState>,
     req: DragOutRequest,
-) -> Result<(), IpcError> {
+) -> Result<(), AppError> {
     state.require_online(&req.serial)?;
-    crate::dnd::drag_out(&app, &state, req).await
+    crate::dnd::drag_out(state, req).await
 }

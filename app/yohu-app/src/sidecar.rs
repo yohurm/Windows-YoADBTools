@@ -6,7 +6,6 @@
 
 use std::path::{Path, PathBuf};
 
-use tauri::{App, Manager};
 use yohu_protocol::dir;
 
 const ADB_EXE: &str = "adb.exe";
@@ -14,10 +13,10 @@ const ADB_EXE: &str = "adb.exe";
 /// 解析内置官方 adb 所在目录（含 `adb.exe` + 两个 Win 动态库）。
 ///
 /// 查找顺序（与开发仓库 `tools/` 对齐）：
-/// 1. 可执行文件旁 `tools/`（dev `target/*/tools`、NSIS 安装目录 `tools/`）
-/// 2. Tauri `resource_dir` / `resources/tools`（安装包 resources）
-/// 3. 仓库 `tools/`（`cargo tauri dev` 且尚未拷到 target 时）
-pub fn resolve_resource_dir(app: &App) -> PathBuf {
+/// 1. 可执行文件旁 `tools/`（dev `target/*/tools`、安装目录 `tools/`）
+/// 2. 可执行文件旁 `resources/tools`（安装包 resources）
+/// 3. 仓库 `tools/`（`cargo build` 且尚未拷到 target 时）
+pub fn resolve_resource_dir() -> PathBuf {
     let mut dirs = Vec::new();
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
@@ -26,10 +25,6 @@ pub fn resolve_resource_dir(app: &App) -> PathBuf {
             dirs.push(parent.join("resources").join(dir::TOOLS));
             dirs.push(parent.join("resources"));
         }
-    }
-    if let Ok(res) = app.path().resource_dir() {
-        dirs.push(res.join(dir::TOOLS));
-        dirs.push(res);
     }
     dirs.push(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))

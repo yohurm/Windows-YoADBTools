@@ -1,4 +1,4 @@
-// 入口：仅转发到 lib（Tauri 惯例）。
+// 入口：仅转发到 lib。
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {

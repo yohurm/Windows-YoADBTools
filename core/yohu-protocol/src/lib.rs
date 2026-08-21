@@ -1,7 +1,6 @@
-//! yohu-protocol — IPC wire 类型层（ADR-v6：前后端共享的类型定义依据）。
+//! yohu-protocol — wire 类型层（ADR-v6：命令层与 core 共享的类型定义依据）。
 //!
 //! 本 crate 是依赖图最底层：**只含 serde 数据结构，零 IO、零业务逻辑**。
-//! 前端 `@yohu/api` 手工对齐本文件，并由双向契约测试（fixture JSON）守护。
 
 pub mod commands;
 pub mod device;

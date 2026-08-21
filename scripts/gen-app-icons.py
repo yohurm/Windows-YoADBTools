@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Draw size-aware app icons (rounded blue plate + device/prompt) and pack Windows ICO.
 
-Tauri 2 expects 32x32 / 128x128 / 128x128@2x / icon.png plus icon.ico
-with layers 16, 24, 32 (first), 48, 64, 256.
+应用图标输出 32x32 / 128x128 / 128x128@2x / icon.png / icon-512.png 与 icon.ico
+（ICO layers 16, 24, 32(first), 48, 64, 256）。
 Small sizes drop the speaker / cursor so the mark still reads in the taskbar.
 """
 
@@ -92,7 +92,7 @@ def draw_icon(size: int) -> Image.Image:
 
 
 def save_ico(path: Path, layers: list[tuple[int, Image.Image]]) -> None:
-    """PNG-in-ICO (Vista+). `layers` order is the ICO directory order; 32px first for Tauri dev."""
+    """PNG-in-ICO (Vista+). `layers` order is the ICO directory order; 32px first."""
     blobs: list[bytes] = []
     for _size, im in layers:
         buf = io.BytesIO()
@@ -112,9 +112,7 @@ def save_ico(path: Path, layers: list[tuple[int, Image.Image]]) -> None:
 def main() -> None:
     repo = Path(__file__).resolve().parents[1]
     icons = repo / "app" / "yohu-app" / "icons"
-    public = repo / "ui" / "apps" / "shell" / "public"
     icons.mkdir(parents=True, exist_ok=True)
-    public.mkdir(parents=True, exist_ok=True)
 
     png_sizes = {
         32: "32x32.png",
@@ -130,8 +128,6 @@ def main() -> None:
         dest = icons / name
         im.save(dest, format="PNG")
         print(f"png {size:>4} {dest.name} {dest.stat().st_size}")
-
-    rendered[1024].save(public / "app-icon.png", format="PNG")
 
     ico_order = [32, 16, 24, 48, 64, 256]
     layers = [(sz, rendered.get(sz) or draw_icon(sz)) for sz in ico_order]

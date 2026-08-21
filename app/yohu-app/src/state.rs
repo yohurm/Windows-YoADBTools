@@ -1,6 +1,6 @@
 //! 应用状态容器：core 服务实例 + 运行期可变状态。
 //!
-//! 组合根装配在 lib.rs；commands 层只经 State<AppState> 访问，不触碰 Tauri 之外的全局。
+//! 组合根装配在 lib.rs；命令层经 `&AppState` 访问，不触碰全局。
 
 use std::collections::HashMap;
 use std::sync::atomic::AtomicU32;
@@ -15,13 +15,13 @@ use yohu_domain::{
 };
 use yohu_files::{FileBrowser, FileMutator, TransferRunner};
 use yohu_logsrv::{CaptureService, ExportService};
-use yohu_protocol::{AppEvent, DeviceInfo, IpcError, IpcErrorCode};
+use yohu_protocol::{AppEvent, DeviceInfo, AppError, ErrorCode};
 
 use crate::paths::AppPaths;
 use crate::settings_store::SettingsStore;
 use crate::tasks::TaskCenter;
 
-/// 应用状态（Tauri managed state）。
+/// 应用状态（组合根装配的共享服务容器）。
 pub struct AppState {
     // ===== core 服务（只读装配，运行期不换） =====
     pub client: Arc<AdbClient>,
@@ -61,15 +61,15 @@ pub struct AppState {
 
 impl AppState {
     /// 命令边界：serial 必须在最近扫描中且在线（与 SafetyRoot 同级，不信任 UI）。
-    pub fn require_online(&self, serial: &str) -> Result<(), IpcError> {
+    pub fn require_online(&self, serial: &str) -> Result<(), AppError> {
         let devices = self.last_devices.lock().expect("devices lock poisoned");
-        assert_device_online(serial, &devices).map_err(session_ipc)
+        assert_device_online(serial, &devices).map_err(session_err)
     }
 
     /// 命令边界：一组执行目标全部在线。
-    pub fn require_online_many(&self, serials: &[String]) -> Result<(), IpcError> {
+    pub fn require_online_many(&self, serials: &[String]) -> Result<(), AppError> {
         let devices = self.last_devices.lock().expect("devices lock poisoned");
-        assert_targets_online(serials, &devices).map_err(session_ipc)
+        assert_targets_online(serials, &devices).map_err(session_err)
     }
 
     /// 采集任务随 CaptureState::Stopped 收敛；重复调用幂等。
@@ -85,14 +85,14 @@ impl AppState {
     }
 }
 
-fn session_ipc(e: DeviceSessionError) -> IpcError {
+fn session_err(e: DeviceSessionError) -> AppError {
     let code = match e {
-        DeviceSessionError::Empty => IpcErrorCode::InvalidArgs,
-        DeviceSessionError::Unknown(_) => IpcErrorCode::NotFound,
-        DeviceSessionError::Unauthorized(_) => IpcErrorCode::Unauthorized,
-        DeviceSessionError::Offline(_) => IpcErrorCode::DeviceOffline,
+        DeviceSessionError::Empty => ErrorCode::InvalidArgs,
+        DeviceSessionError::Unknown(_) => ErrorCode::NotFound,
+        DeviceSessionError::Unauthorized(_) => ErrorCode::Unauthorized,
+        DeviceSessionError::Offline(_) => ErrorCode::DeviceOffline,
     };
-    IpcError {
+    AppError {
         code,
         message: e.to_string(),
     }

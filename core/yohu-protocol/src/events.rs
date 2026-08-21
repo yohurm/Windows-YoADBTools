@@ -1,7 +1,7 @@
 //! 事件模型（core → UI）与事件名常量。
 //!
-//! 事件经 Tauri `emit` 推送；负载为 [`AppEvent`]（serde 内部 tag `kind`，camelCase）。
-//! 事件名常量见 [`event_names`]，前端 `@yohu/api` 按同样常量 `listen`。
+//! 事件经 app 层事件通道推送；负载为 [`AppEvent`]（serde 内部 tag `kind`，camelCase）。
+//! 事件名常量见 [`event_names`]，UI 侧按同样常量订阅。
 
 use serde::{Deserialize, Serialize};
 
@@ -90,7 +90,7 @@ pub mod event_names {
 }
 
 impl AppEvent {
-    /// 事件负载对应的 Tauri 事件名。
+    /// 事件负载对应的事件名。
     pub fn name(&self) -> &'static str {
         use event_names::*;
         match self {
