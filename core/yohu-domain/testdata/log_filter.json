@@ -53,5 +53,10 @@
     "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "I", "tag": "T", "msg": "m" },
     "filter": { "scope": { "kind": "package", "pids": [] } },
     "expect": false
+  },
+  {
+    "line": { "seq": 0, "ts": "01-01 00:00:00.000", "pid": 1, "tid": 1, "level": "?", "tag": "T", "msg": "m" },
+    "filter": { "min_level": "V", "scope": { "kind": "all" } },
+    "expect": false
   }
 ]

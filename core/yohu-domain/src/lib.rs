@@ -9,6 +9,7 @@ pub mod command;
 pub mod focus;
 pub mod log_filter;
 pub mod safety;
+pub mod settings;
 
 pub use applog::{AppLog, AppLogEntry, LogLevel};
 pub use command::{
@@ -22,3 +23,4 @@ pub use focus::{
 };
 pub use log_filter::{level_rank, log_filter_matches};
 pub use safety::{validate_entry_name, PathError, RemotePath, SafetyError, SafetyRoot};
+pub use settings::apply_setting;

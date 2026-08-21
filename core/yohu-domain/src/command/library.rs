@@ -16,7 +16,7 @@ pub struct InputField {
 pub struct CommandDefinition {
     pub id: String,
     pub name: String,
-    /// 完整命令行模板（占位符 `{0}` `{1}` …，UI 填充后提交执行）
+    /// 完整命令行模板（占位符 `{0}` `{1}` …，执行前由 [`CommandDefinition::fill`]）
     pub template: String,
     #[serde(default)]
     pub inputs: Vec<InputField>,
@@ -73,12 +73,23 @@ pub enum LibraryError {
     },
     #[error("正则无效 (id={id}): {reason}")]
     InvalidRegex { id: String, reason: String },
+    #[error("填充值数量不一致 (id={id})：需要 {expected} 个，实际 {actual}")]
+    FillValueMismatch {
+        id: String,
+        expected: usize,
+        actual: usize,
+    },
+    #[error("命令组含需填值的命令 (group={group_id}, command={command_id})，请逐条执行")]
+    GroupNeedsValues {
+        group_id: String,
+        command_id: String,
+    },
     #[error("读取/写入失败: {0}")]
     Io(String),
 }
 
 impl CommandLibrary {
-    pub const SCHEMA_VERSION: u32 = 2;
+    pub const SCHEMA_VERSION: u32 = yohu_protocol::COMMAND_LIBRARY_SCHEMA_VERSION;
 
     pub fn empty() -> Self {
         Self {
@@ -150,6 +161,14 @@ impl CommandLibrary {
         self.groups.iter().find(|g| g.id == id)
     }
 
+    /// 跨组按命令 id 查找。
+    pub fn command(&self, id: &str) -> Option<&CommandDefinition> {
+        self.groups
+            .iter()
+            .flat_map(|g| g.commands.iter())
+            .find(|c| c.id == id)
+    }
+
     // ===== DTO 转换（wire 与领域一致，直接克隆） =====
 
     pub fn from_dto(dto: &CommandLibraryDto) -> Self {
@@ -167,6 +186,13 @@ impl CommandLibrary {
     }
 }
 
+impl CommandGroup {
+    /// 整组执行不能带未填占位符，否则 `{0}` 会原样打到设备上。
+    pub fn first_command_needing_values(&self) -> Option<&CommandDefinition> {
+        self.commands.iter().find(|c| !c.inputs.is_empty())
+    }
+}
+
 impl CommandDefinition {
     /// wire → 领域。
     pub fn from_dto(c: &CommandDto) -> Self {
@@ -176,6 +202,25 @@ impl CommandDefinition {
     /// 领域 → wire。
     pub fn to_dto(&self) -> CommandDto {
         command_to_dto(self)
+    }
+
+    /// 按序替换 `{0}` `{1}` …。值个数必须等于 `inputs.len()`。
+    pub fn fill(&self, values: &[String]) -> Result<Self, LibraryError> {
+        if values.len() != self.inputs.len() {
+            return Err(LibraryError::FillValueMismatch {
+                id: self.id.clone(),
+                expected: self.inputs.len(),
+                actual: values.len(),
+            });
+        }
+        let mut template = self.template.clone();
+        for (index, value) in values.iter().enumerate() {
+            template = template.replace(&format!("{{{index}}}"), value);
+        }
+        Ok(Self {
+            template,
+            ..self.clone()
+        })
     }
 }
 
@@ -269,7 +314,7 @@ mod tests {
     #[test]
     fn duplicate_ids_rejected() {
         let lib = CommandLibrary {
-            schema_version: 2,
+            schema_version: CommandLibrary::SCHEMA_VERSION,
             groups: vec![
                 group("g1", vec![cmd("c1", "a", "echo 1")]),
                 group("g1", vec![cmd("c2", "b", "echo 2")]),
@@ -281,7 +326,7 @@ mod tests {
         ));
 
         let lib = CommandLibrary {
-            schema_version: 2,
+            schema_version: CommandLibrary::SCHEMA_VERSION,
             groups: vec![group(
                 "g1",
                 vec![cmd("c1", "a", "echo 1"), cmd("c1", "b", "echo 2")],
@@ -300,7 +345,7 @@ mod tests {
             placeholder: "key".into(),
         }];
         let lib = CommandLibrary {
-            schema_version: 2,
+            schema_version: CommandLibrary::SCHEMA_VERSION,
             groups: vec![group("g1", vec![c])],
         };
         match lib.validate() {
@@ -321,7 +366,7 @@ mod tests {
         let mut c = cmd("c1", "a", "echo 1");
         c.failure_regex = "([unclosed".into();
         let lib = CommandLibrary {
-            schema_version: 2,
+            schema_version: CommandLibrary::SCHEMA_VERSION,
             groups: vec![group("g1", vec![c])],
         };
         assert!(matches!(
@@ -333,7 +378,7 @@ mod tests {
     #[test]
     fn dto_roundtrip() {
         let lib = CommandLibrary {
-            schema_version: 2,
+            schema_version: CommandLibrary::SCHEMA_VERSION,
             groups: vec![group(
                 "g1",
                 vec![CommandDefinition {
@@ -351,5 +396,71 @@ mod tests {
         let dto = lib.to_dto();
         let back = CommandLibrary::from_dto(&dto);
         assert_eq!(back, lib);
+    }
+
+    #[test]
+    fn fill_replaces_placeholders_in_order() {
+        let mut c = cmd("c1", "ping", "ping -c 3 {0}");
+        c.inputs = vec![InputField {
+            placeholder: "host".into(),
+        }];
+        let filled = c.fill(&["8.8.8.8".into()]).unwrap();
+        assert_eq!(filled.template, "ping -c 3 8.8.8.8");
+
+        let mut multi = cmd("c2", "x", "{0} {1} {0}");
+        multi.inputs = vec![
+            InputField {
+                placeholder: "a".into(),
+            },
+            InputField {
+                placeholder: "b".into(),
+            },
+        ];
+        assert_eq!(
+            multi.fill(&["a".into(), "b".into()]).unwrap().template,
+            "a b a"
+        );
+    }
+
+    #[test]
+    fn fill_rejects_arity_mismatch() {
+        let mut c = cmd("c1", "ping", "ping {0}");
+        c.inputs = vec![InputField {
+            placeholder: "host".into(),
+        }];
+        assert!(matches!(
+            c.fill(&[]),
+            Err(LibraryError::FillValueMismatch {
+                expected: 1,
+                actual: 0,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn command_lookup_crosses_groups() {
+        let lib = CommandLibrary {
+            schema_version: CommandLibrary::SCHEMA_VERSION,
+            groups: vec![group("g1", vec![cmd("c9", "a", "echo 1")])],
+        };
+        assert_eq!(lib.command("c9").map(|c| c.name.as_str()), Some("a"));
+        assert!(lib.command("missing").is_none());
+    }
+
+    #[test]
+    fn group_with_inputs_cannot_run_as_whole() {
+        let mut c = cmd("c1", "ping", "ping {0}");
+        c.inputs = vec![InputField {
+            placeholder: "host".into(),
+        }];
+        let g = group("g1", vec![c]);
+        assert_eq!(
+            g.first_command_needing_values().map(|c| c.id.as_str()),
+            Some("c1")
+        );
+        assert!(group("g2", vec![cmd("c2", "a", "echo 1")])
+            .first_command_needing_values()
+            .is_none());
     }
 }
