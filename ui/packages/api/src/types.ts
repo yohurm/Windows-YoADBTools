@@ -125,6 +125,38 @@ export type SettingKey =
   | "export_write_mode"
   | "log_display_columns";
 
+/** 应用身份（`system.info.identity`；常量见 `identity.ts`）。 */
+export interface AppIdentity {
+  name: string;
+  display_name: string;
+  identifier: string;
+  version: string;
+  description: string;
+  copyright: string;
+}
+
+/** 解析后的绝对路径目录（`system.info.paths`）。 */
+export interface AppPathCatalog {
+  local_root: string;
+  settings_dir: string;
+  settings_file: string;
+  logs_dir: string;
+  data_root: string;
+  adb_tools_dir: string;
+  library_file: string;
+  exports_dir: string;
+  drag_out_dir: string;
+}
+
+/** `system.info`：关于 / 诊断。 */
+export interface SystemInfo {
+  identity: AppIdentity;
+  paths: AppPathCatalog;
+  adb_path: string;
+  adb_in_use?: string;
+  settings: AppSettings;
+}
+
 /** 壳注入到模块视图的会话（模块不得 import 壳 store）。
  * 设备与设置走同一条链：壳 store 投影 → AppLayout 注入 → 模块 View。
  */
@@ -133,6 +165,10 @@ export interface DeviceSession {
   focusSerial: string | null;
   /** 当前模块解析后的执行目标（仅在线）。模块禁止再扫全部设备。 */
   selectedSerials: string[];
+  /** 执行目标在目录中的切片（与 selectedSerials 同序）。页眉 / 选择器只读此切片。 */
+  selectedDevices: DeviceInfo[];
+  /** 页眉展示名：`selectedDeviceLabel(selectedDevices)`；无选中为 null。模块禁止自拼 serial。 */
+  selectedLabel: string | null;
   /** 设备目录快照（与壳设备栏同一源） */
   devices: DeviceInfo[];
   /** 应用设置快照（与设置页同一 settingsStore 投影） */
@@ -213,6 +249,17 @@ export interface GroupRunRequest {
   serials: string[];
 }
 
+/** `terminal.eval` 响应：原始执行结果 + 领域判定。 */
+export interface EvalResult {
+  ok: boolean;
+  message: string;
+  exit_code: number;
+  stdout: string;
+  stderr: string;
+  /** 执行用时（毫秒） */
+  duration_ms: number;
+}
+
 export interface InputFieldDto {
   placeholder: string;
 }
@@ -271,7 +318,7 @@ export type AppEvent =
   | { kind: "transferProgress" } & TransferProgress
   | { kind: "groupProgress" } & GroupProgress
   | { kind: "taskSummary"; tasks: TaskInfo[] }
-  | { kind: "settingsChanged"; key: string };
+  | { kind: "settingsChanged"; key: string; settings: AppSettings };
 
 /** 事件名常量（与 yohu-protocol::event_names 一致）。 */
 export const EVENT_NAMES = {

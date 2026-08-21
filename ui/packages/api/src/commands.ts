@@ -16,6 +16,7 @@ import type {
   CommandDto,
   CommandLibraryDto,
   DeviceInfo,
+  EvalResult,
   ExecOutcome,
   ExportRequest,
   ExportResult,
@@ -26,6 +27,7 @@ import type {
   ReplayRequest,
   RemoteEntry,
   SettingKey,
+  SystemInfo,
   TransferRequest,
   DragOutRequest,
 } from "./types";
@@ -39,16 +41,6 @@ export const deviceRefresh = () => invoke<DeviceInfo[]>("device.refresh");
 export const adbExec = (req: AdbExecRequest) => invoke<ExecOutcome>("adb.exec", { req });
 
 // ===== terminal =====
-
-export interface EvalResult {
-  ok: boolean;
-  message: string;
-  exit_code: number;
-  stdout: string;
-  stderr: string;
-  /** 执行用时（毫秒） */
-  duration_ms: number;
-}
 
 export const terminalEval = (serial: string, command: CommandDto) =>
   invoke<EvalResult>("terminal.eval", { serial, command });
@@ -115,17 +107,6 @@ export const settingsSet = (key: SettingKey, value: unknown) =>
   invoke<AppSettings>("settings.set", { key, value });
 
 // ===== system =====
-
-export interface SystemInfo {
-  version: string;
-  data_root: string;
-  adb_path: string;
-  /** 最近一次设备扫描实际使用的 adb 路径（诊断） */
-  adb_in_use?: string;
-  /** 日志默认导出目录（data_root/modules/log-analyzer/exports） */
-  exports_dir?: string;
-  settings: AppSettings;
-}
 
 export const systemInfo = () => invoke<SystemInfo>("system.info");
 

@@ -5,7 +5,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { AppEvent, LogDisplayColumns, LogFilter, LogLine, RemoteEntry, TransferRequest } from "./types";
+import type { AppEvent, EvalResult, LogDisplayColumns, LogFilter, LogLine, RemoteEntry, TransferRequest } from "./types";
+import { SAFETY_ROOTS } from "./identity";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -51,6 +52,25 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
     expect(JSON.parse(JSON.stringify(filter))).toEqual({
       min_level: "W",
       scope: { kind: "package", pids: [1, 2] },
+    });
+  });
+
+  it("EvalResult 字段为 snake_case", () => {
+    const result: EvalResult = {
+      ok: false,
+      message: "退出码 1",
+      exit_code: 1,
+      stdout: "out",
+      stderr: "err",
+      duration_ms: 12,
+    };
+    expect(JSON.parse(JSON.stringify(result))).toEqual({
+      ok: false,
+      message: "退出码 1",
+      exit_code: 1,
+      stdout: "out",
+      stderr: "err",
+      duration_ms: 12,
     });
   });
 
@@ -134,5 +154,54 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       level: true,
       tag: false,
     });
+  });
+
+  it("settingsChanged 事件携带全量 settings 快照", () => {
+    const event: AppEvent = {
+      kind: "settingsChanged",
+      key: "buffer_capacity",
+      settings: {
+        adb_path: "",
+        data_root: "",
+        devices_auto_refresh: 0,
+        buffer_capacity: 50,
+        clear_device_on_start: true,
+        theme: "system",
+        density: "comfortable",
+        export_default_path: "",
+        export_ask_every_time: true,
+        export_write_mode: "overwrite",
+        log_display_columns: { ts: true, uid: false, pid: true, tid: true, level: true, tag: true },
+      },
+    };
+    expect(JSON.parse(JSON.stringify(event)).settings.buffer_capacity).toBe(50);
+  });
+
+  it("SAFETY_ROOTS 与 yohu-protocol::safety_root 对齐", () => {
+    expect([...SAFETY_ROOTS]).toEqual(["/sdcard", "/storage"]);
+  });
+
+  it("AppIdentity / AppPathCatalog 字段为 snake_case", () => {
+    const identity = {
+      name: "YohuAdbTools",
+      display_name: "Yohu ADB Tools",
+      identifier: "com.yohu.adbtools",
+      version: "0.1.0",
+      description: "设备工具工作台",
+      copyright: "© 2026 Yohu",
+    };
+    expect(JSON.parse(JSON.stringify(identity))).toEqual(identity);
+    const paths = {
+      local_root: "C:/Local/YohuAdbTools",
+      settings_dir: "C:/Local/YohuAdbTools/settings",
+      settings_file: "C:/Local/YohuAdbTools/settings/settings.json",
+      logs_dir: "C:/Local/YohuAdbTools/logs",
+      data_root: "C:/Local/YohuAdbTools/data",
+      adb_tools_dir: "C:/Local/YohuAdbTools/data/tools/adb",
+      library_file: "C:/Local/YohuAdbTools/data/modules/adb-terminal/config/library.json",
+      exports_dir: "C:/Local/YohuAdbTools/data/modules/log-analyzer/exports",
+      drag_out_dir: "C:/Local/YohuAdbTools/data/modules/file-manager/drag-out",
+    };
+    expect(JSON.parse(JSON.stringify(paths))).toEqual(paths);
   });
 });
