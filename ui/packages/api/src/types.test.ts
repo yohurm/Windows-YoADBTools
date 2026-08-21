@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { AppEvent, EvalResult, LogDisplayColumns, LogFilter, LogLine, RemoteEntry, TransferRequest } from "./types";
+import type { AppEvent, EvalResult, LogDisplayColumns, LogFilter, LogLine, RemoteEntry, RemoteUpdate, TransferRequest, UpdateChannelInfo } from "./types";
 import { SAFETY_ROOTS } from "./identity";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
@@ -172,6 +172,7 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
         export_ask_every_time: true,
         export_write_mode: "overwrite",
         log_display_columns: { ts: true, uid: false, pid: true, tid: true, level: true, tag: true },
+        update_provider: "gitcode",
       },
     };
     expect(JSON.parse(JSON.stringify(event)).settings.buffer_capacity).toBe(50);
@@ -203,5 +204,29 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       drag_out_dir: "C:/Local/YohuAdbTools/data/modules/file-manager/drag-out",
     };
     expect(JSON.parse(JSON.stringify(paths))).toEqual(paths);
+  });
+
+  it("RemoteUpdate 字段为 snake_case", () => {
+    const update: RemoteUpdate = {
+      has_new_version: true,
+      version: "1.2.0",
+      version_code: 12,
+      description: "fix",
+      download_url: "https://example.com/setup.exe",
+      force_update: false,
+      md5: "m",
+      sha256: "s",
+      size_bytes: 100,
+    };
+    expect(JSON.parse(JSON.stringify(update))).toEqual(update);
+  });
+
+  it("UpdateChannelInfo 字段为 snake_case", () => {
+    const info: UpdateChannelInfo = {
+      provider: "gitcode",
+      remote: "yohurm/ReleaseYoADBTools",
+      page_url: "https://gitcode.com/yohurm/ReleaseYoADBTools",
+    };
+    expect(JSON.parse(JSON.stringify(info))).toEqual(info);
   });
 });

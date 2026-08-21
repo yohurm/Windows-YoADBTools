@@ -88,6 +88,8 @@ export type Theme = "light" | "dark" | "system";
 
 export type Density = "compact" | "comfortable";
 
+export type UpdateProvider = "gitcode" | "github" | "pgyer";
+
 export interface AppSettings {
   adb_path: string;
   data_root: string;
@@ -100,6 +102,7 @@ export interface AppSettings {
   export_ask_every_time: boolean;
   export_write_mode: "overwrite" | "append";
   log_display_columns: LogDisplayColumns;
+  update_provider: UpdateProvider;
 }
 
 /** 日志清单元数据列开关；消息列始终显示。 */
@@ -123,7 +126,8 @@ export type SettingKey =
   | "export_default_path"
   | "export_ask_every_time"
   | "export_write_mode"
-  | "log_display_columns";
+  | "log_display_columns"
+  | "update_provider";
 
 /** 应用身份（`system.info.identity`；常量见 `identity.ts`）。 */
 export interface AppIdentity {
@@ -285,6 +289,26 @@ export interface CommandGroupDto {
 export interface CommandLibraryDto {
   schema_version: number;
   groups: CommandGroupDto[];
+}
+
+/** `update.check` 响应。 */
+export interface RemoteUpdate {
+  has_new_version: boolean;
+  version: string;
+  version_code: number;
+  description: string;
+  download_url: string;
+  force_update: boolean;
+  md5: string;
+  sha256: string;
+  size_bytes: number;
+}
+
+/** `update.info` 响应（不含密钥）。 */
+export interface UpdateChannelInfo {
+  provider: UpdateProvider;
+  remote: string;
+  page_url: string;
 }
 
 // ===== events =====

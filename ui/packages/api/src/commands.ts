@@ -30,6 +30,8 @@ import type {
   SystemInfo,
   TransferRequest,
   DragOutRequest,
+  RemoteUpdate,
+  UpdateChannelInfo,
 } from "./types";
 
 // ===== device =====
@@ -114,3 +116,11 @@ export const systemOpenPath = (path: string) => invoke<void>("system.openPath", 
 
 export const systemReportError = (message: string) =>
   invoke<void>("system.reportError", { message });
+
+// ===== update =====
+
+export const updateCheck = () => invoke<RemoteUpdate>("update.check");
+
+export const updateInfo = () => invoke<UpdateChannelInfo>("update.info");
+
+export const updateOpen = (url: string) => invoke<void>("update.open", { url });
