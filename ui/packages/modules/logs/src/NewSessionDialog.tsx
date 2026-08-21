@@ -5,16 +5,26 @@
 
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 
-import type { DeviceInfo } from "@yohu/api";
-import { Icon, YoButton, YoCheckbox, YoDialog, YoIndicator, YoSegmentedButton, YoTextField } from "@yohu/ui";
+import { deviceDisplayName, type DeviceInfo } from "@yohu/api";
+import {
+  Icon,
+  YoButton,
+  YoCheckbox,
+  YoDialog,
+  YoIndicator,
+  YoSegmentedButton,
+  YoSelect,
+  YoTextField,
+} from "@yohu/ui";
 
 import type { SessionScope } from "./pipeline";
 import { logStore } from "./store";
 
-function deviceChipLabel(device: DeviceInfo): string {
-  const name = device.model?.trim();
+function deviceSelectLabel(device: DeviceInfo): string {
+  const name = deviceDisplayName(device);
+  if (name === device.serial) return device.serial;
   const short = device.serial.length > 6 ? device.serial.slice(-4) : device.serial;
-  return name ? `${name} · ${short}` : device.serial;
+  return `${name} · ${short}`;
 }
 
 export function NewSessionDialog(props: {
@@ -89,6 +99,13 @@ export function NewSessionDialog(props: {
     return entries.filter((e) => e.name.toLowerCase().includes(q) || String(e.pid).includes(q));
   });
 
+  const deviceOptions = createMemo(() =>
+    devices().map((device) => ({
+      value: device.serial,
+      label: deviceSelectLabel(device),
+    })),
+  );
+
   const parsedPid = (): number => Number.parseInt(query().trim(), 10);
 
   const canCreate = (): boolean => {
@@ -161,23 +178,14 @@ export function NewSessionDialog(props: {
             when={devices().length > 0}
             fallback={<p class="yohu-logs__new-hint">没有在线设备，请先在左侧设备栏连接。</p>}
           >
-            <div class="yohu-logs__new-chips" role="listbox" aria-label="设备">
-              <YoIndicator follow={deviceSerial() || undefined} variant="fill" />
-              <For each={devices()}>
-                {(device) => (
-                  <button
-                    type="button"
-                    class="yohu-logs__new-chip yohu-interactive"
-                    classList={{ "yohu-interactive--selected": deviceSerial() === device.serial }}
-                    title={device.serial}
-                    role="option"
-                    aria-selected={deviceSerial() === device.serial}
-                    onClick={() => loadDevice(device.serial)}
-                  >
-                    <span>{deviceChipLabel(device)}</span>
-                  </button>
-                )}
-              </For>
+            <div class="yohu-logs__new-device">
+              <YoSelect
+                block
+                options={deviceOptions()}
+                value={deviceSerial()}
+                placeholder="选择设备"
+                onChange={loadDevice}
+              />
             </div>
           </Show>
         </div>

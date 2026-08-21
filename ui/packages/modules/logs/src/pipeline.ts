@@ -33,28 +33,45 @@ export interface SessionFilter {
   pidSet: number[];
 }
 
-/** 单行匹配（与 core yohu-protocol::LogFilter 语义一致：空 package pids = 无命中）。 */
-export function matchesLine(line: LogLine, f: SessionFilter): boolean {
-  if (f.minLevel !== null && levelRank(line.level) < levelRank(f.minLevel)) {
+/** 单行匹配（与 yohu-domain::log_filter_matches 同一套 testdata/log_filter.json）。 */
+export function matchesWireFilter(line: LogLine, f: LogFilter): boolean {
+  if (f.min_level) {
+    const min = f.min_level[0];
+    if (min && levelRank(line.level) < levelRank(min)) return false;
+  }
+  if (f.tag_contains && !line.tag.toLowerCase().includes(f.tag_contains.toLowerCase())) {
     return false;
   }
-  if (f.tagContains && !line.tag.toLowerCase().includes(f.tagContains.toLowerCase())) {
-    return false;
-  }
-  if (f.keyword && !line.msg.toLowerCase().includes(f.keyword.toLowerCase())) {
+  if (f.message_contains && !line.msg.toLowerCase().includes(f.message_contains.toLowerCase())) {
     return false;
   }
   switch (f.scope.kind) {
     case "all":
-      break;
+      return true;
     case "pid":
-      if (line.pid !== f.scope.pid) return false;
-      break;
+      return line.pid === f.scope.pid;
     case "package":
-      if (!f.pidSet.includes(line.pid)) return false;
-      break;
+      return f.scope.pids.includes(line.pid);
   }
-  return true;
+}
+
+/** 会话过滤：转成 wire LogFilter 再走同一套匹配。 */
+export function matchesLine(line: LogLine, f: SessionFilter): boolean {
+  return matchesWireFilter(line, sessionFilterToWire(f));
+}
+
+function sessionFilterToWire(f: SessionFilter): LogFilter {
+  const min_level = f.minLevel ?? undefined;
+  const tag_contains = f.tagContains || undefined;
+  const message_contains = f.keyword || undefined;
+  switch (f.scope.kind) {
+    case "all":
+      return { min_level, tag_contains, message_contains, scope: { kind: "all" } };
+    case "pid":
+      return { min_level, tag_contains, message_contains, scope: { kind: "pid", pid: f.scope.pid } };
+    case "package":
+      return { min_level, tag_contains, message_contains, scope: { kind: "package", pids: f.pidSet } };
+  }
 }
 
 // ===== 包名 PID 重绑（含历史集，ADR-v6-006/008 语义） =====

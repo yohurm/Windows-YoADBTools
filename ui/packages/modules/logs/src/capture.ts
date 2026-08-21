@@ -19,7 +19,6 @@ import {
   onLogOverflow,
   onProcessIndex,
   onSettingsChanged,
-  settingsGet,
 } from "@yohu/api";
 import type { CaptureStatus, LogBatch, ProcessEntry } from "@yohu/api";
 
@@ -170,16 +169,6 @@ export function createCapture(
     if (next === state.bufferCapacity) return;
     setState("bufferCapacity", next);
     workspace.rebuildAll();
-  }
-
-  /** 采集引擎活过视图：只投影 buffer_capacity。显示列 / 导出走壳注入的 DeviceSession.settings。 */
-  async function pullBufferCapacity(): Promise<void> {
-    try {
-      const cap = await settingsGet("buffer_capacity");
-      if (typeof cap === "number") setBufferCapacity(cap);
-    } catch {
-      /* 测试/非桌面环境保持默认 */
-    }
   }
 
   async function confirmStart(device: string, startedGen: number, sessionId: number): Promise<void> {
@@ -494,10 +483,9 @@ export function createCapture(
     }
   }
 
-  void pullBufferCapacity();
   void onSettingsChanged((e) => {
     if (e.key === "buffer_capacity") {
-      void pullBufferCapacity();
+      setBufferCapacity(e.settings.buffer_capacity);
     }
   });
   void onLogBatch((e) => onBatch(e.batch));

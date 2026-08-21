@@ -22,10 +22,7 @@ const mocks = vi.hoisted(() => ({
   captureStateHandlers: [] as ((e: { serial: string; generation: number; state: string }) => void)[],
   deviceOfflineHandlers: [] as ((e: { serial: string }) => void)[],
   devicesChangedHandlers: [] as ((e: { devices: unknown[] }) => void)[],
-  settingsChangedHandlers: [] as ((e: { key: string }) => void)[],
-  settingsGet: vi.fn(async () => {
-    throw new Error("测试未配置该命令 mock");
-  }),
+  settingsChangedHandlers: [] as ((e: { key: string; settings: { buffer_capacity: number } }) => void)[],
 }));
 
 vi.mock("@yohu/api", () => {
@@ -37,7 +34,6 @@ vi.mock("@yohu/api", () => {
     deviceRefresh: notConfigured,
     systemInfo: notConfigured,
     settingsSet: notConfigured,
-    settingsGet: (...a: unknown[]) => mocks.settingsGet(...a),
     systemReportError: noop,
     systemOpenPath: notConfigured,
     adbExec: notConfigured,
@@ -83,7 +79,7 @@ vi.mock("@yohu/api", () => {
     onNativeDragDrop: noop,
     onGroupProgress: noop,
     onTaskSummary: noop,
-    onSettingsChanged: (h: (e: { key: string }) => void): void => {
+    onSettingsChanged: (h: (e: { key: string; settings: { buffer_capacity: number } }) => void): void => {
       mocks.settingsChangedHandlers.push(h);
     },
     EVENT_NAMES: {
@@ -162,8 +158,6 @@ beforeEach(() => {
     generation: 0,
     last_seq: 0,
   }));
-  mocks.settingsGet.mockReset();
-  mocks.settingsGet.mockRejectedValue(new Error("测试未配置该命令 mock"));
 });
 
 describe("logStore 窗口生命周期", () => {
@@ -680,11 +674,10 @@ describe("logStore 设置联动", () => {
   it("settings.changed buffer_capacity 立即裁剪镜像容量", async () => {
     const store = wiredStore();
     expect(store.state.bufferCapacity).toBe(10_000);
-    mocks.settingsGet.mockImplementation(async (key: unknown) => {
-      if (key === "buffer_capacity") return 50;
-      throw new Error(`unexpected ${String(key)}`);
+    mocks.settingsChangedHandlers.at(-1)?.({
+      key: "buffer_capacity",
+      settings: { buffer_capacity: 50 },
     });
-    mocks.settingsChangedHandlers.at(-1)?.({ key: "buffer_capacity" });
     await vi.waitFor(() => {
       expect(store.state.bufferCapacity).toBe(50);
     });
@@ -692,10 +685,11 @@ describe("logStore 设置联动", () => {
 
   it("settings.changed 展示列键不打 buffer_capacity", async () => {
     const store = wiredStore();
-    const calls = mocks.settingsGet.mock.calls.length;
-    mocks.settingsChangedHandlers.at(-1)?.({ key: "log_display_columns" });
+    mocks.settingsChangedHandlers.at(-1)?.({
+      key: "log_display_columns",
+      settings: { buffer_capacity: 10_000 },
+    });
     await Promise.resolve();
     expect(store.state.bufferCapacity).toBe(10_000);
-    expect(mocks.settingsGet.mock.calls.length).toBe(calls);
   });
 });

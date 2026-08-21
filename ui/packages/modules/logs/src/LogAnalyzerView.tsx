@@ -5,9 +5,8 @@
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, untrack } from "solid-js";
 
-import { save } from "@tauri-apps/plugin-dialog";
 import type { DeviceSession } from "@yohu/api";
-import { systemOpenPath } from "@yohu/api";
+import { dialogSaveFile, systemOpenPath } from "@yohu/api";
 import {
   Icon,
   YoBadge,
@@ -322,7 +321,7 @@ export function LogAnalyzerView(props: DeviceSession) {
       const defaultPath = props.settings.export_default_path;
       const writeMode = props.settings.export_write_mode === "append" ? "append" : "overwrite";
       if (askEvery) {
-        const picked = await save({
+        const picked = await dialogSaveFile({
           title: "导出日志",
           defaultPath: defaultPath ? `${defaultPath}\\logcat.txt` : "logcat.txt",
           filters: [{ name: "文本", extensions: ["txt"] }],
@@ -342,7 +341,7 @@ export function LogAnalyzerView(props: DeviceSession) {
 
   return (
     <YoPage class="yohu-logs">
-      <YoChrome title="日志分析">
+      <YoChrome title="日志分析" deviceLabel={props.selectedLabel ?? undefined}>
         <YoButton
           variant={windowLive() ? "danger" : "primary"}
           disabled={!windowLive() && windowSerial() === null}
@@ -588,7 +587,7 @@ export function LogAnalyzerView(props: DeviceSession) {
         open={newOpen}
         onClose={() => setNewOpen(false)}
         devices={props.devices}
-        focusSerial={props.selectedSerials[0] ?? null}
+        focusSerial={props.focusSerial}
       />
 
       <YoDialog

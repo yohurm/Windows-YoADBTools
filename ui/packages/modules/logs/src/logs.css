@@ -296,34 +296,12 @@
   color: var(--yohu-fg-2);
 }
 
-.yohu-logs__new-chips {
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--yohu-space-xs);
+.yohu-logs__new-device {
   min-width: 0;
 }
 
 .yohu-logs__new-seg {
   min-width: 0;
-}
-
-.yohu-logs__new-chip {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  height: var(--yohu-control-height-sm);
-  padding: 0 var(--yohu-space-sm);
-  border: var(--yohu-stroke-hairline) solid var(--yohu-border);
-  border-radius: var(--yohu-radius-sm);
-  background: transparent;
-  color: var(--yohu-fg);
-  font-family: inherit;
-  font-size: var(--yohu-font-caption);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .yohu-logs__new-search {

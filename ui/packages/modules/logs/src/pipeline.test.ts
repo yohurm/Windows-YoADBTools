@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import type { LogLine } from "@yohu/api";
+import type { LogFilter, LogLine } from "@yohu/api";
 
 import {
   RingMirror,
@@ -9,6 +12,7 @@ import {
   emptyBinding,
   levelRank,
   matchesLine,
+  matchesWireFilter,
   pidSetOf,
   rebindPids,
   scanSignal,
@@ -68,6 +72,20 @@ describe("matchesLine", () => {
     const f = filter({ scope: { kind: "package", pkg: "com.foo", includeChild: false }, pidSet: [1, 2] });
     expect(matchesLine(line({ pid: 2 }), f)).toBe(true);
     expect(matchesLine(line({ pid: 3 }), f)).toBe(false);
+  });
+});
+
+describe("matchesWireFilter（与 domain testdata/log_filter.json 同一套向量）", () => {
+  const testdata = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../../../core/yohu-domain/testdata/log_filter.json",
+  );
+  const fixture: { line: LogLine; filter: LogFilter; expect: boolean }[] = JSON.parse(
+    readFileSync(testdata, "utf8"),
+  ) as { line: LogLine; filter: LogFilter; expect: boolean }[];
+
+  it.each(fixture)("case %#", (c) => {
+    expect(matchesWireFilter(c.line, c.filter)).toBe(c.expect);
   });
 });
 
