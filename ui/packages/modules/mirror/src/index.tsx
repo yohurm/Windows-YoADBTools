@@ -1,23 +1,17 @@
 /**
  * 投屏模块 — Planned 占位（仅导航 + 「开发中」页）。
- * 页壳走 YoPage，与终端/文件/日志同一套 page-inset / page-gap；标题只在 YoChrome。
+ * 只导出 descriptor；注册由 apps/shell 完成（模块不依赖 @yohu/app）。
  */
 
-import { registerModule } from "@yohu/app";
-import { YoChrome, YoEmptyState, YoPage, YoPanel } from "@yohu/ui";
+import { ModuleId } from "@yohu/api";
 
-registerModule({
-  id: "screen-mirror",
+import { MirrorView } from "./MirrorView";
+
+export const descriptor = {
+  id: ModuleId.Mirror,
   title: "投屏显示",
-  icon: "mirror",
-  selectionMode: "none",
+  icon: "mirror" as const,
+  selectionMode: "none" as const,
   isPlanned: true,
-  Component: () => (
-    <YoPage class="yohu-mirror">
-      <YoChrome title="投屏显示" />
-      <YoPanel variant="pane">
-        <YoEmptyState icon="mirror" title="模块开发中" description="敬请期待" />
-      </YoPanel>
-    </YoPage>
-  ),
-});
+  Component: MirrorView,
+};
