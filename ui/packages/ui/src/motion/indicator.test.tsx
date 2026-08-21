@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { YoIndicator } from "./indicator";
+
+function loadMotionCss(): string {
+  const candidates = [
+    resolve(process.cwd(), "src/tokens/motion.css"),
+    resolve(process.cwd(), "packages/ui/src/tokens/motion.css"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return readFileSync(candidate, "utf-8");
+    }
+  }
+  return "";
+}
 
 describe("YoIndicator", () => {
   it("挂配方 class，并把父级标成 indicator-host", () => {
@@ -57,5 +72,15 @@ describe("YoIndicator", () => {
     const first = container.querySelector(".yohu-recipe-indicator");
     setFollow("b");
     expect(container.querySelector(".yohu-recipe-indicator")).toBe(first);
+  });
+
+  it("fill 宿主裁切横向过冲，避免 overflow:auto 在 Windows 画出横条", () => {
+    const css = loadMotionCss();
+    expect(css).toMatch(
+      /\.yohu-indicator-host\[data-indicator-variant="fill"\]\s*\{[^}]*overflow-x:\s*hidden/,
+    );
+    expect(css).not.toMatch(
+      /\.yohu-indicator-host\[data-indicator-variant="(underline|thumb)"\][^}]*overflow-x:\s*hidden/,
+    );
   });
 });

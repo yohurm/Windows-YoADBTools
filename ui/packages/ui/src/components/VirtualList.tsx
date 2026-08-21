@@ -22,6 +22,11 @@ import type { Accessor, JSX } from "solid-js";
 import { adjacentJoin } from "../keymap/selection";
 import { YoIndicator } from "../motion/indicator";
 import type { IndicatorBox } from "../motion/indicator-layout";
+import {
+  isStuckToBottom,
+  virtualRange,
+  virtualTotalHeight,
+} from "./virtuallist-model";
 import "./VirtualList.css";
 
 export interface YoVirtualListProps<T> {
@@ -75,11 +80,10 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
   let autoScrollReset = 0;
   /** 默认视为贴底，避免挂载瞬间误报 detach */
   let lastAtBottom = true;
-  const STICK_THRESHOLD = 32;
 
   const measureAtBottom = (): boolean => {
     if (!container) return true;
-    return container.scrollHeight - container.clientHeight - container.scrollTop <= STICK_THRESHOLD;
+    return isStuckToBottom(container.scrollHeight, container.clientHeight, container.scrollTop);
   };
 
   const emitAtBottom = (): void => {
@@ -106,14 +110,13 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
     }
   };
 
-  const totalHeight = (): number => props.items().length * itemHeight();
+  const totalHeight = (): number => virtualTotalHeight(props.items().length, itemHeight());
 
-  const startIndex = (): number => Math.max(0, Math.floor(scrollTop() / itemHeight()) - overscan());
+  const startIndex = (): number =>
+    virtualRange(scrollTop(), viewportHeight(), itemHeight(), props.items().length, overscan()).start;
 
-  const endIndex = (): number => {
-    const visibleEnd = Math.ceil((scrollTop() + viewportHeight()) / itemHeight());
-    return Math.min(props.items().length, visibleEnd + overscan());
-  };
+  const endIndex = (): number =>
+    virtualRange(scrollTop(), viewportHeight(), itemHeight(), props.items().length, overscan()).end;
 
   const keyOf = (item: T, index: number): string | number =>
     props.getItemKey ? props.getItemKey(item, index) : index;

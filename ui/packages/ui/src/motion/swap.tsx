@@ -60,7 +60,9 @@ export function YoSwap(props: YoSwapProps): JSX.Element {
     currentKey = nextKey;
 
     const incomingText = asText(incoming);
-    const skip = !prevKey || shouldSkipMotion() || !host || !clip || incomingText === null;
+    const hostEl = host;
+    const clipEl = clip;
+    const skip = !prevKey || shouldSkipMotion() || !hostEl || !clipEl || incomingText === null;
     if (skip) {
       pending = undefined;
       setView(() => incoming);
@@ -69,8 +71,8 @@ export function YoSwap(props: YoSwapProps): JSX.Element {
       return;
     }
 
-    const fromW = clip.getBoundingClientRect().width;
-    const toW = measureWidth(host, incomingText);
+    const fromW = clipEl.getBoundingClientRect().width;
+    const toW = measureWidth(hostEl, incomingText);
     if (Math.abs(toW - fromW) < 0.5) {
       pending = undefined;
       setView(() => incoming);
@@ -113,19 +115,19 @@ export function YoSwap(props: YoSwapProps): JSX.Element {
 
     const timer = window.setTimeout(finish, motionDurationMs(SWAP_DURATION) + 50);
     const onEnd = (event: TransitionEvent): void => {
-      if (event.propertyName !== "width" || event.target !== clip) {
+      if (event.propertyName !== "width" || event.target !== clipEl) {
         return;
       }
       window.clearTimeout(timer);
       finish();
     };
-    clip.addEventListener("transitionend", onEnd);
+    clipEl.addEventListener("transitionend", onEnd);
     onCleanup(() => {
       gen += 1;
       window.cancelAnimationFrame(raf1);
       window.cancelAnimationFrame(raf2);
       window.clearTimeout(timer);
-      clip?.removeEventListener("transitionend", onEnd);
+      clipEl.removeEventListener("transitionend", onEnd);
     });
   });
 

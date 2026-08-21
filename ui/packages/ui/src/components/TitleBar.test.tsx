@@ -10,6 +10,14 @@ describe("YoTitleBar", () => {
     expect(container.querySelector('svg[data-icon="terminal"]')).toBeTruthy();
   });
 
+  it("logoSrc 优先于字形 icon", () => {
+    const { container } = render(() => (
+      <YoTitleBar title="Yohu ADB Tools" icon="terminal" logoSrc="/app-icon.png" />
+    ));
+    expect(container.querySelector(".yohu-titlebar__logo")?.getAttribute("src")).toBe("/app-icon.png");
+    expect(container.querySelector('svg[data-icon="terminal"]')).toBeNull();
+  });
+
   it("三键顺序为最小化、最大化、关闭", () => {
     render(() => <YoTitleBar title="窗" />);
     const buttons = screen.getAllByRole("button");

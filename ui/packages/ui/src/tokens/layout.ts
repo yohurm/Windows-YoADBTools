@@ -25,6 +25,8 @@ export const Layout = {
   HitSplitter: 6,
   HitNudge: 3,
   IconTiny: 12,
+  /** 行内图标（下拉箭头 / 清除 / 加号） */
+  IconInline: 14,
   /** 标题栏应用图标 / 窗口三键（HarmonyOS 小图标 16vp） */
   IconSm: 16,
   /** 电脑窗口默认 1200×800vp */

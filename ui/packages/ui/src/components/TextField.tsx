@@ -6,6 +6,7 @@
 import { createUniqueId } from "solid-js";
 import type { JSX } from "solid-js";
 import { Icon } from "../icons";
+import { Layout } from "../tokens/layout";
 import "./TextField.css";
 
 export interface YoTextFieldProps {
@@ -82,7 +83,7 @@ export function YoTextField(props: YoTextFieldProps): JSX.Element {
             aria-label="clear"
             onClick={handleClear}
           >
-            <Icon name="close" size={14} />
+            <Icon name="close" size={Layout.IconInline} />
           </button>
         ) : null}
       </div>

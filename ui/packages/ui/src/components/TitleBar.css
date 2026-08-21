@@ -27,6 +27,15 @@
   color: var(--yohu-fg);
 }
 
+.yohu-titlebar__logo {
+  width: var(--yohu-layout-icon-sm);
+  height: var(--yohu-layout-icon-sm);
+  border-radius: var(--yohu-radius-none);
+  object-fit: contain;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 .yohu-titlebar__title {
   font-size: var(--yohu-font-caption);
   font-weight: var(--yohu-font-weight-medium);

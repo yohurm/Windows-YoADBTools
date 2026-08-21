@@ -21,6 +21,11 @@
   flex: 0 1 auto;
 }
 
+.yohu-chrome__device {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
 .yohu-module-title {
   font-size: var(--yohu-font-subtitle);
   font-weight: var(--yohu-font-weight-bold);

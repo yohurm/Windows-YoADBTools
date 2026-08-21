@@ -1,15 +1,26 @@
 .yohu-select {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  max-width: 100%;
+  min-width: calc(var(--yohu-space-xl) * 5);
+  vertical-align: middle;
   font-family: var(--yohu-font-sans);
 }
 
-.yohu-select__trigger {
+.yohu-select--block {
   display: flex;
+  width: 100%;
+}
+
+.yohu-select__trigger {
+  display: inline-flex;
   align-items: center;
   gap: var(--yohu-space-sm);
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
   height: var(--yohu-control-height);
-  min-width: calc(var(--yohu-space-xl) * 5);
   padding: 0 var(--yohu-space-sm);
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-radius: var(--yohu-radius-sm);
@@ -19,7 +30,11 @@
   font-size: var(--yohu-font-body);
   line-height: var(--yohu-font-leading-ui);
   cursor: pointer;
-  box-sizing: border-box;
+}
+
+.yohu-select--block .yohu-select__trigger {
+  display: flex;
+  width: 100%;
 }
 
 .yohu-select__trigger:not(:disabled):hover {
@@ -27,34 +42,59 @@
 }
 
 .yohu-select__value {
-  flex: 1;
+  min-width: 0;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.yohu-select--block .yohu-select__value {
+  flex: 1 1 auto;
+}
+
 .yohu-select__value--placeholder {
   color: var(--yohu-fg-3);
 }
 
-.yohu-select__menu {
+.yohu-select__chevron {
+  flex: 0 0 auto;
+}
+
+/* 铬：落点与夹紧。内容 hug，禁止写死 width。高于对话框 1000、低于 Toast 1100。 */
+.yohu-select__layer {
   position: fixed;
-  z-index: 40;
+  z-index: 1050;
+  box-sizing: border-box;
+  width: max-content;
+}
+
+.yohu-select__layer:not([data-placed]) {
+  visibility: hidden;
+}
+
+/* 内容区：默认裁切、无滚动条。仅 data-overflow-y 时出现纵向条；横向永远 hidden。 */
+.yohu-select__menu {
+  position: relative;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  max-width: 100%;
+  max-height: inherit;
   margin: 0;
   padding: var(--yohu-space-xs) 0;
+  overflow-x: hidden;
+  overflow-y: hidden;
   list-style: none;
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-radius: var(--yohu-radius-sm);
   background-color: var(--yohu-surface);
   box-shadow: var(--yohu-shadow-overlay);
-  box-sizing: border-box;
-  max-height: calc(var(--yohu-space-xl) * 10);
-  overflow-y: auto;
 }
 
-.yohu-select__menu:not([data-placed]) {
-  visibility: hidden;
+.yohu-select__layer[data-overflow-y] .yohu-select__menu {
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .yohu-select__option {

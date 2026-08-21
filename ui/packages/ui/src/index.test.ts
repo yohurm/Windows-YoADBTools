@@ -26,7 +26,6 @@ const YO_PUBLIC = [
   // 反馈
   "YoEmptyState",
   "YoDialog",
-  "YoContextMenu",
   "YoContextMenuHost",
   "YoToast",
   "YoToaster",

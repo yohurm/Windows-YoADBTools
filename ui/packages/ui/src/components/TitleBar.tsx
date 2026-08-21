@@ -15,8 +15,10 @@ import "./TitleBar.css";
 export interface YoTitleBarProps {
   /** 窗口名称 */
   title: string;
-  /** 应用图标 */
+  /** 应用图标（组件库字形；与 logoSrc 同时存在时以 logoSrc 为准） */
   icon?: IconName;
+  /** 应用位图图标（安装包/关于页同源） */
+  logoSrc?: string;
   /** 中区留白（模块工具栏在内容区 YoChrome，不进标题栏） */
   children?: JSX.Element;
   /** 三键左侧操作（最多 3 个图标） */
@@ -49,11 +51,27 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
       }}
     >
       <div class="yohu-titlebar__brand" data-tauri-drag-region>
-        <Show when={props.icon}>
-          {(name) => (
-            <span class="yohu-titlebar__icon" aria-hidden="true">
-              <Icon name={name()} size={Layout.IconSm} />
-            </span>
+        <Show
+          when={props.logoSrc}
+          fallback={
+            <Show when={props.icon}>
+              {(name) => (
+                <span class="yohu-titlebar__icon" aria-hidden="true">
+                  <Icon name={name()} size={Layout.IconSm} />
+                </span>
+              )}
+            </Show>
+          }
+        >
+          {(src) => (
+            <img
+              class="yohu-titlebar__logo"
+              src={src()}
+              alt=""
+              width={Layout.IconSm}
+              height={Layout.IconSm}
+              draggable={false}
+            />
           )}
         </Show>
         <span class="yohu-titlebar__title">{props.title}</span>

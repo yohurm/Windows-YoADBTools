@@ -149,17 +149,13 @@ export type { YoEmptyStateProps } from "./components/EmptyState";
 export { YoDialog } from "./components/Dialog";
 export type { YoDialogProps } from "./components/Dialog";
 
-export { YoContextMenu } from "./components/ContextMenu";
-export type { YoContextMenuProps } from "./components/ContextMenu";
-// —— 右键菜单（L1；页面提供场景表，壳挂唯一 Host） ——
+// —— 右键菜单（L1；页面提供场景表，壳挂唯一 Host；YoContextMenu 仅 Host 内部使用） ——
 export {
   YoContextMenuHost,
-  clampContextMenuPoint,
   closeContextMenu,
   contextMenu,
   createContextMenuController,
   defineContextMenu,
-  estimateContextMenuHeight,
   openContextMenu,
 } from "./context-menu";
 export type {

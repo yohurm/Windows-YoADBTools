@@ -14,9 +14,11 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
+import { Layout } from "../tokens/layout";
 import { YoCollapse } from "../motion/collapse";
 import { YoIndicator } from "../motion/indicator";
 import { YoBadge } from "./Badge";
+import { flattenVisible, parentIndex, treeKeyIntent } from "./tree-model";
 import "./Tree.css";
 
 export interface TreeNode<T = unknown> {
@@ -86,20 +88,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
     props.onSelect?.(node.key, node);
   };
 
-  /** 扁平化可见节点（展开的子树被纳入），按层级记录深度 */
-  const rows = createMemo(() => {
-    const result: { node: TreeNode<T>; depth: number }[] = [];
-    const walk = (nodes: TreeNode<T>[], depth: number): void => {
-      for (const node of nodes) {
-        result.push({ node, depth });
-        if (node.children && node.children.length > 0 && isExpanded(node.key)) {
-          walk(node.children, depth + 1);
-        }
-      }
-    };
-    walk(props.data, 0);
-    return result;
-  });
+  const rows = createMemo(() => flattenVisible(props.data, isExpanded));
 
   const focusKey = (key: string): void => {
     setFocusedKey(key);
@@ -114,48 +103,30 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
     const index = visible.findIndex((r) => r.node.key === focused);
     const current = index >= 0 ? visible[index]! : visible[0]!;
     const hasChildren = !!current.node.children && current.node.children.length > 0;
-
-    switch (event.key) {
-      case "ArrowDown": {
-        event.preventDefault();
-        const next = visible[Math.min(index + 1, visible.length - 1)];
+    const intent = treeKeyIntent(
+      event.key,
+      index,
+      visible.length,
+      hasChildren,
+      isExpanded(current.node.key),
+    );
+    if (!intent) return;
+    event.preventDefault();
+    switch (intent.type) {
+      case "focus": {
+        const next = visible[intent.index];
         if (next) focusKey(next.node.key);
         break;
       }
-      case "ArrowUp": {
-        event.preventDefault();
-        const prev = visible[Math.max(index - 1, 0)];
-        if (prev) focusKey(prev.node.key);
+      case "toggle":
+        toggle(current.node.key);
+        break;
+      case "parent": {
+        const parent = parentIndex(visible, index);
+        if (parent !== null) focusKey(visible[parent]!.node.key);
         break;
       }
-      case "ArrowRight": {
-        event.preventDefault();
-        if (hasChildren && !isExpanded(current.node.key)) {
-          toggle(current.node.key);
-        } else {
-          const next = visible[Math.min(index + 1, visible.length - 1)];
-          if (next) focusKey(next.node.key);
-        }
-        break;
-      }
-      case "ArrowLeft": {
-        event.preventDefault();
-        if (hasChildren && isExpanded(current.node.key)) {
-          toggle(current.node.key);
-        } else {
-          for (let i = index - 1; i >= 0; i--) {
-            const row = visible[i];
-            if (row && row.depth < current.depth) {
-              focusKey(row.node.key);
-              break;
-            }
-          }
-        }
-        break;
-      }
-      case "Enter":
-      case " ":
-        event.preventDefault();
+      case "select":
         select(current.node);
         break;
     }
@@ -201,7 +172,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
                   }}
                 >
                   <span classList={{ "yohu-recipe-tree-chevron": true, "yohu-recipe-tree-chevron--open": expandedNow() }}>
-                    <Icon name="chevron-down" size={14} />
+                    <Icon name="chevron-down" size={Layout.IconInline} />
                   </span>
                 </button>
               ) : (

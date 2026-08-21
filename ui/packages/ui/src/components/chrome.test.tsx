@@ -32,6 +32,17 @@ describe("YoChrome", () => {
     expect(screen.getByTestId("body").querySelector(".yohu-chrome")).toBeTruthy();
   });
 
+  it("deviceLabel 在标题后渲染为中性徽章", () => {
+    const { container } = render(() => <YoChrome title="文件管理" deviceLabel="Moto X" />);
+    expect(container.querySelector(".yohu-module-title")?.textContent).toBe("文件管理");
+    expect(container.querySelector(".yohu-chrome__device")?.textContent).toBe("Moto X");
+  });
+
+  it("无 deviceLabel 时不渲染设备徽章", () => {
+    const { container } = render(() => <YoChrome title="设置" />);
+    expect(container.querySelector(".yohu-chrome__device")).toBeNull();
+  });
+
   it("无操作时只显示标题区", () => {
     const { container } = render(() => <YoChrome title="投屏显示" />);
     expect(container.querySelector(".yohu-chrome__title")?.textContent).toBe("投屏显示");

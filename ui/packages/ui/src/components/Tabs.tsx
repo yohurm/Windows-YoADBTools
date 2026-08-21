@@ -13,7 +13,9 @@
 import { For, createSignal, onMount } from "solid-js";
 import type { JSX } from "solid-js";
 import { Icon } from "../icons";
+import { Layout } from "../tokens/layout";
 import { YoIndicator } from "../motion/indicator";
+import { closeFocusIndex, tabsKeyIntent } from "./tabs-model";
 import "./Tabs.css";
 
 /** 圆点色调 */
@@ -73,39 +75,18 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
   const onTablistKeyDown = (event: KeyboardEvent): void => {
     const index = activeIndex();
     const count = props.tabs.length;
-    if (count === 0) return;
-    const current = index >= 0 ? index : 0;
-    switch (event.key) {
-      case "ArrowRight":
-        event.preventDefault();
-        props.onActivate?.(props.tabs[(current + 1) % count]!.id);
-        focusIndex((current + 1) % count);
-        break;
-      case "ArrowLeft":
-        event.preventDefault();
-        props.onActivate?.(props.tabs[(current - 1 + count) % count]!.id);
-        focusIndex((current - 1 + count) % count);
-        break;
-      case "Home":
-        event.preventDefault();
-        props.onActivate?.(props.tabs[0]!.id);
-        focusIndex(0);
-        break;
-      case "End":
-        event.preventDefault();
-        props.onActivate?.(props.tabs[count - 1]!.id);
-        focusIndex(count - 1);
-        break;
-      case "Delete":
-        if (props.onClose && index >= 0) {
-          event.preventDefault();
-          props.onClose(props.tabs[index]!.id);
-          // 焦点交给相邻 tab（关闭由上层完成后再聚焦）
-          const next = Math.min(index, count - 2);
-          focusIndex(next);
-        }
-        break;
+    const intent = tabsKeyIntent(event.key, index, count, Boolean(props.onClose));
+    if (!intent) return;
+    event.preventDefault();
+    if (intent.type === "activate") {
+      const tab = props.tabs[intent.index];
+      if (!tab) return;
+      props.onActivate?.(tab.id);
+      focusIndex(intent.index);
+      return;
     }
+    props.onClose?.(props.tabs[intent.index]!.id);
+    focusIndex(closeFocusIndex(intent.index, count));
   };
 
   onMount(() => {
@@ -149,7 +130,7 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
                   aria-label="close"
                   onClick={(event) => handleClose(tab.id, event)}
                 >
-                  <Icon name="close" size={12} />
+                  <Icon name="close" size={Layout.IconTiny} />
                 </button>
               ) : null}
             </div>
@@ -158,7 +139,7 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
       </For>
       {props.onNew ? (
         <button type="button" class="yohu-tabs__new yohu-interactive yohu-focus-ring" aria-label="new tab" onClick={props.onNew}>
-          <Icon name="plus" size={14} />
+          <Icon name="plus" size={Layout.IconInline} />
         </button>
       ) : null}
     </div>

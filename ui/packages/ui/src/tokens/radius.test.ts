@@ -88,6 +88,8 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
     expect(cssVarValue("--yohu-layout-titlebar-caption")).toBe(`${Layout.TitlebarCaption}px`);
     expect(cssVarValue("--yohu-layout-titlebar-caption-gap")).toBe(`${Layout.TitlebarCaptionGap}px`);
     expect(cssVarValue("--yohu-layout-titlebar-close-margin")).toBe(`${Layout.TitlebarCloseMargin}px`);
+    expect(cssVarValue("--yohu-layout-icon-tiny")).toBe(`${Layout.IconTiny}px`);
+    expect(cssVarValue("--yohu-layout-icon-inline")).toBe(`${Layout.IconInline}px`);
     expect(cssVarValue("--yohu-layout-icon-sm")).toBe(`${Layout.IconSm}px`);
   });
 });

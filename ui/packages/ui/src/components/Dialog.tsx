@@ -14,6 +14,7 @@
 import { createEffect, onCleanup } from "solid-js";
 import type { Accessor, JSX } from "solid-js";
 import { YoPresence } from "../motion/presence";
+import { dialogFocusables, dialogTabTarget } from "./dialog-focus";
 import "./Dialog.css";
 
 export interface YoDialogProps {
@@ -30,15 +31,6 @@ export interface YoDialogProps {
   /** 底部按钮区 */
   footer?: JSX.Element;
   children: JSX.Element;
-}
-
-/** 可参与 Tab 序的元素。 */
-const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
-function focusables(container: HTMLElement): HTMLElement[] {
-  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-    (el) => !el.hasAttribute("disabled") && el.getAttribute("aria-hidden") !== "true",
-  );
 }
 
 /**
@@ -63,19 +55,11 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
       }
       // 焦点陷阱：Tab 在面板内循环
       if (event.key === "Tab" && panel) {
-        const items = focusables(panel);
-        if (items.length === 0) return;
-        const first = items[0]!;
-        const last = items[items.length - 1]!;
-        const active = document.activeElement;
-        if (event.shiftKey) {
-          if (active === first || !panel.contains(active)) {
-            event.preventDefault();
-            last.focus();
-          }
-        } else if (active === last || !panel.contains(active)) {
+        const items = dialogFocusables(panel);
+        const target = dialogTabTarget(items, panel, document.activeElement, event.shiftKey);
+        if (target) {
           event.preventDefault();
-          first.focus();
+          target.focus();
         }
       }
     };
@@ -84,7 +68,7 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
     // 打开后聚焦面板内首个可聚焦元素
     queueMicrotask(() => {
       if (panel) {
-        const items = focusables(panel);
+        const items = dialogFocusables(panel);
         (items[0] ?? panel).focus();
       }
     });

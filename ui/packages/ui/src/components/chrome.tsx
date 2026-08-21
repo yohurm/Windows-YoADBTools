@@ -3,25 +3,35 @@
  * 标题行高度走 --yohu-control-height，有无操作同一占位，避免投屏/设置标题上移。
  */
 import { Show, type JSX } from "solid-js";
+import { YoBadge } from "./Badge";
 import "./chrome.css";
 
 export interface YoChromeProps {
   /** 模块功能标题 */
   title: string;
-  /** 标题旁附加（设备徽章等） */
+  /** 选中设备展示名（标题后中性徽章；无选中不传） */
+  deviceLabel?: string;
+  /** 标题旁附加（设备徽章以外的补充） */
   leading?: JSX.Element;
   /** 功能栏操作（按钮/检索等） */
   children?: JSX.Element;
 }
 
 /**
- * 渲染模块页眉：左侧标题区，右侧功能栏。无操作时只显示标题。
+ * 渲染模块页眉：左侧标题区（标题 + 选中设备名），右侧功能栏。无操作时只显示标题区。
  */
 export function YoChrome(props: YoChromeProps): JSX.Element {
   return (
     <header class="yohu-chrome">
       <div class="yohu-chrome__title">
         <span class="yohu-module-title">{props.title}</span>
+        <Show when={props.deviceLabel}>
+          {(label) => (
+            <span class="yohu-chrome__device">
+              <YoBadge text={label()} tone="neutral" />
+            </span>
+          )}
+        </Show>
         {props.leading}
       </div>
       <Show when={props.children}>

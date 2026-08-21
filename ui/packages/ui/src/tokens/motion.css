@@ -236,6 +236,16 @@
   isolation: isolate;
 }
 
+/*
+ * fill 滑块宽高走软弹簧过冲。绝对定位盒在 (0,0) 的未变换边框 ∪ 变换后的视觉盒
+ * 会撑大宿主 scrollWidth。overflow:auto 双轴在 Windows 会画出横竖条并互相锁死
+ *（同 Select v1.37）。横向永远裁切；纵滚仍由宿主自己的 overflow-y 决定。
+ * underline / thumb 不走这条：Tabs 要横向滚，分段钮要露出阴影。
+ */
+.yohu-indicator-host[data-indicator-variant="fill"] {
+  overflow-x: hidden;
+}
+
 .yohu-recipe-indicator {
   position: absolute;
   top: 0;

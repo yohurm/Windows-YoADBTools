@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { YoDialog } from "./Dialog";
 import { YoSelect } from "./Select";
 
 const OPTIONS = [
@@ -83,13 +84,19 @@ describe("YoSelect", () => {
     expect(screen.getByRole("button").getAttribute("aria-activedescendant")).toBe("yohu-option-empty");
   });
 
-  it("菜单 Portal 到 body，并带自适应 placement", () => {
+  it("菜单 Portal 到 body，定位写在独立 layer 上", () => {
     render(() => <YoSelect options={OPTIONS} placeholder="请选择" />);
     fireEvent.click(screen.getByRole("button"));
     const listbox = screen.getByRole("listbox");
+    const layer = listbox.parentElement;
     expect(listbox.closest(".yohu-select")).toBeNull();
-    expect(listbox.getAttribute("data-placement")).toMatch(/^(top|bottom)$/);
-    expect(listbox.getAttribute("data-placed")).toBe("true");
+    expect(layer?.classList.contains("yohu-select__layer")).toBe(true);
+    expect(layer?.getAttribute("data-placement")).toMatch(/^(top|bottom)$/);
+    expect(layer?.getAttribute("data-placed")).toBe("true");
+    expect(layer?.style.position).toBe("fixed");
+    expect(layer?.style.width).toBe("");
+    expect(layer?.style.minWidth).not.toBe("");
+    expect(layer?.hasAttribute("data-overflow-y")).toBe(false);
   });
 
   it("触发钮贴视口底时向上展开，不往下撑", () => {
@@ -118,9 +125,10 @@ describe("YoSelect", () => {
       } as DOMRect);
       fireEvent.click(trigger);
       const listbox = screen.getByRole("listbox");
+      const layer = listbox.parentElement;
       expect(listbox.getAttribute("data-placement")).toBe("top");
-      expect(listbox.style.top).toBe("auto");
-      expect(Number.parseFloat(listbox.style.bottom)).toBeGreaterThan(0);
+      expect(layer?.style.top).toBe("auto");
+      expect(Number.parseFloat(layer?.style.bottom ?? "")).toBeGreaterThan(0);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -144,5 +152,37 @@ describe("YoSelect", () => {
     expect(trigger.getAttribute("aria-activedescendant")).toBe("yohu-option-c");
     fireEvent.keyDown(trigger, { key: "Home" });
     expect(trigger.getAttribute("aria-activedescendant")).toBe("yohu-option-a");
+  });
+
+  it("展开时 Esc 只关下拉，不关闭外层 Dialog", () => {
+    const onClose = vi.fn();
+    render(() => (
+      <YoDialog open title="弹窗" onClose={onClose}>
+        <YoSelect options={OPTIONS} placeholder="请选择" />
+      </YoDialog>
+    ));
+    fireEvent.click(screen.getByRole("button", { name: /请选择/ }));
+    expect(screen.getByRole("listbox")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("触发钮可访问名是选中文案，不是空盒子", () => {
+    render(() => (
+      <YoSelect
+        options={[{ value: "s", label: "Nori Family Hub · 5c62" }]}
+        value="s"
+      />
+    ));
+    const trigger = screen.getByRole("button", { name: "Nori Family Hub · 5c62" });
+    expect(trigger.querySelector(".yohu-select__value")?.textContent).toBe("Nori Family Hub · 5c62");
+    expect(trigger.classList.contains("yohu-select__trigger")).toBe(true);
+  });
+
+  it("block 拉满父级", () => {
+    const { container } = render(() => <YoSelect block options={OPTIONS} value="a" />);
+    expect(container.querySelector(".yohu-select")?.classList.contains("yohu-select--block")).toBe(true);
   });
 });
