@@ -35,9 +35,9 @@ export function splitPath(path: string): string[] {
 /** 空 / `.` / `..` / 分隔符 → 错误文案；合法返回 null。 */
 export function validateEntryName(name: string): string | null {
   const trimmed = name.trim();
-  if (!trimmed) return "名称不能为空";
-  if (trimmed === "." || trimmed === "..") return "名称非法";
-  if (/[/\\]/.test(trimmed) || trimmed.includes("\0")) return "名称不能包含路径分隔符";
+  if (!trimmed) return "名称为空";
+  if (trimmed === "." || trimmed === "..") return trimmed;
+  if (/[/\\]/.test(trimmed) || trimmed.includes("\0")) return "含路径分隔符";
   return null;
 }
 

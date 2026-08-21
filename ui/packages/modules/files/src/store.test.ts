@@ -110,9 +110,9 @@ describe("sortEntries", () => {
 
 describe("validateEntryName", () => {
   it("拒绝空、穿越、分隔符", () => {
-    expect(validateEntryName("")).toBeTruthy();
-    expect(validateEntryName("..")).toBeTruthy();
-    expect(validateEntryName("a/b")).toBeTruthy();
+    expect(validateEntryName("")).toBe("名称为空");
+    expect(validateEntryName("..")).toBe("..");
+    expect(validateEntryName("a/b")).toBe("含路径分隔符");
     expect(validateEntryName("ok.txt")).toBeNull();
   });
 

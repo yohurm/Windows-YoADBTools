@@ -1,5 +1,5 @@
 /**
- * 文件模块 ViewModel：会话由壳注入；IPC 只走 @yohu/api。
+ * 文件模块 store：会话由壳注入；IPC 只走 @yohu/api。
  * 传输卡停留时长消费 @yohu/ui 配方常量（与 dismiss-fade 对齐）。
  * 浏览世代令牌丢弃过期 list；危险路径/空名在 childPath 拦截，core 再强制。
  */
@@ -16,6 +16,7 @@ import {
   filesPull,
   filesPush,
   onTransferProgress,
+  DEFAULT_BROWSE_ROOT,
 } from "@yohu/api";
 import type { RemoteEntry, TransferProgress, TransferState } from "@yohu/api";
 import { DISMISS_HOLD_DURATION, motionDurationMs, nextKeys, type SelectMode } from "@yohu/ui";
@@ -69,7 +70,7 @@ export function createFileStore() {
   const [transfers, setTransfers] = createStore<UiTransfer[]>([]);
   const [session, setSession] = createStore({
     serial: null as string | null,
-    path: "/sdcard",
+    path: DEFAULT_BROWSE_ROOT as string,
     loading: false,
     mutating: false,
     error: "",
@@ -191,7 +192,7 @@ export function createFileStore() {
       return;
     }
     if (changed) {
-      setSession("path", "/sdcard");
+      setSession("path", DEFAULT_BROWSE_ROOT);
       clearSelection();
     }
     void refresh();
