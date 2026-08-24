@@ -56,7 +56,7 @@ async fn real_browse_and_transfer_roundtrip() {
         .unwrap()
         .as_secs();
     let local = std::env::temp_dir().join(format!("yohu-real-push-{stamp}.txt"));
-    let content = format!("yohu-v6 real device test {stamp}\n");
+    let content = format!("yohu-slint real device test {stamp}\n");
     std::fs::write(&local, &content).expect("写本地文件");
     let remote = format!("/sdcard/yohu-real-test-{stamp}.txt");
 
@@ -141,7 +141,7 @@ async fn real_safety_root_rejects_dangerous_path() {
         return;
     };
     let mutator = FileMutator::new(client);
-    // 即使设备存在该路径，core 侧也必须拒绝（ADR-v6-013：不信任 UI）
+    // 即使设备存在该路径，core 侧也必须拒绝（ADR-slint-013：不信任 UI）
     let result = mutator
         .delete(&serial, "/data/local/tmp", CancellationToken::new())
         .await;

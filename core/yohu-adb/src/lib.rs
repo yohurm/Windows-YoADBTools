@@ -1,6 +1,6 @@
 //! yohu-adb — ADB 客户端（进程与解析层）。
 //!
-//! 包装官方 adb.exe（ADR-v6-008：不重实现协议）。
+//! 包装官方 adb.exe（ADR-slint-008：不重实现协议）。
 //! 依赖方向：yohu-adb → yohu-domain → yohu-protocol。
 
 pub mod client;

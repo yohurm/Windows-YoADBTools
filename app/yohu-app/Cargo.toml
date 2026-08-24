@@ -1,6 +1,6 @@
 [package]
 name = "yohu-app"
-description = "Yohu ADB Tools v6 — Rust 桌面壳（组合根）"
+description = "Yohu ADB Tools — Rust 桌面壳（组合根）"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

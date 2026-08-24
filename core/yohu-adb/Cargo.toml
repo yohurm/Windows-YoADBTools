@@ -1,6 +1,6 @@
 [package]
 name = "yohu-adb"
-description = "Yohu ADB Tools v6 — ADB 客户端：工具解析/进程管理/devices/ls/ps 解析/执行"
+description = "Yohu ADB Tools — ADB 客户端：工具解析/进程管理/devices/ls/ps 解析/执行"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

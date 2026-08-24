@@ -6,7 +6,7 @@ use crate::commands::err_adb;
 use crate::state::AppState;
 use yohu_protocol::{AdbExecRequest, ExecOutcome, AppError};
 
-/// `adb.exec`：短命令，返回原始结果（不判定成败，ADR-v6-009）。
+/// `adb.exec`：短命令，返回原始结果（不判定成败，ADR-slint-009）。
 pub async fn adb_exec(
     state: &AppState,
     req: AdbExecRequest,

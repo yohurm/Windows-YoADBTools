@@ -1,4 +1,4 @@
-//! sidecar 官方 adb 资源目录解析（ADR-v6-008）。
+//! sidecar 官方 adb 资源目录解析（ADR-slint-008）。
 //!
 //! 开发与 release 默认布局一致：应用旁 `tools/`（adb.exe + 两个 dll）。
 //! 运行时再幂等复制到 `DataRoot/tools/adb/`，由 `yohu_adb::ToolResolver` 完成。

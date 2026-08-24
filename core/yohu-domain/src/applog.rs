@@ -1,4 +1,4 @@
-//! 应用操作日志（ADR-v6-010）：内存环形，不落盘；与设备 logcat 严格分离。
+//! 应用操作日志（ADR-slint-010）：内存环形，不落盘；与设备 logcat 严格分离。
 
 use std::collections::VecDeque;
 use std::sync::Mutex;

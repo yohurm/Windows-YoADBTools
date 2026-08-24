@@ -1,6 +1,6 @@
 //! 命令层：服务 API（参数校验 → core API → 结果）。
 //!
-//! **薄命令层纪律**（ADR-v6-005）：只做参数校验 → core API → 结果。
+//! **薄命令层纪律**（ADR-slint-005）：只做参数校验 → core API → 结果。
 //! 业务逻辑一律在 core crates。错误统一映射为 [`AppError`]。
 //! UI 层（rust-slint）进程内直接调用这些函数。
 

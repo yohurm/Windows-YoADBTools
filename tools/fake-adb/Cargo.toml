@@ -1,6 +1,6 @@
 [package]
 name = "fake-adb"
-description = "Yohu ADB Tools v6 — 脚本化假 adb.exe（core 集成测试 fixture，不发布）"
+description = "Yohu ADB Tools — 脚本化假 adb.exe（core 集成测试 fixture，不发布）"
 version.workspace = true
 edition.workspace = true
 publish = false

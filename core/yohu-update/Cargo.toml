@@ -1,6 +1,6 @@
 [package]
 name = "yohu-update"
-description = "Yohu ADB Tools v6 — 应用更新检查（Provider 可替换；默认 GitCode）"
+description = "Yohu ADB Tools — 应用更新检查（Provider 可替换；默认 GitCode）"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

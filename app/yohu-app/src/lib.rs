@@ -1,6 +1,6 @@
 //! yohu-app — Rust 桌面壳（组合根）。
 //!
-//! 架构边界（ADR-v6-005）：
+//! 架构边界（ADR-slint-005）：
 //! - 本 crate 是**唯一**的壳层，负责服务装配与生命周期；
 //! - 所有业务能力在 core crates（domain/adb/logsrv/files/update）。
 //!
@@ -40,7 +40,7 @@ use crate::tasks::TaskCenter;
 /// 应用入口：纯 Rust 装配 + 阻塞直到取消。
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // 诊断日志：release（windows_subsystem）无控制台 → 落盘 logs/app.log（滚动 1MB×3）
-    // 与设备日志严格分离（ADR-v6-010）；AppLog 内存环仍不落盘。
+    // 与设备日志严格分离（ADR-slint-010）；AppLog 内存环仍不落盘。
     let logs_dir = AppPaths::default_logs_dir();
     let file_appender = tracing_appender::rolling::Builder::new()
         .rotation(tracing_appender::rolling::Rotation::DAILY)

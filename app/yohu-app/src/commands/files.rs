@@ -118,7 +118,7 @@ pub fn files_cancel(state: &AppState, id: u32) -> Result<(), AppError> {
     }
 }
 
-/// `files.delete`：删除（core 侧 SafetyRoot 强制校验，ADR-v6-013）。
+/// `files.delete`：删除（core 侧 SafetyRoot 强制校验，ADR-slint-013）。
 pub async fn files_delete(state: &AppState, req: PathOpRequest) -> Result<(), AppError> {
     state.require_online(&req.serial)?;
     state

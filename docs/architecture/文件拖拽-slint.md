@@ -1,9 +1,9 @@
-# 文件拖拽架构（v6）
+# 文件拖拽架构（Slint 版）
 
 > **状态：** P1–P3 已落地（2026-08-20）  
 > **范围：** Windows Explorer ↔ 当前设备文件夹，拖入/拖出文件或目录  
-> **调研：** YoAgentDocs `research/by-stack/client-runtime/`（ADB-Explorer、scrcpy、wry、drag-rs）  
-> **ADR：** ADR-v6-018（本文 §8；主表见 `架构设计-v6.md` §14）
+> **调研：** YoAgentDocs `research/by-stack/client-runtime/`（ADB-Explorer、scrcpy、drag-rs）  
+> **ADR：** ADR-slint-018（本文 §8；主表见 `架构设计-slint.md` §14）
 
 ---
 
@@ -15,10 +15,10 @@ Windows 资源管理器就是本机一侧。Yohu 文件页只展示设备。不�
 
 | 方向 | OLE 角色 | 数据何时进 `TransferRunner` |
 |------|----------|------------------------------|
-| 拖入 | wry 已是 `IDropTarget`（`CF_HDROP`） | drop 当时：本机路径已在磁盘 |
+| 拖入 | 窗口平台已是 `IDropTarget`（`CF_HDROP`） | drop 当时：本机路径已在磁盘 |
 | 拖出 | 壳实现虚拟 `IDataObject` | Explorer **GetData 之后**：才 `adb pull` |
 
-默认 **Copy**。v1 不做 Move（源删除时序无法从 Explorer 可靠确认）。`SafetyRoot` 仍只在 core。OLE 只在 `app/yohu-app`，不进 core、不进 `commands/*` 业务分支、不进 Solid。
+默认 **Copy**。v1 不做 Move（源删除时序无法从 Explorer 可靠确认）。`SafetyRoot` 仍只在 core。OLE 只在 `app/yohu-app`，不进 core、不进 `commands/*` 业务分支、不进 UI。
 
 ---
 
@@ -27,9 +27,9 @@ Windows 资源管理器就是本机一侧。Yohu 文件页只展示设备。不�
 ```text
 资源管理器 ──（断开）── 文件页
                            │
-FileView  开/存对话框（plugin-dialog）
-  → fileStore.push/pull(local, name)
-  → IPC files.push / files.pull
+UI 文件页  开/存对话框（原生对话框）
+  → 文件模块 store push/pull(local, name)
+  → commands files.push / files.pull
   → commands/files.rs spawn_transfer（发号、任务中心、CancellationToken）
   → TransferRunner
        push：local 可为文件或目录（目录交给 `adb push` 递归）
@@ -51,10 +51,10 @@ FileView  开/存对话框（plugin-dialog）
 ## 2. 目标分层
 
 ```text
-UI  @yohu/module-files
-    命中测试 / 拖入高亮 / dragstart preventDefault
+UI  rust-slint 文件模块
+    命中测试 / 拖入高亮 / 拖出行
     不解析 FORMATETC，不拼 adb argv
-        │  @yohu/api（已有 push/pull；新增 files.dragOut）
+        │  commands（已有 push/pull；新增 files.dragOut）
         ▼
 app/yohu-app
     commands/files.rs     薄转发（反序列化 → 发号/转发）
@@ -72,8 +72,7 @@ yohu-adb                     sidecar adb.exe
 
 | 层 | 做 | 不做 |
 |----|----|------|
-| `FileView` / `fileStore` | 模块挂载期间听窗口级拖入事件（rust-slint 平台 `drop-event`）；用坐标/hover 决定目标文件夹；多文件逐条 `push`；行 `dragstart` → `files.dragOut` | OLE；绕过命令层 |
-| `@yohu/api` | 类型化 `files.dragOut` | 业务 |
+| 文件模块 UI | 模块挂载期间听窗口级拖入事件（rust-slint 平台 `drop-event`）；用坐标/hover 决定目标文件夹；多文件逐条 `push`；行拖出 → `files.dragOut` | OLE；绕过命令层 |
 | `commands/files.rs` | `require_online` + 发号；`dragOut` 转到 `dnd` | `IDataObject` / `DoDragDrop` |
 | `yohu-app/dnd` | 虚拟文件 `IDataObject` + `IAsyncOperation`；主线程 `DoDragDrop`；临时目录生命周期 | `SafetyRoot`；自己 spawn adb |
 | `TransferRunner` | `adb push/pull` 文件**或**目录；取消时 pull 清理文件或目录 | Win32；猜 Explorer 落点 |
@@ -96,8 +95,7 @@ yohu-adb                     sidecar adb.exe
 对标 Shell `CFSTR_FILEDESCRIPTOR` + `CFSTR_FILECONTENTS`（[文档](https://learn.microsoft.com/en-us/windows/win32/shell/datascenarios)）。**禁止**先全量 pull 再交 `CF_HDROP`。
 
 ```text
-FileTable dragstart
-  → preventDefault
+文件列表行拖出
   → files.dragOut({ serial, remotes: [绝对远端路径…] })
   → dnd 在主线程 DoDragDrop(COPY)
        QueryGetData / DragEnter：只给描述符，不 pull
@@ -114,7 +112,7 @@ FileTable dragstart
 - 目录项：`FILEDESCRIPTOR` 带目录属性，无 contents；子文件各一条，相对路径用 `\`。
 - Windows 非法名（`<>:"/\|?*`、尾空格/点、保留设备名）在 `dnd` 过滤，不进入描述符。
 - 取消 / 失败：**不**删 Android 源。临时文件随流释放或下次拖出/退出时清 `drag-out\`。
-- 落到本窗：wry 只认 `CF_HDROP`，虚拟格式会被忽略。一期不支持应用内拖放。
+- 落到本窗：窗口平台只认 `CF_HDROP`，虚拟格式会被忽略。一期不支持应用内拖放。
 
 ### 2.4 公开 API
 
@@ -158,7 +156,7 @@ Explorer CF_HDROP
 ### 3.2 拖出（设备 → Explorer）
 
 ```text
-选中行 dragstart
+选中行拖出
   → files.dragOut
   → dnd 虚拟 IDataObject（描述符树）
   → 用户在 Explorer 松开
@@ -181,7 +179,7 @@ Explorer CF_HDROP
 | `commands/files.rs` | 增加薄 `files.dragOut`；push/pull 签名不变 |
 | `yohu-protocol` | `DragOutRequest`；`TransferRequest` 不变 |
 | 命令层 | `files.dragOut` + 契约测试 |
-| `FileView` / `FileTable` / `store` | drop 监听、命中纯函数、overlay 配方、行 draggable |
+| 文件模块 UI | drop 监听、命中纯函数、拖入高亮、行可拖出 |
 | 窗口平台 | **保持** 平台拖放默认启用 |
 | 终端 / 日志 / 设置 | 不改 |
 
@@ -204,14 +202,14 @@ P1 可单独验收。P2 不依赖本机双栏。P3 不阻塞 P2。
 ## 6. 不做什么
 
 - 本机文件树 / FileZilla 双栏（Explorer 已是本机侧）。
-- 关平台拖放改用 HTML5 `ondrop`。
+- 关闭窗口平台拖放。
 - 预物化 `CF_HDROP` 式拖拽（加载不了设备文件）。
 - 用窗口标题嗅探 Explorer 当前路径再 `adb pull` 到该处。
 - Move / 剪切拖拽；拖出成功后删 Android 源。
 - `.apk` 丢进窗口即 `adb install`（那是 scrcpy 投屏语义）。
 - MTP / 盘符挂载 / adbfs。
 - 应用内拖放到另一目录（可后续用私有格式；不进 v1）。
-- 在 `@yohu/ui` 做通用 DnD 组件库；文件页用现有 token / overlay 配方即可。
+- 在 UI 做通用 DnD 组件；文件页用现有 token 即可。
 - core 引用 `windows` / OLE。
 
 ---
@@ -226,15 +224,15 @@ P1 可单独验收。P2 不依赖本机双栏。P3 不阻塞 P2。
 
 ---
 
-## 8. ADR-v6-018
+## 8. ADR-slint-018
 
 **决策：** Explorer 双向拖拽拆成「平台拖入 + 壳虚拟文件拖出」；传输仍只经 `TransferRunner` + `SafetyRoot`。
 
 **理由：**
 
-1. 窗口平台已接管 `IDropTarget` 并关闭 HTML5 文件 drop。拖入应复用平台 drop 事件的绝对路径，而不是再注册一层 OLE。
+1. 窗口平台已接管 `IDropTarget`。拖入应复用平台 drop 事件的绝对路径，而不是再注册一层 OLE。
 2. `CF_HDROP` 只能描述已存在的本机文件。设备文件必须用 `FILEDESCRIPTOR`/`FILECONTENTS` 延迟渲染；GetData 之前 pull 会得到空文件或卡死拖动手势。
 3. Explorer 不把落点路径回给源。拖出不能变成「pull 到用户悬停的那个文件夹」。
-4. OLE 是 Windows 壳胶水，不是领域。放进 core 违反 ADR-v6-005；放进 `commands/*` 违反薄命令层。
+4. OLE 是 Windows 壳胶水，不是领域。放进 core 违反 ADR-slint-005；放进 `commands/*` 违反薄命令层。
 
-**否决：** 预 pull + `drag-rs`；关平台拖放改 HTML5；双栏本机浏览；v1 Move。
+**否决：** 预 pull + `drag-rs`；关闭平台拖放；双栏本机浏览；v1 Move。

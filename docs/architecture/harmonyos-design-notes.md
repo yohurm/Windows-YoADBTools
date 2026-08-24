@@ -1,7 +1,7 @@
 # HarmonyOS 设计语言落地笔记（Design Language Notes）
 
-> **状态：** 已落地（2026-08-20，PC 排版 v1.11）。颜色系统以本笔记 §1 为 `@yohu/ui` Primitive 单源；布局常量见 §4 / §7。
-> **用途：** 供 `@yohu/ui`（token 单源 + 组件）与各模块对照 HarmonyOS 数值；消费名仍是 `--yohu-*`，值必须来自官方 Token。
+> **状态：** 设计定稿（2026-08-20）。本文数值作为 Slint UI 接入的设计依据；正文中的消费名（`yohu-*`）由 Slint token 常量/导出 struct 承载（`Colors`/`Typography`/`Spacing` 等，见 `docs/architecture/UI设计系统-slint.md`）。  
+> **用途：** 供 UI 组件层（自研 Slint 组件集）与各模块对照 HarmonyOS 数值；值必须来自官方 Token。  
 > **覆盖范围：** 色彩 / 字体排版 / 圆角形状 / 间距网格 / 动效 / 组件外观 / 桌面·大屏布局 / 图标插画。
 > **来源目录：** `D:\A_yoprogram\Learn\yovo-harmonyos-docs\设计\设计指南\通用设计基础\{视觉风格,动效,布局}`、`设计\设计指南\控件\*`、`设计\设计指南\针对多设备设计\电脑`、`设计\设计指南\应用 UX 体验标准\*`。
 
@@ -484,30 +484,30 @@ HarmonyOS Symbol 以**描边（线性）**为主，几何型塑造，避免尖�
 
 ---
 
-## 附录 A：与 @yohu/ui 的落地映射（v1.6 已生效）
+## 附录 A：与 Slint token 的落地映射
 
-| HarmonyOS Token | `@yohu/ui` |
-|-----------------|------------|
-| `brand` `#0A59F7` / `#317AF7` | `--yohu-accent`（深色不再改写为 `#4C8DFF`） |
-| `warning` / `alert` / `confirm` | `--yohu-error` / `--yohu-warn` / `--yohu-success`（官方原值） |
-| `font_primary`…`fourth` 90/60/40/20% | `--yohu-fg` / `fg-2` / `fg-3` / `fg-4` |
-| `font_on_primary` | `--yohu-fg-on`（强调底反色字） |
-| `background_secondary` 雪域灰 / 深色黑 | `--yohu-bg-base` |
-| `comp_background_primary` | `--yohu-surface` |
-| `comp_emphasize_secondary` 20% | `--yohu-accent-soft`（徽章/芯片） |
-| `interactive_active` 品牌实底 | `--yohu-state-selected` + `--yohu-state-selected-fg`（全表面选中） |
-| `interactive_hover` 5% / `pressed` 10% | `--yohu-state-hover` / `--yohu-state-pressed`（中性叠色，深浅分板） |
-| `comp_divider` 20% | `--yohu-border` |
-| 圆角 4/8/16/20/32vp | `--yohu-radius-xs`…`xl` |
-| 动效标准/减速曲线 | `--yohu-ease-standard` / `--yohu-ease-decel` |
-| PC 窗口 1200×800、边距 40vp、断点 600/840 | `--yohu-layout-window-*` / `page-margin` / `breakpoint-*` |
-| PC 正文 14 / Caption 12 / Title_S 18 | `--yohu-font-*` 默认；`[data-density=compact]` 收敛 |
-| Caption_M ≥10、Subtitle_M 14、行高 1.25/1.55/1.4 | `--yohu-font-caption-m` / `subtitle-m` / `--yohu-font-leading-*` |
-| 根节点 Body + `line-break: strict` | `theme.css` html/body；`.yohu-type-*` |
-| 效率型贴边、设置页 40vp 边距 | `.yohu-layout__content` padding 0；`YoPage` 消费 `--yohu-layout-page-inset` / `page-gap`；`YoChrome` 标题行 `--yohu-control-height`、底垫 `--yohu-layout-chrome-pad`；设置页眉/卡片共用 `--yohu-layout-page-margin` |
-| 栅格 gutter 16 / 最大宽 2220 | `--yohu-layout-gutter` / `grid-max` |
-| 电脑对话框阴影分层、不强遮罩 | `--yohu-shadow-dialog` / `-unfocused`；遮罩 `fg` 10%；浮层小圆角 `radius-sm` |
-| Toast ≤3s、最大宽 400；按钮最大 448；菜单最小 224 | `--yohu-dur-toast` / `--yohu-layout-dialog-max` / `button-max` / `menu-min` |
-| 对比度：正文浅 4.5:1 / 深 5:1 | `colors.test.ts` 门禁；语义色按官方填充使用 |
+| HarmonyOS Token | Slint token（UI设计系统-slint.md） |
+|-----------------|--------------------------------------|
+| `brand` `#0A59F7` / `#317AF7` | `accent`（深色不改写） |
+| `warning` / `alert` / `confirm` | `error` / `warn` / `success`（官方原值） |
+| `font_primary`…`fourth` 90/60/40/20% | `fg` / `fg-2` / `fg-3` / `fg-4` |
+| `font_on_primary` | `fg-on`（强调底反色字） |
+| `background_secondary` 雪域灰 / 深色黑 | `bg-base` |
+| `comp_background_primary` | `surface` |
+| `comp_emphasize_secondary` 20% | `accent-soft`（徽章/芯片） |
+| `interactive_active` 品牌实底 | `state-selected` + `state-selected-fg`（全表面选中） |
+| `interactive_hover` 5% / `pressed` 10% | `state-hover` / `state-pressed`（中性叠色，深浅分板） |
+| `comp_divider` 20% | `border` |
+| 圆角 4/8/16/20/32vp | `radius-xs`…`xl` |
+| 动效标准/减速曲线 | `ease-standard` / `ease-decel`（Slint easing 常量） |
+| PC 窗口 1200×800、边距 40vp、断点 600/840 | `layout-window-*` / `page-margin` / `breakpoint-*` |
+| PC 正文 14 / Caption 12 / Title_S 18 | `font-*` 默认；`density=compact` 收敛 |
+| Caption_M ≥10、Subtitle_M 14、行高 1.25/1.55/1.4 | `font-caption-m` / `subtitle-m` / `font-leading-*` |
+| 根节点 Body + 行首标点禁则 | 壳根组件（`YoPage` 基样）；排版工具类 |
+| 效率型贴边、设置页 40vp 边距 | `YoPage` 消费 `layout-page-inset` / `page-gap`；`YoChrome` 标题行 `control-height`、底垫 `layout-chrome-pad`；设置页眉/卡片共用 `layout-page-margin` |
+| 栅格 gutter 16 / 最大宽 2220 | `layout-gutter` / `grid-max` |
+| 电脑对话框阴影分层、不强遮罩 | 对话框阴影（失焦 `-unfocused`）；遮罩 `fg` 10%；浮层小圆角 `radius-sm` |
+| Toast ≤3s、最大宽 400；按钮最大 448；菜单最小 224 | `dur-toast` / `layout-dialog-max` / `button-max` / `menu-min` |
+| 对比度：正文浅 4.5:1 / 深 5:1 | token 单测门禁；语义色按官方填充使用 |
 
-消费名与《UI设计系统-v6.md》§2 同步；改色只改 `tokens/colors.ts` 的 `Harmony` 表。默认尺度自 v1.7 起为鸿蒙 PC（comfortable）。
+消费名与《UI设计系统-slint.md》§2 同步；改色只改 Slint token 常量（`Colors` 表）。默认尺度为鸿蒙 PC（comfortable）。

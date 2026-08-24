@@ -1,6 +1,6 @@
 [package]
 name = "yohu-domain"
-description = "Yohu ADB Tools v6 — 纯领域层：命令库/判定/组编排/安全路径/操作日志"
+description = "Yohu ADB Tools — 纯领域层：命令库/判定/组编排/安全路径/操作日志"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

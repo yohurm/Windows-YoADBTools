@@ -1,6 +1,6 @@
 [package]
 name = "yohu-files"
-description = "Yohu ADB Tools v6 — 文件模块：浏览/传输/变更（core 侧安全校验）"
+description = "Yohu ADB Tools — 文件模块：浏览/传输/变更（core 侧安全校验）"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

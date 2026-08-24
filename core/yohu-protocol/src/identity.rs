@@ -20,7 +20,7 @@ pub const COPYRIGHT: &str = "© 2026 Yohu";
 /// `%LOCALAPPDATA%\<DATA_DIR_NAME>\`
 pub const DATA_DIR_NAME: &str = PRODUCT_NAME;
 
-/// 设备路径安全根（ADR-v6-013）。UI 面包屑夹紧与 domain `SafetyRoot::default` 共用。
+/// 设备路径安全根（ADR-slint-013）。UI 面包屑夹紧与 domain `SafetyRoot::default` 共用。
 pub mod safety_root {
     pub const SDCARD: &str = "/sdcard";
     pub const STORAGE: &str = "/storage";

@@ -1,4 +1,4 @@
-//! 批量器（ADR-v6-007 核心）：logcat 行聚合后成批推送，**禁逐行**。
+//! 批量器（ADR-slint-007 核心）：logcat 行聚合后成批推送，**禁逐行**。
 //!
 //! 聚合策略：定时 100–200ms 或满 `max_lines` 行 / `max_bytes` 字节，先到先发。
 //! 背压策略：下游事件队列有界（try_send）——溢出时**丢推送不丢环**，
@@ -250,7 +250,7 @@ mod tests {
     }
 
     /// 性能回归（架构文档 §12 自动化子集）：50k 行 → 50 批（每批 1000），
-    /// 零丢行且聚合耗时满足 ADR-v6-007 批量预算（16ms/批；debug 构建留 2.5x 余量）。
+    /// 零丢行且聚合耗时满足 ADR-slint-007 批量预算（16ms/批；debug 构建留 2.5x 余量）。
     #[tokio::test]
     async fn perf_50k_lines_within_batch_budget() {
         const BATCH_LINES: usize = 1000;

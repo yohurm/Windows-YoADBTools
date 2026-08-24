@@ -1,4 +1,4 @@
-//! 构建期封装官方 adb 三件套（ADR-v6-008）。
+//! 构建期封装官方 adb 三件套（ADR-slint-008）。
 //!
 //! - 校验仓库 `tools/` 已由 `scripts/setup-adb.ps1` 放入官方 platform-tools；
 //! - 复制到当前 profile 的 `tools/`（与开发仓库布局一致），

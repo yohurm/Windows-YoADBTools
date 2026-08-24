@@ -1,4 +1,4 @@
-//! 崩溃处理：panic hook 写 `logs/panic-<ts>.log`（应用日志与设备日志分离，ADR-v6-010）。
+//! 崩溃处理：panic hook 写 `logs/panic-<ts>.log`（应用日志与设备日志分离，ADR-slint-010）。
 
 use std::path::PathBuf;
 

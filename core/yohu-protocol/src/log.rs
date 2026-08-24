@@ -38,7 +38,7 @@ impl LogLine {
     }
 }
 
-/// 一个批量推送（ADR-v6-007：100–200ms 聚合，禁逐行）。
+/// 一个批量推送（ADR-slint-007：100–200ms 聚合，禁逐行）。
 ///
 /// `from_seq` = 本批首行的 seq；`truncated` 表示本批之后环内仍有更新行。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

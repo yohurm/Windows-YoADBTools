@@ -12,7 +12,7 @@ pub enum Theme {
     System,
 }
 
-/// 界面密度（UI设计系统-v6.md §2.3；立即生效）。新安装默认 Comfortable（鸿蒙 PC）。
+/// 界面密度（UI设计系统-slint.md §2.3；立即生效）。新安装默认 Comfortable（鸿蒙 PC）。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Density {

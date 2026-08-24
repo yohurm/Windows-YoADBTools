@@ -1,6 +1,6 @@
 [package]
 name = "yohu-logsrv"
-description = "Yohu ADB Tools v6 — logcat 采集服务：单流采集/共享环形缓冲/批量器/进程索引/导出"
+description = "Yohu ADB Tools — logcat 采集服务：单流采集/共享环形缓冲/批量器/进程索引/导出"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

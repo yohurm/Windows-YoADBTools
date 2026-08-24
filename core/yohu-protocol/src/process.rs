@@ -1,4 +1,4 @@
-//! 进程执行结果。ADB 客户端**不判定成败**（ADR-v6-009），只如实上报。
+//! 进程执行结果。ADB 客户端**不判定成败**（ADR-slint-009），只如实上报。
 
 use serde::{Deserialize, Serialize};
 

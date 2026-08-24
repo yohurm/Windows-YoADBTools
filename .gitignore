@@ -32,12 +32,8 @@ $RECYCLE.BIN/
 /temp/
 /tmp/
 
-# —— 日志（仅仓库根 Logs/；勿写成 logs/ 以免误伤 ui/packages/modules/logs/） ——
+# —— 日志（仅仓库根 Logs/；勿写成 logs/ 以免误伤应用日志目录） ——
 *.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 /Logs/
 
 # —— .NET 构建产物 ——
@@ -56,16 +52,8 @@ publish-*/
 /target/
 *.rs.bk
 
-# —— Node / pnpm / Vite / Turbo ——
-node_modules/
-*.tsbuildinfo
-dist/
-.turbo/
-.vite/
-coverage/
-
 # —— Sidecar 工具二进制（不入库；scripts/setup-adb.ps1 从 Google platform-tools 下载） ——
-# tools/fake-adb/ 源码正常入库；msedgedriver 为本地 E2E 工具（按需下载）
+# tools/fake-adb/ 源码正常入库
 /tools/adb.exe
 /tools/AdbWinApi.dll
 /tools/AdbWinUsbApi.dll

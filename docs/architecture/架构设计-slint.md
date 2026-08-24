@@ -1,15 +1,15 @@
-# Yohu ADB Tools — 架构设计 v6（全新架构）
+# Yohu ADB Tools — 架构设计（Slint 版）
 
-> **状态：** 设计定稿（待实现）  
+> **状态：** 设计定稿（S1–S4 core 已落地，Slint UI 接入中）  
 > **日期：** 2026-08-14  
-> **配套文档：** `docs/requirements/需求分析.md`（v6 版）  
+> **配套文档：** `docs/requirements/需求分析.md`、`docs/architecture/UI设计系统-slint.md`、`docs/architecture/动画系统-slint.md`、`docs/architecture/文件拖拽-slint.md`、`docs/architecture/右键菜单-slint.md`  
 > **定位声明：** 本架构为**推倒重来的全新设计**，不兼容旧设计与旧代码。旧架构（C#/WPF 模块化单体）与旧文档仅作历史存档。
 
 ---
 
 ## 0. 一句话结论
 
-**Rust 领域核心 + Rust 桌面壳（组合根）+ rust-slint 原生 UI** 的模块化单体：核心逻辑全部下沉到零 UI 依赖的 Rust workspace（可独立测试、未来可服务化），UI 全部由自研 Slint 组件集构建；logcat 等高频数据走**批量事件通道**；安装包目标 **≤ 12 MB**，不捆绑任何语言运行时。注：UI 载体最初定为 Tauri 2/WebView2（ADR-v6-003），`feat/rust-slint` 分支已切换为 **rust-slint**（原生渲染，无 WebView/前端栈）。
+**Rust 领域核心 + Rust 桌面壳（组合根）+ rust-slint 原生 UI** 的模块化单体：核心逻辑全部下沉到零 UI 依赖的 Rust workspace（可独立测试、未来可服务化），UI 全部由自研 Slint 组件集构建；logcat 等高频数据走**批量事件通道**；安装包目标 **≤ 12 MB**，不捆绑任何语言运行时，无 WebView/前端栈。
 
 ---
 
@@ -19,36 +19,38 @@
 
 | # | 目标 | 成功标准 |
 |---|------|----------|
-| G1 | 轻量化 | 安装包 ≤ 12 MB；复用系统 WebView2；无 .NET / 无自包含运行时 |
-| G2 | 自研 UI 组件库 | 界面 100% 由 `@yohu/ui` 构成；token 单源；零第三方组件库 |
+| G1 | 轻量化 | 安装包 ≤ 12 MB；无 .NET / 无自包含运行时 / 无 WebView |
+| G2 | 自研 UI 组件集 | 界面 100% 由自研 Slint 组件集构成（设计 token 单源）；零第三方组件库 |
 | G3 | 功能完善 | 终端 / 文件 / 日志三模块对齐需求文档 §5；多会话日志为基线 |
-| G4 | 性能 | 默认 10k 环形缓冲（`buffer_capacity` 可配）+ 3 会话 + 虚拟列表可交互；离开底部冻结可见区；批量 IPC，禁逐行 |
-| G5 | 中文体验 | 中文输入零缺陷（rust-slint 接入时专项验收 IME） |
+| G4 | 性能 | 默认 10k 环形缓冲（`buffer_capacity` 可配）+ 3 会话 + 虚拟列表可交互；离开底部冻结可见区；批量事件，禁逐行 |
+| G5 | 中文体验 | 中文输入零缺陷（Slint IME 专项验收）；全部 UI 中文 |
 
 ### 1.2 非目标（本期不做）
 
 - 跨平台（macOS/Linux）：架构上不排斥，但本期只交付 Windows
 - 插件热加载：模块静态组合（需求文档 §9）
-- 完整 ADB 协议重实现：继续包装官方 adb.exe（ADR-v6-008）
+- 完整 ADB 协议重实现：继续包装官方 adb.exe（ADR-slint-008）
 - 每窗口再开一条 `adb logcat`：仍每设备一路，多窗口扇出；撕出独立 OS 窗口 / Tab Group 分屏本期不做
 - 投屏：Planned 占位
 - 完整查询 DSL / 正则过滤框
 
 ---
 
-## 2. 被否决方案记录（选型依据）
+## 2. UI 载体选型（决策依据）
 
-> **注：** 本节为切换前选型对比（以 Tauri 为基准）；`feat/rust-slint` 已改为 rust-slint，本节记录保留作为决策历史。
+> 最终选择 **rust-slint**（原生渲染、进程内直调命令层、单可执行文件、Rust 全栈）。以下候选方案经评估被否决，否决理由作为决策历史保留。
 
 | 方案 | 否决理由 | 证据 |
 |------|----------|------|
 | 旧架构演进（C#/WPF 修补） | 用户明确要求彻底重构；WPF 不支持 trimming/NativeAOT，自包含 ≥ 74 MB | 实测 NETSDK1168 |
-| Avalonia + NativeAOT | 体积仍 ~25–30 MB；AOT 有反射限制；团队需换 C# UI 栈但收益不如 Tauri | [Avalonia AOT 文档](https://docs.avaloniaui.net/docs/deployment/native-aot) |
-| Rust + Slint | 中文 IME 缺陷（微软拼音卡死）；GPLv3/商业双许可证 | [Slint #8716](https://github.com/slint-ui/slint/issues/8716)、[#3811](https://github.com/slint-ui/slint/issues/3811) |
-| Rust + egui | 中文 IME 多个未决 bug；即时模式刷新与 50k 行列表性能风险 | [egui #4209](https://github.com/emilk/egui/issues/4209) |
+| Tauri 2 + WebView2 + SolidJS | 需捆绑 WebView2 运行时（Evergreen ~150 MB / fixedRuntime）；双语言栈桥接复杂度高；轻量化目标受损 | — |
+| Avalonia + NativeAOT | 体积仍 ~25–30 MB；AOT 有反射限制；团队需换 C# UI 栈 | [Avalonia AOT 文档](https://docs.avaloniaui.net/docs/deployment/native-aot) |
+| egui（Rust） | 中文 IME 多个未决 bug；即时模式刷新与 50k 行列表性能风险 | [egui #4209](https://github.com/emilk/egui/issues/4209) |
 | Electron | 体积 ~100 MB+，与轻量化目标矛盾 | — |
-| WinUI 3 | 运行时依赖 Windows App SDK，轻量化不如 Tauri；生态不如 Web 前端 | — |
-| C# 壳 + Rust 内核（csbindgen FFI） | 仍需背 .NET 运行时；双语言桥接复杂度高于 Tauri IPC；旧架构残留 | [csbindgen](https://github.com/Cysharp/csbindgen)（技术可行但非最优） |
+| WinUI 3 | 运行时依赖 Windows App SDK，体积与生态劣势 | — |
+| C# 壳 + Rust 内核（csbindgen FFI） | 仍需背 .NET 运行时；双语言桥接复杂度高；旧架构残留 | [csbindgen](https://github.com/Cysharp/csbindgen) |
+
+> **rust-slint 已知局限与应对：** 中文 IME 曾存在缺陷（微软拼音卡死，见 [Slint #8716](https://github.com/slint-ui/slint/issues/8716)、[#3811](https://github.com/slint-ui/slint/issues/3811)）；GPLv3/商业双许可证（Slint v1.11 起核心组件 Rust 版改为 MIT/Apache-2.0，需在接入时确认商业条款）。G5 专项验收 IME；许可证按当时版本条款核查。
 
 ---
 
@@ -73,7 +75,7 @@ flowchart TB
     PROTO["yohu-protocol<br/>wire 类型（serde）"]
   end
 
-  subgraph UI["UI 层（rust-slint，接入中）"]
+  subgraph UI["UI 层（rust-slint）"]
     SLINT["Slint 组件集<br/>token + 组件"]
   end
 
@@ -102,11 +104,11 @@ app/commands → core crates（yohu-app 是唯一装配点）
 
 ### 3.3 核心设计原则
 
-1. **core 零 UI 依赖**：core 只依赖 tokio/serde 等基础库，不 import UI。理由：可 `cargo test` 独立验证；未来出现"多工具共享采集服务"时，把 core 编译成守护进程即可，UI 一行不改（ADR-v6-005）。
-2. **会话与过滤在消费端**：core 只负责采集 + 共享环形缓冲 + 进程索引；会话 Tab、过滤、可见列表全部在 UI 层 session store。重放由 `log.replay` 按需拉取（ADR-v6-006）。
-3. **批量事件**：高频数据（logcat 行、传输进度）只在 core 侧聚合后以批事件推送（ADR-v6-007）。
-4. **判定在领域层**：命令成败判定（失败正则 → 成功正则 → 退出码）在 yohu-domain，客户端不判定（ADR-v6-009）。
-5. **组件集第一公民**：所有界面元素必须来自自研 Slint 组件集；色值/字号/间距一律引用 token，lint 禁止硬编码（ADR-v6-011）。
+1. **core 零 UI 依赖**：core 只依赖 tokio/serde 等基础库，不 import UI。理由：可 `cargo test` 独立验证；未来出现"多工具共享采集服务"时，把 core 编译成守护进程即可，UI 一行不改（ADR-slint-005）。
+2. **会话与过滤在消费端**：core 只负责采集 + 共享环形缓冲 + 进程索引；会话 Tab、过滤、可见列表全部在 UI 层 session store。重放由 `log.replay` 按需拉取（ADR-slint-006）。
+3. **批量事件**：高频数据（logcat 行、传输进度）只在 core 侧聚合后以批事件推送（ADR-slint-007）。
+4. **判定在领域层**：命令成败判定（失败正则 → 成功正则 → 退出码）在 yohu-domain，客户端不判定（ADR-slint-009）。
+5. **组件集第一公民**：所有界面元素必须来自自研 Slint 组件集；色值/字号/间距一律引用 token，纪律检查禁止硬编码（ADR-slint-011）。
 
 ---
 
@@ -117,7 +119,6 @@ app/commands → core crates（yohu-app 是唯一装配点）
 ```text
 yohu-adb-tools/
 ├── Cargo.toml                    # workspace（core/* + app/*）
-├── rust-toolchain.toml           # 锁定 stable 版本
 ├── core/
 │   ├── yohu-protocol/            # wire 类型：命令参数/返回/事件（serde，无 IO）
 │   ├── yohu-domain/              # 领域：命令库/会话/判定/安全路径/设置模型
@@ -135,7 +136,7 @@ yohu-adb-tools/
 │   └── verify-v6-logs-perf.ps1   # 日志性能验收
 └── docs/
     ├── requirements/需求分析.md
-    └── architecture/架构设计-v6.md
+    └── architecture/*-slint.md   # 架构/UI 设计/动画/拖拽/右键菜单
 ```
 
 ### 4.2 Crate 依赖图
@@ -143,13 +144,13 @@ yohu-adb-tools/
 ```text
 yohu-protocol ← yohu-domain ← { yohu-adb, yohu-logsrv, yohu-files } ← yohu-app
      ↑                                                                    ↑
-   (serde wire 类型，全图最底层)                            (唯一装配点；UI 接入层待 rust-slint)
+   (serde wire 类型，全图最底层)                            (唯一装配点；UI 承载层)
 ```
 
-### 4.3 前端承载
+### 4.3 UI 承载
 
 ```text
-UI 层（rust-slint，接入中）直调命令层函数 + 订阅事件通道；
+UI 层（rust-slint）进程内直调命令层函数 + 订阅事件通道；
 无 WebView/前端栈；模块组合点随 UI 接入在壳侧实现。
 ```
 
@@ -159,7 +160,7 @@ UI 层（rust-slint，接入中）直调命令层函数 + 订阅事件通道；
 
 ### 5.1 yohu-protocol（wire 类型）
 
-纯数据结构（`serde::Serialize/Deserialize`），无任何 IO 逻辑。前后端共享同一份类型定义的依据（TS 侧由 `@yohu/api` 手工对齐 + 契约测试守护，见 §10.3）。
+纯数据结构（`serde::Serialize/Deserialize`），无任何 IO 逻辑。UI 进程内直调命令层直接消费这些类型，无跨进程序列化面。
 
 ```rust
 // 核心类型（示意）
@@ -204,7 +205,7 @@ pub enum AppEvent { DevicesChanged(Vec<DeviceInfo>), DeviceOffline(String),
 
 ### 5.4 yohu-logsrv（日志采集服务）
 
-**ADR-v6-006 的核心落地：单流采集 + 共享环形缓冲，会话与过滤在 UI。**
+**ADR-slint-006 的核心落地：单流采集 + 共享环形缓冲，会话与过滤在 UI。**
 
 | 组件 | 职责 |
 |------|------|
@@ -221,14 +222,14 @@ pub enum AppEvent { DevicesChanged(Vec<DeviceInfo>), DeviceOffline(String),
 | 组件 | 职责 |
 |------|------|
 | `browse.rs` | `SafetyRoot.check` 后 `ls -la`（尾 `/` 跟随符号链接）→ `RemoteEntry[]` |
-| `transfer.rs` | push/pull：远端 `check_descendant`；push 校验本机**文件或目录**（目录交给 `adb push` 递归）；Running 进度 200ms 节流 `try_send`；**Done/Failed/Cancelled `send().await` 必达**；取消 = 调用方 `CancellationToken`（壳 `transfer_cancels`）；pull 取消/失败删除本机目标（文件 `remove_file` / 目录 `remove_dir_all`）；push 取消不删远端。拖拽入口见 `文件拖拽-v6.md` |
+| `transfer.rs` | push/pull：远端 `check_descendant`；push 校验本机**文件或目录**（目录交给 `adb push` 递归）；Running 进度 200ms 节流 `try_send`；**Done/Failed/Cancelled `send().await` 必达**；取消 = 调用方 `CancellationToken`（壳 `transfer_cancels`）；pull 取消/失败删除本机目标（文件 `remove_file` / 目录 `remove_dir_all`）；push 取消不删远端。拖拽入口见 `docs/architecture/文件拖拽-slint.md` |
 | `mutate.rs` | 删除 / 新建目录 / 新建空文件：`check_descendant` + `validate_entry_name(末段)`；确认框由 UI 负责、core 二次强制 |
 
 ### 5.6 异步与取消模型
 
 - tokio multithread runtime；命令层与 core 服务共享 runtime。
 - 取消统一用 `tokio_util::sync::CancellationToken` 树：应用根 token → 采集/传输任务 token；退出序列 = 根 cancel → 等任务收敛（超时 3s 强杀 adb 进程树）→ flush 设置。
-- 错误模型：`yohu-core` 统一 `YohuError`（`Protocol` / `Adb(exit, stderr)` / `Io` / `Cancelled` / `Invalid`），命令层映射为 `{ code, message }`，UI 按 code 处理（无需解析错误文案）。
+- 错误模型：core 各 crate 统一错误类型，命令层映射为 `AppError { code, message }`，UI 按 code 处理（无需解析错误文案）。
 
 ---
 
@@ -242,15 +243,15 @@ pub enum AppEvent { DevicesChanged(Vec<DeviceInfo>), DeviceOffline(String),
 | `library_store.rs` | 命令库原子写 + schema 失配备份重建（与 `settings_store.rs` 同级） |
 | `group_runs.rs` | 命令组运行生命周期（任务中心、进度转发、取消）；判定仍在 `GroupExecutor` |
 | `state.rs` | `AppState`：core 服务容器 |
-| `events.rs` | 事件分发：core `mpsc` → UI 订阅（当前只收敛采集任务） |
-| `dnd/` | Windows OLE **拖出源**（虚拟 `FILEDESCRIPTOR`+`FILECONTENTS`，GetData 才 pull）。拖入不在此注册，复用平台拖放。详见 `文件拖拽-v6.md`、ADR-v6-018 |
+| `events.rs` | 事件分发：core `mpsc` → UI 订阅（当前只收敛采集任务；Slint UI 接入后在此挂 UI 侧广播） |
+| `dnd/` | Windows OLE **拖出源**（虚拟 `FILEDESCRIPTOR`+`FILECONTENTS`，GetData 才 pull）。拖入不在此注册，复用平台拖放。详见 `docs/architecture/文件拖拽-slint.md`、ADR-slint-018 |
 | `paths.rs` | LocalAppData 路径目录（身份常量驱动；`data_root` 重启冻结） |
 | `sidecar.rs` | sidecar adb 路径解析/版本信息 |
 | `panic.rs` | panic hook：写 `logs/panic-<ts>.log` + 弹致命错误提示 |
 
-### 6.1 打包与安全配置（待 rust-slint 接入）
+### 6.1 打包与安全配置（待 Slint UI 接入）
 
-rust-slint UI 接入后由平台窗口承载；打包器与签名策略随接入确定。当前 release 为裸 Rust 壳构建。
+Slint UI 接入后由平台窗口承载；打包器与签名策略随接入确定。当前 release 为裸 Rust 壳构建（exe 6.4 MB）。
 
 ### 6.2 应用身份（单源）
 
@@ -267,91 +268,74 @@ rust-slint UI 接入后由平台窗口承载；打包器与签名策略随接入
 
 ---
 
-## 7. UI 层
+## 7. UI 层（rust-slint）
 
-> **注：** 本节为切换前的 Web 前端设计记录（SolidJS + @yohu/ui）。`feat/rust-slint` 分支已移除 `ui/` 目录并切换为 **rust-slint**；视觉 token 与组件语义延续本节的 Yo* 设计，承载载体改为 Slint。接入完成后本节将重写。
-
-### 7.1 前端技术选型理由（切换前记录）
+### 7.1 技术选型
 
 | 项 | 选择 | 理由 |
 |----|------|------|
-| 框架 | **SolidJS**（切换前） | 细粒度响应式：100–200ms 一批的日志行更新只触发受影响 DOM 节点，虚拟列表 + 高频更新性能最优；编译产物小 |
-| 构建 | Vite + Turborepo + pnpm（切换前） | monorepo 标准组合 |
-| 语言 | TypeScript strict（切换前） | 与 @yohu/api 类型对齐，契约测试守护 |
-| 样式 | CSS 变量（token） | 主题切换零运行时成本 |
+| 载体 | **rust-slint**（原生渲染） | 进程内直调命令层函数（无 IPC/序列化面）；单可执行文件；Rust 全栈（core 类型直接消费） |
+| 语言 | Slint（`.slint` 声明式 UI）+ Rust | 声明式组件 + Rust 业务回调；属性绑定天然响应式 |
+| token | Slint 常量/导出 struct（`Palette`/`Typography`/`Spacing`…） | 深浅双主题 + 密度各一套值，经属性注入；禁止组件内硬编码色值/字号 |
+| 事件 | mpsc 通道 → Rust 桥 → Slint 属性/回调 | core 事件经壳分发器进入 UI 模型 |
 
-### 7.2 @yohu/ui 组件库（自研，第一公民）
+### 7.2 Slint 组件集（自研，第一公民）
 
-**Token 层（单源，`packages/ui/src/tokens/`）**——延续旧架构 ThemeTokens 的设计思想，载体变为 CSS 变量 + TS 常量。**色彩 Primitive 对齐 HarmonyOS NEXT 官方 Token**（宇宙蓝/雪域灰/文本四档/warning·alert·confirm，见 `UI设计系统-v6.md` §2.1）：
-
-```text
-tokens/
-├── colors.ts / typography.ts / spacing.ts / radius.ts / density.ts / layout.ts
-├── elevation.ts / motion.ts / state.ts
-├── emit-theme.ts   # theme.css 唯一生成器（TS → CSS，契约测试锁文件）
-├── theme.css       # :root[data-theme] / [data-density] 变量注入（生成物）
-├── states.css      # .yohu-interactive 选中 ripple + .yohu-focus-ring / --host
-└── styles.css      # @import theme + states（@yohu/ui/theme.css 导出指向此文件）
-```
-
-**公开组件一律 `Yo*` 标注**（禁止 `YButton` 这类单字母前缀）；CSS/token 命名空间保持 `yohu-*`。
-
-**组件清单（已落地）**：
+- **公开组件一律 `Yo*` 标注**（`YoButton`、`YoVirtualList`、`YoTabs`…），以 `.slint` 组件文件 + Rust 绑定实现；组件名与产品命名空间 `yohu-*` 保持对应。
+- **Token 层（单源）**：色彩 Primitive 对齐 HarmonyOS NEXT 官方 Token（宇宙蓝/雪域灰/文本四档/warning·alert·confirm，见 `docs/architecture/UI设计系统-slint.md` §2.1）。载体为 Slint 常量 + 导出 struct，按 `light`/`dark`/`comfortable`/`compact` 组合注入组件树。
+- **组件清单（规划，随 UI 接入落地）**：
 
 | 类别 | 组件 |
 |------|------|
-| 基础 | YoButton（primary/secondary/ghost/danger）、YoSegmentedButton（tab 白块 / capsule 强调块）、YoIconButton、YoTextField（IME 安全）、YoSelect、YoCheckbox、YoSwitch、YoBadge、YoProgressBar |
+| 基础 | YoButton（primary/secondary/ghost/danger）、YoSegmentedButton（tab 白块 / capsule 强调块）、YoIconButton、YoTextField（IME 专项）、YoSelect、YoCheckbox、YoSwitch、YoBadge、YoProgressBar |
 | 布局 | YoPage、YoChrome、YoToolbar、YoPanel、YoStatusBar、YoColHeader、YoColResizer |
-| 动效原语 | YoPresence、YoCollapse、YoSwap |
+| 动效原语 | YoPresence（进出场）、YoCollapse（折叠）、YoIndicator（选中滑块）、YoSwap（换牌） |
 | 窗口铬 | YoTitleBar（Compact 40vp；侧栏钮+三键等宽 48vp 贴合铺满） |
-| 数据 | **YoVirtualList**（日志行 + 文件四列清单 + `.yohu-interactive` 选中片）、YoTree（终端命令库） |
-| 复合 | YoTabs、YoDialog、YoToast / YoToaster、YoEmptyState、YoContextMenu / **YoContextMenuHost** |
-| 图标 | Icon、YoFileIcon |
+| 数据 | **YoVirtualList**（日志行 + 文件清单虚拟化）、YoTree（终端命令库） |
+| 复合 | YoTabs、YoDialog、YoToast、YoEmptyState、YoContextMenu / **YoContextMenuHost** |
+| 图标 | Icon、YoFileIcon（SVG 资源，Slint `Image` 承载） |
 
-**规划中（未实现，保持 Yo 标注）**：YoComboBox、YoTooltip、YoSplitPane、YoDataGrid、YoFormField、YoTerminalView、YoLogLevelChip。
-
-**组件库纪律**：组件样式 100% 引用 token；ESLint 规则禁止在组件库外出现裸色值/裸字号；Storybook 作为组件验收台。
+- **组件库纪律**：组件属性 100% 引用 token；纪律脚本（Slint LSP/自定义检查）禁止组件外出现裸色值/裸字号；动效时长/曲线只允许引用 MotionSpec（见 `docs/architecture/动画系统-slint.md`）。
 
 **共享交互能力（与组件并列，不是业务模块）**：
 
 | 能力 | 位置 | 页面职责 | 壳职责 |
 |------|------|----------|--------|
-| 快捷键 | `packages/ui/src/keymap/` | 绑定表 + `onAction` | `attachPanelKeys` |
-| 右键菜单 | `packages/ui/src/context-menu/` | `menu.ts` 场景表 + `openContextMenu` | 唯一 `YoContextMenuHost` |
+| 快捷键 | 壳 `keymap` | 绑定表 + 回调 | 统一快捷键分发（Space/Ctrl+L/F/T/W/Tab…） |
+| 右键菜单 | 壳唯一 `YoContextMenuHost` | 场景表按模块收口 | 唯一 Host（Slint PopupWindow） |
 
-右键菜单细则见 `docs/architecture/右键菜单-v6.md`、ADR-v6-019。禁止模块自挂 `YoContextMenu`。
+右键菜单细则见 `docs/architecture/右键菜单-slint.md`、ADR-slint-019。禁止模块自挂菜单。
 
-### 7.3 @yohu/app 工作台壳
+### 7.3 壳（工作台）
 
 ```text
-app/
-├── shell/          # 主布局：左侧设备栏+导航 / 右侧内容区 / 底部状态栏
-├── registry.ts     # 模块注册表（静态组合：import 各模块 descriptor）
-├── device/         # 设备 store：列表/焦点/作用域/自动刷新
-├── tasks/          # 后台任务中心 store（传输/采集汇总）
-└── settings/       # 设置面板 + settings store
+app/yohu-app/src/ui/         # Slint 组件与壳布局（接入后）
+├── shell.slint              # 主布局：左侧设备栏+导航 / 右侧内容区 / 底部状态栏
+├── registry.rs              # 模块注册表（静态组合：descriptor 列表）
+├── device/                  # 设备模型：列表/焦点/作用域/自动刷新
+├── tasks/                   # 后台任务中心模型（传输/采集汇总）
+└── settings/                # 设置面板 + settings 模型
 ```
 
-**模块契约（TS）**：
+**模块契约（Rust）**：
 
-```typescript
-interface ModuleDescriptor {
-  id: string;              // "adb-terminal" | "file-manager" | "log-analyzer"
-  title: string;           // 导航标题（中文）
-  icon: string;            // 图标名（组件库图标集）
-  selectionMode: "MultiOptional" | "SingleRequired" | "None";
-  isPlanned?: boolean;     // 占位模块
-  Component: (props: DeviceSession) => JSX.Element;  // 壳注入会话，模块不读壳 store
-  createStore?: (api: YohuApi) => ModuleStore;  // 模块状态
+```rust
+struct ModuleDescriptor {
+    id: &'static str,                 // "adb-terminal" | "file-manager" | "log-analyzer"
+    title: &'static str,              // 导航标题（中文）
+    icon: &'static str,               // 图标名（组件集图标）
+    selection_mode: SelectionMode,    // MultiOptional | SingleRequired | None
+    is_planned: bool,                 // 占位模块
+    component: fn(&DeviceSession) -> ComponentHandle,  // 壳注入会话，模块不读壳模型
 }
 
-interface DeviceSession {
-  focusSerial: string | null;     // 全局焦点（文件跟随；日志新窗口绑定）
-  selectedSerials: string[];      // 当前模块执行目标：resolve_targets(mode, focus, 勾选, 在线)
-  selectedDevices: DeviceInfo[];  // 目录切片（与 selectedSerials 同序）
-  selectedLabel: string | null;   // 页眉展示名：device_display_name；多台「首台名 等 n 台」
-  devices: DeviceInfo[];          // 设备目录快照（与设备栏同一源）
-  settings: AppSettings;          // 设置快照（与设置页同一 settingsStore 投影）
+struct DeviceSession {
+    focus_serial: Option<String>,     // 全局焦点（文件跟随；日志新窗口绑定）
+    selected_serials: Vec<String>,    // 当前模块执行目标：resolve_targets(mode, focus, 勾选, 在线)
+    selected_devices: Vec<DeviceInfo>,// 目录切片（与 selected_serials 同序）
+    selected_label: Option<String>,   // 页眉展示名：device_display_name；多台「首台名 等 n 台」
+    devices: Vec<DeviceInfo>,         // 设备目录快照（与设备栏同一源）
+    settings: AppSettings,            // 设置快照（与设置页同一投影）
 }
 ```
 
@@ -360,24 +344,21 @@ interface DeviceSession {
 ```text
 DeviceInfo.model（protocol）
   → yohu-domain::device_display_name / lookup_selected_devices
-  → @yohu/api 镜像 + selectedDeviceLabel（页眉文案）
-  → deviceStore.selectedDevices
-  → AppLayout 注入 DeviceSession.{selectedDevices, selectedLabel}
-  → 终端 / 文件 / 日志 YoChrome deviceLabel
+  → DeviceSession.selectedDevices / selectedLabel
+  → 壳注入模块 → 终端 / 文件 / 日志 chrome deviceLabel
   设置 / 投屏 selectionMode=none → selectedLabel=null，不展示设备
 
 DeviceRail（单击替换 / Ctrl 加选，仅 MultiOptional 写勾选）
-  → deviceStore（focusSerial + selectedByModule[moduleId]）
-  → AppLayout 注入 DeviceSession.selectedSerials = resolve_targets(...)
-  → 终端 runCommand/runGroup(serials) → IPC terminal.eval / group.run
+  → 壳 device 模型（focusSerial + selectedByModule[moduleId]）
+  → DeviceSession.selectedSerials = resolve_targets(...)
+  → 终端 runCommand/runGroup(serials) → commands terminal.eval / group.run
   → core GroupExecutor 按传入 serials[] 并行（不补全设备列表）
 
 settings.json（core SettingsStore）
   → settings.set / system.info
-  → settingsStore（壳唯一 UI 投影；set 回写全量快照）
-  → AppLayout 注入 DeviceSession.settings
-  → 日志 View：显示列 / 导出读 props.settings
-  → 日志 store：仅投影 buffer_capacity（采集引擎活过视图；settings.changed 必达）
+  → 壳 settings 模型（唯一 UI 投影；set 回写全量快照）
+  → DeviceSession.settings 注入模块
+  → 日志：显示列 / 导出读注入快照；store 仅投影 buffer_capacity
   → core：clear_device_on_start / buffer_capacity 在 start / set 时读快照
 ```
 
@@ -386,18 +367,17 @@ settings.json（core SettingsStore）
 对照 Entangle LogView、Logdy、BeautyCat、Qovery Logs、Android Studio Logcat 的共性：
 
 1. **单一容量**（Logdy / BeautyCat / Entangle `maxEntries`）：core 环、UI `RingMirror`、可见区裁剪共用 `buffer_capacity`（默认 10000）。
-2. **生产端批量化**（BeautyCat ~50ms / Logdy `bulk-window` 100ms / 本项目 Batcher 150ms）：禁逐行 IPC。
+2. **生产端批量化**（BeautyCat ~50ms / Logdy `bulk-window` 100ms / 本项目 Batcher 150ms）：禁逐行事件。
 3. **消费端跟尾与暂停正交**（AS / Logdy）：`paused`（Space）冻结该会话一切可见更新；`following` 由实时滚动度量驱动。
 4. **离开底部不改可见区**（Qovery / Entangle jump-to-bottom）：仍写入镜像，只累加 `pendingCount`；徽章「N 条新日志」或滚回底部 → `resumeFollow` 从镜像重建。
-5. **贴底判定读 DOM 不读镜像**（Entangle `useFollowTail`）：`scrollHeight - clientHeight - scrollTop ≤ 32`；程序化滚底打 `isAutoScrolling` 旗，避免跟滚↔手势反馈环。
-6. **定高虚拟化**（GitHub Actions / BeautyCat / 本项目 YoVirtualList）：行高 22px，只渲染可视窗。
+5. **贴底判定读滚动位置不读可见区**：`viewport - scroll - offset ≤ 32px`；程序化滚底打 `auto-scroll` 旗，避免跟滚↔手势反馈环。
+6. **定高虚拟化**（GitHub Actions / BeautyCat / 本项目 YoVirtualList）：行高 26px（comfortable），只渲染可视窗。
 
 ```text
 adb logcat -v threadtime,uid
   → parse → RingBuffer(buffer_capacity)
   → Batcher 100–200ms / ≤1000 行 / 512KB
-  → IPC log.lines
-  → MirrorBank[serial]（容量对齐 buffer_capacity，按设备分镜）
+  → 事件 log.lines → 壳分发 → MirrorBank[serial]（容量对齐 buffer_capacity，按设备分镜）
   → 每窗口（LogSession：serial + capturing + fromSeq）：
        paused     → 不更新可见区、不累计挂起
        !following → pendingCount += 命中行，visible 冻结
@@ -411,14 +391,14 @@ adb logcat -v threadtime,uid
 
 ---
 
-## 8. IPC 协议设计（全量清单）
+## 8. 命令 API 与事件协议（全量清单）
 
-### 8.1 invoke 命令表（`@yohu/api` 类型化封装）
+### 8.1 命令表（commands 层，UI 进程内直调）
 
 | 命令 | 参数 | 返回 | 说明 |
 |------|------|------|------|
 | `device.refresh` | — | `DeviceInfo[]` | 立即 `devices -l` 扫描；结果写入 `last_devices` 并推 `devices.changed` |
-| `adb.exec` | `{ serial, argv[] , timeoutMs? }` | `{ exitCode, stdout, stderr }` | 短命令；超时/取消语义 |
+| `adb.exec` | `{ serial, argv[], timeoutMs? }` | `{ exitCode, stdout, stderr }` | 短命令；超时/取消语义 |
 | `terminal.eval` | `{ command, serial }` | `{ ok, verdict, output }` | 领域判定（失败正则→成功正则→退出码） |
 | `group.run` | `{ groupId, serials[] }` | `runId` | 组编排，进度经事件 |
 | `group.cancel` | `{ runId }` | — | 取消组执行 |
@@ -439,7 +419,7 @@ adb logcat -v threadtime,uid
 | `system.info` | — | `{ identity, paths, adb_path, adb_in_use?, settings }` | 关于/诊断；身份与路径目录单源 |
 | `system.openPath` | `{ path }` | — | 打开导出的 txt |
 
-### 8.2 事件表（core → UI，`listen`）
+### 8.2 事件表（core → UI，mpsc 通道订阅）
 
 | 事件 | 载荷 | 频率/节流 |
 |------|------|-----------|
@@ -458,13 +438,13 @@ adb logcat -v threadtime,uid
 
 ```text
 core:  RingBuffer（seq 单调）→ Batcher → 有界 mpsc（容量 4 批）
-UI:    订阅循环快于网络 → 正常；
+UI:    订阅循环快于推送 → 正常；
        落后 → mpsc 满 → Batcher 丢弃"推送"但 RingBuffer 不丢
        → overflow 计数事件 → UI 显示滞后徽章 → 用户点击/自动 log.replay(fromSeq) 补齐
 导出/重放永远基于 core 的 RingBuffer 快照，与推送通道状态无关 → 数据不丢。
 ```
 
-传输事件与日志批次共用有界 `event_tx`：**Running 进度 / log.lines 可丢**（与 ADR-v6-007 丢推送同类）；**传输终态、`log.captureState`、`device.offline`、`settings.changed` 不可丢**（无环可重放控制面，必须 `send().await`）。UI 丢弃 `generation` 落后于已观测世代的 `Stopped`/`Running`。**`log.capture.status` 是槽位快照**：直接投影 `capturing`；Empty 报告最后世代（从未采过为 0）。start 返回后仅当快照 `capturing` 或 `generation >=` 本次 start 时才覆盖乐观投影。
+传输事件与日志批次共用有界 `event_tx`：**Running 进度 / log.lines 可丢**（与 ADR-slint-007 丢推送同类）；**传输终态、`log.captureState`、`device.offline`、`settings.changed` 不可丢**（无环可重放控制面，必须 `send().await`）。UI 丢弃 `generation` 落后于已观测世代的 `Stopped`/`Running`。**`log.capture.status` 是槽位快照**：直接投影 `capturing`；Empty 报告最后世代（从未采过为 0）。start 返回后仅当快照 `capturing` 或 `generation >=` 本次 start 时才覆盖乐观投影。
 
 ---
 
@@ -474,12 +454,12 @@ UI:    订阅循环快于网络 → 正常；
 
 ```mermaid
 sequenceDiagram
-  participant UI as WebView2 UI
+  participant UI as rust-slint UI
   participant App as yohu-app (Rust)
   participant Core as core services
   participant Disk as 磁盘
 
-  UI->>App: 页面加载
+  UI->>App: 应用启动
   App->>Core: 初始化 AppState + CancellationToken 树
   App->>Core: 预热解压 sidecar adb（异步）
   App->>Disk: 加载 settings.json（冻结快照）
@@ -544,8 +524,8 @@ UI files.push/pull({ serial, local, remote }) → 壳发号 + 登记任务
   → UI 收到非 running 后 refresh 当前目录
 ```
 
-拖入：Explorer `CF_HDROP` → 窗口平台 drop 事件 → 文件页命中测试 → 同上 `files.push`。  
-拖出：`files.dragOut` → `dnd` 虚拟 `IDataObject` → Explorer GetData 之后才 `files.pull` 到 `modules/file-manager/drag-out/`。完整契约：`文件拖拽-v6.md`。
+拖入：Explorer `CF_HDROP` → Slint 平台 drop 事件 → 文件页命中测试 → 同上 `files.push`。  
+拖出：`files.dragOut` → `dnd` 虚拟 `IDataObject` → Explorer GetData 之后才 `files.pull` 到 `modules/file-manager/drag-out/`。完整契约：`docs/architecture/文件拖拽-slint.md`。
 
 ---
 
@@ -570,7 +550,7 @@ UI files.push/pull({ serial, local, remote }) → 壳发号 + 登记任务
 
 `system.info.paths` 返回上述全部绝对路径。设置页「数据目录」只改 DataRoot；「关于」可打开数据根 / 设置目录 / 应用日志。
 
-### 10.2 命令库 schema（v6，全新定义）
+### 10.2 命令库 schema（schemaVersion 2）
 
 ```jsonc
 {
@@ -603,20 +583,14 @@ UI files.push/pull({ serial, local, remote }) → 壳发号 + 登记任务
 
 | 项 | 预算 |
 |----|------|
-| Rust 主程序（yohu-app + core，release/LTO） | ~6–8 MB |
-| 前端资源（gzip 后） | ~1–2 MB |
+| Rust 主程序（yohu-app + core，release/LTO） | ~6–8 MB（实测 exe 6.4 MB） |
 | sidecar adb 工具链 | ~6.7 MB（压缩后 ~3–4 MB） |
-| 安装器（NSIS，含 WebView2 引导 stub） | ~1 MB |
+| 安装器（原生打包，策略随 Slint UI 接入确定） | ~1 MB |
 | **合计（安装包）** | **≤ 12 MB** |
 
-### 11.2 WebView2 部署模式（产线场景决策树）
+### 11.2 部署模式
 
-| 场景 | 配置 |
-|------|------|
-| 常规联网机器 | `downloadBootstrapper`（默认） |
-| 产线有统一镜像 | 镜像一次性预置 **Evergreen WebView2**（推荐，最省心） |
-| 产线离线但允许安装包稍大 | `offlineInstaller`（内嵌 WebView2 安装器 ~2 MB，安装时执行） |
-| 极端离线 + 禁网 | `fixedRuntime`（~150 MB，仅兜底，破坏轻量目标） |
+无 WebView / WebView2 / 前端栈依赖（rust-slint 原生渲染）；打包为原生可执行文件，打包器与签名策略随 Slint UI 接入确定。
 
 ### 11.3 发布流水线
 
@@ -633,10 +607,10 @@ cargo test → cargo clippy -D warnings → scripts/build-release.ps1（release 
 |----|------|------|
 | core 单元 | cargo test | 解析器（devices/ls/ps/threadtime 多版本样例）、判定器、安全路径、环形缓冲、Batcher 聚合/溢出、导出 |
 | core 集成 | cargo test + **fake-adb** | `tools/fake-adb/` 脚本化假 adb.exe（可编程输出/延迟/退出码），覆盖采集世代切换、取消、掉线清缓冲 |
-| UI 单元 | 随 rust-slint 接入补充 | 会话过滤管道、信号扫描、堆叠折叠、store 回补逻辑、组件测试 |
+| UI 单元 | cargo test + slint-testing（接入后） | 会话过滤管道、信号扫描、堆叠折叠、store 回补逻辑、组件测试 |
 | 契约测试 | 双向 fixture | yohu-protocol wire 样例 JSON 对齐（防类型漂移） |
-| E2E | 冒烟脚本 | 启动/导航/设备列表/设置读写（rust-slint 接入后由窗口驱动） |
-| 手工联调 | scripts/verify-v6-*.ps1 | 需真实设备：终端执行/文件传输/日志多会话（对齐旧版验收粒度） |
+| E2E | 冒烟脚本 | 启动/导航/设备列表/设置读写（Slint UI 接入后由窗口驱动） |
+| 手工联调 | scripts/verify-v6-*.ps1 | 需真实设备：终端执行/文件传输/日志多会话 |
 | **性能验收** | verify-v6-logs-perf | 默认 10k 缓冲 + 3 会话 + 虚拟列表：批量事件平均 < 16ms/批、离开底部不改可见区、UI 交互不掉帧 |
 
 ---
@@ -646,37 +620,37 @@ cargo test → cargo clippy -D warnings → scripts/build-release.ps1（release 
 | 项 | 措施 |
 |----|------|
 | 路径安全 | 浏览 `check`、删除/新建/传输 `check_descendant`（不信任 UI）；RemotePath 拒绝 `..`；末段 `validate_entry_name` |
-| IPC 面 | CSP 收紧；capabilities 仅暴露本应用命令；core 校验所有输入（路径/序号/大小上限） |
+| 命令面 | UI 进程内直调命令层，无跨进程攻击面；core 校验所有输入（路径/序号/大小上限） |
 | 命令执行 | 终端执行 adb 命令是产品功能本身；但 core 对 argv 注入做校验（禁止空参、长度上限），组执行有超时 |
-| 崩溃 | Rust panic hook 写日志 + 提示；JS 全局错误经 `system.reportError` 记录；崩溃日志不落设备数据 |
+| 崩溃 | Rust panic hook 写日志 + 提示；崩溃日志不落设备数据 |
 | 退出序列 | 根 CancellationToken cancel → 采集/传输收敛（超时 3s 强杀 adb 进程树）→ 设置 flush |
 | 数据 | settings/library 原子写 + 损坏备份；导出 txt 文件名含时间戳，防覆盖 |
 
 ---
 
-## 14. 决策记录（ADR-v6 全量）
+## 14. 决策记录（ADR-slint 全量）
 
 | ID | 决策 | 结论 |
 |----|------|------|
-| ADR-v6-001 | 重建方式 | 推倒重来，不兼容旧设计/旧代码；strangler fig 模块级迁移；旧版维护至 S4 |
-| ADR-v6-002 | 语言栈 | Rust（core）+ Rust 原生 GUI。初定 TypeScript UI，`feat/rust-slint` 改为 **rust-slint**（原生渲染，免 WebView/前端栈） |
-| ADR-v6-003 | UI 载体 | 初定 Tauri 2 + WebView2（体积/IME/生态三赢）；`feat/rust-slint` 改为 **rust-slint**（单可执行文件，无运行时依赖） |
-| ADR-v6-004 | 前端框架 | 初定 SolidJS；`feat/rust-slint` 切换后由 Slint 承载，本节后续记录作历史 |
-| ADR-v6-005 | core 边界 | core 零 UI 依赖；可独立测试/未来服务化 |
-| ADR-v6-006 | 采集模型 | **每设备一路** logcat + core 共享环形缓冲（可多设备并行）；窗口=会话订阅；**过滤/可见列表在 UI 消费端**；重放经 `log.replay` |
-| ADR-v6-007 | 批量事件协议 | 100–200ms 聚合、单批上限 1000 行/512KB；禁逐行；溢出丢推送不丢环（可重放） |
-| ADR-v6-008 | ADB 协议 | sidecar 官方 adb.exe；不重实现协议（Rust crate 生态不成熟） |
-| ADR-v6-009 | 成败判定 | 领域层 CommandEvaluator（失败正则→成功正则→退出码）；客户端不判定 |
-| ADR-v6-010 | 日志分离 | 应用日志（内存环形）与设备日志（logcat 缓冲）严格分离 |
-| ADR-v6-011 | 组件库 | @yohu/ui 第一公民；token 单源；lint 禁硬编码 |
-| ADR-v6-012 | 模块组合 | 前端模块静态组合（无插件热加载）；组合点 `apps/shell`；模块间零 import（`scripts/check-ui-deps.mjs`） |
-| ADR-v6-013 | 安全根 | 浏览 `check`（含根本身）；删除/新建/远端传输 `check_descendant`（禁根本身）+ 末段名校验 |
-| ADR-v6-014 | 部署 | 初定 NSIS per-user + WebView2；rust-slint 切换后为原生打包（策略随接入确定） |
-| ADR-v6-015 | 投屏/MES | 投屏 Planned 占位；MES 预留不实现 |
-| ADR-v6-016 | 采集控制面 | **core 槽位是唯一真相（每设备独立）**。start **仅 Live adopt**，Starting/Stopping 等待。禁止 `AlreadyRunning`。`CaptureState` 带 generation 且 `send().await` 必达。UI 窗口 `capturing` 只投影该窗口订阅；设备流按窗口引用计数 0↔1 / 1↔0。`log.capture.status` 快照权威。切焦点不停其他设备流 |
-| ADR-v6-017 | 动效系统 | `@yohu/ui` 六层动效：鸿蒙数值 + Material 语义槽 + Fluent Presence 形状 + Radix `data-state`；CSS-first，不引入 JS 动画库。详见 `docs/architecture/动画系统-v6.md` |
-| ADR-v6-018 | Explorer 拖拽 | 拖入复用平台 `CF_HDROP`；拖出用壳虚拟文件协议（GetData 才 pull）；传输只经 `TransferRunner`+`SafetyRoot`。禁止预物化 `CF_HDROP`、HTML5 drop 主路径、v1 Move。详见 `docs/architecture/文件拖拽-v6.md` |
-| ADR-v6-019 | 右键菜单 | 引擎在 `@yohu/ui`（define/open + 唯一 Host）；场景表按模块 `menu.ts` 收口。禁止模块自挂 `YoContextMenu`。详见 `docs/architecture/右键菜单-v6.md` |
+| ADR-slint-001 | 重建方式 | 推倒重来，不兼容旧设计/旧代码；strangler fig 模块级迁移；旧版维护至 S4 |
+| ADR-slint-002 | 语言栈 | Rust（core）+ Rust 原生 GUI（rust-slint） |
+| ADR-slint-003 | UI 载体 | **rust-slint**（原生渲染，单可执行文件，无运行时/WebView 依赖） |
+| ADR-slint-004 | UI 框架 | 自研 Slint 组件集；无第三方组件库 |
+| ADR-slint-005 | core 边界 | core 零 UI 依赖；可独立测试/未来服务化 |
+| ADR-slint-006 | 采集模型 | **每设备一路** logcat + core 共享环形缓冲（可多设备并行）；窗口=会话订阅；**过滤/可见列表在 UI 消费端**；重放经 `log.replay` |
+| ADR-slint-007 | 批量事件协议 | 100–200ms 聚合、单批上限 1000 行/512KB；禁逐行；溢出丢推送不丢环（可重放） |
+| ADR-slint-008 | ADB 协议 | sidecar 官方 adb.exe；不重实现协议（Rust crate 生态不成熟） |
+| ADR-slint-009 | 成败判定 | 领域层 CommandEvaluator（失败正则→成功正则→退出码）；客户端不判定 |
+| ADR-slint-010 | 日志分离 | 应用日志（内存环形）与设备日志（logcat 缓冲）严格分离 |
+| ADR-slint-011 | 组件库 | 自研 Slint 组件集第一公民；token 单源；纪律检查禁硬编码 |
+| ADR-slint-012 | 模块组合 | 模块静态组合（无插件热加载）；模块 descriptor（id/title/icon/selectionMode/component/createStore）在壳侧注册；模块间零依赖 |
+| ADR-slint-013 | 安全根 | 浏览 `check`（含根本身）；删除/新建/远端传输 `check_descendant`（禁根本身）+ 末段名校验 |
+| ADR-slint-014 | 部署 | 原生单可执行文件打包；策略随 Slint UI 接入确定 |
+| ADR-slint-015 | 投屏/MES | 投屏 Planned 占位；MES 预留不实现 |
+| ADR-slint-016 | 采集控制面 | **core 槽位是唯一真相（每设备独立）**。start **仅 Live adopt**，Starting/Stopping 等待。禁止 `AlreadyRunning`。`CaptureState` 带 generation 且 `send().await` 必达。UI 窗口 `capturing` 只投影该窗口订阅；设备流按窗口引用计数 0↔1 / 1↔0。`log.capture.status` 快照权威。切焦点不停其他设备流 |
+| ADR-slint-017 | 动效系统 | 鸿蒙时长分级 + Material 语义槽 + Presence 原语（Slint `animate`/`states` 落地）。详见 `docs/architecture/动画系统-slint.md` |
+| ADR-slint-018 | Explorer 拖拽 | 拖入复用平台 `CF_HDROP`；拖出用壳虚拟文件协议（GetData 才 pull）；传输只经 `TransferRunner`+`SafetyRoot`。禁止预物化 `CF_HDROP`、Web drop 主路径、v1 Move。详见 `docs/architecture/文件拖拽-slint.md` |
+| ADR-slint-019 | 右键菜单 | 场景表按模块收口；壳唯一 Host。详见 `docs/architecture/右键菜单-slint.md` |
 
 ---
 
@@ -684,11 +658,11 @@ cargo test → cargo clippy -D warnings → scripts/build-release.ps1（release 
 
 | 阶段 | 内容 | 验收标准 |
 |------|------|----------|
-| **S1 骨架（2–3 周）** | Cargo workspace + Tauri 壳 + @yohu/ui token/基础组件 + @yohu/api 契约层 + sidecar adb + 设置/设备栏 | 空壳安装包 ≤ 12 MB；设备扫描/设置可用 |
+| **S1 骨架（2–3 周）** | Cargo workspace + Rust 壳 + Slint UI 骨架 + sidecar adb + 设置/设备栏 | 空壳安装包 ≤ 12 MB；设备扫描/设置可用 |
 | **S2 终端模块（2–3 周）** | yohu-domain 命令库/判定/组编排 + 终端 UI | 终端功能对齐；判定用例全绿 |
 | **S3 文件模块（1–2 周）** | yohu-files + 文件浏览/传输 UI | 传输进度/取消验收全绿 |
 | **S4 日志模块（2–3 周）** | yohu-logsrv + YoVirtualList + 多会话 Tab + AS 过滤栏 + 导出 | 性能验收全绿（§12 末行） |
-| **S5 切换（1 周）** | 产线镜像预置 WebView2、全功能联调 | 全功能联调全绿 |
+| **S5 打包（1 周）** | 打包器接入 + 全功能联调 | 全功能联调全绿 |
 
 **总计约 9–12 周（2 人）。** v5 已下线；命令库 schema 失配备份重建，不做跨版本转换。
 
@@ -696,24 +670,22 @@ cargo test → cargo clippy -D warnings → scripts/build-release.ps1（release 
 
 | 阶段 | 状态 | 落地要点与验证 |
 |------|------|----------------|
-| **S1 骨架** | ✅ | Cargo workspace 五 crate；Tauri 壳 25 条命令全量接线；@yohu/ui 组件库（token 单源，深浅主题）；@yohu/api 契约层（fixture 单测）；工作台壳（设备栏/导航/设置/状态栏/模块注册表）；sidecar adb |
-| **S2 终端模块** | ✅ | 默认命令库（3 组 9 命令，首次启动/损坏重建原子写入）；组编排（多设备并行/串行/延时/失败中断）；成败判定（失败正则→成功正则→退出码）；命令管理（快照编辑/全量提交/取消零污染）；占位符填值对话框；结果日志流 |
-| **S3 文件模块** | ✅ | 目录浏览（虚拟列表）；上传/下载（对话框）；删除确认 + core 侧 SafetyRoot；新建目录；传输面板（进度/取消/状态）；路径纯函数单测 |
-| **S4 日志模块** | ✅ | 多窗口 Tab（System/包名/PID，每窗口绑定 serial）；每设备一路 logcat、窗口引用计数启停；切焦点不停其他设备；过滤栏（级别含以上/Tag/关键字）；进程索引 2.5s + 包名 PID 重绑（历史集上限 8）；信号扫描/堆叠折叠/溢出回补/导出；快捷键 Space/Ctrl+L/F/T/W/Tab；pipeline.ts 纯函数管线 + 单测 |
-| **测试基建** | ✅ | fake-adb 脚本化 fixture（零共享状态，并行安全）；采集集成测试含 Live adopt / Starting 并发同世代 / Stopping 等待；**真机测试 13 用例**（adb 6 / logsrv 4 / files 3，自动跳过无设备环境）+ 自愈扫描 3 用例；期间修复 run_capture 忙循环、Batcher 尾部批次丢失、溢出回补提示被回补批次清除、采集 UI/core 状态分裂四个真实缺陷 |
-| **UI 打磨（UI设计系统-v6 Phase A–D）** | ✅ | Phase A token 三层 + 级别板 + 密度 + 动效（鸿蒙时长分级，motion.ts↔theme.css 契约测试）；Phase B 组件键盘/ARIA 补全 + YoVirtualList 选择模式 + Dialog/Toast 入场动画；Phase C 壳重绘（设备卡片/导航键盘/状态栏任务明细/设置分组卡片 + density 设置 core 全链路）；Phase D 三模块重绘（日志列对齐行·级别左条·Fatal 反色块·信号行·行选中·会话右键菜单；终端结构化结果卡片·设备分组·折叠输出·duration_ms；文件面包屑·双栏·mtime 列·分类色·传输卡片速度/淡出）；废弃兼容别名迁移至 Semantic 层（lint 纪律拦截） |
-| **右键菜单宿主（ADR-v6-019）** | ✅ | `@yohu/ui` context-menu 引擎 + 壳唯一 Host；文件 `files.list`、日志 `logs.tab`/`logs.row`（复制行与 Ctrl+C 同一 `copyLogText`） |
-| **S5 rust-slint 切换** | 🔶 | `feat/rust-slint` 分支已移除 Tauri/WebView/Node 前端栈；core crates 与命令层保持；UI 层接入中 |
+| **S1 骨架** | ✅ | Cargo workspace 五 crate + Rust 壳（yohu-app 组合根：命令层/任务中心/事件分发/sidecar adb）；core 五 crate 全量接线 |
+| **S2 终端模块** | ✅ | 默认命令库（3 组 9 命令，首次启动/损坏重建原子写入）；组编排（多设备并行/串行/延时/失败中断）；成败判定（失败正则→成功正则→退出码）；命令管理（快照编辑/全量提交/取消零污染） |
+| **S3 文件模块** | ✅ | 目录浏览（ls 解析）；上传/下载（进度/取消）；删除确认 + core 侧 SafetyRoot；新建目录；路径校验单测 |
+| **S4 日志模块** | ✅ | 每设备一路 logcat、窗口引用计数启停；切焦点不停其他设备；进程索引 2.5s + 包名 PID 重绑（历史集上限 8）；溢出回补/导出；core 过滤匹配与信号扫描单测 |
+| **测试基建** | ✅ | fake-adb 脚本化 fixture（零共享状态，并行安全）；采集集成测试含 Live adopt / Starting 并发同世代 / Stopping 等待；**真机测试 13 用例**（adb 6 / logsrv 4 / files 3，自动跳过无设备环境）+ 自愈扫描 3 用例；期间修复 run_capture 忙循环、Batcher 尾部批次丢失、溢出回补提示被回补批次清除、采集状态分裂四个真实缺陷 |
+| **S5 Slint UI 接入** | 🔶 | UI 层接入中；core crates 与命令层保持；视觉/交互设计依据见 `docs/architecture/*-slint.md` |
 
-**验证现状（rust-slint 分支）：** `cargo build --workspace && cargo test --workspace` 全绿；clippy -D warnings 0 警告；release exe 体积由 lto + codegen-units=1 + strip + panic=abort 控制。
+**验证现状：** `cargo build --workspace && cargo test --workspace` 全绿；clippy -D warnings 0 警告；release exe 体积由 lto + codegen-units=1 + strip + panic=abort 控制。
 
 **与设计的偏差记录：**
-1. UI 栈自 Tauri 2/WebView2 + SolidJS 切换为 **rust-slint**：命令层由 IPC 处理器改为进程内服务 API，事件经 mpsc 通道分发；原 `ui/` 目录整体移除（视觉 token 与组件语义延续 Yo* 设计）。
-2. 模块注册点随 UI 接入在壳侧实现（原 `apps/shell` 入口方案作废）。
+1. UI 载体确定为 rust-slint：命令层为进程内服务 API（非 IPC 处理器），事件经 mpsc 通道分发。
+2. 模块注册点随 UI 接入在壳侧实现（`app/yohu-app/src/ui/registry.rs`）。
 3. wire 类型增量（均属展示性/诊断性字段，向后兼容）：`AppSettings.density`（UI 密度设置，需求 §4.5 已补）、`TaskInfo.detail`（状态栏悬停明细）、`RemoteEntry.mtime`（文件列表修改时间列）、`EvalResult/GroupProgress.duration_ms`（结果卡片用时）、`SettingsChanged.settings`（设置变更携带全量快照，模块禁止再 `settings.get`）。`EvalResult` 定义在 protocol（不再仅存在于 commands 层）。
-4. 日志过滤匹配在 `yohu-domain::log_filter`（protocol 只持 `LogFilter` 结构）；导出/回补与 UI `matchesWireFilter` 共用 `testdata/log_filter.json`。
+4. 日志过滤匹配在 `yohu-domain::log_filter`（protocol 只持 `LogFilter` 结构）；导出/回补共用 `testdata/log_filter.json`。
 5. `log.export` 目标路径策略在 `ExportService::resolve_dest`；commands 只转发。
-6. 壳侧选择策略（`resolve_targets` / `reconcile_focus` / `device_display_name`）在 domain 与 TS 各有一份，用 testdata JSON 对齐——ADR：点击不能等 IPC。
+6. 壳侧选择策略（`resolve_targets` / `reconcile_focus` / `device_display_name`）在 domain 实现，用 testdata JSON 对齐（无 UI 时可单测）。
 
 ---
 
@@ -721,15 +693,16 @@ cargo test → cargo clippy -D warnings → scripts/build-release.ps1（release 
 
 | 风险 | 等级 | 应对 |
 |------|------|------|
-| 团队双栈学习曲线（Rust + TS/Solid） | 高 | S1 骨架期定 lint/测试/CI 规范；core 先做纯函数型领域（易上手） |
-| 高频日志 IPC 设计不当 | 高 | 批量协议为架构级约束（ADR-v6-007）；S4 独立性能验收 |
-| 产线镜像缺 WebView2 | 中 | §11.2 决策树；S5 前与产线 IT 确认镜像策略 |
-| YoVirtualList 虚拟化实现质量 | 中 | 组件库 Storybook + 性能验收；必要时引入成熟虚拟化原语做底层（非 UI 库） |
+| Slint UI 学习曲线 | 高 | UI 接入期定组件规范（`UI设计系统-slint.md`）；core 先做纯函数型领域（易上手） |
+| 中文 IME（Slint 历史缺陷） | 高 | G5 专项验收；必要时在 Slint 版本核查修复状态（[#8716](https://github.com/slint-ui/slint/issues/8716)、[#3811](https://github.com/slint-ui/slint/issues/3811)） |
+| 高频日志推送设计不当 | 高 | 批量协议为架构级约束（ADR-slint-007）；S4 独立性能验收 |
+| 日志虚拟列表实现质量 | 中 | UI 接入时实现 + 性能验收；必要时引入成熟虚拟化原语做底层 |
+| Slint 商业许可条款 | 中 | 接入时核查版本对应许可证（v1.11 起 Rust 核心 MIT/Apache-2.0） |
 | 命令库 schema 失配 | 低 | 不匹配则备份 `.corrupt-<ts>` 后写默认库；不做跨版本字段转换 |
 
 **开放问题：**
-1. 设置面板是否需要「数据目录迁移」向导？（v6 不做跨版本转换；目录变更走 `data_root` 重启生效）
-2. ~~`theme` 深色主题是否进入第一期？~~ 已解决：Phase A–C 落地深浅双主题 + density（设置项 `theme`/`density` 走 core 全链路）
+1. 设置面板是否需要「数据目录迁移」向导？（不做跨版本转换；目录变更走 `data_root` 重启生效）
+2. ~~`theme` 深色主题是否进入第一期？~~ 已解决：`theme`/`density` 设置项走 core 全链路（protocol → settings_store → settings.get/set）。
 3. 日志会话配置（workspace.json）是否持久化？（建议分屏期一并做）
 
 ---

@@ -1,6 +1,6 @@
 [package]
 name = "yohu-protocol"
-description = "Yohu ADB Tools v6 — wire 类型（serde，无 IO）"
+description = "Yohu ADB Tools — wire 类型（serde，无 IO）"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

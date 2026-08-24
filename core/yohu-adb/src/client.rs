@@ -1,6 +1,6 @@
 //! ADB 客户端门面：组合 ToolResolver / ProcessRunner / 解析器。
 //!
-//! 职责边界：本层只做「调用 adb + 解析输出」，**不判定成败**（ADR-v6-009）。
+//! 职责边界：本层只做「调用 adb + 解析输出」，**不判定成败**（ADR-slint-009）。
 
 use std::path::PathBuf;
 use std::sync::Arc;
