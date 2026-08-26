@@ -281,6 +281,7 @@
 }
 
 .yohu-files__table-list .yohu-empty-state,
+.yohu-files__table-list .yohu-loading,
 .yohu-files__explorer .yohu-empty-state {
   height: 100%;
   flex: 1 1 auto;

@@ -5,7 +5,7 @@
 
 import { For, Show } from "solid-js";
 
-import { Icon, YoColHeader, YoEmptyState, YoFileIcon, YoVirtualList, pointerSelectMode } from "@yohu/ui";
+import { Icon, YoColHeader, YoEmptyState, YoFileIcon, YoLoading, YoVirtualList, pointerSelectMode } from "@yohu/ui";
 import type { RemoteEntry } from "@yohu/api";
 
 import {
@@ -105,7 +105,17 @@ export function FileTable(props: { onContextMenu: (x: number, y: number) => void
           props.onContextMenu(event.clientX, event.clientY);
         }}
       >
-        <Show when={entries().length > 0} fallback={<YoEmptyState icon="folder" title="此文件夹为空" />}>
+        <Show
+          when={entries().length > 0}
+          fallback={
+            <Show
+              when={fileStore.session.loading}
+              fallback={<YoEmptyState icon="folder" title="此文件夹为空" />}
+            >
+              <YoLoading title="加载中" description="正在读取目录" />
+            </Show>
+          }
+        >
           <YoVirtualList<RemoteEntry>
             items={entries}
             itemHeight={28}
