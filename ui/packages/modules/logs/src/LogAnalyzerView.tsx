@@ -14,6 +14,7 @@ import {
   YoChrome,
   YoDialog,
   YoEmptyState,
+  YoLoading,
   YoPage,
   YoPanel,
   YoSelect,
@@ -156,23 +157,19 @@ function SessionEmpty(props: { session: LogSessionState }) {
           </>
         }
       >
-        <YoEmptyState
-          icon="log"
-          title={
-            sessionPending(props.session)
-              ? "正在启动采集…"
-              : filterActive()
-                ? "无匹配日志"
-                : "等待设备输出…"
+        <Show
+          when={filterActive() && !sessionPending(props.session)}
+          fallback={
+            <YoLoading
+              title={sessionPending(props.session) ? "正在启动采集…" : "等待设备输出…"}
+              description={
+                sessionPending(props.session) ? "正在连接设备 logcat" : "logcat 采集中，暂未收到行"
+              }
+            />
           }
-          description={
-            sessionPending(props.session)
-              ? "正在连接设备 logcat"
-              : filterActive()
-                ? "调整过滤条件（级别/Tag/关键字）后重试"
-                : "logcat 采集中，暂未收到行"
-          }
-        />
+        >
+          <YoEmptyState icon="log" title="无匹配日志" description="调整过滤条件（级别/Tag/关键字）后重试" />
+        </Show>
       </Show>
     </div>
   );
