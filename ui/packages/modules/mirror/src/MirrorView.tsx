@@ -2,7 +2,7 @@
  * 投屏主视图：设备画面嵌在 YoPanel；解码在 WebCodecs。
  */
 
-import { Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import {
   dialogSaveFile,
   mirrorSavePng,
@@ -14,6 +14,7 @@ import {
   YoChrome,
   YoEmptyState,
   YoIconButton,
+  YoLoading,
   YoPage,
   YoPanel,
   YoSelect,
@@ -51,6 +52,15 @@ const FPS_OPTIONS = [
   { value: "60", label: "60 fps" },
 ];
 
+const NAV_KEYS: { label: string; keycode: number }[] = [
+  { label: "Home", keycode: AndroidKey.Home },
+  { label: "返回", keycode: AndroidKey.Back },
+  { label: "多任务", keycode: AndroidKey.AppSwitch },
+  { label: "电源", keycode: AndroidKey.Power },
+  { label: "音量+", keycode: AndroidKey.VolumeUp },
+  { label: "音量-", keycode: AndroidKey.VolumeDown },
+];
+
 function withCurrentOption(
   options: { value: string; label: string }[],
   current: number,
@@ -72,8 +82,12 @@ function ipcMessage(error: unknown): string {
 function emptyCopy(phase: string, hasDevice: boolean, error: string | null): { title: string; description?: string } {
   if (!hasDevice) return { title: "未选择设备", description: "在左侧设备栏选择一台在线设备" };
   if (error) return { title: phase === "failed" ? "启动失败" : "已停止", description: error };
-  if (phase === "starting") return { title: "启动中", description: "正在推送 server 并建立隧道" };
   return { title: "未开始", description: "点击开始将画面嵌在此面板内" };
+}
+
+function waitingCopy(phase: string): { title: string; description: string } {
+  if (phase === "starting") return { title: "启动中", description: "正在推送 server 并建立隧道" };
+  return { title: "等待画面", description: "设备正在准备编码器，画面到达前请稍候" };
 }
 
 export function MirrorView(props: DeviceSession) {
@@ -96,8 +110,20 @@ export function MirrorView(props: DeviceSession) {
     void mirrorStore.bindSerial(serial);
   });
 
+  createEffect(() => {
+    const width = mirrorStore.state.width;
+    const height = mirrorStore.state.height;
+    if (!canvas || width < 1 || height < 1) return;
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
+  });
+
   const live = () => mirrorStore.state.phase === "live";
-  const canControl = () => live() && !mirrorStore.state.readOnly && mirrorStore.state.control;
+  const waiting = () => {
+    const phase = mirrorStore.state.phase;
+    return phase === "starting" || (phase === "live" && !mirrorStore.state.hasFrame);
+  };
+  const canControl = () => live() && mirrorStore.state.hasFrame && !mirrorStore.state.readOnly && mirrorStore.state.control;
 
   function videoPoint(event: PointerEvent): { x: number; y: number; width: number; height: number } | null {
     if (!canvas) return null;
@@ -154,7 +180,7 @@ export function MirrorView(props: DeviceSession) {
     }
   }
 
-  const showCanvas = () => live() || mirrorStore.state.phase === "starting";
+  const painted = () => live() && mirrorStore.state.hasFrame;
 
   return (
     <YoPage class={`yohu-mirror${mirrorStore.state.fullscreen ? " yohu-mirror--full" : ""}`}>
@@ -162,123 +188,105 @@ export function MirrorView(props: DeviceSession) {
         title="投屏显示"
         deviceLabel={props.selectedLabel ?? undefined}
         extra={
-          <>
-            <span title="下次开始生效">
-              <YoSelect
-                options={withCurrentOption(SIZE_OPTIONS, mirrorStore.state.maxSize, (n) =>
-                  n === 0 ? "原始" : String(n),
-                )}
-                value={String(mirrorStore.state.maxSize)}
-                disabled={mirrorStore.state.phase === "starting"}
-                onChange={(v) => void mirrorStore.persistQuality("mirror_max_size", Number.parseInt(v, 10))}
-              />
-            </span>
-            <span title="下次开始生效">
-              <YoSelect
-                options={withCurrentOption(RATE_OPTIONS, mirrorStore.state.videoBitRate, (n) =>
-                  n >= 1_000_000 ? `${n / 1_000_000} Mbps` : `${n} bps`,
-                )}
-                value={String(mirrorStore.state.videoBitRate)}
-                disabled={mirrorStore.state.phase === "starting"}
-                onChange={(v) => void mirrorStore.persistQuality("mirror_video_bit_rate", Number.parseInt(v, 10))}
-              />
-            </span>
-            <span title="下次开始生效">
-              <YoSelect
-                options={withCurrentOption(FPS_OPTIONS, mirrorStore.state.maxFps, (n) =>
-                  n === 0 ? "不限" : `${n} fps`,
-                )}
-                value={String(mirrorStore.state.maxFps)}
-                disabled={mirrorStore.state.phase === "starting"}
-                onChange={(v) => void mirrorStore.persistQuality("mirror_max_fps", Number.parseInt(v, 10))}
-              />
-            </span>
-            <label class="yohu-mirror__toggle">
-              只读
-              <YoSwitch
-                ariaLabel="只读（关闭控制通道）"
-                checked={mirrorStore.state.readOnly}
-                onChange={(v) => void mirrorStore.setReadOnly(v)}
-              />
-            </label>
-            <label class="yohu-mirror__toggle" title="下次开始生效">
-              强制转发
-              <YoSwitch
-                ariaLabel="强制 ADB forward"
-                checked={mirrorStore.state.forceForward}
-                disabled={mirrorStore.state.phase === "starting"}
-                onChange={(v) => void mirrorStore.persistQuality("mirror_force_forward", v)}
-              />
-            </label>
+          <div class="yohu-mirror__toolbar">
+            <div class="yohu-mirror__toolbar-row">
+              <div class="yohu-mirror__group" title="下次开始生效">
+                <span class="yohu-mirror__group-label">质量</span>
+                <label class="yohu-mirror__field">
+                  <span class="yohu-mirror__field-name">长边</span>
+                  <YoSelect
+                    options={withCurrentOption(SIZE_OPTIONS, mirrorStore.state.maxSize, (n) =>
+                      n === 0 ? "原始" : String(n),
+                    )}
+                    value={String(mirrorStore.state.maxSize)}
+                    disabled={mirrorStore.state.phase === "starting"}
+                    onChange={(v) => void mirrorStore.persistQuality("mirror_max_size", Number.parseInt(v, 10))}
+                  />
+                </label>
+                <label class="yohu-mirror__field">
+                  <span class="yohu-mirror__field-name">码率</span>
+                  <YoSelect
+                    options={withCurrentOption(RATE_OPTIONS, mirrorStore.state.videoBitRate, (n) =>
+                      n >= 1_000_000 ? `${n / 1_000_000} Mbps` : `${n} bps`,
+                    )}
+                    value={String(mirrorStore.state.videoBitRate)}
+                    disabled={mirrorStore.state.phase === "starting"}
+                    onChange={(v) =>
+                      void mirrorStore.persistQuality("mirror_video_bit_rate", Number.parseInt(v, 10))
+                    }
+                  />
+                </label>
+                <label class="yohu-mirror__field">
+                  <span class="yohu-mirror__field-name">帧率</span>
+                  <YoSelect
+                    options={withCurrentOption(FPS_OPTIONS, mirrorStore.state.maxFps, (n) =>
+                      n === 0 ? "不限" : `${n} fps`,
+                    )}
+                    value={String(mirrorStore.state.maxFps)}
+                    disabled={mirrorStore.state.phase === "starting"}
+                    onChange={(v) => void mirrorStore.persistQuality("mirror_max_fps", Number.parseInt(v, 10))}
+                  />
+                </label>
+              </div>
+              <div class="yohu-mirror__group">
+                <span class="yohu-mirror__group-label">通道</span>
+                <label class="yohu-mirror__toggle">
+                  <span class="yohu-mirror__field-name">只读</span>
+                  <YoSwitch
+                    ariaLabel="只读（关闭控制通道）"
+                    checked={mirrorStore.state.readOnly}
+                    onChange={(v) => void mirrorStore.setReadOnly(v)}
+                  />
+                </label>
+                <label class="yohu-mirror__toggle" title="下次开始生效">
+                  <span class="yohu-mirror__field-name">强制转发</span>
+                  <YoSwitch
+                    ariaLabel="强制 ADB forward"
+                    checked={mirrorStore.state.forceForward}
+                    disabled={mirrorStore.state.phase === "starting"}
+                    onChange={(v) => void mirrorStore.persistQuality("mirror_force_forward", v)}
+                  />
+                </label>
+              </div>
+            </div>
             <Show when={!mirrorStore.state.readOnly}>
-              <div class="yohu-mirror__keys">
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void tapKey(AndroidKey.Home)}
-                >
-                  Home
-                </YoButton>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void tapKey(AndroidKey.Back)}
-                >
-                  返回
-                </YoButton>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void tapKey(AndroidKey.AppSwitch)}
-                >
-                  多任务
-                </YoButton>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void tapKey(AndroidKey.Power)}
-                >
-                  电源
-                </YoButton>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void tapKey(AndroidKey.VolumeUp)}
-                >
-                  音量+
-                </YoButton>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void tapKey(AndroidKey.VolumeDown)}
-                >
-                  音量-
-                </YoButton>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void send({ kind: "display_power", on: false })}
-                >
-                  息屏
-                </YoButton>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void send({ kind: "display_power", on: true })}
-                >
-                  亮屏
-                </YoButton>
+              <div class="yohu-mirror__toolbar-row">
+                <div class="yohu-mirror__group">
+                  <span class="yohu-mirror__group-label">导航</span>
+                  <div class="yohu-mirror__keys">
+                    <For each={NAV_KEYS}>
+                      {(item) => (
+                        <YoButton
+                          size="sm"
+                          variant="secondary"
+                          disabled={!canControl()}
+                          onClick={() => void tapKey(item.keycode)}
+                        >
+                          {item.label}
+                        </YoButton>
+                      )}
+                    </For>
+                    <YoButton
+                      size="sm"
+                      variant="secondary"
+                      disabled={!canControl()}
+                      onClick={() => void send({ kind: "display_power", on: false })}
+                    >
+                      息屏
+                    </YoButton>
+                    <YoButton
+                      size="sm"
+                      variant="secondary"
+                      disabled={!canControl()}
+                      onClick={() => void send({ kind: "display_power", on: true })}
+                    >
+                      亮屏
+                    </YoButton>
+                  </div>
+                </div>
               </div>
             </Show>
-          </>
+          </div>
         }
       >
         <YoButton
@@ -299,7 +307,12 @@ export function MirrorView(props: DeviceSession) {
           disabled={!live()}
           onClick={() => mirrorStore.setPaused(!mirrorStore.state.paused)}
         />
-        <YoIconButton icon="export" title="截图" disabled={!live()} onClick={() => void screenshot()} />
+        <YoIconButton
+          icon="export"
+          title="截图"
+          disabled={!live() || !mirrorStore.state.hasFrame}
+          onClick={() => void screenshot()}
+        />
         <YoIconButton
           icon={mirrorStore.state.fullscreen ? "window-restore" : "window-max"}
           title={mirrorStore.state.fullscreen ? "退出全屏" : "面板内全屏"}
@@ -316,7 +329,7 @@ export function MirrorView(props: DeviceSession) {
               decoder.attach(el);
             }}
             class="yohu-mirror__canvas"
-            classList={{ "yohu-mirror__canvas--hidden": !showCanvas() || !live() }}
+            classList={{ "yohu-mirror__canvas--hidden": !painted() }}
             onPointerDown={(event) => {
               if (!canControl()) return;
               (event.currentTarget as HTMLCanvasElement).setPointerCapture(event.pointerId);
@@ -334,7 +347,14 @@ export function MirrorView(props: DeviceSession) {
             }}
             onContextMenu={(event) => event.preventDefault()}
           />
-          <Show when={!live()}>
+          <Show when={waiting()}>
+            <YoLoading
+              cover
+              title={waitingCopy(mirrorStore.state.phase).title}
+              description={waitingCopy(mirrorStore.state.phase).description}
+            />
+          </Show>
+          <Show when={!live() && !waiting()}>
             <YoEmptyState
               icon="mirror"
               title={emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title}

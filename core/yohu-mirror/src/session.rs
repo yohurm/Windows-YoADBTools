@@ -430,6 +430,21 @@ async fn run_connected(
                         .await;
                     }
                     HeaderKind::Media { config, keyframe, pts, size } => {
+                        if packets < 32 {
+                            tracing::info!(
+                                serial = %serial,
+                                packets,
+                                size,
+                                config,
+                                keyframe,
+                                "读媒体包"
+                            );
+                        }
+                        if size > 400_000 && !config {
+                            return Err(MirrorError::Protocol(format!(
+                                "媒体包异常大: {size} bytes (packets={packets})"
+                            )));
+                        }
                         let mut payload = vec![0u8; size as usize];
                         read_exact_cancel(&mut video, &mut payload, cancel).await?;
                         if config && !saw_config {

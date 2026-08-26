@@ -115,6 +115,32 @@ describe("mirror store", () => {
     });
     expect(store.state.phase).toBe("live");
     expect(store.state.width).toBe(1080);
+    expect(store.state.hasFrame).toBe(false);
+  });
+
+  it("Live 不等于已出画；解码器 onPainted 才置 hasFrame", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    const decoder = { onPainted: null as (() => void) | null, reset() {}, paused: false };
+    store.bindDecoder(decoder as import("./decoder").H264CanvasDecoder);
+    await store.bindSerial("S1");
+    mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
+    await store.start();
+    expect(store.state.hasFrame).toBe(false);
+    const onState = mocks.stateHandlers.at(-1)!;
+    onState({
+      serial: "S1",
+      generation: 1,
+      state: "live",
+      width: 1080,
+      height: 1920,
+      codec: "h264",
+      control: false,
+    });
+    expect(store.state.phase).toBe("live");
+    expect(store.state.hasFrame).toBe(false);
+    decoder.onPainted?.();
+    expect(store.state.hasFrame).toBe(true);
   });
 
   it("掉线清空当前设备画面状态", async () => {
@@ -134,5 +160,77 @@ describe("mirror store", () => {
     mocks.offlineHandlers.at(-1)!({ serial: "S1" });
     expect(store.state.phase).toBe("idle");
     expect(store.state.error).toBe("设备已掉线");
+  });
+
+  it("原始+不限在 start 时封顶为 1024@30", async () => {
+    const { createMirrorStore, encoderLimits } = await import("./store");
+    expect(encoderLimits(0, 0)).toEqual({ maxSize: 1024, maxFps: 30, capped: true });
+    expect(encoderLimits(1024, 0)).toEqual({ maxSize: 1024, maxFps: 0, capped: false });
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    store.applySettings({
+      mirror_max_size: 0,
+      mirror_video_bit_rate: 8_000_000,
+      mirror_max_fps: 0,
+      mirror_force_forward: true,
+    });
+    mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
+    await store.start();
+    expect(mocks.mirrorStart).toHaveBeenCalledWith({
+      serial: "S1",
+      max_size: 1024,
+      video_bit_rate: 8_000_000,
+      max_fps: 30,
+      control: false,
+      force_forward: true,
+    });
+  });
+
+  it("adopt 到超长边会话时停掉重开", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    store.applySettings({
+      mirror_max_size: 0,
+      mirror_video_bit_rate: 8_000_000,
+      mirror_max_fps: 0,
+      mirror_force_forward: false,
+    });
+    mocks.mirrorStart
+      .mockResolvedValueOnce({ serial: "S1", generation: 3, adopted: true })
+      .mockResolvedValueOnce({ serial: "S1", generation: 4, adopted: false });
+    mocks.mirrorStatus.mockResolvedValueOnce({
+      serial: "S1",
+      mirroring: true,
+      generation: 3,
+      width: 1220,
+      height: 2712,
+      codec: "h264",
+      control: false,
+    });
+    mocks.mirrorStop.mockResolvedValue(undefined);
+    await store.start();
+    expect(mocks.mirrorStop).toHaveBeenCalledWith("S1");
+    expect(mocks.mirrorStart).toHaveBeenCalledTimes(2);
+    expect(mocks.mirrorStart.mock.calls[1]?.[0]).toMatchObject({ max_size: 1024, max_fps: 30 });
+  });
+
+  it("会话进行中忽略空 serial，避免误停", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    mocks.stateHandlers.at(-1)!({
+      serial: "S1",
+      generation: 1,
+      state: "live",
+      width: 1080,
+      height: 1920,
+      codec: "h264",
+      control: false,
+    });
+    await store.bindSerial(null);
+    expect(mocks.mirrorStop).not.toHaveBeenCalled();
+    expect(store.state.serial).toBe("S1");
+    expect(store.state.phase).toBe("live");
   });
 });

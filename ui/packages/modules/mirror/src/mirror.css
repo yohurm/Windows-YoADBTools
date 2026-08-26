@@ -1,6 +1,7 @@
 /* ============================================================================
  * 投屏显示（UI设计系统-v6.md §4.4）。
  * 画面嵌在 YoPanel；等比适应容器（不是编码器 max_size）。
+ * 页眉：主行开始/停止/暂停/截图/全屏；次行按 质量 / 通道 / 导航 分组。
  * ========================================================================== */
 
 .yohu-mirror__panel {
@@ -34,12 +35,58 @@
   pointer-events: none;
 }
 
+.yohu-mirror__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--yohu-space-sm);
+  min-width: 0;
+  width: 100%;
+}
+
+.yohu-mirror__toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--yohu-space-lg);
+  min-width: 0;
+}
+
+.yohu-mirror__group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--yohu-space-sm);
+  min-width: 0;
+}
+
+.yohu-mirror__group-label {
+  font-size: var(--yohu-font-caption);
+  font-weight: var(--yohu-font-weight-medium);
+  color: var(--yohu-fg-2);
+  line-height: var(--yohu-font-leading-tight);
+  white-space: nowrap;
+}
+
+.yohu-mirror__field,
+.yohu-mirror__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--yohu-space-xs);
+  min-width: 0;
+}
+
+.yohu-mirror__field-name {
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
+  line-height: var(--yohu-font-leading-tight);
+  white-space: nowrap;
+}
+
 .yohu-mirror__keys {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--yohu-space-sm);
-  margin-left: auto;
 }
 
 .yohu-mirror--full .yohu-mirror__panel {
