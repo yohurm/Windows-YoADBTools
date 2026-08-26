@@ -32,6 +32,11 @@ import type {
   DragOutRequest,
   RemoteUpdate,
   UpdateChannelInfo,
+  MirrorStart,
+  MirrorStartRequest,
+  MirrorStatus,
+  MirrorInjectRequest,
+  MirrorSavePngRequest,
 } from "./types";
 
 // ===== device =====
@@ -100,6 +105,25 @@ export const logExport = (req: ExportRequest) => invoke<ExportResult>("log.expor
 export const logProcessSnapshot = (serial: string) =>
   invoke<ProcessEntry[]>("log.processSnapshot", { serial });
 
+// ===== mirror =====
+
+export const mirrorStart = (req: MirrorStartRequest) =>
+  invoke<MirrorStart>("mirror.start", { req });
+
+export const mirrorStop = (serial: string) => invoke<void>("mirror.stop", { serial });
+
+export const mirrorStatus = (serial: string) =>
+  invoke<MirrorStatus>("mirror.status", { serial });
+
+export const mirrorInject = (req: MirrorInjectRequest) =>
+  invoke<void>("mirror.inject", { req });
+
+export const mirrorCloseControl = (serial: string) =>
+  invoke<void>("mirror.closeControl", { serial });
+
+export const mirrorSavePng = (req: MirrorSavePngRequest) =>
+  invoke<void>("mirror.savePng", { req });
+
 // ===== settings =====
 
 export const settingsGet = (key: SettingKey) => invoke<unknown>("settings.get", { key });
@@ -116,6 +140,9 @@ export const systemOpenPath = (path: string) => invoke<void>("system.openPath", 
 
 export const systemReportError = (message: string) =>
   invoke<void>("system.reportError", { message });
+
+export const systemLog = (level: string, module: string, message: string) =>
+  invoke<void>("system.log", { level, module, message });
 
 // ===== update =====
 

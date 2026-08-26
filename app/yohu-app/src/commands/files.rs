@@ -17,6 +17,7 @@ pub async fn files_list(
     path: String,
 ) -> Result<Vec<RemoteEntry>, IpcError> {
     state.require_online(&serial)?;
+    tracing::info!(serial = %serial, path = %path, "files.list");
     let cancel = {
         let mut slot = state.browse_cancel.lock().expect("browse lock poisoned");
         slot.cancel();

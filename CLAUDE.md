@@ -7,7 +7,7 @@
 - 架构：`docs/architecture/架构设计-v6.md`（全细节 + ADR-v6-001~019）；右键菜单见 `docs/architecture/右键菜单-v6.md`
 
 ## 技术栈
-- **核心**：Rust（tokio），Cargo workspace：`yohu-protocol`（wire 类型，零业务逻辑）← `yohu-domain`（命令库/判定/组编排/日志过滤/安全路径）← `yohu-adb` / `yohu-logsrv` / `yohu-files`；**core 零 Tauri 依赖**（ADR-v6-005）
+- **核心**：Rust（tokio），Cargo workspace：`yohu-protocol`（wire 类型，零业务逻辑）← `yohu-domain`（命令库/判定/组编排/日志过滤/安全路径）← `yohu-adb` / `yohu-logsrv` / `yohu-files` / `yohu-mirror`；**core 零 Tauri 依赖**（ADR-v6-005）
 - **桌面壳**：Tauri 2（窗口/sidecar/升级；IPC = invoke 命令 + 批量事件）；`app/yohu-app` 是唯一引用 Tauri 的 crate；`commands/` 只转发，编排在 `device_catalog` / `library_store` / `group_runs`
 - **UI**：TypeScript + SolidJS + Vite，pnpm monorepo（Turborepo）：`@yohu/api`（类型化 IPC）→ `@yohu/ui`（自研组件库）→ `@yohu/app`（壳）+ `@yohu/modules/*`
 - **组件库**：`@yohu/ui` 第一公民（公开组件 `Yo*` 标注；token 单源；lint 禁硬编码色值/字号/动效时长/圆角）；组件清单见架构文档 §7.2
@@ -18,13 +18,14 @@
 ## 核心功能
 1. **设备管理** — `yohu-adb` 的 `devices -l` 扫描（device/unauthorized/offline + 型号）；全局焦点 + 每模块选择作用域（终端 MultiOptional，文件/日志 SingleRequired）；手动刷新 + 启动预热 + 可选自动刷新（`devices_auto_refresh`）
 2. **ADB 命令终端** — 命令库/命令组（占位符 `{0}{1}`）/多设备并行/组编排（顺序、延时、失败中断）；成败判定在 core 领域层 `CommandEvaluator`（**失败正则 → 成功正则 → 退出码**，ADR-v6-009）；命令管理窗口（深拷贝编辑、全量提交、取消零污染）
-3. **文件管理** — `ls` 浏览、push/pull（`transfer.progress` 事件 200ms 节流 + 可取消）、删除/新建目录；**core 侧 SafetyRoot 强制校验**（`/sdcard`、`/storage` 子路径，拒绝 `..`，不信任 UI，ADR-v6-013）
+3. **文件管理** — `ls` 浏览、push/pull（`transfer/progress` 事件 200ms 节流 + 可取消）、删除/新建目录；**core 侧 SafetyRoot 强制校验**（`/sdcard`、`/storage` 子路径，拒绝 `..`，不信任 UI，ADR-v6-013）
 4. **日志分析** — core **每设备一路** logcat（`adb logcat -v threadtime,uid`）+ 设备级共享环形缓冲（`buffer_capacity` 默认 10000，与 UI 镜像/可见区同一上限）；**窗口/过滤在 UI 消费端**（ADR-v6-006）：多窗口 Tab（默认 System，Scope=all；可按包名/PID 再开）；每窗口绑定 serial + capturing/fromSeq；启停只打当前窗口，设备流按窗口引用计数 0↔1 / 1↔0；切焦点不停其他设备；进程索引（`ps` 2.5s 周期）+ 包名 PID 自动重绑（历史 PID 集上限 8）；AS 风格过滤栏（级别含以上/包名含子进程开关/精确 PID/Tag/关键字，无正则）；每窗口独立暂停（Space）与滚动挂起（离开底部只计数不跟滚）；清设备缓冲 = `logcat -c` + 清共享缓冲；导出 txt 走 core（`log.export`，持有全量缓冲）；快捷键 Space/Ctrl+L/Ctrl+F/Ctrl+T/Ctrl+W/Ctrl+Tab；掉线只停并清空该 serial 的窗口
-5. **设置面板** — `adb_path`（立即）/`data_root`（重启）/`devices_auto_refresh`（重启）/`buffer_capacity`（窗口立即、采集环下次启动）/`clear_device_on_start`（下次采集）/`theme`（立即，默认 system）/`density`（立即，默认 comfortable＝鸿蒙 PC）；设置根固定 `%LOCALAPPDATA%\YohuAdbTools\settings\`；关于页身份与路径来自 `system.info`
+5. **投屏显示** — 官方 `scrcpy-server` 4.1 sidecar + `yohu-mirror` 自写客户端（reverse 优先，forward+dummy 回退）；WebView2 WebCodecs 画进面板；默认只读视频；可选控制注入；每设备一路 + generation 槽位
+6. **设置面板** — `adb_path`（立即）/`data_root`（重启）/`devices_auto_refresh`（重启）/`buffer_capacity`（窗口立即、采集环下次启动）/`clear_device_on_start`（下次采集）/`theme`（立即，默认 system）/`density`（立即，默认 comfortable＝鸿蒙 PC）/`mirror_*`（下次启动）；设置根固定 `%LOCALAPPDATA%\YohuAdbTools\settings\`；关于页身份与路径来自 `system.info`
 
 ## 架构约定（v6，ADR 全量见架构文档 §14）
-- **依赖方向**：`UI → @yohu/api → IPC ← commands ← core crates`；core crates 间 `yohu-{adb,logsrv,files} → yohu-domain → yohu-protocol`；`apps/shell` 是唯一组合点（`registerModule`）；模块只依赖 `@yohu/api` + `@yohu/ui`。禁止 core 引用 Tauri、UI 模块互 import / 依赖 `@yohu/app`（`scripts/check-ui-deps.mjs`）、跨层绕过 IPC
-- **批量 IPC（ADR-v6-007）**：logcat 行/传输进度 100–200ms 聚合（单批 ≤1000 行 / 512KB，先到先发），**禁逐行**；背压：下游事件队列有界，溢出**丢推送不丢环**（RingBuffer seq 单调），UI 经 `log.overflow` 提示后 `log.replay(fromSeq)` 补齐；导出/重放永远基于 core RingBuffer 快照
+- **依赖方向**：`UI → @yohu/api → IPC ← commands ← core crates`；core crates 间 `yohu-{adb,logsrv,files,mirror} → yohu-domain → yohu-protocol`；`apps/shell` 是唯一组合点（`registerModule`）；模块只依赖 `@yohu/api` + `@yohu/ui`。禁止 core 引用 Tauri、UI 模块互 import / 依赖 `@yohu/app`（`scripts/check-ui-deps.mjs`）、跨层绕过 IPC
+- **批量 IPC（ADR-v6-007）**：logcat 行/传输进度 100–200ms 聚合（单批 ≤1000 行 / 512KB，先到先发），**禁逐行**；背压：下游事件队列有界，溢出**丢推送不丢环**（RingBuffer seq 单调），UI 经 `log/overflow` 提示后 `log.replay(fromSeq)` 补齐；导出/重放永远基于 core RingBuffer 快照。**投屏帧例外**：`mirror/packet` 逐帧 `try_send`（可丢帧）。**Tauri 2.9 事件名禁止点号**（ADR-v6-020），事件用 `/`（`log/lines`），invoke 命令名仍点分（`log.export`）
 - **采集模型（ADR-v6-006/016）**：每设备至多一路 logcat 流（多设备可并行）；槽位 Empty/Starting/Live/Stopping；`start` **仅 Live adopt**，Starting/Stopping 等待；`CaptureState` 带 generation 且必达；窗口=会话订阅（serial/capturing/fromSeq），过滤/可见列表仍在 UI；设备流按窗口引用计数；切焦点不停其他设备；`start` 失败与成功均以 `log.capture.status` 快照对账；启动中可并发 `stop` 取消 Starting
 - **会话与过滤**：Scope（All=System / Package / Pid）；包名匹配 = PidSet ∪ HistoryPidSet；PID 精确相等；级别最低含以上；Tag/关键字包含（OrdinalIgnoreCase）；过滤变更仅当前窗口重建可见区（且只重放 seq≥fromSeq）
 - **成败判定分离**：ADB 客户端不判定；判定在 `yohu-domain`（CommandEvaluator）
@@ -32,8 +33,7 @@
 - **模块静态组合（ADR-v6-012）**：无插件热加载；模块 descriptor（id/title/icon/selectionMode/Component/createStore）注册进 `@yohu/app` 注册表
 - **右键菜单（ADR-v6-019）**：场景表在各模块 `menu.ts`；`openContextMenu` 打开；壳唯一 Host。禁止 View 自挂 `YoContextMenu`
 - **编辑即快照**：命令管理深拷贝编辑、保存全量提交（原子写：临时文件 + rename，损坏备份 `.corrupt-<ts>`）
-- **后台任务**：长任务（采集/传输/命令组）登记任务中心，状态栏展示；退出序列 = 根 CancellationToken cancel → 任务收敛（超时 3s 强杀 adb 进程树）→ 设置 flush
-- **占位模块**：投屏 `@yohu/module-mirror`（isPlanned）仅贡献导航 + "开发中"页
+- **后台任务**：长任务（采集/传输/命令组/投屏）登记任务中心，状态栏展示；退出序列 = 根 CancellationToken cancel → 任务收敛（超时 3s 强杀 adb 进程树）→ 设置 flush
 - **新增模块**：实现 `ModuleDescriptor`（见架构文档 §7.3）→ 注册到 `@yohu/app` 的 registry（静态 import）
 - **数据与路径**：全部在 `%LOCALAPPDATA%\YohuAdbTools\`（无管理员权限）；命令库 `data/modules/adb-terminal/config/library.json`（schemaVersion 2；损坏或 schema 不匹配则备份后写默认库）
 
@@ -47,7 +47,8 @@ core/
 ├── yohu-domain/                        # 纯领域：命令库/CommandEvaluator/GroupExecutor/RemotePath/SafetyRoot/设置模型
 ├── yohu-adb/                           # ADB 客户端：tool(sidecar)/process/devices/client/parse
 ├── yohu-logsrv/                        # 采集服务：CaptureService/RingBuffer/Batcher/ProcessIndexService/ExportService
-└── yohu-files/                         # 文件：browse/transfer/mutate
+├── yohu-files/                         # 文件：browse/transfer/mutate
+└── yohu-mirror/                        # 投屏：官方 scrcpy-server + 自写客户端
 app/
 └── yohu-app/                           # Tauri 壳：commands(薄)/state/sidecar/panic
 ui/
@@ -59,6 +60,7 @@ ui/
 └── apps/shell/                         # Vite 入口（frontendDist）
 tools/
 ├── adb.exe + AdbWinApi.dll + AdbWinUsbApi.dll   # sidecar 资源
+├── scrcpy-server                       # 官方 scrcpy-server 4.1（scripts/setup-scrcpy-server.ps1）
 └── fake-adb/                           # 脚本化假 adb（core 集成测试 fixture）
 scripts/verify-v6-{smoke,full,logs-perf}.ps1
 ```
@@ -110,7 +112,7 @@ cargo tauri build
 - **验收现状**：`cargo build --workspace && cargo test --workspace` 全绿（含 7 集成 + 4 设置契约 + 13 真机）、clippy -D warnings 通过、Vitest **248** 用例全绿、tsc -b 0 错误、`pnpm lint`（ADR-v6-011 token 纪律：色值/字号/动效时长/圆角，scripts/check-ui-tokens.mjs）通过、**verify-v6-smoke.ps1 已实际跑通**（进程存活/无 panic/sidecar 解压/默认命令库写入；期间修复 events.rs 必须在 tauri 异步运行时 spawn 的启动崩溃）
 - 待续（S5，需设备，脚本已备）：安装包安装冒烟、全功能联调、日志性能验收、产线镜像预置 WebView2
 - **v5 已下线**：C#/WPF 与存档文档均已移除，不再作为实现依据
-- **sidecar 二进制**：`tools/adb.exe` 等被 .gitignore 排除（不入库）；新机器构建前运行 `scripts/setup-adb.ps1` 从 Google platform-tools 下载官方三件套
+- **sidecar 二进制**：`tools/adb.exe` 等被 .gitignore 排除（不入库）；新机器构建前运行 `scripts/setup-adb.ps1` 与 `scripts/setup-scrcpy-server.ps1`
 
 ## 需求文档
 详见 `docs/requirements/需求分析.md`

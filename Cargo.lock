@@ -5043,6 +5043,7 @@ dependencies = [
  "yohu-domain",
  "yohu-files",
  "yohu-logsrv",
+ "yohu-mirror",
  "yohu-protocol",
  "yohu-update",
 ]
@@ -5084,6 +5085,18 @@ dependencies = [
  "tracing",
  "yohu-adb",
  "yohu-domain",
+ "yohu-protocol",
+]
+
+[[package]]
+name = "yohu-mirror"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "yohu-adb",
  "yohu-protocol",
 ]
 

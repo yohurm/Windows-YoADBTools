@@ -8,6 +8,7 @@ pub mod commandlib;
 pub mod device;
 pub mod files;
 pub mod log;
+pub mod mirror;
 pub mod settings;
 pub mod system;
 pub mod terminal;

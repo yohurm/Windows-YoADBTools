@@ -44,7 +44,6 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
   return (
     <header
       class="yohu-titlebar"
-      data-tauri-drag-region
       onDblClick={(event) => {
         if (isCaptionTarget(event.target)) return;
         props.onToggleMaximize?.();
@@ -76,7 +75,9 @@ export function YoTitleBar(props: YoTitleBarProps): JSX.Element {
         </Show>
         <span class="yohu-titlebar__title">{props.title}</span>
       </div>
-      <div class="yohu-titlebar__center">{props.children}</div>
+      <div class="yohu-titlebar__center" data-tauri-drag-region>
+        {props.children}
+      </div>
       <div class="yohu-titlebar__trailing">
         <Show when={props.actions}>
           <div class="yohu-titlebar__actions">{props.actions}</div>

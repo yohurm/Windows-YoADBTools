@@ -103,6 +103,10 @@ export interface AppSettings {
   export_write_mode: "overwrite" | "append";
   log_display_columns: LogDisplayColumns;
   update_provider: UpdateProvider;
+  mirror_max_size: number;
+  mirror_video_bit_rate: number;
+  mirror_max_fps: number;
+  mirror_force_forward: boolean;
 }
 
 /** 日志清单元数据列开关；消息列始终显示。 */
@@ -127,7 +131,11 @@ export type SettingKey =
   | "export_ask_every_time"
   | "export_write_mode"
   | "log_display_columns"
-  | "update_provider";
+  | "update_provider"
+  | "mirror_max_size"
+  | "mirror_video_bit_rate"
+  | "mirror_max_fps"
+  | "mirror_force_forward";
 
 /** 应用身份（`system.info.identity`；常量见 `identity.ts`）。 */
 export interface AppIdentity {
@@ -329,6 +337,68 @@ export interface UpdateChannelInfo {
   page_url: string;
 }
 
+// ===== mirror =====
+
+export type MirrorSessionState = "starting" | "live" | "stopped" | "failed";
+
+export interface MirrorStart {
+  serial: string;
+  generation: number;
+  adopted: boolean;
+}
+
+export interface MirrorStatus {
+  serial: string;
+  mirroring: boolean;
+  generation: number;
+  width: number;
+  height: number;
+  codec: string;
+  control: boolean;
+  error?: string;
+}
+
+export interface MirrorStartRequest {
+  serial: string;
+  max_size: number;
+  video_bit_rate: number;
+  max_fps: number;
+  control: boolean;
+  force_forward: boolean;
+}
+
+export interface MirrorPacket {
+  serial: string;
+  generation: number;
+  codec: string;
+  width: number;
+  height: number;
+  config: boolean;
+  keyframe: boolean;
+  pts: number;
+  data_b64: string;
+}
+
+export type MirrorControlMessage =
+  | { kind: "touch"; action: number; x: number; y: number; width: number; height: number }
+  | { kind: "key"; keycode: number; down: boolean }
+  | { kind: "display_power"; on: boolean }
+  | { kind: "back_or_screen_on" }
+  | { kind: "expand_notification" }
+  | { kind: "expand_settings" }
+  | { kind: "collapse_panels" }
+  | { kind: "rotate_device" };
+
+export interface MirrorInjectRequest {
+  serial: string;
+  message: MirrorControlMessage;
+}
+
+export interface MirrorSavePngRequest {
+  path: string;
+  data_b64: string;
+}
+
 // ===== events =====
 
 export interface TaskInfo {
@@ -360,20 +430,34 @@ export type AppEvent =
   | { kind: "transferProgress" } & TransferProgress
   | { kind: "groupProgress" } & GroupProgress
   | { kind: "taskSummary"; tasks: TaskInfo[] }
-  | { kind: "settingsChanged"; key: string; settings: AppSettings };
+  | { kind: "settingsChanged"; key: string; settings: AppSettings }
+  | {
+      kind: "mirrorState";
+      serial: string;
+      generation: number;
+      state: MirrorSessionState;
+      width: number;
+      height: number;
+      codec: string;
+      control: boolean;
+      error?: string;
+    }
+  | { kind: "mirrorPacket" } & MirrorPacket;
 
 /** 事件名常量（与 yohu-protocol::event_names 一致）。 */
 export const EVENT_NAMES = {
-  devicesChanged: "devices.changed",
-  deviceOffline: "device.offline",
-  logLines: "log.lines",
-  logOverflow: "log.overflow",
-  processIndex: "log.processIndex",
-  captureState: "log.captureState",
-  transferProgress: "transfer.progress",
-  groupProgress: "group.progress",
-  taskSummary: "task.summary",
-  settingsChanged: "settings.changed",
+  devicesChanged: "devices/changed",
+  deviceOffline: "device/offline",
+  logLines: "log/lines",
+  logOverflow: "log/overflow",
+  processIndex: "log/processIndex",
+  captureState: "log/captureState",
+  transferProgress: "transfer/progress",
+  groupProgress: "group/progress",
+  taskSummary: "task/summary",
+  settingsChanged: "settings/changed",
+  mirrorState: "mirror/state",
+  mirrorPacket: "mirror/packet",
 } as const;
 
 // ===== error =====

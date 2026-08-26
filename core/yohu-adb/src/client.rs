@@ -73,6 +73,17 @@ impl AdbClient {
             .await
     }
 
+    /// 长驻进程：不占短命令信号量；调用方负责泵输出与 [`crate::kill_tree`]。
+    pub fn spawn_long_lived(
+        &self,
+        serial: &str,
+        argv: &[String],
+    ) -> Result<tokio::process::Child, AdbError> {
+        let adb = self.resolve_adb()?;
+        self.runner
+            .spawn_child(&adb, &Self::argv_with_serial(serial, argv))
+    }
+
     /// 流式命令：stdout 逐行转发（logcat 采集用）。
     pub async fn stream_lines(
         &self,

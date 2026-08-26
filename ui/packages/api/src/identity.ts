@@ -22,6 +22,9 @@ export const DEFAULT_BROWSE_ROOT = SAFETY_ROOTS[0];
 /** 命令库 schema（与 yohu-protocol::COMMAND_LIBRARY_SCHEMA_VERSION 对齐）。 */
 export const COMMAND_LIBRARY_SCHEMA_VERSION = 2;
 
+/** 官方 scrcpy-server 钉死版本（与 yohu-protocol::scrcpy 对齐）。 */
+export const SCRCPY_SERVER_VERSION = "4.1";
+
 /** 标题栏 / 关于页 / favicon 共用的应用图标（与 `app/yohu-app/icons/icon.png` 同源）。 */
 export const APP_ICON_SRC = "/app-icon.png";
 

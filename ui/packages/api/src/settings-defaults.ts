@@ -25,4 +25,8 @@ export const APP_SETTINGS_DEFAULT: AppSettings = {
     tag: true,
   },
   update_provider: "gitcode",
+  mirror_max_size: 1024,
+  mirror_video_bit_rate: 2_000_000,
+  mirror_max_fps: 30,
+  mirror_force_forward: false,
 };

@@ -79,16 +79,16 @@ vi.mock("@yohu/api", async (importOriginal) => {
       mocks.taskHandler = h;
     },
     EVENT_NAMES: {
-      devicesChanged: "devices.changed",
-      deviceOffline: "device.offline",
-      logLines: "log.lines",
-      logOverflow: "log.overflow",
-      processIndex: "log.processIndex",
-      captureState: "log.captureState",
-      transferProgress: "transfer.progress",
-      groupProgress: "group.progress",
-      taskSummary: "task.summary",
-      settingsChanged: "settings.changed",
+      devicesChanged: "devices/changed",
+      deviceOffline: "device/offline",
+      logLines: "log/lines",
+      logOverflow: "log/overflow",
+      processIndex: "log/processIndex",
+      captureState: "log/captureState",
+      transferProgress: "transfer/progress",
+      groupProgress: "group/progress",
+      taskSummary: "task/summary",
+      settingsChanged: "settings/changed",
     },
   };
 });
@@ -134,8 +134,7 @@ registerModule({
   id: ModuleId.Mirror,
   title: "投屏",
   icon: "mirror",
-  selectionMode: "none",
-  isPlanned: true,
+  selectionMode: "singleRequired",
   Component: () => null,
 });
 
@@ -352,9 +351,10 @@ describe("NavList（§3 模块导航）", () => {
     });
   });
 
-  it("Planned 模块显示「开发中」徽章", () => {
-    render(() => <NavList activeId={ModuleId.Terminal} onNavigate={() => undefined} />);
-    expect(screen.getByText("开发中")).toBeTruthy();
+  it("投屏模块不再显示「开发中」徽章", () => {
+    render(() => <NavList activeId={ModuleId.Mirror} onNavigate={() => undefined} />);
+    expect(screen.queryByText("开发中")).toBeNull();
+    expect(screen.getByText("投屏")).toBeTruthy();
   });
 
   it("设置钉在侧栏底部，与模块用横线隔开", () => {

@@ -11,5 +11,5 @@ pub mod tool;
 
 pub use client::AdbClient;
 pub use error::AdbError;
-pub use process::ProcessRunner;
+pub use process::{kill_tree, ProcessRunner};
 pub use tool::ToolResolver;

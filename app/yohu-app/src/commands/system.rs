@@ -58,5 +58,26 @@ pub fn system_open_path(path: String) -> Result<(), IpcError> {
 /// `system.reportError`：前端全局错误上报（应用操作日志）。
 #[tauri::command(rename = "system.reportError")]
 pub fn system_report_error(state: State<'_, AppState>, message: String) {
-    state.app_log.error(message);
+    crate::yolog::write(
+        &state.app_log,
+        yohu_domain::LogLevel::Error,
+        "ui",
+        &message,
+    );
+}
+
+/// `system.log`：YoLog 落盘（控制台已由前端打印）。
+#[tauri::command(rename = "system.log")]
+pub fn system_log(
+    state: State<'_, AppState>,
+    level: String,
+    module: String,
+    message: String,
+) {
+    crate::yolog::write(
+        &state.app_log,
+        crate::yolog::parse_level(&level),
+        &module,
+        &message,
+    );
 }

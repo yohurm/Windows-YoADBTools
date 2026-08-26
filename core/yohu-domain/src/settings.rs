@@ -92,6 +92,24 @@ pub fn apply_setting(
                 _ => return Err(format!("{} 必须是 gitcode、github 或 pgyer", key.as_str())),
             };
         }
+        SettingKey::MirrorMaxSize => {
+            let n = must_u64(key, value)?;
+            settings.mirror_max_size = u32::try_from(n).map_err(|_| "数值过大")?;
+        }
+        SettingKey::MirrorVideoBitRate => {
+            let n = must_u64(key, value)?;
+            if n == 0 {
+                return Err(format!("{} 必须大于 0", key.as_str()));
+            }
+            settings.mirror_video_bit_rate = u32::try_from(n).map_err(|_| "数值过大")?;
+        }
+        SettingKey::MirrorMaxFps => {
+            let n = must_u64(key, value)?;
+            settings.mirror_max_fps = u32::try_from(n).map_err(|_| "数值过大")?;
+        }
+        SettingKey::MirrorForceForward => {
+            settings.mirror_force_forward = must_bool(key, value)?;
+        }
     }
     Ok(())
 }

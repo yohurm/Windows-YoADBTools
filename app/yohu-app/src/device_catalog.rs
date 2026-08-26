@@ -12,6 +12,18 @@ pub async fn refresh(state: &AppState) -> Result<Vec<DeviceInfo>, String> {
         .devices_resilient(CancellationToken::new())
         .await
         .map_err(|e| e.to_string())?;
+    let previous = {
+        let cache = state.last_devices.lock().expect("devices lock poisoned");
+        cache.clone()
+    };
+    if devices.is_empty() && previous.iter().any(|d| d.state == DeviceState::Online) {
+        tracing::warn!(
+            "设备扫描结果为空，保留上次 {} 台（避免 adb server 重启误判掉线）",
+            previous.len()
+        );
+        return Ok(previous);
+    }
+
     *state.adb_in_use.lock().expect("adb_in_use lock poisoned") =
         Some(adb_used.to_string_lossy().into_owned());
     tracing::info!(
@@ -22,16 +34,18 @@ pub async fn refresh(state: &AppState) -> Result<Vec<DeviceInfo>, String> {
 
     let serials: Vec<String> = devices.iter().map(|d| d.serial.clone()).collect();
 
-    let previous = {
+    {
         let mut cache = state.last_devices.lock().expect("devices lock poisoned");
-        std::mem::replace(&mut *cache, devices.clone())
-    };
+        *cache = devices.clone();
+    }
 
     for old in &previous {
         if old.state == DeviceState::Online && !serials.contains(&old.serial) {
             tracing::info!("设备掉线: {}", old.serial);
             state.capture.detach_device(&old.serial).await;
+            state.mirror.stop(&old.serial).await;
             state.finish_capture_task(&old.serial);
+            state.finish_mirror_task(&old.serial);
             let _ = state
                 .event_tx
                 .send(AppEvent::DeviceOffline {

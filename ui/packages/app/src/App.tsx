@@ -5,7 +5,7 @@
 
 import { Component, createSignal, onCleanup, onMount } from "solid-js";
 
-import { ModuleId, systemReportError } from "@yohu/api";
+import { ModuleId, systemReportError, YoLog } from "@yohu/api";
 import { setDensity, setTheme } from "@yohu/ui";
 
 import { registerModule } from "./registry";
@@ -42,6 +42,7 @@ export const App: Component = () => {
     void settingsStore.load().then(() => {
       setTheme(settingsStore.state.theme);
       setDensity(settingsStore.state.density);
+      YoLog.info("shell", "设置已加载", { theme: settingsStore.state.theme });
     });
     void deviceStore.refresh();
 
@@ -56,7 +57,9 @@ export const App: Component = () => {
     onCleanup(() => unlistenResize?.());
 
     // 前端全局错误上报（应用操作日志，与设备日志分离）
+    YoLog.info("shell", "UI 已挂载");
     window.addEventListener("error", (e) => {
+      YoLog.error("shell", `JS: ${e.message}`);
       void systemReportError(`JS: ${e.message}`);
     });
   });

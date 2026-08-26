@@ -15,6 +15,7 @@ pub async fn log_capture_start(
     state: State<'_, AppState>,
     serial: String,
 ) -> Result<CaptureStart, IpcError> {
+    tracing::info!(serial = %serial, "log.capture.start");
     state.require_online(&serial)?;
     let snap = state.settings.snapshot();
     state.capture.set_ring_capacity(snap.buffer_capacity);

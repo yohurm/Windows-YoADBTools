@@ -69,4 +69,5 @@ coverage/
 /tools/adb.exe
 /tools/AdbWinApi.dll
 /tools/AdbWinUsbApi.dll
+/tools/scrcpy-server
 /tools/msedgedriver/

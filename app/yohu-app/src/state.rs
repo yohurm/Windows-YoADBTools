@@ -15,6 +15,7 @@ use yohu_domain::{
 };
 use yohu_files::{FileBrowser, FileMutator, TransferRunner};
 use yohu_logsrv::{CaptureService, ExportService};
+use yohu_mirror::MirrorService;
 use yohu_protocol::{AppEvent, DeviceInfo, IpcError, IpcErrorCode};
 
 use crate::paths::AppPaths;
@@ -27,6 +28,7 @@ pub struct AppState {
     pub client: Arc<AdbClient>,
     pub tool: Arc<ToolResolver>,
     pub capture: Arc<CaptureService>,
+    pub mirror: Arc<MirrorService>,
     pub browser: FileBrowser,
     pub mutator: FileMutator,
     pub transfers: TransferRunner,
@@ -52,6 +54,8 @@ pub struct AppState {
     pub library: Mutex<CommandLibrary>,
     /// 采集任务登记（serial → 任务 id）
     pub capture_tasks: Mutex<HashMap<String, u32>>,
+    /// 投屏任务登记（serial → 任务 id）
+    pub mirror_tasks: Mutex<HashMap<String, u32>>,
     /// 传输取消令牌（transfer id → token）；拖出 GetData 与对话框共用
     pub transfer_cancels: Arc<Mutex<HashMap<u32, CancellationToken>>>,
     pub transfer_next: Arc<AtomicU32>,
@@ -78,6 +82,18 @@ impl AppState {
             .capture_tasks
             .lock()
             .expect("capture lock poisoned")
+            .remove(serial)
+        {
+            self.tasks.finish(task_id);
+        }
+    }
+
+    /// 投屏任务随 MirrorSessionState::Stopped/Failed 收敛；重复调用幂等。
+    pub fn finish_mirror_task(&self, serial: &str) {
+        if let Some(task_id) = self
+            .mirror_tasks
+            .lock()
+            .expect("mirror task lock poisoned")
             .remove(serial)
         {
             self.tasks.finish(task_id);

@@ -17,6 +17,7 @@ import {
   filesPush,
   onTransferProgress,
   DEFAULT_BROWSE_ROOT,
+  YoLog,
 } from "@yohu/api";
 import type { RemoteEntry, TransferProgress, TransferState } from "@yohu/api";
 import { DISMISS_HOLD_DURATION, motionDurationMs, nextKeys, type SelectMode } from "@yohu/ui";
@@ -168,12 +169,14 @@ export function createFileStore() {
       if (gen !== listGen) return;
       setEntries(sortEntries(list, sort.key, sort.dir));
       setError("");
+      YoLog.info("files", "浏览", { serial: current, path: session.path, count: list.length });
       const alive = new Set(list.map((e) => e.name));
       setSelection("names", selection.names.filter((n) => alive.has(n)));
     } catch (e) {
       if (gen !== listGen || isCancelledError(e)) return;
       setEntries([]);
       setError(errorText(e));
+      YoLog.error("files", "浏览失败", { path: session.path, error: errorText(e) });
     } finally {
       if (gen === listGen) setSession("loading", false);
     }

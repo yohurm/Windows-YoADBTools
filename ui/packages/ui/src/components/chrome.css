@@ -1,15 +1,24 @@
-/* 模块页眉：右侧内容区顶部，标题区 + 功能栏分区。
+/* 模块页眉：主行（标题 + ≤6 操作）+ 可选次行。
  * 行高必须落在标题行（--yohu-control-height），不能写在外壳：
  * border-box 下 min-height 含 padding，无按钮时 8vp 底垫会把标题抬高。 */
 
 .yohu-chrome {
   display: flex;
-  align-items: center;
-  gap: var(--yohu-space-md);
+  flex-direction: column;
+  gap: var(--yohu-space-xs);
   flex: 0 0 auto;
+  min-width: 0;
   padding-bottom: var(--yohu-layout-chrome-pad);
   border-bottom: var(--yohu-stroke-hairline) solid var(--yohu-border);
   box-sizing: border-box;
+}
+
+.yohu-chrome__row {
+  display: flex;
+  align-items: center;
+  gap: var(--yohu-space-md);
+  min-width: 0;
+  min-height: var(--yohu-control-height);
 }
 
 .yohu-chrome__title {
@@ -40,8 +49,18 @@
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
+  justify-content: flex-end;
   gap: var(--yohu-space-sm);
   margin-left: auto;
+  flex: 1 1 0;
   min-width: 0;
-  overflow-x: auto;
+  overflow: hidden;
+}
+
+.yohu-chrome__extra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--yohu-space-sm);
+  min-width: 0;
 }

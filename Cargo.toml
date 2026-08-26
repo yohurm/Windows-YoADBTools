@@ -6,6 +6,7 @@ members = [
   "core/yohu-adb",
   "core/yohu-logsrv",
   "core/yohu-files",
+  "core/yohu-mirror",
   "core/yohu-update",
   "app/yohu-app",
   "tools/fake-adb",
@@ -37,4 +38,5 @@ yohu-domain = { path = "core/yohu-domain" }
 yohu-adb = { path = "core/yohu-adb" }
 yohu-logsrv = { path = "core/yohu-logsrv" }
 yohu-files = { path = "core/yohu-files" }
+yohu-mirror = { path = "core/yohu-mirror" }
 yohu-update = { path = "core/yohu-update" }

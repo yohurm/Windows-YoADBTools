@@ -4,7 +4,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
 
 use crate::state::AppState;
-use yohu_protocol::{AppEvent, CaptureState};
+use yohu_protocol::{AppEvent, CaptureState, MirrorSessionState};
 
 /// 启动分发循环（app 层唯一的事件出口）。
 ///
@@ -27,8 +27,23 @@ pub fn spawn_dispatcher(
                     app_state.finish_capture_task(serial);
                 }
             }
+            if let AppEvent::MirrorState {
+                serial,
+                state: MirrorSessionState::Stopped | MirrorSessionState::Failed,
+                ..
+            } = &event
+            {
+                if let Some(app_state) = app.try_state::<AppState>() {
+                    app_state.finish_mirror_task(serial);
+                }
+            }
             let name = event.name();
-            let _ = app.emit(name, &event);
+            if matches!(&event, AppEvent::MirrorState { .. }) {
+                tracing::info!(name, "emit mirror/state");
+            }
+            if let Err(e) = app.emit(name, &event) {
+                tracing::warn!(name, error = %e, "事件 emit 失败");
+            }
         }
     })
 }

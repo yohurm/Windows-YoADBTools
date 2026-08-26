@@ -17,5 +17,9 @@
     "level": true,
     "tag": true
   },
-  "update_provider": "gitcode"
+  "update_provider": "gitcode",
+  "mirror_max_size": 1024,
+  "mirror_video_bit_rate": 2000000,
+  "mirror_max_fps": 30,
+  "mirror_force_forward": false
 }

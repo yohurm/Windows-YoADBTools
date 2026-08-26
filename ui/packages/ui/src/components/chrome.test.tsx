@@ -59,4 +59,15 @@ describe("YoChrome", () => {
     const chromeBlock = css.match(/\.yohu-chrome\s*\{[^}]+\}/)?.[0] ?? "";
     expect(chromeBlock).not.toMatch(/min-height/);
   });
+
+  it("extra 落在次行，不进主行功能栏", () => {
+    const { container } = render(() => (
+      <YoChrome title="投屏显示" extra={<span>质量</span>}>
+        <button type="button">开始</button>
+      </YoChrome>
+    ));
+    expect(container.querySelector(".yohu-chrome__bar")?.textContent).toContain("开始");
+    expect(container.querySelector(".yohu-chrome__bar")?.textContent).not.toContain("质量");
+    expect(container.querySelector(".yohu-chrome__extra")?.textContent).toContain("质量");
+  });
 });

@@ -34,6 +34,9 @@ pub fn kill_tree(child: &mut Child) {
         {
             let _ = std::process::Command::new("taskkill")
                 .args(["/PID", &pid.to_string(), "/T", "/F"])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
                 .creation_flags(CREATE_NO_WINDOW)
                 .status();
         }
@@ -240,6 +243,12 @@ impl ProcessRunner {
             return Err(AdbError::DeviceOffline(stderr_text.trim().to_string()));
         }
         Ok(exit_code)
+    }
+
+    /// 启动长驻子进程（投屏 `app_process`）：不捕获退出、不占短命令信号量。
+    /// 调用方必须同时泵 stdout/stderr，并在取消时 [`kill_tree`]。
+    pub fn spawn_child(&self, program: &Path, args: &[String]) -> Result<Child, AdbError> {
+        self.spawn(program, args)
     }
 
     fn spawn(&self, program: &Path, args: &[String]) -> Result<Child, AdbError> {

@@ -14,6 +14,7 @@ import {
   groupRun,
   onGroupProgress,
   terminalEval,
+  YoLog,
 } from "@yohu/api";
 import type { CommandDto, CommandGroupDto, CommandLibraryDto } from "@yohu/api";
 
@@ -71,11 +72,13 @@ export function createTerminalStore() {
       return;
     }
     try {
+      YoLog.info("terminal", "执行命令", { command: command.name, serials });
       const rows = await terminalEval({
         command_id: command.id,
         values,
         serials,
       });
+      YoLog.info("terminal", "执行完成", { command: command.name, serials, ok: rows.filter((r) => r.ok).length });
       for (const row of rows) {
         push({
           kind: "command",
@@ -88,6 +91,7 @@ export function createTerminalStore() {
         });
       }
     } catch (e) {
+      YoLog.error("terminal", "执行失败", { command: command.name, error: String(e) });
       push({
         kind: "command",
         serial: "-",

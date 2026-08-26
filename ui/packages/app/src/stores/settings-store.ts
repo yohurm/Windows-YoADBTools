@@ -7,7 +7,15 @@
 
 import { createStore } from "solid-js/store";
 
-import { APP_SETTINGS_DEFAULT, APP_IDENTITY, EMPTY_PATH_CATALOG, settingsSet, systemInfo } from "@yohu/api";
+import {
+  APP_SETTINGS_DEFAULT,
+  APP_IDENTITY,
+  EMPTY_PATH_CATALOG,
+  onSettingsChanged,
+  settingsSet,
+  systemInfo,
+  YoLog,
+} from "@yohu/api";
 import type { AppIdentity, AppPathCatalog, AppSettings, SettingKey } from "@yohu/api";
 import { setDensity, setTheme } from "@yohu/ui";
 
@@ -45,15 +53,28 @@ export function createSettingsStore() {
         document.title = info.identity.display_name;
       }
     } catch (e) {
+      YoLog.error("settings", "加载失败", String(e));
       console.error("system.info 失败", e);
     }
   }
 
   async function set(key: SettingKey, value: unknown): Promise<void> {
-    const updated = await settingsSet(key, value);
-    setState(updated);
-    applyAppearance(updated);
+    try {
+      const updated = await settingsSet(key, value);
+      setState(updated);
+      applyAppearance(updated);
+      YoLog.info("settings", "已保存", { key, value });
+    } catch (e) {
+      YoLog.error("settings", "保存失败", { key, error: String(e) });
+      throw e;
+    }
   }
+
+  // 模块也可 settings.set（IPC）；壳投影必须跟 settings.changed，禁止出现双份真相。
+  void onSettingsChanged((e) => {
+    setState(e.settings);
+    applyAppearance(e.settings);
+  });
 
   return { state, resolved, identity, paths, load, set };
 }

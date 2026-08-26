@@ -8,9 +8,9 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { AppEvent, EvalResult, LogDisplayColumns, LogFilter, LogLine, RemoteEntry, RemoteUpdate, TransferRequest, UpdateChannelInfo } from "./types";
 import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
+import { EVENT_NAMES, type AppEvent, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type RemoteEntry, type RemoteUpdate, type TransferRequest, type UpdateChannelInfo } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -177,6 +177,10 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
         export_write_mode: "overwrite",
         log_display_columns: { ts: true, uid: false, pid: true, tid: true, level: true, tag: true },
         update_provider: "gitcode",
+        mirror_max_size: 1024,
+        mirror_video_bit_rate: 2_000_000,
+        mirror_max_fps: 30,
+        mirror_force_forward: false,
       },
     };
     expect(JSON.parse(JSON.stringify(event)).settings.buffer_capacity).toBe(50);
@@ -248,5 +252,14 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("TerminalEvalRequest 字段为 snake_case", () => {
     const req = { command_id: "c1", values: ["a"], serials: ["S"] };
     expect(JSON.parse(JSON.stringify(req))).toEqual(req);
+  });
+
+  it("事件名不含点号（Tauri 2.9 emit/listen 约束）", () => {
+    for (const name of Object.values(EVENT_NAMES)) {
+      expect(name).not.toContain(".");
+      expect(name).toMatch(/^[-A-Za-z0-9_/:]+$/);
+    }
+    expect(EVENT_NAMES.mirrorState).toBe("mirror/state");
+    expect(EVENT_NAMES.devicesChanged).toBe("devices/changed");
   });
 });

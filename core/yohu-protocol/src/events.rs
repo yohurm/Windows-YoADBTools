@@ -6,7 +6,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AppSettings, CaptureState, DeviceInfo, LogBatch, ProcessIndexSnapshot, TransferProgress,
+    AppSettings, CaptureState, DeviceInfo, LogBatch, MirrorPacket, MirrorSessionState,
+    ProcessIndexSnapshot, TransferProgress,
 };
 
 /// 后台任务登记信息（状态栏）。
@@ -67,6 +68,18 @@ pub enum AppEvent {
         /// 变更后的全量快照（模块投影用，禁止再 `settings.get`）。
         settings: AppSettings,
     },
+    MirrorState {
+        serial: String,
+        generation: u64,
+        state: MirrorSessionState,
+        width: u32,
+        height: u32,
+        codec: String,
+        control: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    MirrorPacket(MirrorPacket),
 }
 
 /// `LogBatch` 包装（内部 tag 枚举需要 struct 变体承载）。
@@ -76,17 +89,21 @@ pub struct LogBatchPayload {
 }
 
 /// 事件名常量（emit / listen 共用，禁止散落字符串字面量）。
+///
+/// Tauri 2.9+ 事件名只允许字母数字和 `-` `/` `:` `_`，**禁止点号**。
 pub mod event_names {
-    pub const DEVICES_CHANGED: &str = "devices.changed";
-    pub const DEVICE_OFFLINE: &str = "device.offline";
-    pub const LOG_LINES: &str = "log.lines";
-    pub const LOG_OVERFLOW: &str = "log.overflow";
-    pub const PROCESS_INDEX: &str = "log.processIndex";
-    pub const CAPTURE_STATE: &str = "log.captureState";
-    pub const TRANSFER_PROGRESS: &str = "transfer.progress";
-    pub const GROUP_PROGRESS: &str = "group.progress";
-    pub const TASK_SUMMARY: &str = "task.summary";
-    pub const SETTINGS_CHANGED: &str = "settings.changed";
+    pub const DEVICES_CHANGED: &str = "devices/changed";
+    pub const DEVICE_OFFLINE: &str = "device/offline";
+    pub const LOG_LINES: &str = "log/lines";
+    pub const LOG_OVERFLOW: &str = "log/overflow";
+    pub const PROCESS_INDEX: &str = "log/processIndex";
+    pub const CAPTURE_STATE: &str = "log/captureState";
+    pub const TRANSFER_PROGRESS: &str = "transfer/progress";
+    pub const GROUP_PROGRESS: &str = "group/progress";
+    pub const TASK_SUMMARY: &str = "task/summary";
+    pub const SETTINGS_CHANGED: &str = "settings/changed";
+    pub const MIRROR_STATE: &str = "mirror/state";
+    pub const MIRROR_PACKET: &str = "mirror/packet";
 }
 
 impl AppEvent {
@@ -104,6 +121,8 @@ impl AppEvent {
             AppEvent::GroupProgress(_) => GROUP_PROGRESS,
             AppEvent::TaskSummary { .. } => TASK_SUMMARY,
             AppEvent::SettingsChanged { .. } => SETTINGS_CHANGED,
+            AppEvent::MirrorState { .. } => MIRROR_STATE,
+            AppEvent::MirrorPacket(_) => MIRROR_PACKET,
         }
     }
 }
@@ -153,5 +172,70 @@ mod tests {
         assert_eq!(v["kind"], "settingsChanged");
         assert_eq!(v["key"], "buffer_capacity");
         assert_eq!(v["settings"]["buffer_capacity"], 10_000);
+    }
+
+    #[test]
+    fn mirror_state_event_lowercase_and_generation() {
+        let event = AppEvent::MirrorState {
+            serial: "s1".into(),
+            generation: 2,
+            state: crate::MirrorSessionState::Live,
+            width: 1080,
+            height: 1920,
+            codec: "h264".into(),
+            control: false,
+            error: None,
+        };
+        let v = serde_json::to_value(&event).expect("serialize");
+        assert_eq!(v["kind"], "mirrorState");
+        assert_eq!(v["serial"], "s1");
+        assert_eq!(v["generation"], 2);
+        assert_eq!(v["state"], "live");
+        assert_eq!(v["codec"], "h264");
+        assert_eq!(event.name(), event_names::MIRROR_STATE);
+    }
+
+    #[test]
+    fn mirror_packet_event_flattens_fields() {
+        let event = AppEvent::MirrorPacket(crate::MirrorPacket {
+            serial: "s1".into(),
+            generation: 1,
+            codec: "h264".into(),
+            width: 8,
+            height: 8,
+            config: true,
+            keyframe: false,
+            pts: 0,
+            data_b64: "Zg==".into(),
+        });
+        let v = serde_json::to_value(&event).expect("serialize");
+        assert_eq!(v["kind"], "mirrorPacket");
+        assert_eq!(v["serial"], "s1");
+        assert_eq!(v["data_b64"], "Zg==");
+        assert_eq!(event.name(), event_names::MIRROR_PACKET);
+    }
+
+    #[test]
+    fn event_names_are_tauri_safe() {
+        for name in [
+            event_names::DEVICES_CHANGED,
+            event_names::DEVICE_OFFLINE,
+            event_names::LOG_LINES,
+            event_names::LOG_OVERFLOW,
+            event_names::PROCESS_INDEX,
+            event_names::CAPTURE_STATE,
+            event_names::TRANSFER_PROGRESS,
+            event_names::GROUP_PROGRESS,
+            event_names::TASK_SUMMARY,
+            event_names::SETTINGS_CHANGED,
+            event_names::MIRROR_STATE,
+            event_names::MIRROR_PACKET,
+        ] {
+            assert!(
+                name.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '/' | ':' | '_')),
+                "Tauri 2.9 禁止点号事件名: {name}"
+            );
+        }
     }
 }

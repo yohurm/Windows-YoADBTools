@@ -17,6 +17,7 @@ mod settings_store;
 mod sidecar;
 mod state;
 mod tasks;
+mod yolog;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -29,6 +30,7 @@ use yohu_adb::{AdbClient, ToolResolver};
 use yohu_domain::AppLog;
 use yohu_files::{FileBrowser, FileMutator, TransferRunner};
 use yohu_logsrv::{CaptureService, ExportService};
+use yohu_mirror::MirrorService;
 use yohu_protocol::AppEvent;
 
 use crate::paths::AppPaths;
@@ -55,14 +57,17 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .filename_suffix("log")
         .build(&logs_dir)
         .expect("日志目录创建失败");
-    let (writer, _guard) = tracing_appender::non_blocking(file_appender);
+    let (nb_writer, _guard) = tracing_appender::non_blocking(file_appender);
+    use tracing_subscriber::fmt::writer::MakeWriterExt;
     tracing_subscriber::fmt()
+        .with_ansi(false)
+        .with_target(true)
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "yohu_app=info,yohu_adb=info,yohu_logsrv=info,yohu_update=info".into()
+                "yohu_app_lib=info,yohu_adb=info,yohu_logsrv=info,yohu_files=info,yohu_mirror=info,yohu_update=info".into()
             }),
         )
-        .with_writer(writer)
+        .with_writer(std::io::stdout.and(nb_writer))
         .init();
 
     let root_cancel = CancellationToken::new();
@@ -83,6 +88,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
         // 3) sidecar 资源目录：应用旁 tools/（开发与 NSIS 默认）/ resources / 仓库 tools/
         let resource_dir = sidecar::resolve_resource_dir(app);
+        let server_jar = resource_dir.join(yohu_protocol::dir::SCRCPY_SERVER);
 
         // 4) core 服务装配
         let user_adb = (!snapshot.adb_path.is_empty()).then(|| PathBuf::from(&snapshot.adb_path));
@@ -93,16 +99,18 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         ));
         let client = std::sync::Arc::new(AdbClient::new((*tool).clone(), 8));
 
-        let (event_tx, event_rx) = mpsc::channel::<AppEvent>(1024);
+        let (event_tx, event_rx) = mpsc::channel::<AppEvent>(8192);
         events::spawn_dispatcher(event_rx, handle.clone());
 
         let capture =
             CaptureService::new(client.clone(), event_tx.clone(), snapshot.buffer_capacity);
+        let mirror = MirrorService::new(client.clone(), event_tx.clone(), server_jar);
 
         let state = AppState {
             client: client.clone(),
             tool,
             capture,
+            mirror,
             browser: FileBrowser::new(client.clone()),
             mutator: FileMutator::new(client.clone()),
             transfers: TransferRunner::new(client.clone()),
@@ -119,6 +127,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             group_next: std::sync::atomic::AtomicU32::new(0),
             library: std::sync::Mutex::new(yohu_domain::CommandLibrary::empty()),
             capture_tasks: std::sync::Mutex::new(std::collections::HashMap::new()),
+            mirror_tasks: std::sync::Mutex::new(std::collections::HashMap::new()),
             transfer_cancels: std::sync::Arc::new(std::sync::Mutex::new(
                 std::collections::HashMap::new(),
             )),
@@ -127,6 +136,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         };
         app.manage(state);
 
+        let exit_handle = handle.clone();
+        let exit_cancel = root_cancel.clone();
+        tauri::async_runtime::spawn(async move {
+            exit_cancel.cancelled().await;
+            let state = exit_handle.state::<AppState>();
+            state.mirror.stop_all().await;
+        });
+
         // 5) 启动预热（异步，不阻塞窗口）：adb 解压 + 首扫设备
         let warm_handle = handle.clone();
         tauri::async_runtime::spawn(async move {
@@ -134,6 +151,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             state.tool.warm_up().await;
             if let Err(e) = crate::device_catalog::refresh(&state).await {
                 tracing::warn!("启动设备扫描失败: {e}");
+            } else {
+                tracing::info!("启动预热完成");
             }
         });
 
@@ -153,6 +172,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             });
         }
 
+        tracing::info!("壳 setup 完成，窗口即将显示");
         Ok(())
     });
 
@@ -182,11 +202,18 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::log::log_replay,
             commands::log::log_export,
             commands::log::log_process_snapshot,
+            commands::mirror::mirror_start,
+            commands::mirror::mirror_stop,
+            commands::mirror::mirror_status,
+            commands::mirror::mirror_inject,
+            commands::mirror::mirror_close_control,
+            commands::mirror::mirror_save_png,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::system::system_info,
             commands::system::system_open_path,
             commands::system::system_report_error,
+            commands::system::system_log,
             commands::update::update_check,
             commands::update::update_info,
             commands::update::update_open,

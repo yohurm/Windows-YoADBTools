@@ -5,7 +5,7 @@
 
 import { createStore } from "solid-js/store";
 
-import { deviceRefresh, lookupSelectedDevices, onDevicesChanged, systemInfo } from "@yohu/api";
+import { deviceRefresh, lookupSelectedDevices, onDevicesChanged, systemInfo, YoLog } from "@yohu/api";
 import type { DeviceInfo } from "@yohu/api";
 
 import type { SelectionMode } from "../registry";
@@ -54,6 +54,7 @@ export function createDeviceStore() {
       const devices = await deviceRefresh();
       setState("lastError", "");
       applyDevices(devices);
+      YoLog.info("device", `扫描完成 ${devices.length} 台`, devices.map((d) => d.serial));
     } catch (e) {
       const detail = errorText(e);
       // 诊断信息：实际使用的 adb 路径（自愈式扫描在 core 侧记录）
@@ -67,6 +68,7 @@ export function createDeviceStore() {
       }
       setState("lastError", `${detail}${adbHint}`);
       setState("statusText", "设备扫描失败");
+      YoLog.error("device", `扫描失败 ${detail}${adbHint}`);
       console.error("device.refresh 失败", e);
     } finally {
       setState("refreshing", false);

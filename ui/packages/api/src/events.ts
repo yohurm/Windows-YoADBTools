@@ -5,6 +5,7 @@
 import { listen, TauriEvent, type UnlistenFn } from "@tauri-apps/api/event";
 
 import { EVENT_NAMES, type AppEvent } from "./types";
+import { YoLog } from "./yolog";
 
 /** wry `tauri://drag-*` 载荷：坐标已换算为 CSS 像素，供 `elementFromPoint`。 */
 export type NativeDragDropEvent =
@@ -32,6 +33,19 @@ function cssPointFromPhysical(position: RawDragPosition | undefined): { x: numbe
   return { x: x / scale, y: y / scale };
 }
 
+function asRecord(raw: unknown): Record<string, unknown> | null {
+  if (raw && typeof raw === "object") return raw as Record<string, unknown>;
+  if (typeof raw === "string") {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /** 订阅单个事件（按 name 过滤出对应 kind 的负载）。 */
 function on<K extends AppEvent["kind"]>(
   name: string,
@@ -39,16 +53,35 @@ function on<K extends AppEvent["kind"]>(
   handler: (payload: Extract<AppEvent, { kind: K }>) => void,
 ): Promise<UnlistenFn> {
   const attach = (): Promise<UnlistenFn> =>
-    listen<AppEvent>(name, (event) => {
-      const payload = event.payload;
-      if (payload && payload.kind === kind) {
-        handler(payload as Extract<AppEvent, { kind: K }>);
+    listen<unknown>(name, (event) => {
+      const payload = asRecord(event.payload);
+      if (!payload) {
+        if (name.startsWith("mirror/")) YoLog.warn("ipc", `空负载 ${name}`);
+        return;
       }
+      const actual = payload.kind;
+      if (actual != null && actual !== kind) {
+        YoLog.warn("ipc", `事件 kind 不匹配 ${name}`, { expected: kind, actual });
+        return;
+      }
+      handler({ ...payload, kind } as Extract<AppEvent, { kind: K }>);
     });
-  return attach().catch(async () => {
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
-    return attach();
-  });
+  const retry = async (): Promise<UnlistenFn> => {
+    for (let i = 0; i < 40; i += 1) {
+      try {
+        const unlisten = await attach();
+        if (name.startsWith("mirror/")) {
+          YoLog.info("ipc", `已订阅 ${name}`);
+        }
+        return unlisten;
+      } catch {
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+      }
+    }
+    YoLog.error("ipc", `订阅失败 ${name}`);
+    return () => undefined;
+  };
+  return retry();
 }
 
 export const onDevicesChanged = (h: (e: Extract<AppEvent, { kind: "devicesChanged" }>) => void) =>
@@ -80,6 +113,12 @@ export const onTaskSummary = (h: (e: Extract<AppEvent, { kind: "taskSummary" }>)
 
 export const onSettingsChanged = (h: (e: Extract<AppEvent, { kind: "settingsChanged" }>) => void) =>
   on(EVENT_NAMES.settingsChanged, "settingsChanged", h);
+
+export const onMirrorState = (h: (e: Extract<AppEvent, { kind: "mirrorState" }>) => void) =>
+  on(EVENT_NAMES.mirrorState, "mirrorState", h);
+
+export const onMirrorPacket = (h: (e: Extract<AppEvent, { kind: "mirrorPacket" }>) => void) =>
+  on(EVENT_NAMES.mirrorPacket, "mirrorPacket", h);
 
 /** 订阅 wry 窗口级拖放（Explorer `CF_HDROP`）。未挂载文件页时由调用方忽略。 */
 export function onNativeDragDrop(handler: (event: NativeDragDropEvent) => void): Promise<UnlistenFn> {

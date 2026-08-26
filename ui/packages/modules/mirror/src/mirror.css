@@ -1,0 +1,50 @@
+/* ============================================================================
+ * 投屏显示（UI设计系统-v6.md §4.4）。
+ * 画面嵌在 YoPanel；等比适应容器（不是编码器 max_size）。
+ * ========================================================================== */
+
+.yohu-mirror__panel {
+  min-height: 0;
+}
+
+.yohu-mirror__stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--yohu-canvas);
+  overflow: hidden;
+}
+
+.yohu-mirror__canvas {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.yohu-mirror__canvas--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.yohu-mirror__keys {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--yohu-space-sm);
+  margin-left: auto;
+}
+
+.yohu-mirror--full .yohu-mirror__panel {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  border-radius: var(--yohu-radius-none);
+}

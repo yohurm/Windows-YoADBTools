@@ -19,6 +19,7 @@ import {
   onLogOverflow,
   onProcessIndex,
   onSettingsChanged,
+  YoLog,
 } from "@yohu/api";
 import type { CaptureStatus, LogBatch, ProcessEntry } from "@yohu/api";
 
@@ -236,6 +237,7 @@ export function createCapture(
         let startedGen = state.generations[current] ?? 0;
         if (already === 0) {
           const result = await logCaptureStart(current);
+          YoLog.info("logs", "采集已启动", { serial: current, generation: result.generation, adopted: result.adopted });
           startedGen = result.generation;
           setDeviceGen(current, result.generation);
           if (!result.adopted) {
@@ -292,6 +294,7 @@ export function createCapture(
         syncFlags();
       }
       if (!lastOnDevice) return;
+      YoLog.info("logs", "采集停止", { serial: current });
       try {
         await interrupt;
       } catch (e) {

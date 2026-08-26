@@ -245,8 +245,7 @@ export function FileView(props: DeviceSession) {
 
   return (
     <YoPage class="yohu-files" ref={(el) => { pageEl = el; }}>
-      <div data-drop="ignore">
-        <YoChrome title="文件管理" deviceLabel={props.selectedLabel ?? undefined}>
+        <YoChrome title="文件管理" deviceLabel={props.selectedLabel ?? undefined} dropIgnore>
           <YoButton onClick={() => void onUpload()}>上传</YoButton>
           <YoButton variant="secondary" disabled={fileStore.singleFile() === undefined} onClick={() => void onDownload()}>
             下载
@@ -265,7 +264,6 @@ export function FileView(props: DeviceSession) {
             {fileStore.ui.previewOpen ? "收起预览" : "预览"}
           </YoButton>
         </YoChrome>
-      </div>
 
       <Show when={fileStore.session.error}>
         <div class="yohu-files__error" role="alert">

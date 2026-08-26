@@ -5,3 +5,4 @@ export * from "./device";
 export * from "./commands";
 export * from "./events";
 export * from "./dialog";
+export * from "./yolog";

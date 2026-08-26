@@ -27,6 +27,16 @@ pub mod safety_root {
     pub const ALL: &[&str] = &[SDCARD, STORAGE];
 }
 
+/// 官方 scrcpy-server 钉死版本（协议无前后兼容）。
+pub mod scrcpy {
+    pub const SERVER_VERSION: &str = "4.1";
+    pub const DEVICE_SERVER_PATH: &str = "/data/local/tmp/scrcpy-server.jar";
+    pub const DEVICE_NAME_FIELD_LENGTH: usize = 64;
+    pub const CODEC_H264: u32 = 0x6832_3634;
+    pub const CODEC_H265: u32 = 0x6832_3635;
+    pub const CODEC_AV1: u32 = 0x0061_7631;
+}
+
 /// 模块 id（与 UI `ModuleDescriptor.id`、数据目录 `modules/<id>/` 一致）。
 pub mod module_id {
     pub const TERMINAL: &str = "adb-terminal";
@@ -44,6 +54,8 @@ pub mod dir {
     pub const DATA: &str = "data";
     pub const TOOLS: &str = "tools";
     pub const ADB: &str = "adb";
+    /// 官方 scrcpy-server 文件名（与 `tools/scrcpy-server`、bundle resources 一致）。
+    pub const SCRCPY_SERVER: &str = "scrcpy-server";
     pub const MODULES: &str = "modules";
     pub const LIBRARY_CONFIG: &str = "config";
     pub const LIBRARY_FILE: &str = "library.json";
@@ -132,6 +144,8 @@ mod tests {
         assert_eq!(module_id::LOGS, "log-analyzer");
         assert_eq!(module_id::MIRROR, "screen-mirror");
         assert_eq!(module_id::SETTINGS, "settings");
+        assert_eq!(scrcpy::SERVER_VERSION, "4.1");
+        assert_eq!(dir::SCRCPY_SERVER, "scrcpy-server");
     }
 
     #[test]

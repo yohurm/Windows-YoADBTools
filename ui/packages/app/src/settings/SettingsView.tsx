@@ -331,6 +331,71 @@ export const SettingsView: Component = () => {
         </div>
       </YoPanel>
 
+      <YoPanel title="投屏显示">
+        <div class="yohu-settings__item">
+          <ItemHead label="长边上限（像素，0 = 原始）" effect="下次启动生效" />
+          <div class="yohu-settings__item-control yohu-settings__item-control--number">
+            <YoTextField
+              type="number"
+              value={String(settingsStore.state.mirror_max_size)}
+              ariaLabel="投屏长边上限"
+              onInput={(v) => {
+                const n = Number.parseInt(v, 10);
+                if (!Number.isNaN(n) && n >= 0) {
+                  save("mirror_max_size", n, "已保存（下次启动生效）");
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div class="yohu-settings__item">
+          <ItemHead label="视频码率（bps）" effect="下次启动生效" />
+          <div class="yohu-settings__item-control yohu-settings__item-control--number">
+            <YoTextField
+              type="number"
+              value={String(settingsStore.state.mirror_video_bit_rate)}
+              ariaLabel="投屏视频码率"
+              onInput={(v) => {
+                const n = Number.parseInt(v, 10);
+                if (n > 0) {
+                  save("mirror_video_bit_rate", n, "已保存（下次启动生效）");
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div class="yohu-settings__item">
+          <ItemHead label="帧率上限（0 = 不限制）" effect="下次启动生效" />
+          <div class="yohu-settings__item-control yohu-settings__item-control--number">
+            <YoTextField
+              type="number"
+              value={String(settingsStore.state.mirror_max_fps)}
+              ariaLabel="投屏帧率上限"
+              onInput={(v) => {
+                const n = Number.parseInt(v, 10);
+                if (!Number.isNaN(n) && n >= 0) {
+                  save("mirror_max_fps", n, "已保存（下次启动生效）");
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div class="yohu-settings__item">
+          <ItemHead label="强制 ADB forward（跳过 reverse）" effect="下次启动生效" />
+          <div class="yohu-settings__item-control yohu-settings__item-control--switch">
+            <YoSwitch
+              ariaLabel="强制 ADB forward（跳过 reverse）"
+              checked={settingsStore.state.mirror_force_forward}
+              onChange={(v) => save("mirror_force_forward", v, "已保存（下次启动生效）")}
+            />
+          </div>
+          <div class="yohu-settings__item-hint">部分无线调试环境 reverse 不可用时再打开。默认只读投屏，控制在页眉开关。</div>
+        </div>
+      </YoPanel>
+
       <YoPanel title="外观">
         <div class="yohu-settings__item">
           <ItemHead label="主题" effect="立即生效" />

@@ -40,7 +40,8 @@
     "resources": {
       "../../tools/adb.exe": "tools/adb.exe",
       "../../tools/AdbWinApi.dll": "tools/AdbWinApi.dll",
-      "../../tools/AdbWinUsbApi.dll": "tools/AdbWinUsbApi.dll"
+      "../../tools/AdbWinUsbApi.dll": "tools/AdbWinUsbApi.dll",
+      "../../tools/scrcpy-server": "tools/scrcpy-server"
     },
     "windows": {
       "webviewInstallMode": {

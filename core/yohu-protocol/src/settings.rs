@@ -112,6 +112,18 @@ pub struct AppSettings {
     /// 应用更新源（立即生效；默认 GitCode `yohurm/ReleaseYoADBTools`）
     #[serde(default)]
     pub update_provider: UpdateProvider,
+    /// 投屏长边上限（像素）；0 = 设备原始分辨率。下次启动生效。
+    #[serde(default = "default_mirror_max_size")]
+    pub mirror_max_size: u32,
+    /// 投屏视频码率（bps）。下次启动生效。
+    #[serde(default = "default_mirror_video_bit_rate")]
+    pub mirror_video_bit_rate: u32,
+    /// 投屏帧率上限；0 = 不限制。下次启动生效。
+    #[serde(default = "default_mirror_max_fps")]
+    pub mirror_max_fps: u32,
+    /// 强制 ADB forward（跳过 reverse）。下次启动生效。
+    #[serde(default)]
+    pub mirror_force_forward: bool,
 }
 
 fn default_buffer_capacity() -> usize {
@@ -122,6 +134,21 @@ fn default_clear_device() -> bool {
 }
 fn default_export_ask() -> bool {
     true
+}
+
+/// 投屏默认长边（与 scrcpy `-m` 同类；0 = 原始）。
+pub fn default_mirror_max_size() -> u32 {
+    1024
+}
+
+/// 投屏默认码率 2 Mbps（工作台内嵌，低于官方客户端 8 Mbps 默认）。
+pub fn default_mirror_video_bit_rate() -> u32 {
+    2_000_000
+}
+
+/// 投屏默认帧率上限。
+pub fn default_mirror_max_fps() -> u32 {
+    30
 }
 
 impl Default for AppSettings {
@@ -139,6 +166,10 @@ impl Default for AppSettings {
             export_write_mode: ExportWriteMode::Overwrite,
             log_display_columns: LogDisplayColumns::default(),
             update_provider: UpdateProvider::Gitcode,
+            mirror_max_size: default_mirror_max_size(),
+            mirror_video_bit_rate: default_mirror_video_bit_rate(),
+            mirror_max_fps: default_mirror_max_fps(),
+            mirror_force_forward: false,
         }
     }
 }
@@ -159,6 +190,10 @@ pub enum SettingKey {
     ExportWriteMode,
     LogDisplayColumns,
     UpdateProvider,
+    MirrorMaxSize,
+    MirrorVideoBitRate,
+    MirrorMaxFps,
+    MirrorForceForward,
 }
 
 impl SettingKey {
@@ -177,6 +212,10 @@ impl SettingKey {
             SettingKey::ExportWriteMode => "export_write_mode",
             SettingKey::LogDisplayColumns => "log_display_columns",
             SettingKey::UpdateProvider => "update_provider",
+            SettingKey::MirrorMaxSize => "mirror_max_size",
+            SettingKey::MirrorVideoBitRate => "mirror_video_bit_rate",
+            SettingKey::MirrorMaxFps => "mirror_max_fps",
+            SettingKey::MirrorForceForward => "mirror_force_forward",
         }
     }
 }
@@ -197,6 +236,10 @@ mod tests {
         assert!(s.export_default_path.is_empty());
         assert_eq!(s.log_display_columns, LogDisplayColumns::default());
         assert_eq!(s.update_provider, UpdateProvider::Gitcode);
+        assert_eq!(s.mirror_max_size, 1024);
+        assert_eq!(s.mirror_video_bit_rate, 2_000_000);
+        assert_eq!(s.mirror_max_fps, 30);
+        assert!(!s.mirror_force_forward);
         let fixture: serde_json::Value =
             serde_json::from_str(include_str!("../testdata/app_settings_default.json"))
                 .expect("fixture");

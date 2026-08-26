@@ -58,6 +58,22 @@ describe("YoTitleBar", () => {
     });
   });
 
+  it("拖动只在品牌与中区，不覆盖右侧铬条", () => {
+    const { container } = render(() => <YoTitleBar title="窗" />);
+    expect(container.querySelector(".yohu-titlebar")?.hasAttribute("data-tauri-drag-region")).toBe(
+      false,
+    );
+    expect(container.querySelector(".yohu-titlebar__brand")?.hasAttribute("data-tauri-drag-region")).toBe(
+      true,
+    );
+    expect(container.querySelector(".yohu-titlebar__center")?.hasAttribute("data-tauri-drag-region")).toBe(
+      true,
+    );
+    expect(
+      container.querySelector(".yohu-titlebar__trailing")?.hasAttribute("data-tauri-drag-region"),
+    ).toBe(false);
+  });
+
   it("双击标题栏切换最大化（点在三键上不触发）", () => {
     const onToggleMaximize = vi.fn();
     const { container } = render(() => <YoTitleBar title="窗" onToggleMaximize={onToggleMaximize} />);
