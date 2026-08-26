@@ -385,6 +385,7 @@
   }
 
   .yohu-button__spinner,
+  .yohu-loading__spinner,
   .yohu-icon-button--loading .yohu-icon,
   .yohu-progress--indeterminate .yohu-progress__bar {
     animation: none !important;

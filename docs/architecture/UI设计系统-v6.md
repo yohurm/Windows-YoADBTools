@@ -1,8 +1,12 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.40（2026-08-20，设备栏选中滑块过冲）    
+> **状态：** v1.42（2026-08-26，区域加载 YoLoading）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（token 单源 + 组件）+ `@yohu/app`（壳）+ `@yohu/modules/*`（三模块）。所有改动必须同步更新本文件。
+>
+> **v1.42 变更（区域加载 YoLoading）**：新增 `YoLoading`（环 + 标题/描述，`role=status`）。控件内加载仍走 `YoButton` / `YoIconButton` 的 `loading`；区域/页面等待必须走 `YoLoading`，禁止模块自写 spinner。投屏 `starting` 与 Live 尚未出画时用 `cover` 盖住舞台。
+>
+> **v1.41 变更（投屏页眉分组）**：投屏 `YoChrome` 主行只留开始/停止、暂停、截图、全屏。质量（长边/码率/帧率）、通道（只读/强制转发）、导航键进次行分组，禁止再把下拉和导航键平铺进 extra 一行。
 >
 > **v1.40 变更（设备栏选中滑块过冲）**：`YoIndicator` fill 宿主 `overflow-x: hidden`，裁切软弹簧宽过冲。设备列表宿主只 `overflow: hidden`；项滚动走内层 scroller（`overflow-x: hidden` + `overflow-y: auto`）。禁止在滑块宿主上写 `overflow: auto`——双轴 auto 会在 Windows 画出横竖条并互相锁死（同 v1.37）。
 >
@@ -194,7 +198,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - JS 消费侧经 `@yohu/ui` 导出 `MotionDuration` / `MotionEasing`（与 theme.css 契约测试强制一致）；动效时长硬编码由纪律 lint 拦截
 - 完整行为（Presence / Collapse / 侧栏 `rail` / 配方目录 / 虚拟列表禁动）以 `docs/architecture/动画系统-v6.md` 为准，本节只登记 token 数字
 - 用途克制：下拉展开/淡入淡出；**日志列表选中片无过渡**（性能优先，`.yohu-interactive` 默认无 transition）
-- **加载循环**：`YoIconButton loading` 给图标加 `yohu-icon-button--loading`，按 `--yohu-dur-loop` 线性旋转；加载期间按钮 `disabled` + `aria-busy`。设备栏刷新、文件刷新等长操作必须走该入口，禁止模块自写 spinner。
+- **加载循环**：控件内加载走 `YoButton.loading` / `YoIconButton.loading`（`--yohu-dur-loop` 线性旋转，期间 `disabled` + `aria-busy`）。区域/页面等待走 `YoLoading`（环 + 标题/描述，`role=status`；覆盖下层时加 `cover`）。设备栏刷新、文件刷新按钮等仍走 IconButton；目录首载、日志启动/等待出流、投屏启动与等待首帧走 `YoLoading`。禁止模块自写 spinner。
 
 ### 2.5 图标
 
@@ -299,7 +303,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - 日志行：右键走 `logs.row`（复制选中行；未选中则先选该行）。与 Ctrl+C 同一 `copyLogText`。禁止在本页再挂 `YoContextMenu`。
 - 新建窗口：设备走 `YoSelect block`（触发钮显示选中设备，菜单独立定位层 Portal；禁止芯片/空触发钮）；划分用 `YoSegmentedButton`（包名 / PID，无左侧标题；高度走 `--yohu-segment-single`）。
 - 状态行：`采集指示（绿点/灰点）· 设备 · 缓冲 n · 可见 n · 信号 n · 进程索引 n s 前 · 滞后回补提示`。
-- 空态：未采集 → 插画图标 + 「点击开始采集」主按钮；采集中空 → 等待输出；过滤无命中 → 「无匹配日志，调整过滤条件」。
+- 空态：未采集 → 插画图标 + 「点击开始采集」主按钮；启动采集 / 采集中空 → `YoLoading`；过滤无命中 → 「无匹配日志，调整过滤条件」。
 - **采集可见性**：点「开始」先清空 UI 镜像与可见区，core 同步 `ring.clear()`，只展示启动之后的 logcat；失败 toast 出错误。
 - **导出**：设置项 `export.default_path` / `export.ask_every_time` / `export.write_mode`（覆盖|续写）。
 
@@ -316,12 +320,13 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - 四列清单：`YoVirtualList` 选择模式（含 ripple 与多选邻接圆角）。表头走 `YoColHeader`（轨道 + 分割线 + 前三列 `YoColResizer`）；排序钮铺满列格，走 `.yohu-interactive`（宿主 padding 0）。悬浮片铺满列矩形（inset 0 / radius-none）；「名称」左缘由首列 `--yohu-col-header-content-pad`（写在 `.yohu-col-header__label`）与行内 `.yohu-files__name` 左垫对齐，不靠行容器左右 padding，也不靠 button 宿主 padding。行间 hairline 走 VirtualList 单源（`--yohu-border`）；表头与清单背板 `--yohu-canvas`（与面板 surface 分层）；选中宿主保持透明。清单视口与日志相同：`overflow: hidden` 给虚拟列表确定高度。禁止模块再写 `.yohu-virtual-list__row` 分割线。
 - 面包屑：祖先 `--yohu-fg-2`，当前段 `--yohu-fg` + semibold（不是全段 accent，也不是选中实底）；ripple 圆角覆盖为 `radius-xs`。路径栏与清单之间不拉分割线。
 - 预览是独立 `YoPanel`（宽 `--yohu-layout-preview`），不嵌进清单卡片；右键走 `files.list` 场景（新建/下载/复制路径/删除），由壳 `YoContextMenuHost` 呈现。
+- 目录首次加载（清单为空且正在读取）走 `YoLoading`；刷新按钮仍走 `YoIconButton.loading`。空目录才是 `YoEmptyState`。
 
 ### 4.4 投屏显示
 
 - 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。画面在 `YoPanel variant=pane` 内等比适应（`max-width/height: 100%`），不是编码器 `max_size`。
-- 空态只写状态（未选择设备 / 未开始 / 启动中 / 启动失败），不把模块名再写一遍。
-- 页眉：开始/停止、暂停画面、截图、面板内全屏、质量下拉（`max_size`/码率/帧率，**下次开始生效**）、只读（即时关控制；开控制需重启会话）与强制转发开关、导航键。控制关闭时导航键禁用。
+- 空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 `YoLoading cover`，不走空态。Live 不等于已出画：首帧绘制前舞台保持加载，避免黑屏空等。
+- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏。次行分组：**质量**（长边 / 码率 / 帧率，**下次开始生效**）、**通道**（只读即时关控制，开控制需重启会话；强制转发下次开始）、**导航**（仅非只读时出现；控制关闭时键禁用）。
 
 ### 4.5 设置
 
@@ -348,6 +353,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 | YoContextMenu | Esc 关闭；点击项执行；点击外部关闭 | `role=menu/menuitem` |
 | YoContextMenuHost | 应用根唯一实例；Portal 到 body；同时只开一个场景 | 同 YoContextMenu |
 | YoIconButton | 激活执行；`loading` 时不可激活 | `aria-label`（title）+ `aria-busy` |
+| YoLoading | 非交互；减动效时环静止 | `role=status aria-busy aria-live=polite` |
 | YoSegmentedButton | ←/→/↑/↓ 循环选中；Home/End 首尾 | `role=radiogroup/radio` + `aria-checked` |
 
 ---

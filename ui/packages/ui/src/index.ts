@@ -146,6 +146,9 @@ export type {
 export { YoEmptyState } from "./components/EmptyState";
 export type { YoEmptyStateProps } from "./components/EmptyState";
 
+export { YoLoading } from "./components/Loading";
+export type { YoLoadingProps } from "./components/Loading";
+
 export { YoDialog } from "./components/Dialog";
 export type { YoDialogProps } from "./components/Dialog";
 
