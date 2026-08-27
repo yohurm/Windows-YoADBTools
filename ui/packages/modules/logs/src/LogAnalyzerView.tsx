@@ -5,12 +5,13 @@
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, untrack } from "solid-js";
 
-import type { DeviceSession } from "@yohu/api";
-import { dialogSaveFile, systemOpenPath } from "@yohu/api";
+import type { DeviceSession, LogWriteMode, SessionLogFile } from "@yohu/api";
+import { dialogSaveFile, logSessionFileLatest, logSessionFileList, systemOpenPath } from "@yohu/api";
 import {
   Icon,
   YoBadge,
   YoButton,
+  YoCheckbox,
   YoChrome,
   YoDialog,
   YoEmptyState,
@@ -32,6 +33,7 @@ import {
 } from "@yohu/ui";
 
 import { LEVELS, type ViewRow } from "./pipeline";
+import { ExportDialog } from "./ExportDialog";
 import { NewSessionDialog } from "./NewSessionDialog";
 import { copyLogText, LOGS_KEY_BINDINGS, LOGS_LIST_SELECTOR, type LogsKeyAction } from "./keys";
 import { DEFAULT_LOG_DISPLAY_COLUMNS, logColTemplate, visibleLogColumns, type LogColumnSpec } from "./layout";
@@ -58,8 +60,8 @@ function isCancelled(e: unknown): boolean {
   return errorMessage(e).includes("采集已取消");
 }
 
-const beginCapture = (): void => {
-  void logStore.startCapture().catch((e) => {
+const beginCapture = (mode?: LogWriteMode): void => {
+  void logStore.startCapture(mode).catch((e) => {
     if (isCancelled(e)) return;
     toaster.show(errorMessage(e), "error");
   });
@@ -141,7 +143,7 @@ function tabTitle(session: LogSessionState): string {
   return short ? `${session.title} · ${short}` : session.title;
 }
 
-function SessionEmpty(props: { session: LogSessionState }) {
+function SessionEmpty(props: { session: LogSessionState; writeMode: LogWriteMode }) {
   const filterActive = (): boolean =>
     props.session.minLevel !== null || props.session.tagContains.length > 0 || props.session.keyword.length > 0;
   const idle = (): boolean =>
@@ -153,7 +155,7 @@ function SessionEmpty(props: { session: LogSessionState }) {
         fallback={
           <>
             <YoEmptyState icon="log" title="未采集" description="点击「开始采集」拉取设备日志" />
-            <YoButton onClick={beginCapture}>开始采集</YoButton>
+            <YoButton onClick={() => beginCapture(props.writeMode)}>开始采集</YoButton>
           </>
         }
       >
@@ -187,6 +189,8 @@ export function LogAnalyzerView(props: DeviceSession) {
   const [pivotKey, setPivotKey] = createSignal<string | null>(null);
   const [renameTarget, setRenameTarget] = createSignal<number | null>(null);
   const [renameText, setRenameText] = createSignal("");
+  const [exportOpen, setExportOpen] = createSignal(false);
+  const [exportFiles, setExportFiles] = createSignal<SessionLogFile[]>([]);
 
   let keywordRef: HTMLInputElement | undefined;
 
@@ -311,22 +315,55 @@ export function LogAnalyzerView(props: DeviceSession) {
 
   const doExport = async (): Promise<void> => {
     const id = logStore.state.activeSessionId;
-    if (id === null) return;
+    const active = id !== null ? logStore.state.sessions.find((s) => s.id === id) : null;
+    const serial = active?.serial ?? logStore.state.serial;
+    if (id === null || !serial) {
+      toaster.show("请先选择设备并采集日志", "info");
+      return;
+    }
     try {
-      let dest: string | undefined;
-      const askEvery = Boolean(props.settings.export_ask_every_time);
-      const defaultPath = props.settings.export_default_path;
-      const writeMode = props.settings.export_write_mode === "append" ? "append" : "overwrite";
-      if (askEvery) {
-        const picked = await dialogSaveFile({
-          title: "导出日志",
-          defaultPath: defaultPath ? `${defaultPath}\\logcat.txt` : "logcat.txt",
-          filters: [{ name: "文本", extensions: ["txt"] }],
-        });
-        if (typeof picked !== "string") return;
-        dest = picked;
+      // 导出方式：选择窗口文件 | 最新（默认）
+      if (props.settings.export_mode === "select") {
+        const files = await logSessionFileList();
+        if (files.length === 0) {
+          toaster.show("没有可导出的窗口日志文件", "info");
+          return;
+        }
+        setExportFiles(files);
+        setExportOpen(true);
+        return;
       }
-      const path = await logStore.exportSession(id, dest, writeMode);
+      const latest = await logSessionFileLatest(serial, id);
+      if (!latest) {
+        toaster.show("当前窗口尚无日志文件（请先采集）", "info");
+        return;
+      }
+      await exportWithAsk([latest]);
+    } catch (e) {
+      toaster.show(`导出失败: ${errorMessage(e)}`, "error");
+    }
+  };
+
+  /** 每次询问保存位置（默认开，可在设置关闭）；取消则中止导出。 */
+  const exportWithAsk = async (sources: string[]): Promise<void> => {
+    if (props.settings.export_ask_every_time) {
+      const defaultPath = props.settings.export_default_path;
+      const picked = await dialogSaveFile({
+        title: "导出日志",
+        defaultPath: defaultPath ? `${defaultPath}\\logcat-export.txt` : "logcat-export.txt",
+        filters: [{ name: "文本", extensions: ["txt"] }],
+      });
+      if (typeof picked !== "string") return;
+      await runExport(sources, picked);
+      return;
+    }
+    await runExport(sources);
+  };
+
+  const runExport = async (sources: string[], dest?: string): Promise<void> => {
+    if (sources.length === 0) return;
+    try {
+      const path = await logStore.exportSession(sources, dest);
       if (path) {
         toaster.show(`已导出: ${path}`, "success");
         void systemOpenPath(path);
@@ -334,6 +371,11 @@ export function LogAnalyzerView(props: DeviceSession) {
     } catch (e) {
       toaster.show(`导出失败: ${errorMessage(e)}`, "error");
     }
+  };
+
+  const confirmExport = async (paths: string[]): Promise<void> => {
+    setExportOpen(false);
+    await exportWithAsk(paths);
   };
 
   return (
@@ -347,7 +389,7 @@ export function LogAnalyzerView(props: DeviceSession) {
               void logStore.stopCapture().catch((e) => toaster.show(errorMessage(e), "error"));
               return;
             }
-            beginCapture();
+            beginCapture(props.settings.log_write_mode);
           }}
         >
           {windowLive()
@@ -484,7 +526,7 @@ export function LogAnalyzerView(props: DeviceSession) {
                   </For>
                 </div>
                 <div class="yohu-logs__list-body">
-                  <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} />}>
+                  <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} writeMode={props.settings.log_write_mode} />}>
                     <YoVirtualList<ViewRow>
                       items={() => logStore.state.sessions.find((s) => s.id === session.id)?.visible ?? []}
                       itemHeight={22}
@@ -610,6 +652,13 @@ export function LogAnalyzerView(props: DeviceSession) {
       >
         <YoTextField label="会话标题" value={renameText()} onInput={setRenameText} />
       </YoDialog>
+
+      <ExportDialog
+        open={exportOpen}
+        files={exportFiles()}
+        onClose={() => setExportOpen(false)}
+        onConfirm={confirmExport}
+      />
 
       <YoToaster toaster={toaster} />
     </YoPage>

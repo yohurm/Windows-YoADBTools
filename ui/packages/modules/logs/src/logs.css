@@ -397,3 +397,9 @@
   flex-direction: column;
   gap: var(--yohu-space-sm);
 }
+/* 导出对话框：多选列表 + 全选/取消全选 */
+.yohu-logs-export { display: flex; flex-direction: column; gap: var(--yohu-space-sm); }
+.yohu-logs-export__tools { display: flex; align-items: center; gap: var(--yohu-space-sm); }
+.yohu-logs-export__count { margin-left: auto; color: var(--yohu-fg-3); font-size: var(--yohu-font-caption); }
+.yohu-logs-export__list { display: flex; flex-direction: column; gap: var(--yohu-space-2xs); max-height: 320px; overflow-y: auto; }
+.yohu-logs-export__empty { color: var(--yohu-fg-3); padding: var(--yohu-space-sm); }

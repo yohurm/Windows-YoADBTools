@@ -13,6 +13,9 @@ import {
   logExport,
   logProcessSnapshot,
   logReplay,
+  logSessionFileAppend,
+  logSessionFileClose,
+  logSessionFileOpen,
   onCaptureState,
   onDeviceOffline,
   onLogBatch,
@@ -21,32 +24,29 @@ import {
   onSettingsChanged,
   YoLog,
 } from "@yohu/api";
-import type { CaptureStatus, LogBatch, ProcessEntry } from "@yohu/api";
+import type { CaptureStatus, LogBatch, LogWriteMode, ProcessEntry } from "@yohu/api";
 
 import {
   collapseStack,
   matchesLine,
   scanSignal,
   toSessionFilter,
-  toWireFilter,
   type MirrorBank,
 } from "./pipeline";
 import type { LogSessionState, LogUiState, WorkspaceApi } from "./workspace";
-
-export type ExportWriteMode = "overwrite" | "append";
 
 type CaptureStore = LogUiState;
 
 export type CaptureApi = {
   bindSerial: (next: string | null) => Promise<void>;
   setBufferCapacity: (capacity: number) => void;
-  startCapture: () => Promise<void>;
+  startCapture: (mode?: LogWriteMode) => Promise<void>;
   stopCapture: () => Promise<void>;
   clearVisible: (id: number) => Promise<void>;
   clearDevice: () => Promise<void>;
   clearShared: () => Promise<void>;
   refreshProcesses: (serial?: string | null) => Promise<void>;
-  exportSession: (id: number, dest: string | undefined, writeMode: ExportWriteMode) => Promise<string | null>;
+  exportSession: (sources: string[], path?: string) => Promise<string | null>;
   closeSession: (id: number) => void;
   closeOthers: (id: number) => void;
   serial: () => string | null;
@@ -64,6 +64,8 @@ export function createCapture(
   /** start / stop 互斥；bind 不再停流，可与采集并行 */
   let gate: Promise<void> = Promise.resolve();
   const lastStoppedGen = new Map<string, number>();
+  /** 窗口 id → 已打开的实时日志文件路径（core 侧文件键 window_id=session.id） */
+  const windowFiles = new Map<number, string>();
 
   function runExclusive(fn: () => Promise<void>): Promise<void> {
     const run = gate.then(fn, fn);
@@ -72,6 +74,38 @@ export function createCapture(
       () => undefined,
     );
     return run;
+  }
+
+  async function openWindowFile(session: LogSessionState, mode?: LogWriteMode): Promise<void> {
+    if (windowFiles.has(session.id)) return;
+    const serial = session.serial ?? state.serial;
+    if (!serial) return;
+    try {
+      const info = await logSessionFileOpen({
+        serial,
+        window_id: session.id,
+        name: session.title || `窗口${session.id}`,
+        mode: mode ?? "overwrite",
+      });
+      windowFiles.set(session.id, info.path);
+    } catch (e) {
+      console.error("log.sessionFileOpen 失败", e);
+    }
+  }
+
+  function closeWindowFile(serial: string | null, windowId: number): void {
+    if (!windowFiles.has(windowId)) return;
+    windowFiles.delete(windowId);
+    if (!serial) return;
+    void logSessionFileClose({ serial, window_id: windowId }).catch((e) =>
+      console.error("log.sessionFileClose 失败", e),
+    );
+  }
+
+  function closeDeviceFiles(device: string): void {
+    state.sessions.forEach((s) => {
+      if (s.serial === device) closeWindowFile(device, s.id);
+    });
   }
 
   const serial = (): string | null => state.serial;
@@ -129,6 +163,7 @@ export function createCapture(
   function stopWindowsOn(device: string): void {
     state.sessions.forEach((session, idx) => {
       if (session.serial !== device || !session.capturing) return;
+      closeWindowFile(device, session.id);
       setState("sessions", idx, { capturing: false });
     });
     syncFlags();
@@ -213,7 +248,7 @@ export function createCapture(
     }
   }
 
-  async function startCapture(): Promise<void> {
+  async function startCapture(mode?: LogWriteMode): Promise<void> {
     return runExclusive(async () => {
       workspace.ensureSession();
       const session = activeSession();
@@ -246,6 +281,7 @@ export function createCapture(
           }
         }
         const fromSeq = Math.max(0, mirrors.of(current).lastSeqNumber() + 1);
+        await openWindowFile(session, mode);
         setState("sessions", idx, { capturing: true, fromSeq, serial: current });
         syncFlags();
         startSnapshotLoop();
@@ -256,6 +292,7 @@ export function createCapture(
           const status = await logCaptureStatus(current);
           if (status.capturing) {
             const fromSeq = Math.max(0, mirrors.of(current).lastSeqNumber() + 1);
+            await openWindowFile(session, mode);
             setState("sessions", idx, { capturing: true, fromSeq, serial: current });
             setDeviceGen(current, status.generation);
             syncFlags();
@@ -293,6 +330,7 @@ export function createCapture(
         setState("sessions", idx, { capturing: false });
         syncFlags();
       }
+      closeWindowFile(current, session.id);
       if (!lastOnDevice) return;
       YoLog.info("logs", "采集停止", { serial: current });
       try {
@@ -325,6 +363,7 @@ export function createCapture(
 
   function closeSession(id: number): void {
     const session = state.sessions.find((s) => s.id === id);
+    closeWindowFile(session?.serial ?? null, id);
     workspace.closeSession(id);
     syncFlags();
     releaseDeviceIfIdle(session?.serial ?? null, session?.capturing ?? false);
@@ -332,6 +371,7 @@ export function createCapture(
 
   function closeOthers(id: number): void {
     const closed = state.sessions.filter((s) => s.id !== id);
+    closed.forEach((s) => closeWindowFile(s.serial, s.id));
     workspace.closeOthers(id);
     syncFlags();
     const devices = new Set(closed.filter((s) => s.capturing && s.serial).map((s) => s.serial!));
@@ -388,19 +428,11 @@ export function createCapture(
   }
 
   async function exportSession(
-    id: number,
-    dest: string | undefined,
-    writeMode: ExportWriteMode,
+    sources: string[],
+    path: string | undefined,
   ): Promise<string | null> {
-    const session = state.sessions.find((s) => s.id === id);
-    const current = session?.serial ?? state.serial;
-    if (!current || !session) return null;
-    const result = await logExport({
-      serial: current,
-      filter: toWireFilter(session),
-      path: dest,
-      write_mode: writeMode,
-    });
+    if (sources.length === 0) return null;
+    const result = await logExport({ sources, path });
     return result.path;
   }
 
@@ -413,11 +445,19 @@ export function createCapture(
     state.sessions.forEach((session) => {
       if (session.serial !== batch.serial) return;
       if (!session.capturing || session.fromSeq < 0) return;
-      if (session.paused) return;
       const filter = toSessionFilter(session);
       const matched = batch.lines.filter((line) => line.seq >= session.fromSeq && matchesLine(line, filter));
       if (matched.length === 0) return;
       const idx = sessionIndex(session.id);
+
+      // 实时写窗口日志文件：与滚动/暂停无关，按 seq 去重在 core
+      if (windowFiles.has(session.id)) {
+        void logSessionFileAppend({ serial: batch.serial, window_id: session.id, lines: matched }).catch(
+          (e) => console.error("log.sessionFileAppend 失败", e),
+        );
+      }
+
+      if (session.paused) return;
       const signals = matched.reduce((acc, l) => acc + (scanSignal(l) ? 1 : 0), 0);
       if (!session.following) {
         setState("sessions", idx, {
@@ -478,6 +518,7 @@ export function createCapture(
       }
     }
     mirrors.clear(device);
+    closeDeviceFiles(device);
     workspace.resetDeviceViews(device);
     syncFlags();
     if (capturingSerials().length === 0) stopSnapshotLoop();

@@ -4,13 +4,13 @@
  */
 
 import { createStore } from "solid-js/store";
-import { APP_SETTINGS_DEFAULT, type ProcessEntry } from "@yohu/api";
+import { APP_SETTINGS_DEFAULT, type LogWriteMode, type ProcessEntry } from "@yohu/api";
 
 import { createCapture } from "./capture";
 import { MirrorBank } from "./pipeline";
 import { createWorkspace, type LogSessionState, type LogUiState } from "./workspace";
 
-export type { ExportWriteMode } from "./capture";
+export type { LogWriteMode };
 export type { LogSessionState } from "./workspace";
 export { SYSTEM_SESSION_TITLE } from "./workspace";
 

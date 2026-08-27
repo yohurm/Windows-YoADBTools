@@ -15,6 +15,12 @@ const mocks = vi.hoisted(() => ({
   logClearDevice: vi.fn(),
   logReplay: vi.fn(),
   logExport: vi.fn(),
+  logSessionFileOpen: vi.fn(async (..._a: unknown[]) => ({ path: "x.log", name: "System", lines: 0 })),
+  logSessionFileAppend: vi.fn(async (..._a: unknown[]) => 0),
+  logSessionFileClose: vi.fn(async (..._a: unknown[]) => "x.log"),
+  logSessionFileLatest: vi.fn(async (..._a: unknown[]) => "x.log"),
+  logSessionFileList: vi.fn(async (..._a: unknown[]) => []),
+  settingsGet: vi.fn(async (..._a: unknown[]) => "overwrite"),
   logProcessSnapshot: vi.fn(),
   logBatchHandlers: [] as ((e: { batch: LogBatch }) => void)[],
   logOverflowHandlers: [] as ((e: { serial: string }) => void)[],
@@ -58,6 +64,12 @@ vi.mock("@yohu/api", () => {
     logClearDevice: (...a: unknown[]) => mocks.logClearDevice(...a),
     logReplay: (...a: unknown[]) => mocks.logReplay(...a),
     logExport: (...a: unknown[]) => mocks.logExport(...a),
+    logSessionFileOpen: (...a: unknown[]) => mocks.logSessionFileOpen(...a),
+    logSessionFileAppend: (...a: unknown[]) => mocks.logSessionFileAppend(...a),
+    logSessionFileClose: (...a: unknown[]) => mocks.logSessionFileClose(...a),
+    logSessionFileLatest: (...a: unknown[]) => mocks.logSessionFileLatest(...a),
+    logSessionFileList: (...a: unknown[]) => mocks.logSessionFileList(...a),
+    settingsGet: (...a: unknown[]) => mocks.settingsGet(...a),
     logProcessSnapshot: (...a: unknown[]) => mocks.logProcessSnapshot(...a),
     onDevicesChanged: (h: (e: { devices: unknown[] }) => void): void => {
       mocks.devicesChangedHandlers.push(h);
@@ -370,28 +382,19 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     await store.stopCapture();
   });
 
-  it("exportSession 带出 write_mode 与 All 作用域", async () => {
+  it("exportSession 透传源文件路径与目标", async () => {
     const store = wiredStore();
-    const id = store.state.sessions[0]!.id;
-    await store.exportSession(id, "D:\\out.txt", "overwrite");
+    await store.exportSession(["C:\\logs\\S1-w1.log"], "D:\\out.txt");
     expect(mocks.logExport).toHaveBeenCalledWith(
-      expect.objectContaining({
-        path: "D:\\out.txt",
-        write_mode: "overwrite",
-        filter: expect.objectContaining({ scope: { kind: "all" } }),
-      }),
+      expect.objectContaining({ sources: ["C:\\logs\\S1-w1.log"], path: "D:\\out.txt" }),
     );
   });
 
-  it("exportSession 包名空 pids 原样下发（无命中）", async () => {
+  it("exportSession 空 sources 返回 null 且不发 IPC", async () => {
     const store = wiredStore();
-    const id = store.createSession({ kind: "package", pkg: "com.none", includeChild: false }, "none");
-    await store.exportSession(id, "D:\\out.txt", "overwrite");
-    expect(mocks.logExport).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filter: expect.objectContaining({ scope: { kind: "package", pids: [] } }),
-      }),
-    );
+    const result = await store.exportSession([]);
+    expect(result).toBeNull();
+    expect(mocks.logExport).not.toHaveBeenCalled();
   });
 
   it("重叠 start 闸门串行：首次 IPC，第二次已 capturing 则跳过", async () => {
