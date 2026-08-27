@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ExportWriteMode, LogFilter};
+use crate::{LogFilter, LogLine, LogWriteMode};
 
 /// 命令库 schema（domain `CommandLibrary::SCHEMA_VERSION` 与 UI 常量共用）。
 pub const COMMAND_LIBRARY_SCHEMA_VERSION: u32 = 2;
@@ -28,20 +28,64 @@ pub struct ReplayRequest {
     pub filter: Option<LogFilter>,
 }
 
-/// `log.export` 请求（core 持有全量缓冲，导出必须走 core）。
+/// `log.sessionFileOpen` 请求：为某个窗口（会话）打开实时日志文件。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionFileRequest {
+    pub serial: String,
+    /// 窗口会话 id（UI 消费端概念，core 仅作文件键）
+    pub window_id: u32,
+    /// 窗口名（会话标题，如包名/PID/System；统一数据源，列表/弹窗展示用）
+    pub name: String,
+    pub mode: LogWriteMode,
+}
+
+/// `log.sessionFileOpen` 响应：已写入的日志文件绝对路径。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SessionFileInfo {
+    pub path: String,
+    pub name: String,
+    pub lines: u64,
+}
+
+/// `log.sessionFileAppend` 请求：追加一批（UI 已过滤）行到某窗口日志文件。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionFileAppendRequest {
+    pub serial: String,
+    pub window_id: u32,
+    pub lines: Vec<LogLine>,
+}
+
+/// `log.sessionFileClose` 请求：结束某窗口日志文件。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionFileCloseRequest {
+    pub serial: String,
+    pub window_id: u32,
+}
+
+/// 一个可导出的窗口日志文件（`log.sessionFileList` / 多选导出）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SessionLogFile {
+    pub path: String,
+    pub serial: String,
+    pub window_id: u32,
+    /// 窗口名（会话标题；统一数据源）
+    pub name: String,
+    pub lines: u64,
+    /// ISO-8601 修改时间（exporter 展示用）
+    pub modified: String,
+}
+
+/// `log.export` 请求：把选定的实时日志文件合并导出为一份 txt。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExportRequest {
-    pub serial: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filter: Option<LogFilter>,
+    /// 要合并的源文件路径（来自 `sessionFileList` / 当前窗口最新文件）
+    pub sources: Vec<String>,
     /// 目标文件；空 = 按设置目录生成
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
-    #[serde(default)]
-    pub write_mode: ExportWriteMode,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExportResult {
     pub path: String,
     pub lines: u64,

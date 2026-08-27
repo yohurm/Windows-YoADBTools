@@ -61,6 +61,8 @@ pub mod dir {
     pub const LIBRARY_FILE: &str = "library.json";
     pub const EXPORTS: &str = "exports";
     pub const DRAG_OUT: &str = "drag-out";
+    /// 实时逐窗口日志文件目录（日志写入方式；`data/modules/log-analyzer/` 下）。
+    pub const SESSION_LOGS: &str = "session-logs";
 }
 
 /// 应用身份（`system.info.identity`）。
@@ -101,6 +103,8 @@ pub struct AppPathCatalog {
     pub adb_tools_dir: String,
     pub library_file: String,
     pub exports_dir: String,
+    /// 实时逐窗口日志文件目录（日志写入方式）
+    pub session_logs_dir: String,
     pub drag_out_dir: String,
 }
 

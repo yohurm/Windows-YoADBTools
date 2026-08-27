@@ -21,13 +21,26 @@ pub enum Density {
     Comfortable,
 }
 
-/// 日志导出写入方式。
+/// 日志写入方式（实时逐窗口日志文件）。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum ExportWriteMode {
+pub enum LogWriteMode {
+    /// 每个窗口固定文件名，下次采集任务截断重写。
     #[default]
     Overwrite,
+    /// 每个采集任务各开一个新文件（时间戳命名），旧文件保留。
     Append,
+}
+
+/// 手动导出行为（`log.export`）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ExportMode {
+    /// 直接导出当前窗口最新的日志文件。
+    #[default]
+    Latest,
+    /// 弹窗列出窗口日志文件，多选（含全选/取消全选）后导出。
+    Select,
 }
 
 /// 应用更新源（默认 GitCode；GitHub / 蒲公英可选）。
@@ -100,12 +113,15 @@ pub struct AppSettings {
     /// 日志导出默认目录；空 = 应用 exports 目录
     #[serde(default)]
     pub export_default_path: String,
-    /// 每次导出弹出保存对话框
+    /// 手动导出每次询问保存位置（默认开）
     #[serde(default = "default_export_ask")]
     pub export_ask_every_time: bool,
-    /// 覆盖或续写
+    /// 手动导出行为：最新 / 选择（导出实时逐窗口日志文件）
     #[serde(default)]
-    pub export_write_mode: ExportWriteMode,
+    pub export_mode: ExportMode,
+    /// 日志写入方式（实时逐窗口文件）：覆盖 / 续写（每次任务新开文件）
+    #[serde(default)]
+    pub log_write_mode: LogWriteMode,
     /// 日志清单显示列（立即生效；消息列始终在）
     #[serde(default)]
     pub log_display_columns: LogDisplayColumns,
@@ -163,7 +179,8 @@ impl Default for AppSettings {
             density: Density::Comfortable,
             export_default_path: String::new(),
             export_ask_every_time: default_export_ask(),
-            export_write_mode: ExportWriteMode::Overwrite,
+            export_mode: ExportMode::Latest,
+            log_write_mode: LogWriteMode::Overwrite,
             log_display_columns: LogDisplayColumns::default(),
             update_provider: UpdateProvider::Gitcode,
             mirror_max_size: default_mirror_max_size(),
@@ -187,7 +204,8 @@ pub enum SettingKey {
     Density,
     ExportDefaultPath,
     ExportAskEveryTime,
-    ExportWriteMode,
+    ExportMode,
+    LogWriteMode,
     LogDisplayColumns,
     UpdateProvider,
     MirrorMaxSize,
@@ -209,7 +227,8 @@ impl SettingKey {
             SettingKey::Density => "density",
             SettingKey::ExportDefaultPath => "export_default_path",
             SettingKey::ExportAskEveryTime => "export_ask_every_time",
-            SettingKey::ExportWriteMode => "export_write_mode",
+            SettingKey::ExportMode => "export_mode",
+            SettingKey::LogWriteMode => "log_write_mode",
             SettingKey::LogDisplayColumns => "log_display_columns",
             SettingKey::UpdateProvider => "update_provider",
             SettingKey::MirrorMaxSize => "mirror_max_size",
@@ -232,7 +251,8 @@ mod tests {
         assert_eq!(s.buffer_capacity, 10_000);
         assert!(s.clear_device_on_start);
         assert!(s.export_ask_every_time);
-        assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
+        assert_eq!(s.export_mode, ExportMode::Latest);
+        assert_eq!(s.log_write_mode, LogWriteMode::Overwrite);
         assert!(s.export_default_path.is_empty());
         assert_eq!(s.log_display_columns, LogDisplayColumns::default());
         assert_eq!(s.update_provider, UpdateProvider::Gitcode);
@@ -262,7 +282,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Dark);
         assert_eq!(s.density, Density::Comfortable);
         assert!(s.export_ask_every_time);
-        assert_eq!(s.export_write_mode, ExportWriteMode::Overwrite);
+        assert_eq!(s.export_mode, ExportMode::Latest);
+        assert_eq!(s.log_write_mode, LogWriteMode::Overwrite);
         assert_eq!(s.update_provider, UpdateProvider::Gitcode);
     }
 
