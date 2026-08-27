@@ -174,7 +174,8 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
         density: "comfortable",
         export_default_path: "",
         export_ask_every_time: true,
-        export_write_mode: "overwrite",
+        export_mode: "latest",
+        log_write_mode: "overwrite",
         log_display_columns: { ts: true, uid: false, pid: true, tid: true, level: true, tag: true },
         update_provider: "gitcode",
         mirror_max_size: 1024,
@@ -209,6 +210,7 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       adb_tools_dir: "C:/Local/YohuAdbTools/data/tools/adb",
       library_file: "C:/Local/YohuAdbTools/data/modules/adb-terminal/config/library.json",
       exports_dir: "C:/Local/YohuAdbTools/data/modules/log-analyzer/exports",
+      session_logs_dir: "C:/Local/YohuAdbTools/data/modules/log-analyzer/session-logs",
       drag_out_dir: "C:/Local/YohuAdbTools/data/modules/file-manager/drag-out",
     };
     expect(JSON.parse(JSON.stringify(paths))).toEqual(paths);

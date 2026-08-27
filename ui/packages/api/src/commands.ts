@@ -25,6 +25,11 @@ import type {
   ReplayRequest,
   RemoteEntry,
   SerialEvalResult,
+  SessionFileAppendRequest,
+  SessionFileCloseRequest,
+  SessionFileInfo,
+  SessionFileRequest,
+  SessionLogFile,
   SettingKey,
   SystemInfo,
   TerminalEvalRequest,
@@ -99,6 +104,21 @@ export const logClearDevice = (serial: string) =>
   invoke<void>("log.clearDevice", { serial });
 
 export const logReplay = (req: ReplayRequest) => invoke<LogBatch>("log.replay", { req });
+
+export const logSessionFileOpen = (req: SessionFileRequest) =>
+  invoke<SessionFileInfo>("log.sessionFileOpen", { req });
+
+export const logSessionFileAppend = (req: SessionFileAppendRequest) =>
+  invoke<number>("log.sessionFileAppend", { req });
+
+export const logSessionFileClose = (req: SessionFileCloseRequest) =>
+  invoke<string>("log.sessionFileClose", { req });
+
+export const logSessionFileLatest = (serial: string, windowId: number) =>
+  invoke<string | null>("log.sessionFileLatest", { serial, windowId });
+
+export const logSessionFileList = () =>
+  invoke<SessionLogFile[]>("log.sessionFileList");
 
 export const logExport = (req: ExportRequest) => invoke<ExportResult>("log.export", { req });
 

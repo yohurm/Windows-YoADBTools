@@ -15,7 +15,8 @@ export const APP_SETTINGS_DEFAULT: AppSettings = {
   density: "comfortable",
   export_default_path: "",
   export_ask_every_time: true,
-  export_write_mode: "overwrite",
+  export_mode: "latest",
+  log_write_mode: "overwrite",
   log_display_columns: {
     ts: true,
     uid: true,
