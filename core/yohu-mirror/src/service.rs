@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use tokio::sync::{mpsc, Notify};
 use tokio_util::sync::CancellationToken;
@@ -14,6 +15,8 @@ use yohu_protocol::{
 
 use crate::error::MirrorError;
 use crate::session::{self, ControlCmd, SessionOpts};
+
+const START_WAIT: Duration = Duration::from_secs(20);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Phase {
@@ -180,7 +183,16 @@ impl MirrorService {
                 StartDecision::Wait => {
                     let notified = self.changed.notified();
                     if self.start_must_wait(&serial) {
-                        notified.await;
+                        tokio::select! {
+                            _ = notified => {}
+                            _ = tokio::time::sleep(START_WAIT) => {
+                                tracing::error!(
+                                    serial = %serial,
+                                    "投屏 Starting/Stopping 等待超时，强制停止卡住会话"
+                                );
+                                self.stop(&serial).await;
+                            }
+                        }
                     }
                 }
             }

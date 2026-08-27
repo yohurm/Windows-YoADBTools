@@ -42,6 +42,8 @@ export class H264CanvasDecoder {
   private frames = 0;
   private loggedFrame = false;
   private fallbackLogged = false;
+  /** configure/flush 之后必须等关键帧，否则 WebCodecs 抛 DataError 刷屏。 */
+  private needKeyframe = true;
   paused = false;
   lastError: string | null = null;
   /** 首帧绘制后回调（store 用来收起 YoLoading） */
@@ -65,6 +67,7 @@ export class H264CanvasDecoder {
     this.frames = 0;
     this.loggedFrame = false;
     this.fallbackLogged = false;
+    this.needKeyframe = true;
     this.lastError = null;
   }
 
@@ -92,10 +95,13 @@ export class H264CanvasDecoder {
       this.reconfigure(packet.width, packet.height);
       return;
     }
-    if (!this.decoder) {
+    if (!this.decoder || this.decoder.state !== "configured") {
+      if (!this.description && !packet.keyframe) return;
       this.reconfigure(packet.width, packet.height);
     }
     if (!this.decoder || this.decoder.state !== "configured") return;
+    if (this.needKeyframe && !packet.keyframe) return;
+    if (packet.keyframe) this.needKeyframe = false;
     try {
       this.decoder.decode(
         new EncodedVideoChunk({
@@ -155,6 +161,7 @@ export class H264CanvasDecoder {
     if (width > 0 && this.canvas.width !== width) this.canvas.width = width;
     if (height > 0 && this.canvas.height !== height) this.canvas.height = height;
     closeQuiet(this.decoder);
+    this.needKeyframe = true;
     const canvas = this.canvas;
     const ctx = this.ctx;
     this.decoder = new VideoDecoder({

@@ -12,9 +12,10 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 /// 真机投屏同一 serial 不能并行两路；测试串行化。
-async fn lock_device() -> tokio::sync::MutexGuard<'static, ()> {
-    static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
-    LOCK.lock().await
+/// `#[tokio::test]` 各有独立 runtime，必须用 `std::sync::Mutex`。
+fn lock_device() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock().expect("mirror real-device lock poisoned")
 }
 
 use yohu_adb::{AdbClient, ToolResolver};
@@ -158,7 +159,7 @@ async fn wait_live_packets(
 
 #[tokio::test]
 async fn real_mirror_push_server_jar() {
-    let _guard = lock_device().await;
+    let _guard = lock_device();
     let client = client();
     let Some(serial) = online_phone(&client).await else {
         eprintln!("跳过：无在线设备");
@@ -189,7 +190,7 @@ async fn real_mirror_push_server_jar() {
 
 #[tokio::test]
 async fn real_mirror_video_only_live_packets() {
-    let _guard = lock_device().await;
+    let _guard = lock_device();
     let client = client();
     let Some(serial) = online_phone(&client).await else {
         eprintln!("跳过：无在线设备");
@@ -244,7 +245,7 @@ async fn real_mirror_video_only_live_packets() {
 
 #[tokio::test]
 async fn real_mirror_force_forward_live() {
-    let _guard = lock_device().await;
+    let _guard = lock_device();
     let client = client();
     let Some(serial) = online_phone(&client).await else {
         eprintln!("跳过：无在线设备");
@@ -276,8 +277,41 @@ async fn real_mirror_force_forward_live() {
 }
 
 #[tokio::test]
+async fn real_mirror_control_force_forward_live() {
+    let _guard = lock_device();
+    let client = client();
+    let Some(serial) = online_phone(&client).await else {
+        eprintln!("跳过：无在线设备");
+        return;
+    };
+    let (tx, mut rx) = mpsc::channel::<AppEvent>(4096);
+    let service = MirrorService::new(client, tx, server_jar());
+    let started = service
+        .start(start_req(&serial, true, true))
+        .await
+        .expect("control+forward start");
+    let stream = wait_live_packets(&mut rx, &serial, started.generation, 2, Duration::from_secs(40))
+        .await;
+    service.stop(&serial).await;
+    if let Some(err) = stream.failed {
+        panic!("control+force_forward 失败: {err}");
+    }
+    assert!(
+        stream.packets >= 2 && stream.width > 0,
+        "控制+forward 应进入 Live 并出包，实际 {} {}x{}",
+        stream.packets,
+        stream.width,
+        stream.height
+    );
+    eprintln!(
+        "[真机] control+forward Live {}x{} 包={}",
+        stream.width, stream.height, stream.packets
+    );
+}
+
+#[tokio::test]
 async fn real_mirror_control_inject() {
-    let _guard = lock_device().await;
+    let _guard = lock_device();
     let client = client();
     let Some(serial) = online_phone(&client).await else {
         eprintln!("跳过：无在线设备");
@@ -312,7 +346,7 @@ async fn real_mirror_control_inject() {
 
 #[tokio::test]
 async fn real_mirror_missing_server_errors() {
-    let _guard = lock_device().await;
+    let _guard = lock_device();
     let client = client();
     let Some(serial) = online_phone(&client).await else {
         eprintln!("跳过：无在线设备");

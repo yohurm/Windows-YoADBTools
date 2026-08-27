@@ -186,33 +186,17 @@ describe("mirror store", () => {
     });
   });
 
-  it("adopt 到超长边会话时停掉重开", async () => {
+  it("adopt 后停掉重开，避免解码器错过配置帧", async () => {
     const { createMirrorStore } = await import("./store");
     const store = createMirrorStore();
     await store.bindSerial("S1");
-    store.applySettings({
-      mirror_max_size: 0,
-      mirror_video_bit_rate: 8_000_000,
-      mirror_max_fps: 0,
-      mirror_force_forward: false,
-    });
     mocks.mirrorStart
       .mockResolvedValueOnce({ serial: "S1", generation: 3, adopted: true })
       .mockResolvedValueOnce({ serial: "S1", generation: 4, adopted: false });
-    mocks.mirrorStatus.mockResolvedValueOnce({
-      serial: "S1",
-      mirroring: true,
-      generation: 3,
-      width: 1220,
-      height: 2712,
-      codec: "h264",
-      control: false,
-    });
     mocks.mirrorStop.mockResolvedValue(undefined);
     await store.start();
     expect(mocks.mirrorStop).toHaveBeenCalledWith("S1");
     expect(mocks.mirrorStart).toHaveBeenCalledTimes(2);
-    expect(mocks.mirrorStart.mock.calls[1]?.[0]).toMatchObject({ max_size: 1024, max_fps: 30 });
   });
 
   it("会话进行中忽略空 serial，避免误停", async () => {

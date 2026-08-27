@@ -190,15 +190,21 @@ pub async fn connect_forward(
     Err(MirrorError::Protocol("forward 隧道连接失败".into()))
 }
 
-/// forward 后续 socket（不再发 dummy）。
+/// forward 后续 socket（4.1 只在第一路发 dummy；控制通道不要再读那一字节）。
+///
+/// 必须在读设备名之前调用：server 先 `accept` 齐控制通道才 `sendDeviceMeta`。
 pub async fn connect_tcp(
     port: u16,
     cancel: &CancellationToken,
 ) -> Result<TcpStream, MirrorError> {
     let addr = format!("127.0.0.1:{port}");
-    for _ in 0..50 {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    loop {
         if cancel.is_cancelled() {
             return Err(MirrorError::Cancelled);
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return Err(MirrorError::Protocol("forward 控制通道连接失败".into()));
         }
         if let Ok(stream) = TcpStream::connect(&addr).await {
             let _ = stream.set_nodelay(true);
@@ -209,5 +215,4 @@ pub async fn connect_tcp(
             _ = tokio::time::sleep(Duration::from_millis(50)) => {}
         }
     }
-    Err(MirrorError::Protocol("forward 控制通道连接失败".into()))
 }

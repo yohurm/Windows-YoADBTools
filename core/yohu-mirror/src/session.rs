@@ -297,6 +297,8 @@ async fn run_connected(
     let serial = opts.req.serial.clone();
     let control_wanted = opts.req.control;
 
+    // scrcpy 4.1：server 先 accept 齐 video（+audio）+control，才 sendDeviceMeta。
+    // 若先读设备名再接控制通道，双方死锁（日志停在「视频通道已接通」、永不 Live）。
     let mut video = if used_forward {
         tracing::info!(serial = %serial, port, "forward 连接视频通道");
         tunnel::connect_forward(port, cancel, alive).await?
@@ -309,26 +311,8 @@ async fn run_connected(
     };
     tracing::info!(serial = %serial, "视频通道已接通");
 
-    let mut name_buf = [0u8; scrcpy::DEVICE_NAME_FIELD_LENGTH];
-    read_exact_cancel(&mut video, &mut name_buf, cancel).await?;
-
-    let mut codec_buf = [0u8; 4];
-    read_exact_cancel(&mut video, &mut codec_buf, cancel).await?;
-    let codec_id = u32::from_be_bytes(codec_buf);
-    let codec = codec_name(codec_id)
-        .map_err(MirrorError::Protocol)?
-        .to_string();
-
-    let mut header = [0u8; 12];
-    read_exact_cancel(&mut video, &mut header, cancel).await?;
-    let (mut width, mut height) = match parse_header(&header).map_err(MirrorError::Protocol)? {
-        HeaderKind::Session { width, height, .. } => (width, height),
-        HeaderKind::Media { .. } => {
-            return Err(MirrorError::Protocol("首包不是 session 头".into()));
-        }
-    };
-
     let control_stream = if control_wanted {
+        tracing::info!(serial = %serial, "连接控制通道");
         let stream = if used_forward {
             tunnel::connect_tcp(port, cancel).await?
         } else {
@@ -337,9 +321,29 @@ async fn run_connected(
             };
             tunnel::accept_one(l, cancel, ACCEPT_TIMEOUT).await?
         };
+        tracing::info!(serial = %serial, "控制通道已接通");
         Some(stream)
     } else {
         None
+    };
+
+    let mut name_buf = [0u8; scrcpy::DEVICE_NAME_FIELD_LENGTH];
+    read_exact_timeout(&mut video, &mut name_buf, cancel, ACCEPT_TIMEOUT).await?;
+
+    let mut codec_buf = [0u8; 4];
+    read_exact_timeout(&mut video, &mut codec_buf, cancel, ACCEPT_TIMEOUT).await?;
+    let codec_id = u32::from_be_bytes(codec_buf);
+    let codec = codec_name(codec_id)
+        .map_err(MirrorError::Protocol)?
+        .to_string();
+
+    let mut header = [0u8; 12];
+    read_exact_timeout(&mut video, &mut header, cancel, ACCEPT_TIMEOUT).await?;
+    let (mut width, mut height) = match parse_header(&header).map_err(MirrorError::Protocol)? {
+        HeaderKind::Session { width, height, .. } => (width, height),
+        HeaderKind::Media { .. } => {
+            return Err(MirrorError::Protocol("首包不是 session 头".into()));
+        }
     };
 
     tracing::info!(
@@ -469,7 +473,7 @@ async fn run_connected(
                         packets += 1;
                         if sink.try_send(AppEvent::MirrorPacket(packet)).is_err() {
                             dropped += 1;
-                            if dropped == 1 || dropped % 50 == 0 {
+                            if dropped == 1 || dropped.is_multiple_of(50) {
                                 tracing::warn!(
                                     serial = %serial,
                                     dropped,
@@ -477,7 +481,7 @@ async fn run_connected(
                                     "投屏包通道满，丢弃编码包"
                                 );
                             }
-                        } else if packets == 1 || packets % 120 == 0 {
+                        } else if packets == 1 || packets.is_multiple_of(120) {
                             tracing::info!(
                                 serial = %serial,
                                 packets,
@@ -507,6 +511,23 @@ async fn read_exact_cancel(
     tokio::select! {
         biased;
         _ = cancel.cancelled() => Err(MirrorError::Cancelled),
+        r = stream.read_exact(buf) => {
+            r?;
+            Ok(())
+        }
+    }
+}
+
+async fn read_exact_timeout(
+    stream: &mut TcpStream,
+    buf: &mut [u8],
+    cancel: &CancellationToken,
+    timeout: Duration,
+) -> Result<(), MirrorError> {
+    tokio::select! {
+        biased;
+        _ = cancel.cancelled() => Err(MirrorError::Cancelled),
+        _ = tokio::time::sleep(timeout) => Err(MirrorError::Protocol("读取投屏握手超时".into())),
         r = stream.read_exact(buf) => {
             r?;
             Ok(())

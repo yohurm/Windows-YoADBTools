@@ -191,42 +191,18 @@ export function createMirrorStore() {
         };
         let result = await mirrorStart(request);
         if (result.adopted) {
-          const status = await mirrorStatus(serial);
-          const longEdge = Math.max(status.width, status.height);
-          if (limits.maxSize > 0 && longEdge > limits.maxSize) {
-            YoLog.info("mirror", "已有会话分辨率过高，重启编码器", {
-              longEdge,
-              cap: limits.maxSize,
-            });
-            await mirrorStop(serial);
-            decoder?.reset();
-            result = await mirrorStart(request);
-          } else {
-            setState({
-              phase: "live",
-              width: status.width,
-              height: status.height,
-              codec: status.codec,
-              control: status.control,
-              generation: status.generation || result.generation,
-            });
-            YoLog.info("mirror", "start 返回", result);
-            return;
-          }
+          // start() 已 reset 解码器；Live 流的 SPS/IDR 不会重发，adopt 只会吃到 P 帧。
+          YoLog.info("mirror", "adopt 后解码器无配置，重启会话", {
+            serial,
+            generation: result.generation,
+          });
+          await mirrorStop(serial);
+          decoder?.reset();
+          result = await mirrorStart(request);
         }
         setState({ generation: result.generation });
         YoLog.info("mirror", "start 返回", result);
-        if (result.adopted) {
-          const status = await mirrorStatus(serial);
-          setState({
-            phase: "live",
-            width: status.width,
-            height: status.height,
-            codec: status.codec,
-            control: status.control,
-            generation: status.generation || result.generation,
-          });
-        } else void waitUntilLive(serial, result.generation);
+        void waitUntilLive(serial, result.generation);
       } catch (e) {
         const error =
           e && typeof e === "object" && "message" in e
@@ -322,7 +298,18 @@ export function createMirrorStore() {
       await new Promise((resolve) => window.setTimeout(resolve, 300));
     }
     if (state.phase === "starting" && state.serial === serial) {
-      YoLog.error("mirror", "等待 Live 超时（事件可能未送达）");
+      YoLog.error("mirror", "等待 Live 超时，停止卡住会话");
+      try {
+        await mirrorStop(serial);
+      } catch (e) {
+        YoLog.warn("mirror", "超时停止失败", String(e));
+      }
+      decoder?.reset();
+      setState({
+        phase: "failed",
+        error: "投屏启动超时",
+        hasFrame: false,
+      });
     }
   }
 
