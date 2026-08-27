@@ -53,9 +53,14 @@ const UPDATE_PROVIDER_OPTIONS: { value: UpdateProvider; label: string }[] = [
   { value: "pgyer", label: "蒲公英" },
 ];
 
+const WRITE_MODE_OPTIONS = [
+  { value: "overwrite", label: "覆盖（默认）" },
+  { value: "append", label: "续写（每次新开文件）" },
+];
+
 const EXPORT_MODE_OPTIONS = [
-  { value: "overwrite", label: "覆盖" },
-  { value: "append", label: "续写" },
+  { value: "latest", label: "最新（默认）" },
+  { value: "select", label: "选择窗口文件" },
 ];
 
 const LOG_COLUMN_OPTIONS: { key: keyof LogDisplayColumns; label: string }[] = [
@@ -282,7 +287,31 @@ export const SettingsView: Component = () => {
               void browseDir("export_default_path", "选择日志导出目录", "已保存（立即生效）")
             }
           />
-          <div class="yohu-settings__item-hint">关闭「每次询问」时写入该目录下的 logcat-设备号.txt</div>
+          <div class="yohu-settings__item-hint">手动导出的合并文件写入该目录；留空 = 应用导出目录</div>
+        </div>
+
+        <div class="yohu-settings__item">
+          <ItemHead label="日志写入方式" effect="立即生效" />
+          <div class="yohu-settings__item-control yohu-settings__item-control--select">
+            <YoSelect
+              options={WRITE_MODE_OPTIONS}
+              value={settingsStore.state.log_write_mode}
+              onChange={(v) => save("log_write_mode", v, "已保存（立即生效）")}
+            />
+          </div>
+          <div class="yohu-settings__item-hint">覆盖 = 每窗口固定文件、下次采集截断；续写 = 每次任务新开文件保留旧文件</div>
+        </div>
+
+        <div class="yohu-settings__item">
+          <ItemHead label="导出方式" effect="立即生效" />
+          <div class="yohu-settings__item-control yohu-settings__item-control--select">
+            <YoSelect
+              options={EXPORT_MODE_OPTIONS}
+              value={settingsStore.state.export_mode}
+              onChange={(v) => save("export_mode", v, "已保存（立即生效）")}
+            />
+          </div>
+          <div class="yohu-settings__item-hint">最新 = 直接导出当前窗口日志文件；选择 = 弹窗多选窗口日志文件再导出</div>
         </div>
 
         <div class="yohu-settings__item">
@@ -294,18 +323,7 @@ export const SettingsView: Component = () => {
               onChange={(v) => save("export_ask_every_time", v, "已保存（立即生效）")}
             />
           </div>
-        </div>
-
-        <div class="yohu-settings__item">
-          <ItemHead label="导出写入方式" effect="立即生效" />
-          <div class="yohu-settings__item-control yohu-settings__item-control--select">
-            <YoSelect
-              options={EXPORT_MODE_OPTIONS}
-              value={settingsStore.state.export_write_mode}
-              onChange={(v) => save("export_write_mode", v, "已保存（立即生效）")}
-            />
-          </div>
-          <div class="yohu-settings__item-hint">覆盖替换目标文件；续写在同一路径末尾追加</div>
+          <div class="yohu-settings__item-hint">开启则每次导出弹保存对话框；关闭则直接写入默认导出路径</div>
         </div>
 
         <div class="yohu-settings__item">

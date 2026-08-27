@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   systemOpenPath: vi.fn(),
   dialogOpenFile: vi.fn(),
   dialogOpenDirectory: vi.fn(),
+  dialogSaveFile: vi.fn(),
   updateCheck: vi.fn(),
   updateInfo: vi.fn(),
   updateOpen: vi.fn(),
@@ -39,6 +40,7 @@ vi.mock("@yohu/api", async (importOriginal) => {
     systemOpenPath: (...a: unknown[]) => mocks.systemOpenPath(...a),
     dialogOpenFile: (...a: unknown[]) => mocks.dialogOpenFile(...a),
     dialogOpenDirectory: (...a: unknown[]) => mocks.dialogOpenDirectory(...a),
+    dialogSaveFile: (...a: unknown[]) => mocks.dialogSaveFile(...a),
     updateCheck: (...a: unknown[]) => mocks.updateCheck(...a),
     updateInfo: (...a: unknown[]) => mocks.updateInfo(...a),
     updateOpen: (...a: unknown[]) => mocks.updateOpen(...a),
@@ -64,6 +66,11 @@ vi.mock("@yohu/api", async (importOriginal) => {
     logClearDevice: notConfigured,
     logReplay: notConfigured,
     logExport: notConfigured,
+    logSessionFileOpen: notConfigured,
+    logSessionFileAppend: notConfigured,
+    logSessionFileClose: notConfigured,
+    logSessionFileLatest: notConfigured,
+    logSessionFileList: notConfigured,
     logProcessSnapshot: notConfigured,
     onDevicesChanged: noop,
     onDeviceOffline: noop,
@@ -175,6 +182,7 @@ beforeEach(() => {
   mocks.deviceRefresh.mockResolvedValue([]);
   mocks.dialogOpenFile.mockResolvedValue(null);
   mocks.dialogOpenDirectory.mockResolvedValue(null);
+  mocks.dialogSaveFile.mockResolvedValue(null);
   mocks.systemOpenPath.mockResolvedValue(undefined);
   mocks.updateInfo.mockResolvedValue({
     provider: "gitcode",
@@ -420,11 +428,11 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     expect(screen.getAllByText("下次采集生效").length).toBeGreaterThan(0);
   });
 
-  it("日志导出设置项可见（路径/每次询问/覆盖续写）", () => {
+  it("日志导出设置项可见（路径/导出方式/日志写入方式）", () => {
     render(() => <SettingsView />);
     expect(screen.getByText("默认导出路径")).toBeTruthy();
-    expect(screen.getByText("每次导出询问保存位置")).toBeTruthy();
-    expect(screen.getByText("导出写入方式")).toBeTruthy();
+    expect(screen.getByText("导出方式")).toBeTruthy();
+    expect(screen.getByText("日志写入方式")).toBeTruthy();
   });
 
   it("日志显示列复选框可见且默认全开", () => {
@@ -524,7 +532,7 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
   it("启用项为 YoSwitch，无「启用」字样", () => {
     render(() => <SettingsView />);
     expect(screen.getByRole("switch", { name: "开始采集前清空设备缓冲（logcat -c）" })).toBeTruthy();
-    expect(screen.getByRole("switch", { name: "每次导出询问保存位置" })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: "强制 ADB forward（跳过 reverse）" })).toBeTruthy();
     expect(screen.queryByText("启用")).toBeNull();
   });
 
