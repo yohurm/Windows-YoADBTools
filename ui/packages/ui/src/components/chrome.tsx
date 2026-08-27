@@ -1,6 +1,6 @@
 /**
  * 模块页眉：右侧内容区顶部的标题区 + 功能栏（不进窗口标题栏）。
- * 主行高度走 --yohu-control-height；次行 `extra` 给质量/过滤等，避免挤进主行把顶栏撑乱。
+ * 主行高度走 --yohu-control-height；次行 `extra` 给过滤等次要控件，避免挤进主行把顶栏撑乱。
  */
 import { Show, type JSX } from "solid-js";
 import { YoBadge } from "./Badge";
@@ -15,7 +15,7 @@ export interface YoChromeProps {
   leading?: JSX.Element;
   /** 主行功能栏（≤6 个操作；HarmonyOS C 栏上限） */
   children?: JSX.Element;
-  /** 次行（质量/开关/导航键）；可折行，不进主行 */
+  /** 次行（过滤等次要控件）；可折行，不进主行 */
   extra?: JSX.Element;
   /** 文件拖入命中忽略（页眉不当投放目标） */
   dropIgnore?: boolean;
