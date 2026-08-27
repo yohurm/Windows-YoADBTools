@@ -87,6 +87,11 @@ impl AppPaths {
         self.module_data(module_id::LOGS).join(dir::EXPORTS)
     }
 
+    /// 实时逐窗口日志文件目录（日志写入方式）。
+    pub fn session_logs_dir(&self) -> PathBuf {
+        self.module_data(module_id::LOGS).join(dir::SESSION_LOGS)
+    }
+
     /// 拖出虚拟文件临时区：`DataRoot/modules/file-manager/drag-out/`。
     pub fn drag_out_dir(&self) -> PathBuf {
         self.module_data(module_id::FILES).join(dir::DRAG_OUT)
@@ -103,6 +108,7 @@ impl AppPaths {
             adb_tools_dir: path_string(&self.adb_tools_dir()),
             library_file: path_string(&self.library_file()),
             exports_dir: path_string(&self.exports_dir()),
+            session_logs_dir: path_string(&self.session_logs_dir()),
             drag_out_dir: path_string(&self.drag_out_dir()),
         }
     }

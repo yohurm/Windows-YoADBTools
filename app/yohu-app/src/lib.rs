@@ -29,7 +29,7 @@ use tokio_util::sync::CancellationToken;
 use yohu_adb::{AdbClient, ToolResolver};
 use yohu_domain::AppLog;
 use yohu_files::{FileBrowser, FileMutator, TransferRunner};
-use yohu_logsrv::{CaptureService, ExportService};
+use yohu_logsrv::{CaptureService, SessionLogService};
 use yohu_mirror::MirrorService;
 use yohu_protocol::AppEvent;
 
@@ -114,7 +114,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             browser: FileBrowser::new(client.clone()),
             mutator: FileMutator::new(client.clone()),
             transfers: TransferRunner::new(client.clone()),
-            export: ExportService::new(paths.exports_dir()),
+            session_log: SessionLogService::new(paths.session_logs_dir()),
             settings,
             paths: paths.clone(),
             app_log: AppLog::new(500),
@@ -201,6 +201,11 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::log::log_clear_device,
             commands::log::log_replay,
             commands::log::log_export,
+            commands::log::log_session_file_open,
+            commands::log::log_session_file_append,
+            commands::log::log_session_file_close,
+            commands::log::log_session_file_latest,
+            commands::log::log_session_file_list,
             commands::log::log_process_snapshot,
             commands::mirror::mirror_start,
             commands::mirror::mirror_stop,

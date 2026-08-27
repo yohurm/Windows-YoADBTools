@@ -14,7 +14,7 @@ use yohu_domain::{
     assert_device_online, assert_targets_online, AppLog, CommandLibrary, DeviceSessionError,
 };
 use yohu_files::{FileBrowser, FileMutator, TransferRunner};
-use yohu_logsrv::{CaptureService, ExportService};
+use yohu_logsrv::{CaptureService, SessionLogService};
 use yohu_mirror::MirrorService;
 use yohu_protocol::{AppEvent, DeviceInfo, IpcError, IpcErrorCode};
 
@@ -32,7 +32,7 @@ pub struct AppState {
     pub browser: FileBrowser,
     pub mutator: FileMutator,
     pub transfers: TransferRunner,
-    pub export: ExportService,
+    pub session_log: SessionLogService,
     pub settings: SettingsStore,
     pub paths: AppPaths,
     pub app_log: AppLog,
