@@ -125,8 +125,10 @@ async fn run_follow(
                 continue;
             }
             pump_seen.fetch_add(1, Ordering::Relaxed);
-            let line = parse_threadtime(&raw);
-            ring.push(line.clone());
+            let mut line = parse_threadtime(&raw);
+            // 单调 seq 由环分配：让送入批量器/推送链路的行也带上同一 seq，
+            // 否则 UI 的 seq 去重/回补锚点全为 0（数据被误判为重复而丢弃）。
+            line.seq = ring.push(line.clone());
             if batcher.feed(line).await.is_err() {
                 break;
             }

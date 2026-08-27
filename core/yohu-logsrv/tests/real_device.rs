@@ -11,8 +11,8 @@ use std::time::Duration;
 use tokio::sync::mpsc;
 
 use yohu_adb::{AdbClient, ToolResolver};
-use yohu_logsrv::CaptureService;
-use yohu_protocol::AppEvent;
+use yohu_logsrv::{CaptureService, SessionLogService};
+use yohu_protocol::{AppEvent, LogWriteMode};
 
 fn real_adb() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tools/adb.exe")
@@ -145,9 +145,9 @@ async fn real_detach_clears_ring() {
     );
 }
 
-/// 日志导出端到端：采集 → 停止 → 过滤导出 txt → 文件内容与过滤一致。
+/// 日志写入端到端：采集 → 逐窗口实时文件 → 合并导出，内容与已采集行一致。
 #[tokio::test]
-async fn real_export_filtered_txt() {
+async fn real_session_log_write_export() {
     let client = Arc::new(AdbClient::new(
         ToolResolver::new(
             Some(real_adb()),
@@ -164,41 +164,33 @@ async fn real_export_filtered_txt() {
     let service = CaptureService::new(client, tx, 50_000);
 
     service.start(&serial, false).await.expect("开始采集");
-    let _lines = collect_events(&mut rx, 5, Duration::from_secs(30)).await;
+    let lines = collect_events(&mut rx, 5, Duration::from_secs(30)).await;
     service.stop(&serial).await;
+    assert!(!lines.is_empty(), "真实设备应产出至少一行");
 
-    let ring = service.ring(&serial);
-    let filter = yohu_protocol::LogFilter {
-        min_level: Some('W'),
-        ..Default::default()
-    };
-    let exports_dir = std::env::temp_dir().join(format!(
-        "yohu-real-export-{}-{:?}",
+    let root = std::env::temp_dir().join(format!(
+        "yohu-real-slog-{}-{:?}",
         std::process::id(),
         std::thread::current().id()
     ));
-    let export = yohu_logsrv::ExportService::new(exports_dir.clone());
-    let result = export
-        .export(
-            &serial,
-            &ring,
-            Some(&filter),
-            ring.capacity(),
-            None,
-            yohu_protocol::ExportWriteMode::Overwrite,
-        )
-        .expect("导出失败");
-    eprintln!("[真机] 导出 {} 行 → {}", result.lines, result.path);
+    let slog = SessionLogService::new(root.clone());
+    slog.open(&serial, 1, "System", LogWriteMode::Overwrite)
+        .expect("打开窗口日志文件");
+    // 窗口记录的是「UI 已过滤后的行」；真实设备场景直接写入采集到的行
+    for chunk in lines.chunks(500) {
+        slog.append(&serial, 1, chunk).expect("追加窗口日志");
+    }
+    slog.close(&serial, 1).expect("关闭窗口日志文件");
 
-    // 验证文件内容与过滤一致
+    let listed = slog.list().expect("列出窗口日志文件");
+    assert_eq!(listed.len(), 1, "应恰好一个窗口日志文件");
+    assert_eq!(listed[0].lines, lines.len() as u64);
+
+    let srcs: Vec<String> = listed.iter().map(|f| f.path.clone()).collect();
+    let result = slog.export(&srcs, None).expect("合并导出");
     let content = std::fs::read_to_string(&result.path).expect("读导出文件");
     assert_eq!(content.lines().count() as u64, result.lines);
-    for line in content.lines() {
-        let level = yohu_logsrv::parse_threadtime(line).level;
-        assert!(
-            yohu_domain::level_rank(level) >= yohu_domain::level_rank('W'),
-            "导出应只含 W 及以上级别，实际 {level}: {line}"
-        );
-    }
-    let _ = std::fs::remove_dir_all(&exports_dir);
+    assert_eq!(result.lines, lines.len() as u64, "导出行数与采集行数一致");
+
+    let _ = std::fs::remove_dir_all(&root);
 }

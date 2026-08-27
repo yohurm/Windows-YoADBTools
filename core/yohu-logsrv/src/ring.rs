@@ -80,6 +80,18 @@ impl RingBuffer {
             .collect()
     }
 
+    /// 过滤 + `seq >= from_seq` 的快照（回补用；过滤语义与 UI 会话一致）。
+    pub fn snapshot_filtered_from(&self, from_seq: u64, filter: &LogFilter, limit: usize) -> Vec<LogLine> {
+        let state = self.inner.lock().expect("ring lock poisoned");
+        state
+            .buf
+            .iter()
+            .filter(|l| l.seq >= from_seq && log_filter_matches(filter, l))
+            .take(limit)
+            .cloned()
+            .collect()
+    }
+
     /// 从 `from_seq` 取至多 `limit` 行；`truncated` 表示环内还有更大 seq。
     pub fn snapshot_page(&self, from_seq: u64, limit: usize) -> (Vec<LogLine>, bool) {
         let state = self.inner.lock().expect("ring lock poisoned");
