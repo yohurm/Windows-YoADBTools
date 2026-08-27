@@ -69,10 +69,17 @@ pub fn apply_setting(
         SettingKey::ExportAskEveryTime => {
             settings.export_ask_every_time = must_bool(key, value)?;
         }
-        SettingKey::ExportWriteMode => {
-            settings.export_write_mode = match value.as_str() {
-                Some("overwrite") => yohu_protocol::ExportWriteMode::Overwrite,
-                Some("append") => yohu_protocol::ExportWriteMode::Append,
+        SettingKey::ExportMode => {
+            settings.export_mode = match value.as_str() {
+                Some("latest") => yohu_protocol::ExportMode::Latest,
+                Some("select") => yohu_protocol::ExportMode::Select,
+                _ => return Err(format!("{} 必须是 latest 或 select", key.as_str())),
+            };
+        }
+        SettingKey::LogWriteMode => {
+            settings.log_write_mode = match value.as_str() {
+                Some("overwrite") => yohu_protocol::LogWriteMode::Overwrite,
+                Some("append") => yohu_protocol::LogWriteMode::Append,
                 _ => return Err(format!("{} 必须是 overwrite 或 append", key.as_str())),
             };
         }
