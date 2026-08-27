@@ -184,111 +184,7 @@ export function MirrorView(props: DeviceSession) {
 
   return (
     <YoPage class={`yohu-mirror${mirrorStore.state.fullscreen ? " yohu-mirror--full" : ""}`}>
-      <YoChrome
-        title="投屏显示"
-        deviceLabel={props.selectedLabel ?? undefined}
-        extra={
-          <div class="yohu-mirror__toolbar">
-            <div class="yohu-mirror__toolbar-row">
-              <div class="yohu-mirror__group" title="下次开始生效">
-                <span class="yohu-mirror__group-label">质量</span>
-                <label class="yohu-mirror__field">
-                  <span class="yohu-mirror__field-name">长边</span>
-                  <YoSelect
-                    options={withCurrentOption(SIZE_OPTIONS, mirrorStore.state.maxSize, (n) =>
-                      n === 0 ? "原始" : String(n),
-                    )}
-                    value={String(mirrorStore.state.maxSize)}
-                    disabled={mirrorStore.state.phase === "starting"}
-                    onChange={(v) => void mirrorStore.persistQuality("mirror_max_size", Number.parseInt(v, 10))}
-                  />
-                </label>
-                <label class="yohu-mirror__field">
-                  <span class="yohu-mirror__field-name">码率</span>
-                  <YoSelect
-                    options={withCurrentOption(RATE_OPTIONS, mirrorStore.state.videoBitRate, (n) =>
-                      n >= 1_000_000 ? `${n / 1_000_000} Mbps` : `${n} bps`,
-                    )}
-                    value={String(mirrorStore.state.videoBitRate)}
-                    disabled={mirrorStore.state.phase === "starting"}
-                    onChange={(v) =>
-                      void mirrorStore.persistQuality("mirror_video_bit_rate", Number.parseInt(v, 10))
-                    }
-                  />
-                </label>
-                <label class="yohu-mirror__field">
-                  <span class="yohu-mirror__field-name">帧率</span>
-                  <YoSelect
-                    options={withCurrentOption(FPS_OPTIONS, mirrorStore.state.maxFps, (n) =>
-                      n === 0 ? "不限" : `${n} fps`,
-                    )}
-                    value={String(mirrorStore.state.maxFps)}
-                    disabled={mirrorStore.state.phase === "starting"}
-                    onChange={(v) => void mirrorStore.persistQuality("mirror_max_fps", Number.parseInt(v, 10))}
-                  />
-                </label>
-              </div>
-              <div class="yohu-mirror__group">
-                <span class="yohu-mirror__group-label">通道</span>
-                <label class="yohu-mirror__toggle">
-                  <span class="yohu-mirror__field-name">只读</span>
-                  <YoSwitch
-                    ariaLabel="只读（关闭控制通道）"
-                    checked={mirrorStore.state.readOnly}
-                    onChange={(v) => void mirrorStore.setReadOnly(v)}
-                  />
-                </label>
-                <label class="yohu-mirror__toggle" title="下次开始生效">
-                  <span class="yohu-mirror__field-name">强制转发</span>
-                  <YoSwitch
-                    ariaLabel="强制 ADB forward"
-                    checked={mirrorStore.state.forceForward}
-                    disabled={mirrorStore.state.phase === "starting"}
-                    onChange={(v) => void mirrorStore.persistQuality("mirror_force_forward", v)}
-                  />
-                </label>
-              </div>
-            </div>
-            <Show when={!mirrorStore.state.readOnly}>
-              <div class="yohu-mirror__toolbar-row">
-                <div class="yohu-mirror__group">
-                  <span class="yohu-mirror__group-label">导航</span>
-                  <div class="yohu-mirror__keys">
-                    <For each={NAV_KEYS}>
-                      {(item) => (
-                        <YoButton
-                          size="sm"
-                          variant="secondary"
-                          disabled={!canControl()}
-                          onClick={() => void tapKey(item.keycode)}
-                        >
-                          {item.label}
-                        </YoButton>
-                      )}
-                    </For>
-                    <YoButton
-                      size="sm"
-                      variant="secondary"
-                      disabled={!canControl()}
-                      onClick={() => void send({ kind: "display_power", on: false })}
-                    >
-                      息屏
-                    </YoButton>
-                    <YoButton
-                      size="sm"
-                      variant="secondary"
-                      disabled={!canControl()}
-                      onClick={() => void send({ kind: "display_power", on: true })}
-                    >
-                      亮屏
-                    </YoButton>
-                  </div>
-                </div>
-              </div>
-            </Show>
-          </div>
-        }
-      >
+      <YoChrome title="投屏显示" deviceLabel={props.selectedLabel ?? undefined}>
         <YoButton
           size="sm"
           variant="primary"
@@ -321,51 +217,152 @@ export function MirrorView(props: DeviceSession) {
         />
       </YoChrome>
 
-      <YoPanel variant="pane" class="yohu-mirror__panel" aria-label="投屏画面">
-        <div class="yohu-mirror__stage">
-          <canvas
-            ref={(el) => {
-              canvas = el;
-              decoder.attach(el);
-            }}
-            class="yohu-mirror__canvas"
-            classList={{ "yohu-mirror__canvas--hidden": !painted() }}
-            onPointerDown={(event) => {
-              if (!canControl()) return;
-              (event.currentTarget as HTMLCanvasElement).setPointerCapture(event.pointerId);
-              setPressing(true);
-              sendTouch(TOUCH_DOWN, event);
-            }}
-            onPointerMove={(event) => {
-              if (!pressing()) return;
-              sendTouch(TOUCH_MOVE, event);
-            }}
-            onPointerUp={(event) => {
-              if (!pressing()) return;
-              setPressing(false);
-              sendTouch(TOUCH_UP, event);
-            }}
-            onContextMenu={(event) => event.preventDefault()}
-          />
-          <Show when={waiting()}>
-            <YoLoading
-              cover
-              title={waitingCopy(mirrorStore.state.phase).title}
-              description={waitingCopy(mirrorStore.state.phase).description}
+      <div class="yohu-mirror__body">
+        <YoPanel variant="pane" class="yohu-mirror__panel" aria-label="投屏画面">
+          <div class="yohu-mirror__stage">
+            <canvas
+              ref={(el) => {
+                canvas = el;
+                decoder.attach(el);
+              }}
+              class="yohu-mirror__canvas"
+              classList={{ "yohu-mirror__canvas--hidden": !painted() }}
+              onPointerDown={(event) => {
+                if (!canControl()) return;
+                (event.currentTarget as HTMLCanvasElement).setPointerCapture(event.pointerId);
+                setPressing(true);
+                sendTouch(TOUCH_DOWN, event);
+              }}
+              onPointerMove={(event) => {
+                if (!pressing()) return;
+                sendTouch(TOUCH_MOVE, event);
+              }}
+              onPointerUp={(event) => {
+                if (!pressing()) return;
+                setPressing(false);
+                sendTouch(TOUCH_UP, event);
+              }}
+              onContextMenu={(event) => event.preventDefault()}
             />
+            <Show when={waiting()}>
+              <YoLoading
+                cover
+                title={waitingCopy(mirrorStore.state.phase).title}
+                description={waitingCopy(mirrorStore.state.phase).description}
+              />
+            </Show>
+            <Show when={!live() && !waiting()}>
+              <YoEmptyState
+                icon="mirror"
+                title={emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title}
+                description={
+                  emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
+                    .description
+                }
+              />
+            </Show>
+          </div>
+        </YoPanel>
+
+        <YoPanel class="yohu-mirror__func" variant="pane" padding="md" aria-label="投屏功能栏">
+          <div class="yohu-mirror__group" title="下次开始生效">
+            <div class="yohu-mirror__group-label">质量</div>
+            <label class="yohu-mirror__field">
+              <span class="yohu-mirror__field-name">长边</span>
+              <YoSelect
+                block
+                options={withCurrentOption(SIZE_OPTIONS, mirrorStore.state.maxSize, (n) =>
+                  n === 0 ? "原始" : String(n),
+                )}
+                value={String(mirrorStore.state.maxSize)}
+                disabled={mirrorStore.state.phase === "starting"}
+                onChange={(v) => void mirrorStore.persistQuality("mirror_max_size", Number.parseInt(v, 10))}
+              />
+            </label>
+            <label class="yohu-mirror__field">
+              <span class="yohu-mirror__field-name">码率</span>
+              <YoSelect
+                block
+                options={withCurrentOption(RATE_OPTIONS, mirrorStore.state.videoBitRate, (n) =>
+                  n >= 1_000_000 ? `${n / 1_000_000} Mbps` : `${n} bps`,
+                )}
+                value={String(mirrorStore.state.videoBitRate)}
+                disabled={mirrorStore.state.phase === "starting"}
+                onChange={(v) => void mirrorStore.persistQuality("mirror_video_bit_rate", Number.parseInt(v, 10))}
+              />
+            </label>
+            <label class="yohu-mirror__field">
+              <span class="yohu-mirror__field-name">帧率</span>
+              <YoSelect
+                block
+                options={withCurrentOption(FPS_OPTIONS, mirrorStore.state.maxFps, (n) =>
+                  n === 0 ? "不限" : `${n} fps`,
+                )}
+                value={String(mirrorStore.state.maxFps)}
+                disabled={mirrorStore.state.phase === "starting"}
+                onChange={(v) => void mirrorStore.persistQuality("mirror_max_fps", Number.parseInt(v, 10))}
+              />
+            </label>
+          </div>
+
+          <div class="yohu-mirror__group">
+            <div class="yohu-mirror__group-label">通道</div>
+            <label class="yohu-mirror__toggle">
+              <span class="yohu-mirror__field-name">只读</span>
+              <YoSwitch
+                ariaLabel="只读（关闭控制通道）"
+                checked={mirrorStore.state.readOnly}
+                onChange={(v) => void mirrorStore.setReadOnly(v)}
+              />
+            </label>
+            <label class="yohu-mirror__toggle" title="下次开始生效">
+              <span class="yohu-mirror__field-name">强制转发</span>
+              <YoSwitch
+                ariaLabel="强制 ADB forward"
+                checked={mirrorStore.state.forceForward}
+                disabled={mirrorStore.state.phase === "starting"}
+                onChange={(v) => void mirrorStore.persistQuality("mirror_force_forward", v)}
+              />
+            </label>
+          </div>
+
+          <Show when={!mirrorStore.state.readOnly}>
+            <div class="yohu-mirror__group">
+              <div class="yohu-mirror__group-label">导航</div>
+              <div class="yohu-mirror__keys">
+                <For each={NAV_KEYS}>
+                  {(item) => (
+                    <YoButton
+                      size="sm"
+                      variant="secondary"
+                      disabled={!canControl()}
+                      onClick={() => void tapKey(item.keycode)}
+                    >
+                      {item.label}
+                    </YoButton>
+                  )}
+                </For>
+                <YoButton
+                  size="sm"
+                  variant="secondary"
+                  disabled={!canControl()}
+                  onClick={() => void send({ kind: "display_power", on: false })}
+                >
+                  息屏
+                </YoButton>
+                <YoButton
+                  size="sm"
+                  variant="secondary"
+                  disabled={!canControl()}
+                  onClick={() => void send({ kind: "display_power", on: true })}
+                >
+                  亮屏
+                </YoButton>
+              </div>
+            </div>
           </Show>
-          <Show when={!live() && !waiting()}>
-            <YoEmptyState
-              icon="mirror"
-              title={emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title}
-              description={
-                emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
-                  .description
-              }
-            />
-          </Show>
-        </div>
-      </YoPanel>
+        </YoPanel>
+      </div>
       <YoToaster toaster={toaster} />
     </YoPage>
   );

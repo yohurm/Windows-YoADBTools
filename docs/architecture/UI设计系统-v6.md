@@ -1,8 +1,10 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.42（2026-08-26，区域加载 YoLoading）    
+> **状态：** v1.43（2026-08-26，投屏右侧功能栏）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（token 单源 + 组件）+ `@yohu/app`（壳）+ `@yohu/modules/*`（三模块）。所有改动必须同步更新本文件。
+>
+> **v1.43 变更（投屏右侧功能栏）**：投屏页画面与控件分栏。质量 / 通道 / 导航从页眉 extra 挪到画面右侧功能栏（宽 `--yohu-layout-preview`）。页眉主行只留会话操作（开始/停止、暂停、截图、全屏）。禁止把应用模块导航做成右侧栏。
 >
 > **v1.42 变更（区域加载 YoLoading）**：新增 `YoLoading`（环 + 标题/描述，`role=status`）。控件内加载仍走 `YoButton` / `YoIconButton` 的 `loading`；区域/页面等待必须走 `YoLoading`，禁止模块自写 spinner。投屏 `starting` 与 Live 尚未出画时用 `cover` 盖住舞台。
 >
@@ -326,7 +328,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 - 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。画面在 `YoPanel variant=pane` 内等比适应（`max-width/height: 100%`），不是编码器 `max_size`。
 - 空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 `YoLoading cover`，不走空态。Live 不等于已出画：首帧绘制前舞台保持加载，避免黑屏空等。
-- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏。次行分组：**质量**（长边 / 码率 / 帧率，**下次开始生效**）、**通道**（只读即时关控制，开控制需重启会话；强制转发下次开始）、**导航**（仅非只读时出现；控制关闭时键禁用）。
+- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（长边 / 码率 / 帧率，**下次开始生效**）、**通道**（只读即时关控制，开控制需重启会话；强制转发下次开始）、**导航**（仅非只读时出现；控制关闭时键禁用）。禁止再把这些控件放进页眉 extra。
 
 ### 4.5 设置
 
