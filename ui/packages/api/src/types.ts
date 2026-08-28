@@ -144,6 +144,12 @@ export type SettingKey =
   | "mirror_max_fps"
   | "mirror_force_forward";
 
+/** `settings.get` 单键值类型：按键映射到 `AppSettings` 对应字段类型。
+ * `SettingKey` 成员与 `AppSettings` 字段一一同名，故索引映射即精确值类型。
+ * 例：`SettingValue<"theme"> = Theme`、`SettingValue<"buffer_capacity"> = number`。
+ */
+export type SettingValue<K extends SettingKey> = AppSettings[K];
+
 /** 应用身份（`system.info.identity`；常量见 `identity.ts`）。 */
 export interface AppIdentity {
   name: string;

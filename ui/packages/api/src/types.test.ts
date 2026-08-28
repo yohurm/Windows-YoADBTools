@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
-import { EVENT_NAMES, type AppEvent, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type RemoteEntry, type RemoteUpdate, type TransferRequest, type UpdateChannelInfo } from "./types";
+import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateProvider } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -265,3 +265,18 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
     expect(EVENT_NAMES.devicesChanged).toBe("devices/changed");
   });
 });
+
+// ===== 编译期契约：SettingValue<K> 精确映射 AppSettings[K]（tsc -b 守护） =====
+// 以下为类型级断言，运行期无副作用；映射错误会令 `tsc -b` 失败。
+
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type Expect<T extends true> = T;
+
+export type _SettingValue_String = Expect<Equal<SettingValue<"adb_path">, string>>;
+export type _SettingValue_Theme = Expect<Equal<SettingValue<"theme">, Theme>>;
+export type _SettingValue_Density = Expect<Equal<SettingValue<"density">, Density>>;
+export type _SettingValue_Number = Expect<Equal<SettingValue<"buffer_capacity">, number>>;
+export type _SettingValue_Bool = Expect<Equal<SettingValue<"clear_device_on_start">, boolean>>;
+export type _SettingValue_Enum = Expect<Equal<SettingValue<"log_write_mode">, "overwrite" | "append">>;
+export type _SettingValue_Object = Expect<Equal<SettingValue<"log_display_columns">, LogDisplayColumns>>;
+export type _SettingValue_Provider = Expect<Equal<SettingValue<"update_provider">, UpdateProvider>>;

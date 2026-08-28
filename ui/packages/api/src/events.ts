@@ -25,6 +25,10 @@ interface RawDragPayload {
   position?: RawDragPosition;
 }
 
+/** 订阅重试上限（约 10s 的 250ms 退避），耗尽后向上抛错而非返回 noop。 */
+const RETRY_ATTEMPTS = 40;
+const RETRY_BACKOFF_MS = 250;
+
 function cssPointFromPhysical(position: RawDragPosition | undefined): { x: number; y: number } {
   const point = position?.Physical ?? position;
   const x = typeof point?.x === "number" ? point.x : 0;
@@ -67,19 +71,24 @@ function on<K extends AppEvent["kind"]>(
       handler({ ...payload, kind } as Extract<AppEvent, { kind: K }>);
     });
   const retry = async (): Promise<UnlistenFn> => {
-    for (let i = 0; i < 40; i += 1) {
+    let lastError: unknown;
+    for (let i = 0; i < RETRY_ATTEMPTS; i += 1) {
       try {
         const unlisten = await attach();
         if (name.startsWith("mirror/")) {
           YoLog.info("ipc", `已订阅 ${name}`);
         }
         return unlisten;
-      } catch {
-        await new Promise((resolve) => window.setTimeout(resolve, 250));
+      } catch (error) {
+        lastError = error;
+        await new Promise((resolve) => window.setTimeout(resolve, RETRY_BACKOFF_MS));
       }
     }
-    YoLog.error("ipc", `订阅失败 ${name}`);
-    return () => undefined;
+    // 重试耗尽后向上抛出：让失败对调用方可感知（catch 后可知订阅真实失败并重连）。
+    // 绝不返回 noop unlisten —— 那会让调用方误认为订阅成功，掩盖 IPC/ACL 故障。
+    YoLog.error("ipc", `订阅失败 ${name}（重试 ${RETRY_ATTEMPTS} 次）`, lastError ? String(lastError) : undefined);
+    if (lastError instanceof Error) throw lastError;
+    throw new Error(String(lastError ?? `订阅失败 ${name}`));
   };
   return retry();
 }

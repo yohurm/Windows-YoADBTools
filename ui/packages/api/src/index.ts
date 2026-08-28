@@ -6,3 +6,4 @@ export * from "./commands";
 export * from "./events";
 export * from "./dialog";
 export * from "./yolog";
+export * from "./error";

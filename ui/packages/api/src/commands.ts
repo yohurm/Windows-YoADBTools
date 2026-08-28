@@ -31,6 +31,7 @@ import type {
   SessionFileRequest,
   SessionLogFile,
   SettingKey,
+  SettingValue,
   SystemInfo,
   TerminalEvalRequest,
   TransferRequest,
@@ -146,10 +147,12 @@ export const mirrorSavePng = (req: MirrorSavePngRequest) =>
 
 // ===== settings =====
 
-export const settingsGet = (key: SettingKey) => invoke<unknown>("settings.get", { key });
+/** 单键值：按 `SettingKey` 精确推断返回类型（`SettingValue<K>`），不再是 `unknown`。 */
+export const settingsGet = <K extends SettingKey>(key: K) =>
+  invoke<SettingValue<K>>("settings.get", { key });
 
 /** 返回全量快照。壳 settingsStore.set 回写后经 DeviceSession.settings 注入模块。 */
-export const settingsSet = (key: SettingKey, value: unknown) =>
+export const settingsSet = <K extends SettingKey>(key: K, value: SettingValue<K>) =>
   invoke<AppSettings>("settings.set", { key, value });
 
 // ===== system =====
