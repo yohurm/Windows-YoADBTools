@@ -1,8 +1,12 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.43（2026-08-26，投屏右侧功能栏）    
+> **状态：** v1.45（2026-08-28，Select 触发钮 min-width）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（YoUI；token 单源 + 组件）+ `@yohu/workbench`（壳）+ `@yohu/modules/*`。所有改动必须同步更新本文件。
+>
+> **v1.45 变更（Select 触发钮 min-width）**：`YoSelect` 最小宽写在触发钮上，禁止写在根节点。短文案 hug 时根比按钮宽、按钮靠左，表单行右侧对不齐（设置「外观」主题/密度暴露）。文案 `flex: 1` 让箭头贴触发钮右缘。
+>
+> **v1.44 变更（表单行 YoFormRow）**：新增 `YoFormRow` 为设置/表单项默认排布。左侧标题信息（标题行：标题 + 备注水平相邻；副标题在下）与右侧控件两列垂直居中；说明不再独占下一行。设置页只填内容，禁止页面自写一行 flex。
 >
 > **v1.43 变更（投屏右侧功能栏）**：投屏页画面与控件分栏。质量 / 通道 / 导航从页眉 extra 挪到画面右侧功能栏（宽 `--yohu-layout-preview`）。页眉主行只留会话操作（开始/停止、暂停、截图、全屏）。禁止把应用模块导航做成右侧栏。
 >
@@ -334,10 +338,10 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 - 页壳不滚动；`YoChrome` 钉在内容区顶部。分组卡片放进 `.yohu-settings__body` 滚动；`YoPanel` 不裁切表单项。
 - 页眉与卡片左缘共用 `--yohu-layout-page-margin`（PC 40vp）；页宽 `--yohu-layout-settings-max` 只约束滚动列，不把标题挤进 920 列。
-- 表单项同一行：标签 + 生效徽章靠左，功能控件靠右 hug（`.yohu-settings__item-control` + `margin-left: auto`）。开关 / 数字 / 下拉 / 多选复选共用该槽，禁止某一项整行左起铺开。说明文字（`.yohu-settings__item-hint`）独占下一行。
+- 表单项走 `YoFormRow`：左侧标题行（标题 + 备注水平相邻，生效徽章进 `note` 槽）+ 其下副标题，右侧功能控件 hug；两列 `align-items: center`。开关 / 数字 / 下拉 / 多选复选进右侧槽。说明文字是副标题，禁止再独占下一行，禁止设置页自写一行 flex。
 - 文件位置项（ADB 路径 / 数据目录 / 默认导出路径）统一：只读展示框显示绝对路径 + 「浏览」；展示框宽 ≤ `--yohu-layout-settings-control-max`，超长折叠中间（目录头 ellipsis、末段完整）。空值显示 `system.info` 解析路径。数字/下拉仍走 `YoTextField`/`YoSelect`。
 - **关于**：末张分组卡片。应用图标（与安装包同源）+ 展示名 + 定位；版本 / 标识 / 版权；数据根、设置目录、应用日志只读路径 + 「打开」（`system.openPath`）。禁止再写死版本号。
-- 日志显示列：多选走 `YoCheckbox`（不是启用开关），控件组靠右 hug、过窄时组内折行；消息列始终显示、不提供开关。立即生效。
+- 日志显示列：多选走 `YoCheckbox`（不是启用开关），进 `YoFormRow` 右侧槽、过窄时组内折行；消息列始终显示、不提供开关。立即生效。
 - `YoDialog`：中性 10% 遮罩 + `--yohu-shadow-dialog`（失焦 `-unfocused`）；最大宽 400、高 90%；标题 Title_S Bold；电脑小圆角 `radius-sm`。最小 360×240 仅适用于独立子窗口，不套浮层。
 - `YoToast`：描边；最大宽 400；展示 ≤ `--yohu-dur-toast`（3s）。
 
@@ -356,6 +360,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 | YoContextMenuHost | 应用根唯一实例；Portal 到 body；同时只开一个场景 | 同 YoContextMenu |
 | YoIconButton | 激活执行；`loading` 时不可激活 | `aria-label`（title）+ `aria-busy` |
 | YoLoading | 非交互；减动效时环静止 | `role=status aria-busy aria-live=polite` |
+| YoFormRow | 非交互容器；左侧标题栈与右侧控件垂直居中 | 无；控件自带 ARIA |
 | YoSegmentedButton | ←/→/↑/↓ 循环选中；Home/End 首尾 | `role=radiogroup/radio` + `aria-checked` |
 
 ---

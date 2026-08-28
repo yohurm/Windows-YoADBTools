@@ -1,4 +1,5 @@
-/* 设置页：页眉铺满内容区；标题与分组卡片共用 page-margin 左缘。 */
+/* 设置页：页眉铺满内容区；标题与分组卡片共用 page-margin 左缘。
+ * 表单项排布走 YoFormRow；本文件只留路径展示、关于、数字宽等页面特有样式。 */
 
 .yohu-settings {
   display: flex;
@@ -35,46 +36,12 @@
   overflow: visible;
 }
 
-.yohu-settings__item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  column-gap: var(--yohu-space-md);
-  row-gap: var(--yohu-space-xs);
-  padding: var(--yohu-space-md) 0;
+.yohu-settings .yohu-form-row__control .yohu-text-field {
+  width: var(--yohu-layout-settings-number-w);
+  flex: 0 0 auto;
 }
 
-.yohu-settings__item + .yohu-settings__item {
-  border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
-}
-
-.yohu-settings__item-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--yohu-space-xs);
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.yohu-settings__item-label {
-  font-size: var(--yohu-font-body);
-  font-weight: var(--yohu-font-weight-semibold);
-  color: var(--yohu-fg);
-}
-
-.yohu-settings__item-control {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--yohu-space-sm);
-  min-width: 0;
-  flex: 0 1 auto;
-  margin-left: auto;
-}
-
-.yohu-settings__item-control--path {
+.yohu-settings__path-row > .yohu-form-row__control {
   flex: 1 1 auto;
 }
 
@@ -119,31 +86,14 @@
   text-overflow: ellipsis;
 }
 
-.yohu-settings__item-control--number .yohu-text-field {
-  width: var(--yohu-layout-settings-number-w);
-  flex: 0 0 auto;
-}
-
-.yohu-settings__item-control--select {
-  flex: 0 0 auto;
-}
-
-.yohu-settings__item-control--switch {
-  flex: 0 0 auto;
-}
-
-.yohu-settings__item-control--checks {
+.yohu-settings__checks {
+  display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--yohu-space-md);
 }
 
-.yohu-settings__item-hint {
-  flex: 1 0 100%;
-  font-size: var(--yohu-font-caption);
-  color: var(--yohu-fg-3);
-}
-
-.yohu-settings__item-value {
+.yohu-settings__value {
   font-size: var(--yohu-font-body);
   line-height: var(--yohu-font-leading-ui);
   color: var(--yohu-fg-2);
@@ -157,7 +107,7 @@
   padding: var(--yohu-space-md) 0;
 }
 
-.yohu-settings__about + .yohu-settings__item {
+.yohu-settings__about + .yohu-form-row {
   border-top: var(--yohu-stroke-hairline) solid var(--yohu-border);
 }
 
@@ -177,6 +127,11 @@
   font-size: var(--yohu-font-body);
   font-weight: var(--yohu-font-weight-semibold);
   color: var(--yohu-fg);
+}
+
+.yohu-settings__about-desc {
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
 }
 
 .yohu-settings__update-ver {

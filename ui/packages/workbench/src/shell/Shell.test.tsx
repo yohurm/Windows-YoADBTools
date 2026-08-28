@@ -443,17 +443,20 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     }
   });
 
-  it("日志显示列控件走靠右 hug 槽，不独占整行", () => {
+  it("日志显示列走 YoFormRow：说明在左侧信息栈，复选在右侧控件槽", () => {
     const { container } = render(() => <SettingsView />);
-    const label = [...container.querySelectorAll(".yohu-settings__item-label")].find(
+    const title = [...container.querySelectorAll(".yohu-form-row__title")].find(
       (el) => el.textContent === "日志显示列",
     );
-    const item = label?.closest(".yohu-settings__item");
-    const control = item?.querySelector(":scope > .yohu-settings__item-control--checks");
-    expect(item?.querySelector(":scope > .yohu-settings__item-head")).toBeTruthy();
+    const row = title?.closest(".yohu-form-row");
+    const info = row?.querySelector(":scope > .yohu-form-row__info");
+    const control = row?.querySelector(":scope > .yohu-form-row__control");
+    expect(info).toBeTruthy();
+    expect(info?.querySelector(".yohu-form-row__description")).toBeTruthy();
+    expect(info?.querySelector(".yohu-form-row__note")).toBeTruthy();
     expect(control).toBeTruthy();
-    expect(control?.classList.contains("yohu-settings__item-control")).toBe(true);
-    expect(item?.querySelector(":scope > .yohu-settings__item-hint")).toBeTruthy();
+    expect(control?.querySelector(".yohu-settings__checks")).toBeTruthy();
+    expect(row?.querySelector(":scope > .yohu-form-row__description")).toBeNull();
   });
 
   it("关闭 UID 列立即写入 log_display_columns", async () => {
