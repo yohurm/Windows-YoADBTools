@@ -23,7 +23,7 @@ import type { TreeNode } from "@yohu/ui";
 import type { CommandDto, CommandGroupDto, DeviceSession } from "@yohu/api";
 
 import { CommandManager } from "./CommandManager";
-import { terminalStore, type ResultEntry } from "./store";
+import { commandNeedsInput, terminalStore, type ResultEntry } from "./store";
 import "./terminal.css";
 
 /** 用时显示：<1s 毫秒，≥1s 秒（1 位小数）。 */
@@ -242,7 +242,7 @@ export function TerminalView(props: DeviceSession) {
     const sel = selection();
     if (!sel) return;
     if (sel.type === "command") {
-      if (sel.command.inputs.length > 0) {
+      if (commandNeedsInput(sel.command)) {
         setInputCommand(sel.command);
         setInputOpen(true);
         return;

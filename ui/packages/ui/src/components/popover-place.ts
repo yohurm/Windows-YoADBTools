@@ -4,6 +4,8 @@
  * 那会在 overflow-y:auto 下连带出横向滚动条（Windows 表现为「宽度调整条」）。
  */
 
+import { readViewport } from "../placement/viewport";
+
 export type PopoverPlacement = "bottom" | "top";
 
 export interface PlacePopoverInput {
@@ -36,18 +38,8 @@ export function readCssPx(name: string, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-/** 读取用于定位的视口（优先 visualViewport，避免 innerHeight 含不可见区）。 */
-export function readViewport(): { width: number; height: number } {
-  const vv = window.visualViewport;
-  if (vv && vv.width > 0 && vv.height > 0) {
-    return { width: vv.width, height: vv.height };
-  }
-  const doc = document.documentElement;
-  return {
-    width: doc.clientWidth || window.innerWidth || 0,
-    height: doc.clientHeight || window.innerHeight || 0,
-  };
-}
+/** 视口读取单源（L1 共享能力），见 `../placement/viewport`。 */
+export { readViewport };
 
 export function estimateMenuHeight(optionCount: number, rowHeight: number, padY: number): number {
   return Math.max(0, optionCount) * rowHeight + padY;

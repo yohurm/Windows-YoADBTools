@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
-import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateProvider } from "./types";
+import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStatus, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateProvider } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -75,6 +75,50 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       stdout: "out",
       stderr: "err",
       duration_ms: 12,
+    });
+  });
+
+  it("MirrorControlMessage 内部 tag 为 snake_case kind（与 mirror.rs serde 一致）", () => {
+    const touch: MirrorControlMessage = { kind: "touch", action: 1, x: 2, y: 3, width: 4, height: 5 };
+    expect(JSON.parse(JSON.stringify(touch))).toEqual({
+      kind: "touch",
+      action: 1,
+      x: 2,
+      y: 3,
+      width: 4,
+      height: 5,
+    });
+    for (const msg of [
+      { kind: "key" as const, keycode: 4, down: true },
+      { kind: "display_power" as const, on: true },
+      { kind: "back_or_screen_on" as const },
+      { kind: "expand_notification" as const },
+      { kind: "expand_settings" as const },
+      { kind: "collapse_panels" as const },
+      { kind: "rotate_device" as const },
+    ]) {
+      expect(JSON.parse(JSON.stringify(msg))).toEqual(msg);
+    }
+  });
+
+  it("MirrorStatus 字段为 snake_case（与 mirror.rs serde 一致）", () => {
+    const status: MirrorStatus = {
+      serial: "S1",
+      mirroring: true,
+      generation: 1,
+      width: 640,
+      height: 360,
+      codec: "avc1.42C01E",
+      control: true,
+    };
+    expect(JSON.parse(JSON.stringify(status))).toEqual({
+      serial: "S1",
+      mirroring: true,
+      generation: 1,
+      width: 640,
+      height: 360,
+      codec: "avc1.42C01E",
+      control: true,
     });
   });
 

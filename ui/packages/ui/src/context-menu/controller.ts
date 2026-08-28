@@ -6,7 +6,7 @@
 import type { Accessor } from "solid-js";
 import { createSignal } from "solid-js";
 
-import { readViewport } from "../components/popover-place";
+import { readViewport } from "../placement/viewport";
 import { clampContextMenuPoint, clampToRect } from "./place";
 import type { ContextMenuRequest, ContextMenuScene, ContextMenuSession } from "./types";
 

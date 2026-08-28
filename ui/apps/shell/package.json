@@ -8,7 +8,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@yohu/app": "workspace:*",
+    "@yohu/workbench": "workspace:*",
     "@yohu/ui": "workspace:*",
     "@yohu/module-terminal": "workspace:*",
     "@yohu/module-files": "workspace:*",

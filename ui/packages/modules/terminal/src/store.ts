@@ -18,6 +18,11 @@ import {
 } from "@yohu/api";
 import type { CommandDto, CommandGroupDto, CommandLibraryDto } from "@yohu/api";
 
+/** 命令是否需要占位符填值（与 core 组编排一致；UI 侧仅用于拦截提示，不做填值校验）。 */
+export function commandNeedsInput(cmd: CommandDto): boolean {
+  return cmd.inputs.length > 0;
+}
+
 /** 一条执行结果（命令或组内命令）。 */
 export interface ResultEntry {
   id: number;
@@ -105,7 +110,7 @@ export function createTerminalStore() {
 
   /** 执行命令组（进度经 group.progress 事件回流为结果条目）。 */
   async function runGroup(serials: string[], group: CommandGroupDto): Promise<void> {
-    const needing = group.commands.find((c) => c.inputs.length > 0);
+    const needing = group.commands.find(commandNeedsInput);
     if (needing) {
       push({
         kind: "group",

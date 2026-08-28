@@ -7,7 +7,7 @@
 
 import { YoLog, type MirrorPacket } from "@yohu/api";
 
-import { prepareDescription, toLengthPrefixed } from "./h264";
+import { DEFAULT_CODEC, prepareDescription, toLengthPrefixed } from "./h264";
 
 type Accel = "prefer-hardware" | "prefer-software";
 
@@ -37,7 +37,7 @@ export class H264CanvasDecoder {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private description: Uint8Array | null = null;
-  private codec = "avc1.42C01E";
+  private codec = DEFAULT_CODEC;
   private generation = -1;
   private accel: Accel = "prefer-hardware";
   private lastWidth = 0;

@@ -42,18 +42,26 @@ const TOAST_DURATION_MS = motionDurationMs("toast");
  */
 export function createToaster(): Toaster {
   const [toasts, setToasts] = createSignal<ToastItem[]>([]);
+  const timers = new Map<number, ReturnType<typeof setTimeout>>();
   let nextId = 1;
 
   const dismiss = (id: number): void => {
+    const timer = timers.get(id);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timers.delete(id);
+    }
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
   const show = (text: string, tone: ToastTone = "info"): void => {
     const id = nextId++;
     setToasts((prev) => [...prev, { id, text, tone, open: true }]);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      timers.delete(id);
       setToasts((prev) => prev.map((toast) => (toast.id === id ? { ...toast, open: false } : toast)));
     }, TOAST_DURATION_MS);
+    timers.set(id, timer);
   };
 
   return { toasts, show, dismiss };

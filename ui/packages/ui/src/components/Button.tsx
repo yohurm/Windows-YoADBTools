@@ -5,6 +5,7 @@
  */
 import { Show, children, createMemo } from "solid-js";
 import type { JSX } from "solid-js";
+import { resolveText } from "../dom/text";
 import { YoSwap } from "../motion/swap";
 import "./Button.css";
 
@@ -30,22 +31,10 @@ export interface YoButtonProps {
 }
 
 /** 只对纯文案走 Swap；复合 children 原样渲染。 */
-function labelText(node: unknown): string | null {
-  if (typeof node === "string" || typeof node === "number") {
-    return String(node);
-  }
-  if (Array.isArray(node) && node.length === 1) {
-    return labelText(node[0]);
-  }
-  return null;
-}
-
-/**
- * 渲染一个带语义变体与尺寸的按钮。
- */
+/** 渲染一个带语义变体与尺寸的按钮。 */
 export function YoButton(props: YoButtonProps): JSX.Element {
   const resolved = children(() => props.children);
-  const text = createMemo(() => labelText(resolved()));
+  const text = createMemo(() => resolveText(resolved()));
 
   return (
     <button

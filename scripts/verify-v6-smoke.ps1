@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Exe)) {
-    throw "未找到 $Exe — 请先执行 cargo tauri build --no-bundle（在 app/yohu-app 下）"
+    throw "未找到 $Exe — 请先执行 cargo tauri build --no-bundle（在 app/yohu-adbtools 下）"
 }
 
 # 共享库：数据目录名（= PRODUCT_NAME / DATA_DIR_NAME）单源

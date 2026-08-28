@@ -111,7 +111,7 @@ def save_ico(path: Path, layers: list[tuple[int, Image.Image]]) -> None:
 
 def main() -> None:
     repo = Path(__file__).resolve().parents[1]
-    icons = repo / "app" / "yohu-app" / "icons"
+    icons = repo / "app" / "yohu-adbtools" / "icons"
     public = repo / "ui" / "apps" / "shell" / "public"
     icons.mkdir(parents=True, exist_ok=True)
     public.mkdir(parents=True, exist_ok=True)

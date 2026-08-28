@@ -118,7 +118,7 @@ jobs:
         run: cargo install tauri-cli --locked
 
       - name: 打包 NSIS
-        working-directory: app/yohu-app
+        working-directory: app/yohu-adbtools
         run: cargo tauri build
 
       - name: 体积断言（≤ 12 MB）

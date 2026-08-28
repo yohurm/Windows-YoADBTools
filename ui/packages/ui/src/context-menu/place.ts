@@ -5,13 +5,16 @@
  * 因为 `Layout.MenuMin` 只是最小宽，更宽条目会让估算偏小，贴右/下边时会溢出。
  */
 
+import { getDensity } from "../tokens";
 import { Density } from "../tokens/density";
 import { Layout } from "../tokens/layout";
 import { Spacing } from "../tokens/spacing";
 
 export function estimateContextMenuHeight(itemCount: number): number {
   const rows = Math.max(1, itemCount);
-  return Spacing.Xs * 2 + rows * Density.Comfortable.controlHeight;
+  const density = getDensity();
+  const controlHeight = Density[density === "compact" ? "Compact" : "Comfortable"].controlHeight;
+  return Spacing.Xs * 2 + rows * controlHeight;
 }
 
 /** 按任意（真实）尺寸夹紧到视口内；只向内收，绝不放宽到溢出。 */

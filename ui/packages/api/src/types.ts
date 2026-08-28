@@ -193,7 +193,7 @@ export interface DeviceSession {
   selectedSerials: string[];
   /** 执行目标在目录中的切片（与 selectedSerials 同序）。页眉 / 选择器只读此切片。 */
   selectedDevices: DeviceInfo[];
-  /** 页眉展示名：`selectedDeviceLabel(selectedDevices)`；无选中为 null。模块禁止自拼 serial。 */
+  /** 页眉展示名（壳从 selectedDevices 计算）；无选中为 null。模块禁止自拼 serial。 */
   selectedLabel: string | null;
   /** 设备目录快照（与壳设备栏同一源） */
   devices: DeviceInfo[];
@@ -473,7 +473,7 @@ export type AppEvent =
   | { kind: "deviceOffline"; serial: string }
   | { kind: "logBatch"; batch: LogBatch }
   | { kind: "logOverflow"; serial: string; dropped_batches: number }
-  | { kind: "processIndex"; serial: string; entries: ProcessEntry[]; degraded: boolean }
+  | ({ kind: "processIndex" } & ProcessIndexSnapshot)
   | { kind: "captureState"; serial: string; generation: number; state: CaptureState }
   | { kind: "transferProgress" } & TransferProgress
   | { kind: "groupProgress" } & GroupProgress

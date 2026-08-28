@@ -48,6 +48,21 @@ describe("levelRank", () => {
   });
 });
 
+describe("levelRank（与 domain testdata/level_rank.json 同一套向量）", () => {
+  const testdata = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../../../core/yohu-domain/testdata/level_rank.json",
+  );
+  const fixture: { level: string; rank: number }[] = JSON.parse(readFileSync(testdata, "utf8")) as {
+    level: string;
+    rank: number;
+  }[];
+
+  it.each(fixture)("level=$level -> $rank", (c) => {
+    expect(levelRank(c.level)).toBe(c.rank);
+  });
+});
+
 describe("matchesLine", () => {
   it("级别最低含以上", () => {
     const f = filter({ minLevel: "W" });

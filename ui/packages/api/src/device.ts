@@ -24,9 +24,3 @@ export function lookupSelectedDevices(
   return out;
 }
 
-/** 页眉文案：无选中 → null；一台 → 设备名；多台 →「首台名 等 n 台」。 */
-export function selectedDeviceLabel(devices: readonly DeviceInfo[]): string | null {
-  if (devices.length === 0) return null;
-  const name = deviceDisplayName(devices[0]!);
-  return devices.length === 1 ? name : `${name} 等 ${devices.length} 台`;
-}

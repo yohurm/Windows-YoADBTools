@@ -12,3 +12,4 @@ thiserror.workspace = true
 tracing.workspace = true
 yohu-protocol.workspace = true
 yohu-adb.workspace = true
+yohu-runtime.workspace = true

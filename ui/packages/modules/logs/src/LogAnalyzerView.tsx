@@ -396,11 +396,7 @@ export function LogAnalyzerView(props: DeviceSession) {
         <Show when={active()?.capturing}>
           <YoButton
             variant="secondary"
-            onClick={() => {
-              const id = logStore.state.activeSessionId;
-              const session = id !== null ? logStore.state.sessions.find((s) => s.id === id) : null;
-              if (session) logStore.patchFilter(id!, { paused: !session.paused });
-            }}
+            onClick={togglePause}
           >
             {active()?.paused ? "继续" : "暂停"}
           </YoButton>

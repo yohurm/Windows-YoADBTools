@@ -89,4 +89,18 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn level_rank_shared_fixture() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            level: char,
+            rank: u8,
+        }
+        let cases: Vec<Case> =
+            serde_json::from_str(include_str!("../testdata/level_rank.json")).expect("fixture");
+        for (i, case) in cases.iter().enumerate() {
+            assert_eq!(level_rank(case.level), case.rank, "case {i}");
+        }
+    }
 }

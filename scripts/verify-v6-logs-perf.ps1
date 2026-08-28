@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Exe)) {
-    throw "未找到 $Exe — 请先 cargo tauri build --no-bundle（在 app/yohu-app 下）"
+    throw "未找到 $Exe — 请先 cargo tauri build --no-bundle（在 app/yohu-adbtools 下）"
 }
 
 # 共享库：数据目录名（= PRODUCT_NAME / DATA_DIR_NAME）单源
@@ -29,7 +29,7 @@ $checks = @(
     @{ Name = "过滤即时重放"; Hint = "修改级别/Tag/关键字 → 可见列表 200ms 内重建且滚动不卡" },
     @{ Name = "缓冲回补"; Hint = "采集 ≥1 分钟后新建会话 → 新会话立即重放出历史缓冲" },
     @{ Name = "滚动流畅"; Hint = "滚底/暂停/继续：列表滚动无卡顿、无白屏；自动滚底稳定" },
-    @{ Name = "内存约束"; Hint = "任务管理器确认 yohu-app.exe 内存 < 800MB（50k 缓冲预期 < 300MB）" },
+    @{ Name = "内存约束"; Hint = "任务管理器确认 YohuAdbTools.exe 内存 < 800MB（50k 缓冲预期 < 300MB）" },
     @{ Name = "无崩溃"; Hint = "全程无卡死；停止后应用仍可交互" }
 )
 

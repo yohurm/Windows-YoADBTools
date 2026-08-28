@@ -22,7 +22,7 @@ import {
 import { FileTable } from "./FileTable";
 import { PreviewPane } from "./PreviewPane";
 import { TransferPanel } from "./TransferPanel";
-import { type DropHit, resolveDropHit } from "./drop";
+import { type DropHit, localBaseName, resolveDropHit } from "./drop";
 import { copyRemotePaths, FILES_KEY_BINDINGS, FILES_LIST_SELECTOR, type FilesKeyAction } from "./keys";
 import { filesListMenu } from "./menu";
 import { childPath, splitPath, parentWithinSafety, validateEntryName, errorText } from "./model";
@@ -103,7 +103,7 @@ export function FileView(props: DeviceSession) {
   const onUpload = async (): Promise<void> => {
     const selectedPath = await dialogOpenFile({ title: "选择要上传的文件" });
     if (typeof selectedPath === "string") {
-      const name = selectedPath.split(/[\\/]/).pop() ?? "upload.bin";
+      const name = localBaseName(selectedPath) || "upload.bin";
       void fileStore.push(selectedPath, name);
     }
   };

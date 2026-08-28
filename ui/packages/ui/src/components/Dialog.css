@@ -19,8 +19,10 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(var(--yohu-layout-dialog-max), calc(100% - var(--yohu-layout-page-margin) * 2));
-  max-width: min(var(--yohu-layout-dialog-max), calc(100% - var(--yohu-layout-page-margin) * 2));
+  /* 对话框宽度单源：受页边距约束，且不超 dialog 层上限（命令管理整页对话框放开上限见 --sized）。 */
+  --yohu-dialog-width: min(var(--yohu-layout-dialog-max), calc(100% - var(--yohu-layout-page-margin) * 2));
+  width: var(--yohu-dialog-width);
+  max-width: var(--yohu-dialog-width);
   max-height: 90%;
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);
   border-radius: var(--yohu-radius-sm);

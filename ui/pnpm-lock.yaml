@@ -45,9 +45,6 @@ importers:
 
   apps/shell:
     dependencies:
-      '@yohu/app':
-        specifier: workspace:*
-        version: link:../../packages/app
       '@yohu/module-files':
         specifier: workspace:*
         version: link:../../packages/modules/files
@@ -63,6 +60,9 @@ importers:
       '@yohu/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@yohu/workbench':
+        specifier: workspace:*
+        version: link:../../packages/workbench
       solid-js:
         specifier: ^1.9.5
         version: 1.9.14
@@ -82,21 +82,6 @@ importers:
       '@tauri-apps/plugin-dialog':
         specifier: ^2.4.0
         version: 2.7.2
-
-  packages/app:
-    dependencies:
-      '@tauri-apps/api':
-        specifier: ^2.9.0
-        version: 2.11.1
-      '@yohu/api':
-        specifier: workspace:*
-        version: link:../api
-      '@yohu/ui':
-        specifier: workspace:*
-        version: link:../ui
-      solid-js:
-        specifier: ^1.9.5
-        version: 1.9.14
 
   packages/modules/files:
     dependencies:
@@ -150,6 +135,21 @@ importers:
     dependencies:
       solid-js:
         specifier: '*'
+        version: 1.9.14
+
+  packages/workbench:
+    dependencies:
+      '@tauri-apps/api':
+        specifier: ^2.9.0
+        version: 2.11.1
+      '@yohu/api':
+        specifier: workspace:*
+        version: link:../api
+      '@yohu/ui':
+        specifier: workspace:*
+        version: link:../ui
+      solid-js:
+        specifier: ^1.9.5
         version: 1.9.14
 
 packages:

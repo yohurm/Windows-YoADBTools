@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Exe)) {
-    throw "未找到 $Exe — 请先 cargo tauri build --no-bundle（在 app/yohu-app 下）"
+    throw "未找到 $Exe — 请先 cargo tauri build --no-bundle（在 app/yohu-adbtools 下）"
 }
 
 # 共享库：数据目录名（= PRODUCT_NAME / DATA_DIR_NAME）单源
@@ -50,7 +50,7 @@ foreach ($step in $steps) {
 }
 
 Write-Host ""
-$appProcesses = @(Get-Process -Name "yohu-app" -ErrorAction SilentlyContinue)
+$appProcesses = @(Get-Process -Name "YohuAdbTools" -ErrorAction SilentlyContinue)
 foreach ($p in $appProcesses) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 2
 

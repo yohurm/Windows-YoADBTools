@@ -1,0 +1,11 @@
+[
+  { "name": "ok.txt", "valid": true },
+  { "name": "DCIM", "valid": true },
+  { "name": "v1.0.apk", "valid": true },
+  { "name": "  spacename  ", "valid": true },
+  { "name": "", "valid": false },
+  { "name": ".", "valid": false },
+  { "name": "..", "valid": false },
+  { "name": "a/b", "valid": false },
+  { "name": "a\\b", "valid": false }
+]

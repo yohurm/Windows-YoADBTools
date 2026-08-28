@@ -7,10 +7,10 @@ use std::time::Duration;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::process::Child;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
-use yohu_adb::{kill_tree, AdbClient};
+use yohu_runtime::ChildHandle;
+use yohu_adb::AdbClient;
 use yohu_protocol::{
     scrcpy, AppEvent, MirrorControlMessage, MirrorPacket, MirrorSessionState, MirrorStartRequest,
 };
@@ -92,7 +92,7 @@ fn server_argv(req: &MirrorStartRequest, scid: u32, forward: bool) -> Vec<String
     ]
 }
 
-fn drain_child_logs(child: &mut Child, serial: String, logs: Arc<Mutex<String>>) {
+fn drain_child_logs(child: &mut ChildHandle, serial: String, logs: Arc<Mutex<String>>) {
     if let Some(out) = child.stdout.take() {
         let logs = Arc::clone(&logs);
         let serial = serial.clone();
@@ -132,11 +132,11 @@ fn snapshot_logs(logs: &Arc<Mutex<String>>) -> String {
         .to_string()
 }
 
-async fn wait_kill(child: &mut Child) {
+async fn wait_kill(child: &mut ChildHandle) {
     tokio::select! {
         _ = child.wait() => {}
         _ = tokio::time::sleep(KILL_WAIT) => {
-            kill_tree(child);
+            child.kill_tree();
             let _ = child.wait().await;
         }
     }
@@ -238,7 +238,7 @@ pub async fn run_session(
             }
         }
         if wait_cancel.is_cancelled() {
-            kill_tree(&mut child);
+            child.kill_tree();
             wait_kill(&mut child).await;
         }
         wait_alive.store(false, Ordering::Relaxed);

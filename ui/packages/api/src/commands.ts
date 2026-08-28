@@ -1,5 +1,5 @@
 /**
- * @yohu/api — 类型化 invoke 命令封装（与 core/yohu-app/src/commands/* 一一对应）。
+ * @yohu/api — 类型化 invoke 命令封装（与 app/yohu-adbtools/src/commands/* 一一对应）。
  *
  * 命令名是架构文档的点分名（`device.refresh`）。必须用 `cargo tauri build` 打包：
  * Rust 侧 `#[tauri::command(rename = "device.refresh")]` 只在 tauri-cli 生产构建中生效；

@@ -11,7 +11,7 @@
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$appDir = Join-Path $repoRoot "app\yohu-app"
+$appDir = Join-Path $repoRoot "app\yohu-adbtools"
 
 # sidecar 资源前置校验（adb 三件套 + scrcpy-server 均为 .gitignore 忽略项）。
 foreach ($rel in @("tools\adb.exe", "tools\AdbWinApi.dll", "tools\AdbWinUsbApi.dll", "tools\scrcpy-server")) {

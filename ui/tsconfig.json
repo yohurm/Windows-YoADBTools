@@ -3,7 +3,7 @@
   "references": [
     { "path": "./packages/api" },
     { "path": "./packages/ui" },
-    { "path": "./packages/app" },
+    { "path": "./packages/workbench" },
     { "path": "./packages/modules/mirror" },
     { "path": "./packages/modules/terminal" },
     { "path": "./packages/modules/files" },

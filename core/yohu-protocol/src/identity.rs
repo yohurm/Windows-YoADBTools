@@ -1,7 +1,7 @@
 //! 应用身份与路径目录契约（关于 / 标题栏 / 安装包 / 数据根共用）。
 //!
 //! 常量是产品单源：文件夹名、模块数据目录、展示名不得在壳或 UI 再写一份。
-//! 版本号运行时由 `yohu-app` 填入 [`AppIdentity::with_version`]（`CARGO_PKG_VERSION`）。
+//! 版本号运行时由 `yohu-adbtools` 填入 [`AppIdentity::with_version`]（`CARGO_PKG_VERSION`）。
 
 use serde::{Deserialize, Serialize};
 

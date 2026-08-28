@@ -1,5 +1,7 @@
 //! ADB 层错误。
 
+use yohu_runtime::ProcessError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum AdbError {
     #[error("ADB 不可用: {0}")]
@@ -18,6 +20,17 @@ pub enum AdbError {
     Io(#[from] std::io::Error),
     #[error("输出解析失败: {0}")]
     Parse(String),
+}
+
+impl From<ProcessError> for AdbError {
+    fn from(e: ProcessError) -> Self {
+        match e {
+            ProcessError::Timeout => AdbError::Timeout,
+            ProcessError::Cancelled => AdbError::Cancelled,
+            ProcessError::Io(err) => AdbError::Io(err),
+            ProcessError::BadExit { exit_code, stderr } => AdbError::BadExit { exit_code, stderr },
+        }
+    }
 }
 
 /// 映射到 domain 执行端口错误（依赖倒置：适配层负责翻译）。

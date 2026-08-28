@@ -226,4 +226,18 @@ mod tests {
         assert!(validate_entry_name("a/b").is_err());
         assert!(validate_entry_name("a\\b").is_err());
     }
+
+    #[test]
+    fn validate_entry_name_shared_fixture() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            name: String,
+            valid: bool,
+        }
+        let cases: Vec<Case> =
+            serde_json::from_str(include_str!("../testdata/entry_name.json")).expect("fixture");
+        for (i, case) in cases.iter().enumerate() {
+            assert_eq!(validate_entry_name(&case.name).is_ok(), case.valid, "case {i}");
+        }
+    }
 }

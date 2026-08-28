@@ -5,7 +5,7 @@
 # 契约来源（改动时同步更新，避免失真）：
 #   - 数据目录名  ：core/yohu-protocol/src/identity.rs 的 `PRODUCT_NAME` / `DATA_DIR_NAME`（= "YohuAdbTools"）
 #   - settings 键 ：core/yohu-protocol/src/settings.rs 的 `AppSettings` 字段与 `SettingKey::as_str()`
-#   - settings 根 ：`%LOCALAPPDATA%\<DATA_DIR_NAME>\settings\`（app/yohu-app/src/paths.rs；不随 data_root 迁移）
+#   - settings 根 ：`%LOCALAPPDATA%\<DATA_DIR_NAME>\settings\`（app/yohu-adbtools/src/paths.rs；不随 data_root 迁移）
 
 # 产品数据目录名（= PRODUCT_NAME = DATA_DIR_NAME）。身份/目录变更时只改这里。
 $ProductDataDir = "YohuAdbTools"

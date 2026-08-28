@@ -4,6 +4,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 use yohu_protocol::{UpdateChannelInfo, UpdateProvider};
+use yohu_runtime::backup_corrupt;
 
 use crate::error::UpdateError;
 use crate::gitcode::{GitCodeReleaseSource, DEFAULT_OWNER as GC_OWNER, DEFAULT_REPO as GC_REPO};
@@ -165,12 +166,8 @@ fn read_update_file(settings_dir: &Path) -> UpdateFile {
     match serde_json::from_str(&text) {
         Ok(file) => file,
         Err(_) => {
-            // 损坏覆盖配置：备份后回落默认，避免静默覆盖/静默退化且不留下排查线索。
-            let stamp = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis())
-                .unwrap_or(0);
-            let _ = std::fs::write(path.with_extension(format!("corrupt-{stamp}")), &text);
+            // 损坏覆盖配置：备份后回落默认。
+            let _ = backup_corrupt(&path, &text);
             UpdateFile::default()
         }
     }

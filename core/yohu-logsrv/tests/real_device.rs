@@ -100,7 +100,9 @@ async fn real_capture_stream_batch_and_ring() {
         lines.len()
     );
 
-    service.stop(&serial).await;
+    tokio::time::timeout(Duration::from_secs(15), service.stop(&serial))
+        .await
+        .expect("stop 应在杀进程树后返回");
     assert!(!service.is_capturing(&serial));
     assert!(!ring.is_empty(), "停止后缓冲保留");
 }
@@ -132,7 +134,9 @@ async fn real_capture_with_clear_device() {
     assert!(!lines.is_empty(), "清缓冲后仍应采集到新日志");
     eprintln!("[真机] 清缓冲重采 {} 行", lines.len());
 
-    service.stop(&serial).await;
+    tokio::time::timeout(Duration::from_secs(15), service.stop(&serial))
+        .await
+        .expect("stop 应在杀进程树后返回");
     service.clear(&serial);
     assert!(service.ring(&serial).is_empty(), "clear 后缓冲为空");
 }
@@ -157,7 +161,9 @@ async fn real_detach_clears_ring() {
 
     service.start(&serial, false).await.expect("开始采集");
     tokio::time::sleep(Duration::from_secs(3)).await;
-    service.detach_device(&serial).await;
+    tokio::time::timeout(Duration::from_secs(15), service.detach_device(&serial))
+        .await
+        .expect("detach 应在杀进程树后返回，不能握着 logcat 管道死等");
     assert!(!service.is_capturing(&serial));
     assert!(
         service.ring(&serial).is_empty(),
@@ -190,7 +196,9 @@ async fn real_session_log_write_export() {
 
     service.start(&serial, false).await.expect("开始采集");
     let lines = collect_events(&mut rx, 5, Duration::from_secs(30)).await;
-    service.stop(&serial).await;
+    tokio::time::timeout(Duration::from_secs(15), service.stop(&serial))
+        .await
+        .expect("stop 应在杀进程树后返回");
     assert!(!lines.is_empty(), "真实设备应产出至少一行");
 
     let root = std::env::temp_dir().join(format!(

@@ -1,0 +1,17 @@
+[package]
+name = "yohu-runtime"
+description = "Yohu ADB Tools — 宿主运行时：进程 / 原子写 / OS 数据根（零产品类型）"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+tokio = { workspace = true, features = ["process", "io-util", "sync", "time", "rt"] }
+tokio-util = "0.7"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

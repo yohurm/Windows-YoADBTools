@@ -152,7 +152,7 @@ export function onNativeDragDrop(handler: (event: NativeDragDropEvent) => void):
     };
   };
   return attach().catch(async () => {
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    await new Promise((resolve) => window.setTimeout(resolve, RETRY_BACKOFF_MS));
     return attach();
   });
 }

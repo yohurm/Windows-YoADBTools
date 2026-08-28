@@ -43,8 +43,11 @@ export function splitAnnexB(data: Uint8Array): Uint8Array[] {
   return nalus;
 }
 
+/** 默认 H.264 codec 字符串（SPS/配置缺失时的兜底；decoder 默认可解 High@L5.1 的基线档）。 */
+export const DEFAULT_CODEC = "avc1.42C01E";
+
 export function codecFromSps(sps: Uint8Array): string {
-  if (sps.length < 4) return "avc1.42C01E";
+  if (sps.length < 4) return DEFAULT_CODEC;
   return `avc1.${hex2(sps[1]!)}${hex2(sps[2]!)}${hex2(sps[3]!)}`;
 }
 
@@ -60,7 +63,7 @@ export function prepareDescription(config: Uint8Array): { description: Uint8Arra
   const spsList = nalus.filter((n) => n.length > 0 && (n[0]! & 0x1f) === 7);
   const ppsList = nalus.filter((n) => n.length > 0 && (n[0]! & 0x1f) === 8);
   const sps = spsList[0];
-  const codec = sps ? codecFromSps(sps) : "avc1.42C01E";
+  const codec = sps ? codecFromSps(sps) : DEFAULT_CODEC;
   let size = 7;
   for (const n of spsList) size += 2 + n.length;
   size += 1;

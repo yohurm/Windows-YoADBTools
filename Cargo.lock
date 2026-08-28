@@ -5019,10 +5019,11 @@ dependencies = [
  "tracing",
  "yohu-domain",
  "yohu-protocol",
+ "yohu-runtime",
 ]
 
 [[package]]
-name = "yohu-app"
+name = "yohu-adbtools"
 version = "0.1.0"
 dependencies = [
  "serde",
@@ -5045,6 +5046,7 @@ dependencies = [
  "yohu-logsrv",
  "yohu-mirror",
  "yohu-protocol",
+ "yohu-runtime",
  "yohu-update",
 ]
 
@@ -5098,6 +5100,7 @@ dependencies = [
  "tracing",
  "yohu-adb",
  "yohu-protocol",
+ "yohu-runtime",
 ]
 
 [[package]]
@@ -5106,6 +5109,16 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "yohu-runtime"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -5119,6 +5132,7 @@ dependencies = [
  "tokio",
  "tracing",
  "yohu-protocol",
+ "yohu-runtime",
 ]
 
 [[package]]

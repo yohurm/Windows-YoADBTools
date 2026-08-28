@@ -1,0 +1,15 @@
+[
+  { "level": "V", "rank": 1 },
+  { "level": "D", "rank": 2 },
+  { "level": "I", "rank": 3 },
+  { "level": "W", "rank": 4 },
+  { "level": "E", "rank": 5 },
+  { "level": "F", "rank": 6 },
+  { "level": "v", "rank": 1 },
+  { "level": "d", "rank": 2 },
+  { "level": "i", "rank": 3 },
+  { "level": "w", "rank": 4 },
+  { "level": "e", "rank": 5 },
+  { "level": "f", "rank": 6 },
+  { "level": "?", "rank": 0 }
+]

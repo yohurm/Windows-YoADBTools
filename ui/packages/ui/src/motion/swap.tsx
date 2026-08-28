@@ -4,9 +4,10 @@
  */
 import { children, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { JSX } from "solid-js";
+import { resolveText } from "../dom/text";
 import { motionDurationMs } from "../tokens/motion";
 import { shouldSkipMotion } from "./reduced";
-import { SWAP_DURATION } from "./recipes";
+import { PRESENCE_EXIT_SAFETY_MS, SWAP_DURATION } from "./recipes";
 
 export interface YoSwapProps {
   /** 身份；变化时按方向展开或收缩 */
@@ -14,13 +15,6 @@ export interface YoSwapProps {
   children: JSX.Element;
   /** 裁切锚点。end = 贴右往左收（预览栏/窗口右缘）。默认 end。 */
   anchor?: "start" | "end";
-}
-
-function asText(node: unknown): string | null {
-  if (typeof node === "string" || typeof node === "number") {
-    return String(node);
-  }
-  return null;
 }
 
 /** 瞬时探针测固有宽，不挂进可达树（避免按钮文案出现两份）。 */
@@ -59,7 +53,7 @@ export function YoSwap(props: YoSwapProps): JSX.Element {
     const prevKey = currentKey;
     currentKey = nextKey;
 
-    const incomingText = asText(incoming);
+    const incomingText = resolveText(incoming);
     const hostEl = host;
     const clipEl = clip;
     const skip = !prevKey || shouldSkipMotion() || !hostEl || !clipEl || incomingText === null;
@@ -113,7 +107,7 @@ export function YoSwap(props: YoSwapProps): JSX.Element {
       setResizing(false);
     };
 
-    const timer = window.setTimeout(finish, motionDurationMs(SWAP_DURATION) + 50);
+    const timer = window.setTimeout(finish, motionDurationMs(SWAP_DURATION) + PRESENCE_EXIT_SAFETY_MS);
     const onEnd = (event: TransitionEvent): void => {
       if (event.propertyName !== "width" || event.target !== clipEl) {
         return;

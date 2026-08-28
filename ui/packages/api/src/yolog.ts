@@ -3,7 +3,7 @@
  * 浏览器控制台立即可见；同时 `system.log` 写入 Rust tracing（logs/app-*.log）。
  */
 
-import { invoke } from "@tauri-apps/api/core";
+import { systemLog } from "./commands";
 
 export type YoLogLevel = "info" | "warn" | "error";
 
@@ -23,7 +23,7 @@ function write(level: YoLogLevel, module: string, message: string, extra?: unkno
   if (level === "error") console.error(line);
   else if (level === "warn") console.warn(line);
   else console.info(line);
-  void invoke("system.log", { level, module, message: text }).catch(() => {
+  void systemLog(level, module, text).catch(() => {
     /* 启动早期或非 Tauri 环境：控制台已有一份 */
   });
 }

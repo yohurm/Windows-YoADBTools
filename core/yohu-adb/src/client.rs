@@ -11,9 +11,9 @@ use tokio_util::sync::CancellationToken;
 
 use crate::error::AdbError;
 use crate::parse::{devices as devices_parse, ls as ls_parse, ps as ps_parse};
-use crate::process::ProcessRunner;
 use crate::tool::ToolResolver;
 use yohu_protocol::{DeviceInfo, ExecOutcome, ProcessEntry, RemoteEntry};
+use yohu_runtime::{ChildHandle, ProcessError, ProcessOutput, ProcessRunner};
 
 /// 各 ADB 短命令超时（ms）——单源，避免业务分支散落魔法数。
 const CLEAR_LOG_TIMEOUT_MS: u64 = 10_000;
@@ -74,20 +74,23 @@ impl AdbClient {
             .map_err(|_| AdbError::Cancelled)?;
         let timeout = timeout_ms.map(Duration::from_millis);
         let adb = self.resolve_adb()?;
-        self.runner
+        let out = self
+            .runner
             .run_capture(&adb, &Self::argv_with_serial(serial, argv), timeout, cancel)
-            .await
+            .await?;
+        outcome_or_offline(out)
     }
 
-    /// 长驻进程：不占短命令信号量；调用方负责泵输出与 [`crate::kill_tree`]。
+    /// 长驻进程：不占短命令信号量；调用方负责泵输出与 [`ChildHandle::kill_tree`]。
     pub fn spawn_long_lived(
         &self,
         serial: &str,
         argv: &[String],
-    ) -> Result<tokio::process::Child, AdbError> {
+    ) -> Result<ChildHandle, AdbError> {
         let adb = self.resolve_adb()?;
-        self.runner
-            .spawn_child(&adb, &Self::argv_with_serial(serial, argv))
+        Ok(self
+            .runner
+            .spawn_child(&adb, &Self::argv_with_serial(serial, argv))?)
     }
 
     /// 流式命令：stdout 逐行转发（logcat 采集用）。
@@ -99,9 +102,17 @@ impl AdbClient {
         line_tx: mpsc::Sender<String>,
     ) -> Result<i32, AdbError> {
         let adb = self.resolve_adb()?;
-        self.runner
+        match self
+            .runner
             .run_streaming(&adb, &Self::argv_with_serial(serial, argv), cancel, line_tx)
             .await
+        {
+            Ok(code) => Ok(code),
+            Err(ProcessError::BadExit { stderr, .. }) if is_device_offline(&stderr) => {
+                Err(AdbError::DeviceOffline(stderr.trim().to_string()))
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 
     /// 扫描设备。
@@ -306,6 +317,30 @@ impl AdbClient {
         }
         Ok(ps_parse::parse_ps(&out.stdout))
     }
+}
+
+fn outcome_or_offline(out: ProcessOutput) -> Result<ExecOutcome, AdbError> {
+    if out.exit_code != 0 && is_device_offline(&out.stderr) {
+        return Err(AdbError::DeviceOffline(out.stderr.trim().to_string()));
+    }
+    Ok(ExecOutcome {
+        exit_code: out.exit_code,
+        stdout: out.stdout,
+        stderr: out.stderr,
+    })
+}
+
+/// adb 掉线/无设备特征（stderr 判定）。
+fn is_device_offline(stderr: &str) -> bool {
+    let lower = stderr.to_lowercase();
+    [
+        "device offline",
+        "device not found",
+        "no devices/emulators found",
+        "device 'offline'",
+    ]
+    .iter()
+    .any(|k| lower.contains(k))
 }
 
 /// 解析 `readlink -f` 的 stdout 为规范路径。
