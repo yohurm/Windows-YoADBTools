@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { COMMAND_LIBRARY_SCHEMA_VERSION, type CommandLibraryDto } from "@yohu/api";
 
-import { fromDraft, toDraft } from "./CommandManager";
+import { fromDraft, toDraft } from "./draft";
 
 const sample: CommandLibraryDto = {
   schema_version: COMMAND_LIBRARY_SCHEMA_VERSION,
