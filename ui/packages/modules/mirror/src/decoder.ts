@@ -11,6 +11,11 @@ import { prepareDescription, toLengthPrefixed } from "./h264";
 
 type Accel = "prefer-hardware" | "prefer-software";
 
+/** 30fps 每帧时长（µs）。 */
+const FRAME_DURATION_US = 33_333;
+/** 连续拒帧数达到该值仍未出画面，判定硬解失效回退软件（配合下方阈值）。 */
+const FRAME_NO_OUTPUT_THRESHOLD = 12;
+
 function decodeB64(text: string): Uint8Array {
   const bin = atob(text);
   const out = new Uint8Array(bin.length);
@@ -110,9 +115,9 @@ export class H264CanvasDecoder {
           data: toLengthPrefixed(data),
         }),
       );
-      this.nextTs += 33_333;
+      this.nextTs += FRAME_DURATION_US;
       this.pending += 1;
-      if (this.frames === 0 && this.pending === 12) {
+      if (this.frames === 0 && this.pending === FRAME_NO_OUTPUT_THRESHOLD) {
         this.fallbackOrWarn(packet.width, packet.height);
       }
     } catch (e) {

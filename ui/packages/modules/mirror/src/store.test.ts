@@ -37,6 +37,7 @@ vi.mock("@yohu/api", () => ({
     mirror_max_fps: 30,
     mirror_force_forward: false,
   },
+  errorText: (e: unknown) => String(e),
   mirrorStart: (...a: unknown[]) => mocks.mirrorStart(...a),
   mirrorStop: (...a: unknown[]) => mocks.mirrorStop(...a),
   mirrorStatus: (...a: unknown[]) => mocks.mirrorStatus(...a),

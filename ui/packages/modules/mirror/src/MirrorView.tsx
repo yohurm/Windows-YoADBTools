@@ -5,6 +5,7 @@
 import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import {
   dialogSaveFile,
+  errorText,
   mirrorSavePng,
   type DeviceSession,
   type MirrorControlMessage,
@@ -72,11 +73,7 @@ function withCurrentOption(
 }
 
 function ipcMessage(error: unknown): string {
-  if (error && typeof error === "object" && "message" in error) {
-    const message = (error as { message: unknown }).message;
-    if (typeof message === "string" && message.length > 0) return message;
-  }
-  return String(error);
+  return errorText(error);
 }
 
 function emptyCopy(phase: string, hasDevice: boolean, error: string | null): { title: string; description?: string } {

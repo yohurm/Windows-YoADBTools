@@ -5,6 +5,7 @@
 import { createStore } from "solid-js/store";
 import {
   APP_SETTINGS_DEFAULT,
+  errorText,
   mirrorCloseControl,
   mirrorInject,
   mirrorStart,
@@ -20,6 +21,11 @@ import {
   type MirrorSessionState,
   YoLog,
 } from "@yohu/api";
+
+/** 等待投屏进入 Live 的超时（ms）。 */
+const WAIT_LIVE_TIMEOUT_MS = 20_000;
+/** 等待 Live 的轮询间隔（ms）。 */
+const WAIT_LIVE_POLL_MS = 300;
 
 import type { H264CanvasDecoder } from "./decoder";
 
@@ -204,10 +210,7 @@ export function createMirrorStore() {
         YoLog.info("mirror", "start 返回", result);
         void waitUntilLive(serial, result.generation);
       } catch (e) {
-        const error =
-          e && typeof e === "object" && "message" in e
-            ? String((e as { message: unknown }).message)
-            : String(e);
+        const error = errorText(e);
         YoLog.error("mirror", "start 失败", error);
         setState({
           phase: "failed",
@@ -269,7 +272,7 @@ export function createMirrorStore() {
   }
 
   async function waitUntilLive(serial: string, generation: number): Promise<void> {
-    const deadline = Date.now() + 20_000;
+    const deadline = Date.now() + WAIT_LIVE_TIMEOUT_MS;
     while (Date.now() < deadline) {
       if (state.serial !== serial) return;
       if (state.phase === "live" || state.phase === "failed" || state.phase === "idle") return;
@@ -295,7 +298,7 @@ export function createMirrorStore() {
       } catch (e) {
         YoLog.warn("mirror", "status 轮询失败", String(e));
       }
-      await new Promise((resolve) => window.setTimeout(resolve, 300));
+      await new Promise((resolve) => window.setTimeout(resolve, WAIT_LIVE_POLL_MS));
     }
     if (state.phase === "starting" && state.serial === serial) {
       YoLog.error("mirror", "等待 Live 超时，停止卡住会话");
