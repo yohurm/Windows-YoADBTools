@@ -50,11 +50,20 @@ export const App: Component = () => {
       void windowIsMaximized().then(setMaximized);
     };
     syncMaximized();
+    // 退订竞态：监听可能在 cleanup 之后才 resolve，需在 resolve 时检查是否已卸载。
+    let disposed = false;
     let unlistenResize: (() => void) | undefined;
     void listenWindowResize(syncMaximized).then((fn) => {
-      unlistenResize = fn;
+      if (disposed) {
+        fn();
+      } else {
+        unlistenResize = fn;
+      }
     });
-    onCleanup(() => unlistenResize?.());
+    onCleanup(() => {
+      disposed = true;
+      unlistenResize?.();
+    });
 
     // 前端全局错误上报（应用操作日志，与设备日志分离）
     YoLog.info("shell", "UI 已挂载");

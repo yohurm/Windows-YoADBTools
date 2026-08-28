@@ -11,6 +11,7 @@ import {
   DATA_DIR_NAME,
   dialogOpenDirectory,
   dialogOpenFile,
+  errorText,
   systemOpenPath,
   type Density,
   type LogDisplayColumns,
@@ -75,19 +76,6 @@ const LOG_COLUMN_OPTIONS: { key: keyof LogDisplayColumns; label: string }[] = [
 /** 设置页级 toaster（模块生命周期 = 应用生命周期）。 */
 const toaster = createToaster();
 
-function ipcMessage(error: unknown): string {
-  if (typeof error === "string") {
-    return error;
-  }
-  if (error && typeof error === "object" && "message" in error) {
-    const message = (error as { message: unknown }).message;
-    if (typeof message === "string" && message.length > 0) {
-      return message;
-    }
-  }
-  return String(error);
-}
-
 /** 生效说明徽章。 */
 function EffectBadge(props: { text: string }) {
   return <YoBadge text={props.text} tone={props.text === "立即生效" ? "accent" : "neutral"} />;
@@ -144,6 +132,7 @@ function PathOpenField(props: { label: string; path: string }) {
 
 export const SettingsView: Component = () => {
   onMount(() => {
+    // 设置由壳根(App)与设置页都可能加载；system.info 幂等、低开销，双调用可接受（已记录）。
     void settingsStore.load().then(() => updateStore.refresh());
   });
 
@@ -161,7 +150,7 @@ export const SettingsView: Component = () => {
         toaster.show("已是最新版本", "success");
       }
     } catch (e) {
-      toaster.show(`检查更新失败: ${ipcMessage(e)}`, "error");
+      toaster.show(`检查更新失败: ${errorText(e)}`, "error");
     }
   };
 
@@ -169,7 +158,7 @@ export const SettingsView: Component = () => {
     try {
       await updateStore.openDownload();
     } catch (e) {
-      toaster.show(`打开下载失败: ${ipcMessage(e)}`, "error");
+      toaster.show(`打开下载失败: ${errorText(e)}`, "error");
     }
   };
 

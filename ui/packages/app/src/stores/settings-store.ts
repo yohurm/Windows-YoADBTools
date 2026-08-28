@@ -16,7 +16,7 @@ import {
   systemInfo,
   YoLog,
 } from "@yohu/api";
-import type { AppIdentity, AppPathCatalog, AppSettings, SettingKey } from "@yohu/api";
+import type { AppIdentity, AppPathCatalog, AppSettings, SettingKey, SettingValue } from "@yohu/api";
 import { setDensity, setTheme } from "@yohu/ui";
 
 const EMPTY_RESOLVED = {
@@ -60,7 +60,9 @@ export function createSettingsStore() {
 
   async function set(key: SettingKey, value: unknown): Promise<void> {
     try {
-      const updated = await settingsSet(key, value);
+      // 本 store 是设置页的通用分发器（key/value 在 UI 侧本身松散），
+      // 类型精确性收敛在 @yohu/api 的 settingsSet<K>(key, SettingValue<K>)。在此显式断言。
+      const updated = await settingsSet(key, value as SettingValue<SettingKey>);
       setState(updated);
       applyAppearance(updated);
       YoLog.info("settings", "已保存", { key, value });

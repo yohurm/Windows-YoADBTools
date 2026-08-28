@@ -5,7 +5,7 @@
 
 import { createStore } from "solid-js/store";
 
-import { deviceRefresh, lookupSelectedDevices, onDevicesChanged, systemInfo, YoLog } from "@yohu/api";
+import { deviceRefresh, errorText, lookupSelectedDevices, onDevicesChanged, systemInfo, YoLog } from "@yohu/api";
 import type { DeviceInfo } from "@yohu/api";
 
 import type { SelectionMode } from "../registry";
@@ -28,13 +28,6 @@ export interface SelectDeviceOpts {
   mode?: SelectionMode;
   /** Ctrl/Meta：在 MultiOptional 下加减选 */
   additive?: boolean;
-}
-
-/** IPC 错误转为可读信息（Tauri 错误可能是字符串或 {message} 结构）。 */
-function errorText(e: unknown): string {
-  if (typeof e === "string") return e;
-  if (e && typeof e === "object" && "message" in e) return String((e as { message: unknown }).message);
-  return JSON.stringify(e);
 }
 
 export function createDeviceStore() {

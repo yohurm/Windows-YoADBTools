@@ -11,7 +11,6 @@ export function createUpdateStore() {
   const [checking, setChecking] = createSignal(false);
   const [pending, setPending] = createSignal<RemoteUpdate | null>(null);
   const [channel, setChannel] = createSignal<UpdateChannelInfo | null>(null);
-  const [error, setError] = createSignal("");
 
   async function refresh(): Promise<void> {
     try {
@@ -23,7 +22,6 @@ export function createUpdateStore() {
 
   async function check(): Promise<RemoteUpdate> {
     setChecking(true);
-    setError("");
     try {
       const result = await updateCheck();
       if (result.has_new_version) {
@@ -33,8 +31,7 @@ export function createUpdateStore() {
       }
       return result;
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      setError(message);
+      // 错误由调用方（SettingsView）直接 catch 展示；此处不保留未消费的 error 信号。
       throw e;
     } finally {
       setChecking(false);
@@ -56,7 +53,6 @@ export function createUpdateStore() {
     checking,
     pending,
     channel,
-    error,
     refresh,
     check,
     openDownload,
