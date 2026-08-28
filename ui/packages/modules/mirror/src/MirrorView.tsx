@@ -4,9 +4,7 @@
 
 import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import {
-  dialogSaveFile,
   errorText,
-  mirrorSavePng,
   type DeviceSession,
   type MirrorControlMessage,
 } from "@yohu/api";
@@ -25,6 +23,7 @@ import {
 } from "@yohu/ui";
 
 import { H264CanvasDecoder } from "./decoder";
+import { frameStyle, isFrameMode } from "./frame";
 import { AndroidKey, TOUCH_DOWN, TOUCH_MOVE, TOUCH_UP } from "./keys";
 import { mirrorStore } from "./store";
 import "./mirror.css";
@@ -90,14 +89,25 @@ function waitingCopy(phase: string): { title: string; description: string } {
 export function MirrorView(props: DeviceSession) {
   const decoder = new H264CanvasDecoder();
   let canvas: HTMLCanvasElement | undefined;
+  let panelZone: HTMLDivElement | undefined;
+  let zoneObserver: ResizeObserver | undefined;
   const [pressing, setPressing] = createSignal(false);
+  const [zoneSize, setZoneSize] = createSignal<{ w: number; h: number }>({ w: 0, h: 0 });
 
   onMount(() => {
     mirrorStore.bindDecoder(decoder);
     if (canvas) decoder.attach(canvas);
     mirrorStore.applySettings(props.settings);
+    if (panelZone) {
+      zoneObserver = new ResizeObserver((entries) => {
+        const rect = entries[0]?.contentRect;
+        if (rect) setZoneSize({ w: rect.width, h: rect.height });
+      });
+      zoneObserver.observe(panelZone);
+    }
   });
   onCleanup(() => {
+    zoneObserver?.disconnect();
     mirrorStore.bindDecoder(null);
     decoder.reset();
   });
@@ -163,14 +173,8 @@ export function MirrorView(props: DeviceSession) {
       toaster.show("当前没有可保存的画面", "error");
       return;
     }
-    const path = await dialogSaveFile({
-      title: "保存截图",
-      defaultPath: "mirror.png",
-      filters: [{ name: "PNG", extensions: ["png"] }],
-    });
-    if (!path) return;
     try {
-      await mirrorSavePng({ path, data_b64: data });
+      await mirrorStore.saveScreenshot(data);
       toaster.show("截图已保存", "success");
     } catch (e) {
       toaster.show(`保存失败: ${ipcMessage(e)}`, "error");
@@ -215,51 +219,64 @@ export function MirrorView(props: DeviceSession) {
       </YoChrome>
 
       <div class="yohu-mirror__body">
-        <YoPanel variant="pane" class="yohu-mirror__panel" aria-label="投屏画面">
-          <div class="yohu-mirror__stage">
-            <canvas
-              ref={(el) => {
-                canvas = el;
-                decoder.attach(el);
-              }}
-              class="yohu-mirror__canvas"
-              classList={{ "yohu-mirror__canvas--hidden": !painted() }}
-              onPointerDown={(event) => {
-                if (!canControl()) return;
-                (event.currentTarget as HTMLCanvasElement).setPointerCapture(event.pointerId);
-                setPressing(true);
-                sendTouch(TOUCH_DOWN, event);
-              }}
-              onPointerMove={(event) => {
-                if (!pressing()) return;
-                sendTouch(TOUCH_MOVE, event);
-              }}
-              onPointerUp={(event) => {
-                if (!pressing()) return;
-                setPressing(false);
-                sendTouch(TOUCH_UP, event);
-              }}
-              onContextMenu={(event) => event.preventDefault()}
-            />
-            <Show when={waiting()}>
-              <YoLoading
-                cover
-                title={waitingCopy(mirrorStore.state.phase).title}
-                description={waitingCopy(mirrorStore.state.phase).description}
+        <div
+          ref={(el) => {
+            panelZone = el;
+          }}
+          class="yohu-mirror__panel-zone"
+          style={frameStyle(zoneSize().w, zoneSize().h, mirrorStore.state.width, mirrorStore.state.height, mirrorStore.state.phase)}
+        >
+          <YoPanel
+            variant="pane"
+            class="yohu-mirror__panel"
+            classList={{ "yohu-mirror__panel--frame": isFrameMode(mirrorStore.state.phase) }}
+            aria-label="投屏画面"
+          >
+            <div class="yohu-mirror__stage">
+              <canvas
+                ref={(el) => {
+                  canvas = el;
+                  decoder.attach(el);
+                }}
+                class="yohu-mirror__canvas"
+                classList={{ "yohu-mirror__canvas--hidden": !painted() }}
+                onPointerDown={(event) => {
+                  if (!canControl()) return;
+                  (event.currentTarget as HTMLCanvasElement).setPointerCapture(event.pointerId);
+                  setPressing(true);
+                  sendTouch(TOUCH_DOWN, event);
+                }}
+                onPointerMove={(event) => {
+                  if (!pressing()) return;
+                  sendTouch(TOUCH_MOVE, event);
+                }}
+                onPointerUp={(event) => {
+                  if (!pressing()) return;
+                  setPressing(false);
+                  sendTouch(TOUCH_UP, event);
+                }}
+                onContextMenu={(event) => event.preventDefault()}
               />
-            </Show>
-            <Show when={!live() && !waiting()}>
-              <YoEmptyState
-                icon="mirror"
-                title={emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title}
-                description={
-                  emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
-                    .description
-                }
-              />
-            </Show>
-          </div>
-        </YoPanel>
+              <Show when={waiting()}>
+                <YoLoading
+                  cover
+                  title={waitingCopy(mirrorStore.state.phase).title}
+                  description={waitingCopy(mirrorStore.state.phase).description}
+                />
+              </Show>
+              <Show when={!live() && !waiting()}>
+                <YoEmptyState
+                  icon="mirror"
+                  title={emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title}
+                  description={
+                    emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
+                      .description
+                  }
+                />
+              </Show>
+            </div>
+          </YoPanel>
+        </div>
 
         <YoPanel class="yohu-mirror__func" variant="pane" padding="md" aria-label="投屏功能栏">
           <div class="yohu-mirror__group" title="下次开始生效">

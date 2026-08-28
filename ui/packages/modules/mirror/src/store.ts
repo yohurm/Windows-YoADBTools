@@ -5,9 +5,11 @@
 import { createStore } from "solid-js/store";
 import {
   APP_SETTINGS_DEFAULT,
+  dialogSaveFile,
   errorText,
   mirrorCloseControl,
   mirrorInject,
+  mirrorSavePng,
   mirrorStart,
   mirrorStatus,
   mirrorStop,
@@ -271,6 +273,16 @@ export function createMirrorStore() {
     }
   }
 
+  async function saveScreenshot(pngBase64: string): Promise<void> {
+    const path = await dialogSaveFile({
+      title: "保存截图",
+      defaultPath: "mirror.png",
+      filters: [{ name: "PNG", extensions: ["png"] }],
+    });
+    if (!path) return;
+    await mirrorSavePng({ path, data_b64: pngBase64 });
+  }
+
   async function waitUntilLive(serial: string, generation: number): Promise<void> {
     const deadline = Date.now() + WAIT_LIVE_TIMEOUT_MS;
     while (Date.now() < deadline) {
@@ -414,6 +426,7 @@ export function createMirrorStore() {
     inject,
     setReadOnly,
     persistQuality,
+    saveScreenshot,
     setPaused: (paused: boolean) => {
       setState("paused", paused);
       if (decoder) decoder.paused = paused;

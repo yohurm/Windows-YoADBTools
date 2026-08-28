@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   mirrorInject: vi.fn(),
   mirrorCloseControl: vi.fn(),
   settingsSet: vi.fn(),
+  dialogSaveFile: vi.fn(),
+  mirrorSavePng: vi.fn(),
   stateHandlers: [] as ((e: {
     serial: string;
     generation: number;
@@ -44,6 +46,8 @@ vi.mock("@yohu/api", () => ({
   mirrorInject: (...a: unknown[]) => mocks.mirrorInject(...a),
   mirrorCloseControl: (...a: unknown[]) => mocks.mirrorCloseControl(...a),
   settingsSet: (...a: unknown[]) => mocks.settingsSet(...a),
+  dialogSaveFile: (...a: unknown[]) => mocks.dialogSaveFile(...a),
+  mirrorSavePng: (...a: unknown[]) => mocks.mirrorSavePng(...a),
   onMirrorState: (h: (typeof mocks.stateHandlers)[0]) => {
     mocks.stateHandlers.push(h);
   },
@@ -76,6 +80,8 @@ describe("mirror store", () => {
     mocks.mirrorInject.mockReset();
     mocks.mirrorCloseControl.mockReset();
     mocks.settingsSet.mockReset();
+    mocks.dialogSaveFile.mockReset();
+    mocks.mirrorSavePng.mockReset();
     mocks.settingsSet.mockResolvedValue({
       mirror_max_size: 1024,
       mirror_video_bit_rate: 2_000_000,
@@ -217,5 +223,46 @@ describe("mirror store", () => {
     expect(mocks.mirrorStop).not.toHaveBeenCalled();
     expect(store.state.serial).toBe("S1");
     expect(store.state.phase).toBe("live");
+  });
+
+  it("saveScreenshot 走 dialogSaveFile 再把 PNG 写入镜像 IPC", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    mocks.dialogSaveFile.mockResolvedValue("/x/mirror.png");
+    mocks.mirrorSavePng.mockResolvedValue(undefined);
+    await store.saveScreenshot("PNG_DATA");
+    expect(mocks.dialogSaveFile).toHaveBeenCalledWith({
+      title: "保存截图",
+      defaultPath: "mirror.png",
+      filters: [{ name: "PNG", extensions: ["png"] }],
+    });
+    expect(mocks.mirrorSavePng).toHaveBeenCalledWith({
+      path: "/x/mirror.png",
+      data_b64: "PNG_DATA",
+    });
+  });
+
+  it("saveScreenshot 取消（null）时不写镜像", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    mocks.dialogSaveFile.mockResolvedValue(null);
+    await store.saveScreenshot("PNG_DATA");
+    expect(mocks.mirrorSavePng).not.toHaveBeenCalled();
+  });
+
+  it("saveScreenshot 在 mirrorSavePng 失败时向上抛出", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    mocks.dialogSaveFile.mockResolvedValue("/x/mirror.png");
+    mocks.mirrorSavePng.mockRejectedValue(new Error("write failed"));
+    await expect(store.saveScreenshot("PNG_DATA")).rejects.toThrow("write failed");
+  });
+
+  it("saveScreenshot 在 dialogSaveFile 失败时向上抛出", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    mocks.dialogSaveFile.mockRejectedValue(new Error("dialog failed"));
+    await expect(store.saveScreenshot("PNG_DATA")).rejects.toThrow("dialog failed");
+    expect(mocks.mirrorSavePng).not.toHaveBeenCalled();
   });
 });
