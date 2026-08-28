@@ -10,8 +10,10 @@ import { join, relative, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const MODULES_DIR = join(ROOT, "ui/packages/modules");
-const FORBIDDEN_PKGS = [/^@yohu\/app$/, /^@yohu\/module-/, /^@tauri-apps\//];
-const FORBIDDEN_IMPORT = /from\s+["'](@yohu\/app|@yohu\/module-[^"']+|@tauri-apps\/[^"']+)["']/;
+const FORBIDDEN_PKGS = [/^@yohu\/app($|\/)/, /^@yohu\/module-/, /^@tauri-apps\//];
+// 覆盖：import ... from、副作用 import、动态 import()、require()；含子路径（如 @yohu/app/foo）。
+const FORBIDDEN_IMPORT =
+  /(?:import\s+(?:[^'"]*?\s+from\s+)?|import\s*\(\s*|require\s*\(\s*)["'](@yohu\/app(?:\/[^"']*)?|@yohu\/module-[^"']+|@tauri-apps\/[^"']+)["']/;
 
 let failed = false;
 
@@ -36,12 +38,14 @@ for (const name of readdirSync(MODULES_DIR)) {
       failed = true;
     }
   }
-  for (const file of walk(join(dir, "src"), [])) {
-    if (!/\.(ts|tsx)$/.test(file)) continue;
+  const srcDir = join(dir, "src");
+  if (!statSync(srcDir).isDirectory()) continue;
+  for (const file of walk(srcDir, [])) {
+    if (!/\.(ts|tsx|js|jsx)$/.test(file)) continue;
     const text = readFileSync(file, "utf8");
     const match = text.match(FORBIDDEN_IMPORT);
     if (match) {
-      console.error(`${relative(ROOT, file)} 禁止 import ${match[1]}`);
+      console.error(`${relative(ROOT, file)} 禁止 import/require ${match[1]}`);
       failed = true;
     }
   }

@@ -1,10 +1,11 @@
-﻿# Yohu ADB Tools v6 — 真机端到端联调（Windows UIA 驱动 WebView2 + 真实 adb 设备）
+# Yohu ADB Tools v6 — 真机端到端联调（Windows UIA 驱动 WebView2 + 真实 adb 设备）
 # 用法（应用需关闭；必须 cargo tauri build --no-bundle，不要用裸 cargo build --release）：
 #   $env:CARGO_TARGET_DIR = "E:\GithubGallery\Windows-YoADBTools\target"
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-real.ps1
 # 覆盖：设备扫描 / 设置页 / 终端（库/命令管理取消/执行/组/占位符）/
 #       文件（浏览/新建目录/删除）/ 日志（采集/关键字过滤）/ 投屏占位。
 # 原理：SPI_SETSCREENREADER 强制激活 WebView2 无障碍树 → UIA 枚举 DOM 元素并按名交互。
+# UIA 助手与 settings 生成来自共享库（scripts/uia.ps1 + scripts/verify-lib.ps1），本文件不再内联。
 
 param(
     [string]$Exe = (Join-Path $PSScriptRoot "..\target\release\YohuAdbTools.exe")
@@ -14,127 +15,9 @@ $ErrorActionPreference = "Stop"
 $Exe = [System.IO.Path]::GetFullPath($Exe)
 if (-not (Test-Path $Exe)) { throw "未找到 $Exe（先 cargo tauri build --no-bundle）" }
 
-Add-Type -AssemblyName UIAutomationClient
-Add-Type -AssemblyName UIAutomationTypes
-
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public static class SysParam {
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
-}
-"@
-
-function Set-ReaderFlag([bool]$on) {
-    [SysParam]::SystemParametersInfo(0x0046, [uint32]$(if ($on) { 1 } else { 0 }), [IntPtr]::Zero, 0) | Out-Null
-}
-
-function Wait-AppRoot([int]$procId, [int]$timeoutSec = 30) {
-    $deadline = (Get-Date).AddSeconds($timeoutSec)
-    while ((Get-Date) -lt $deadline) {
-        $root = [System.Windows.Automation.AutomationElement]::RootElement
-        $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
-        foreach ($e in $all) {
-            if ($e.Current.ControlType.ProgrammaticName -eq "ControlType.Document" -and $e.Current.Name -eq "Yohu ADB Tools") {
-                return $e
-            }
-        }
-        Start-Sleep -Milliseconds 500
-    }
-    throw "WebView2 document not found"
-}
-
-function Find-ByName($scope, [string]$name, [bool]$contains = $false, [int]$timeoutSec = 10) {
-    $deadline = (Get-Date).AddSeconds($timeoutSec)
-    while ((Get-Date) -lt $deadline) {
-        $all = $scope.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
-        foreach ($e in $all) {
-            $n = $e.Current.Name
-            if (-not $n) { continue }
-            if ($contains -and $n.Contains($name)) { return $e }
-            if (-not $contains -and $n -eq $name) { return $e }
-        }
-        Start-Sleep -Milliseconds 400
-    }
-    return $null
-}
-
-function Find-Button($scope, [string]$name, [int]$timeoutSec = 10) {
-    $deadline = (Get-Date).AddSeconds($timeoutSec)
-    while ((Get-Date) -lt $deadline) {
-        $btn = Find-ButtonNow $scope $name
-        if ($btn) { return $btn }
-        Start-Sleep -Milliseconds 350
-    }
-    return $null
-}
-
-function Find-Edit($scope, [string]$name, [bool]$contains = $false, [int]$timeoutSec = 8) {
-    $deadline = (Get-Date).AddSeconds($timeoutSec)
-    while ((Get-Date) -lt $deadline) {
-        $all = $scope.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
-        foreach ($e in $all) {
-            if ($e.Current.ControlType.ProgrammaticName -ne "ControlType.Edit") { continue }
-            $n = $e.Current.Name
-            if (-not $n) { continue }
-            if ($contains -and $n.Contains($name)) { return $e }
-            if (-not $contains -and $n -eq $name) { return $e }
-        }
-        Start-Sleep -Milliseconds 350
-    }
-    return $null
-}
-
-function Find-ButtonNow($scope, [string]$name) {
-    $all = $scope.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
-    foreach ($e in $all) {
-        if ($e.Current.Name -eq $name -and $e.Current.ControlType.ProgrammaticName -eq "ControlType.Button") {
-            return $e
-        }
-    }
-    return $null
-}
-
-function Find-AllByName($scope, [string]$name, [bool]$contains = $false) {
-    $out = @()
-    $all = $scope.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
-    foreach ($e in $all) {
-        $n = $e.Current.Name
-        if ($n -and (($contains -and $n.Contains($name)) -or (-not $contains -and $n -eq $name))) { $out += $e }
-    }
-    return ,$out
-}
-
-function Invoke-Click($element) {
-    $pattern = $null
-    if ($element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$pattern)) {
-        $pattern.Invoke()
-        return
-    }
-    if ($element.TryGetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern, [ref]$pattern)) {
-        $pattern.Select()
-        return
-    }
-    throw "element not invokable: $($element.Current.Name)"
-}
-
-function Set-Value($element, [string]$text) {
-    $pattern = $null
-    if (-not $element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$pattern)) {
-        throw "element does not support ValuePattern: $($element.Current.ControlType.ProgrammaticName) name=$($element.Current.Name)"
-    }
-    $pattern.SetValue($text)
-}
-
-function Invoke-DialogButton($scope, [string]$dialogName, [string]$buttonName) {
-    $hits = Find-AllByName $scope $dialogName
-    foreach ($hit in $hits) {
-        $btn = Find-ButtonNow $hit $buttonName
-        if ($btn) { Invoke-Click $btn; return $true }
-    }
-    return $false
-}
+# 共享库：UIA 助手（uia.ps1）+ 数据目录常量 / settings.json 生成（verify-lib.ps1）
+. (Join-Path $PSScriptRoot "uia.ps1")
+. (Join-Path $PSScriptRoot "verify-lib.ps1")
 
 function Invoke-Adb([string[]]$adbArgs) {
     $prev = $ErrorActionPreference
@@ -147,17 +30,10 @@ function Invoke-Adb([string[]]$adbArgs) {
     }
 }
 
-$checks = 0
-$fails = @()
-function Assert($name, [bool]$ok) {
-    $script:checks++
-    if ($ok) { Write-Host "  OK：$name" } else { Write-Host "  FAIL：$name"; $script:fails += $name }
-}
-
 # ===== 1. 确认真机在线；恢复自动解析 adb（不要指向 fake-adb） =====
 $adbCandidates = @(
     (Join-Path $PSScriptRoot "..\tools\adb.exe"),
-    (Join-Path $env:LOCALAPPDATA "YohuAdbTools\data\tools\adb\adb.exe")
+    (Join-Path (Join-Path $env:LOCALAPPDATA $ProductDataDir) "data\tools\adb\adb.exe")
 )
 $adb = $adbCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $adb) { $adb = "adb" }
@@ -166,10 +42,8 @@ $devOut = & $adb devices -l 2>&1 | Out-String
 if ($devOut -notmatch "\sdevice\s") { throw "no online device. adb devices:`n$devOut" }
 Write-Host "device online"
 
-$settingsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\settings"
-New-Item -ItemType Directory -Force $settingsDir | Out-Null
-@{ adb_path = ""; data_root = ""; devices_auto_refresh = 0; buffer_capacity = 50000; clear_device_on_start = $false; theme = "light"; density = "compact" } |
-    ConvertTo-Json | Set-Content (Join-Path $settingsDir "settings.json") -Encoding utf8
+# 用共享单源写 settings.json（adb_path 留空 = 自动解析真实 adb）。
+Write-AppSettings -AdbPath ""
 
 $e2eDir = "000-yohu-e2e"
 [void](Invoke-Adb @("shell", "rm", "-rf", "/sdcard/$e2eDir"))
@@ -186,9 +60,18 @@ Start-Sleep -Seconds 12
 try {
     $refreshBtn = Find-Button $appRoot "刷新设备" 8
     if ($refreshBtn) { Invoke-Click $refreshBtn; Start-Sleep -Seconds 2 }
-    $deviceHit = Find-ByName $appRoot "motorola" $true 12
-    if (-not $deviceHit) { $deviceHit = Find-ByName $appRoot "NEPI" $true 4 }
-    if (-not $deviceHit) { $deviceHit = Find-ByName $appRoot "edge" $true 4 }
+    # 机型动态化（M3）：从 adb devices -l 解析在线设备型号，按型号/其词元定位设备栏。
+    $onlineModel = $null
+    foreach ($line in ($devOut -split "`r?`n")) {
+        if ($line -match "device\s+product:\S+\s+model:([^ ]+)") { $onlineModel = $Matches[1]; break }
+    }
+    $deviceHit = $null
+    if ($onlineModel) {
+        foreach ($part in @($onlineModel) + (@($onlineModel -split '[_\s]+') | Where-Object { $_.Length -ge 3 })) {
+            $deviceHit = Find-ByName $appRoot $part $true 4
+            if ($deviceHit) { break }
+        }
+    }
     if (-not $deviceHit) { $deviceHit = Find-ByName $appRoot "在线" $true 4 }
     Assert "device rail shows real device" ($null -ne $deviceHit)
 

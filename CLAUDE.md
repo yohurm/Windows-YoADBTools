@@ -9,7 +9,7 @@
 ## 技术栈
 - **核心**：Rust（tokio），Cargo workspace：`yohu-protocol`（wire 类型，零业务逻辑）← `yohu-domain`（命令库/判定/组编排/日志过滤/安全路径）← `yohu-adb` / `yohu-logsrv` / `yohu-files` / `yohu-mirror`；**core 零 Tauri 依赖**（ADR-v6-005）
 - **桌面壳**：Tauri 2（窗口/sidecar/升级；IPC = invoke 命令 + 批量事件）；`app/yohu-app` 是唯一引用 Tauri 的 crate；`commands/` 只转发，编排在 `device_catalog` / `library_store` / `group_runs`
-- **UI**：TypeScript + SolidJS + Vite，pnpm monorepo（Turborepo）：`@yohu/api`（类型化 IPC）→ `@yohu/ui`（自研组件库）→ `@yohu/app`（壳）+ `@yohu/modules/*`
+- **UI**：TypeScript + SolidJS + Vite，pnpm workspace（`--filter`，含 `ui/turbo.json` 任务声明）：`@yohu/api`（类型化 IPC）→ `@yohu/ui`（自研组件库）→ `@yohu/app`（壳）+ `@yohu/modules/*`
 - **组件库**：`@yohu/ui` 第一公民（公开组件 `Yo*` 标注；token 单源；lint 禁硬编码色值/字号/动效时长/圆角）；组件清单见架构文档 §7.2
 - **右键菜单（ADR-v6-019）**：引擎在 `@yohu/ui` `context-menu/`（`defineContextMenu` / `openContextMenu` / 壳唯一 `YoContextMenuHost`）；场景表按模块 `menu.ts` 收口；禁止模块自挂 `YoContextMenu`。详见 `docs/architecture/右键菜单-v6.md`
 - **目标平台**：Windows 10/11 x64；复用系统 WebView2（不捆绑运行时）

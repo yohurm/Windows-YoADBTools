@@ -31,6 +31,10 @@ jobs:
         shell: powershell
         run: powershell -ExecutionPolicy Bypass -File scripts/setup-adb.ps1
 
+      - name: sidecar scrcpy-server（投屏资源）
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/setup-scrcpy-server.ps1
+
       - name: pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -59,6 +63,10 @@ jobs:
         working-directory: ui
         run: pnpm lint
 
+      - name: 前端生产构建（PR 也校验可构建；体积断言在 package）
+        working-directory: ui
+        run: pnpm build
+
       - name: Rust 构建（含 fake-adb 明文 bin）
         run: cargo build --workspace
 
@@ -85,6 +93,10 @@ jobs:
       - name: sidecar adb
         shell: powershell
         run: powershell -ExecutionPolicy Bypass -File scripts/setup-adb.ps1
+
+      - name: sidecar scrcpy-server（投屏资源）
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/setup-scrcpy-server.ps1
 
       - name: pnpm
         uses: pnpm/action-setup@v4

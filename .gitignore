@@ -65,9 +65,8 @@ dist/
 coverage/
 
 # —— Sidecar 工具二进制（不入库；scripts/setup-adb.ps1 从 Google platform-tools 下载） ——
-# tools/fake-adb/ 源码正常入库；msedgedriver 为本地 E2E 工具（按需下载）
+# tools/fake-adb/ 源码正常入库；E2E 走 UIA，不再用 msedgedriver
 /tools/adb.exe
 /tools/AdbWinApi.dll
 /tools/AdbWinUsbApi.dll
 /tools/scrcpy-server
-/tools/msedgedriver/

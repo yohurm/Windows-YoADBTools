@@ -11,10 +11,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Exe)) {
-    throw "未找到 $Exe — 请先 cargo build --release -p yohu-app"
+    throw "未找到 $Exe — 请先 cargo tauri build --no-bundle（在 app/yohu-app 下）"
 }
 
-$logsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\logs"
+# 共享库：数据目录名（= PRODUCT_NAME / DATA_DIR_NAME）单源
+. (Join-Path $PSScriptRoot "verify-lib.ps1")
+
+$logsDir = Join-Path (Join-Path $env:LOCALAPPDATA $ProductDataDir) "logs"
 Remove-Item (Join-Path $logsDir "panic-*.log") -ErrorAction SilentlyContinue
 
 Write-Host "== Yohu ADB Tools v6 全功能联调 =="

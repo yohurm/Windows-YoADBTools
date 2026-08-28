@@ -1,4 +1,4 @@
-﻿# Yohu ADB Tools v6 — 日志性能验收（需设备在线；真机桌面会话运行）
+# Yohu ADB Tools v6 — 日志性能验收（需设备在线；真机桌面会话运行）
 # 用法（应用需关闭）：
 #   powershell -ExecutionPolicy Bypass -File scripts/verify-v6-logs-perf.ps1
 # 目标（架构文档 §12）：50k 缓冲 + 3 会话 + 每会话 2000 可见行，UI 交互不掉帧。
@@ -10,8 +10,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Exe)) {
-    throw "未找到 $Exe — 请先 cargo build --release -p yohu-app"
+    throw "未找到 $Exe — 请先 cargo tauri build --no-bundle（在 app/yohu-app 下）"
 }
+
+# 共享库：数据目录名（= PRODUCT_NAME / DATA_DIR_NAME）单源
+. (Join-Path $PSScriptRoot "verify-lib.ps1")
 
 Write-Host "== Yohu ADB Tools v6 日志性能验收 =="
 Write-Host "前置：设备已连接授权；设置中 buffer_capacity=50000（默认 10000）。"
@@ -37,7 +40,7 @@ foreach ($check in $checks) {
 }
 
 Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-$logsDir = Join-Path $env:LOCALAPPDATA "YohuAdbTools\logs"
+$logsDir = Join-Path (Join-Path $env:LOCALAPPDATA $ProductDataDir) "logs"
 $panics = @(Get-ChildItem $logsDir -Filter "panic-*.log" -ErrorAction SilentlyContinue)
 
 if ($failures.Count -eq 0 -and $panics.Count -eq 0) {
