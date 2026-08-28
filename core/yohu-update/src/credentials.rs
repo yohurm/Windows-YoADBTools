@@ -37,7 +37,7 @@ struct UpdateFile {
 struct PgyerFile {
     #[serde(default)]
     api_key: String,
-    #[serde(default, alias = "appKey")]
+    #[serde(default)]
     app_key: String,
 }
 
@@ -159,10 +159,21 @@ fn load_gitcode_source_from(file: &UpdateFile) -> Result<GitCodeReleaseSource, U
 
 fn read_update_file(settings_dir: &Path) -> UpdateFile {
     let path = settings_dir.join(UPDATE_FILE);
-    let Ok(text) = std::fs::read_to_string(path) else {
+    let Ok(text) = std::fs::read_to_string(&path) else {
         return UpdateFile::default();
     };
-    serde_json::from_str(&text).unwrap_or_default()
+    match serde_json::from_str(&text) {
+        Ok(file) => file,
+        Err(_) => {
+            // 损坏覆盖配置：备份后回落默认，避免静默覆盖/静默退化且不留下排查线索。
+            let stamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis())
+                .unwrap_or(0);
+            let _ = std::fs::write(path.with_extension(format!("corrupt-{stamp}")), &text);
+            UpdateFile::default()
+        }
+    }
 }
 
 fn parse_provider(value: &str) -> Option<UpdateProvider> {
