@@ -787,7 +787,7 @@ dependencies = [
 
 [[package]]
 name = "fake-adb"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -5011,7 +5011,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-adb"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "thiserror 2.0.20",
  "tokio",
@@ -5024,7 +5024,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-adbtools"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -5052,7 +5052,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-domain"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "regex",
  "serde",
@@ -5065,7 +5065,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-files"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "thiserror 2.0.20",
  "tokio",
@@ -5078,7 +5078,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-logsrv"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "thiserror 2.0.20",
  "time",
@@ -5092,7 +5092,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-mirror"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "thiserror 2.0.20",
  "tokio",
@@ -5105,7 +5105,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-protocol"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -5113,7 +5113,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "libc",
  "thiserror 2.0.20",
@@ -5123,7 +5123,7 @@ dependencies = [
 
 [[package]]
 name = "yohu-update"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "reqwest 0.12.28",
  "serde",
