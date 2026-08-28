@@ -23,6 +23,7 @@ use crate::tunnel;
 
 const ACCEPT_TIMEOUT: Duration = Duration::from_secs(15);
 const KILL_WAIT: Duration = Duration::from_secs(3);
+const CONTROL_WRITE_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub enum ControlCmd {
     Send(Vec<u8>),
@@ -403,7 +404,18 @@ async fn run_connected(
                 match cmd {
                     Some(ControlCmd::Send(bytes)) => {
                         if let Some(stream) = control_write.as_mut() {
-                            if stream.write_all(&bytes).await.is_err() {
+                            // 控制写入必须有超时且可被取消：设备停止 ACK 时 write_all 会永久阻塞，
+                            // 且一旦进入该 select 分支，外层 `cancel.cancelled()` 不再被轮询，
+                            // 导致整个解复用循环冻结、`stop()` 失效。超时/失败即关闭控制通道（视频继续）。
+                            let write = stream.write_all(&bytes);
+                            tokio::pin!(write);
+                            let ok = tokio::select! {
+                                biased;
+                                _ = cancel.cancelled() => return Err(MirrorError::Cancelled),
+                                _ = tokio::time::sleep(CONTROL_WRITE_TIMEOUT) => false,
+                                res = &mut write => res.is_ok(),
+                            };
+                            if !ok {
                                 control_write = None;
                             }
                         }
@@ -444,11 +456,8 @@ async fn run_connected(
                                 "读媒体包"
                             );
                         }
-                        if size > 400_000 && !config {
-                            return Err(MirrorError::Protocol(format!(
-                                "媒体包异常大: {size} bytes (packets={packets})"
-                            )));
-                        }
+                        // 大小上限已在 demux::parse_header 用 MAX_PACKET_SIZE(10MB) 单一上限强制；
+                        // 不再用 400_000 启发式——高分辨率/高码率下的合法大关键帧会被误杀导致中途 Failed。
                         let mut payload = vec![0u8; size as usize];
                         read_exact_cancel(&mut video, &mut payload, cancel).await?;
                         if config && !saw_config {

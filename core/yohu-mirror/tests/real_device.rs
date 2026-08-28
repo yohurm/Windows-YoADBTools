@@ -4,6 +4,10 @@
 //! 无在线设备时自动跳过。运行：
 //! `cargo test -p yohu-mirror --test real_device -- --nocapture`
 
+// 真机同 serial 不能并行两路，测试用静态 Mutex 串行化；锁在设计上跨 await 持有（有意为之）。
+// 该 lint 会因持有锁跨 await 触发，属预期，予以全局豁免。
+#![allow(clippy::await_holding_lock)]
+
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -34,7 +38,11 @@ fn server_jar() -> PathBuf {
 
 fn client() -> Arc<AdbClient> {
     Arc::new(AdbClient::new(
-        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a"), PathBuf::from("n/a")),
+        ToolResolver::new(
+            Some(real_adb()),
+            std::env::temp_dir().join(format!("yohu-mirror-res-{}", std::process::id())),
+            std::env::temp_dir().join(format!("yohu-mirror-data-{}", std::process::id())),
+        ),
         4,
     ))
 }
