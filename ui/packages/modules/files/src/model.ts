@@ -3,9 +3,9 @@
  */
 
 import type { RemoteEntry } from "@yohu/api";
-import { SAFETY_ROOTS } from "@yohu/api";
+import { errorText, SAFETY_ROOTS } from "@yohu/api";
 
-export { SAFETY_ROOTS };
+export { errorText, SAFETY_ROOTS };
 
 export function joinPath(dir: string, name: string): string {
   if (dir === "/") return `/${name}`;
@@ -194,19 +194,6 @@ export function formatMtime(mtime?: string): string {
   const match = mtime.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
   if (!match) return mtime;
   return `${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
-}
-
-export function errorText(e: unknown): string {
-  if (typeof e === "string") return e;
-  if (e && typeof e === "object") {
-    const rec = e as { message?: unknown; code?: unknown };
-    if (typeof rec.message === "string" && rec.message.length > 0) return rec.message;
-  }
-  try {
-    return JSON.stringify(e);
-  } catch {
-    return String(e);
-  }
 }
 
 export function isCancelledError(e: unknown): boolean {

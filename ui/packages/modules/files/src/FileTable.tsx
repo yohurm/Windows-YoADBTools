@@ -16,6 +16,9 @@ import {
   formatSize,
   type FileColumnSpec,
 } from "./model";
+
+/** 文件列表行高（px，功能配置；YoVirtualList 行高）。 */
+const FILE_ROW_HEIGHT = 28;
 import { fileStore } from "./store";
 
 function ColHead(props: { col: FileColumnSpec; index: number }) {
@@ -118,7 +121,7 @@ export function FileTable(props: { onContextMenu: (x: number, y: number) => void
         >
           <YoVirtualList<RemoteEntry>
             items={entries}
-            itemHeight={28}
+            itemHeight={FILE_ROW_HEIGHT}
             getItemKey={(entry) => entry.name}
             ariaLabel="文件列表"
             selectedKeys={fileStore.selectedSet}
