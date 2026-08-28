@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LOG_DISPLAY_COLUMNS,
   logColTemplate,
-  parseLogDisplayColumns,
   visibleLogColumns,
 } from "./layout";
 
@@ -63,18 +62,5 @@ describe("日志显示列", () => {
   it("全部元数据关闭只剩消息", () => {
     const display = { ts: false, uid: false, pid: false, tid: false, level: false, tag: false };
     expect(logColTemplate(display)).toBe("minmax(0, 1fr)");
-  });
-
-  it("解析非法值返回 null；缺字段视为开启", () => {
-    expect(parseLogDisplayColumns(null)).toBeNull();
-    expect(parseLogDisplayColumns("all")).toBeNull();
-    expect(parseLogDisplayColumns({ uid: false, tag: false })).toEqual({
-      ts: true,
-      uid: false,
-      pid: true,
-      tid: true,
-      level: true,
-      tag: false,
-    });
   });
 });

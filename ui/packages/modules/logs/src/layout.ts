@@ -35,20 +35,6 @@ export const LOG_COLUMNS: readonly LogColumnSpec[] = [
   { key: "msg", header: "消息", width: "minmax(0, 1fr)" },
 ];
 
-export function parseLogDisplayColumns(value: unknown): LogDisplayColumns | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const raw = value as Record<string, unknown>;
-  const flag = (key: LogMetaColKey): boolean => (typeof raw[key] === "boolean" ? raw[key] : true);
-  return {
-    ts: flag("ts"),
-    uid: flag("uid"),
-    pid: flag("pid"),
-    tid: flag("tid"),
-    level: flag("level"),
-    tag: flag("tag"),
-  };
-}
-
 export function visibleLogColumns(display: LogDisplayColumns): LogColumnSpec[] {
   return LOG_COLUMNS.filter((col) => {
     if (col.key === "msg") return true;

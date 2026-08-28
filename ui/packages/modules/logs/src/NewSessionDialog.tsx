@@ -27,6 +27,9 @@ function deviceSelectLabel(device: DeviceInfo): string {
   return `${name} · ${short}`;
 }
 
+/** 新建会话对话框高度（px）。 */
+const NEW_SESSION_DIALOG_HEIGHT = 520;
+
 export function NewSessionDialog(props: {
   open: () => boolean;
   onClose: () => void;
@@ -158,7 +161,7 @@ export function NewSessionDialog(props: {
     <YoDialog
       open={props.open}
       title="新建日志窗口"
-      height={520}
+      height={NEW_SESSION_DIALOG_HEIGHT}
       onClose={props.onClose}
       footer={
         <>

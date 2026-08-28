@@ -6,7 +6,7 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, untrack } from "solid-js";
 
 import type { DeviceSession, LogWriteMode, SessionLogFile } from "@yohu/api";
-import { dialogSaveFile, logSessionFileLatest, logSessionFileList, systemOpenPath } from "@yohu/api";
+import { dialogSaveFile, errorText, logSessionFileLatest, logSessionFileList, systemOpenPath } from "@yohu/api";
 import {
   Icon,
   YoBadge,
@@ -45,12 +45,7 @@ import "./logs.css";
 const toaster = createToaster();
 
 function errorMessage(e: unknown): string {
-  if (typeof e === "string") return e;
-  if (e && typeof e === "object" && "message" in e) {
-    const message = (e as { message: unknown }).message;
-    if (typeof message === "string" && message.length > 0) return message;
-  }
-  return String(e);
+  return errorText(e);
 }
 
 function isCancelled(e: unknown): boolean {
@@ -529,7 +524,6 @@ export function LogAnalyzerView(props: DeviceSession) {
                   <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} writeMode={props.settings.log_write_mode} />}>
                     <YoVirtualList<ViewRow>
                       items={() => logStore.state.sessions.find((s) => s.id === session.id)?.visible ?? []}
-                      itemHeight={22}
                       getItemKey={rowKey}
                       autoScrollToBottom={() => session.following && !session.paused}
                       onAtBottomChange={(atBottom) => {

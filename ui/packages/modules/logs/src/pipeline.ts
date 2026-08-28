@@ -133,7 +133,7 @@ export function toSessionFilter(input: {
   };
 }
 
-/** 导出/回补用的 wire 过滤：空 package pids = 无命中。 */
+/** 导出/回补用的 wire 过滤：空 package pids = 无命中。复用 toSessionFilter + sessionFilterToWire。 */
 export function toWireFilter(input: {
   minLevel: string | null;
   tagContains: string;
@@ -141,22 +141,7 @@ export function toWireFilter(input: {
   scope: SessionScope;
   binding: PidBinding;
 }): LogFilter {
-  const min_level = input.minLevel ?? undefined;
-  const tag_contains = input.tagContains || undefined;
-  const message_contains = input.keyword || undefined;
-  switch (input.scope.kind) {
-    case "all":
-      return { min_level, tag_contains, message_contains, scope: { kind: "all" } };
-    case "pid":
-      return { min_level, tag_contains, message_contains, scope: { kind: "pid", pid: input.scope.pid } };
-    case "package":
-      return {
-        min_level,
-        tag_contains,
-        message_contains,
-        scope: { kind: "package", pids: pidSetOf(input.binding) },
-      };
-  }
+  return sessionFilterToWire(toSessionFilter(input));
 }
 
 // ===== 信号扫描（批内增量，纯函数） =====

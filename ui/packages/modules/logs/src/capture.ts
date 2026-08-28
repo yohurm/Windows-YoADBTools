@@ -37,6 +37,11 @@ import type { LogSessionState, LogUiState, WorkspaceApi } from "./workspace";
 
 type CaptureStore = LogUiState;
 
+/** 设备采集状态快照轮询间隔（ms）。 */
+const SNAPSHOT_POLL_MS = 400;
+/** 单次 log.replay 回补/快照的最大行数（与 buffer_capacity 无关；上限兜底）。 */
+const REPLAY_LIMIT = 100_000;
+
 export type CaptureApi = {
   bindSerial: (next: string | null) => Promise<void>;
   setBufferCapacity: (capacity: number) => void;
@@ -157,7 +162,7 @@ export function createCapture(
       for (const device of devices) {
         void pullSnapshot(device);
       }
-    }, 400);
+    }, SNAPSHOT_POLL_MS);
   };
 
   function stopWindowsOn(device: string): void {
@@ -311,7 +316,7 @@ export function createCapture(
   async function pullSnapshot(device: string): Promise<void> {
     try {
       const from = Math.max(0, mirrors.of(device).lastSeqNumber() + 1);
-      const batch = await logReplay({ serial: device, from_seq: from, limit: 100_000 });
+      const batch = await logReplay({ serial: device, from_seq: from, limit: REPLAY_LIMIT });
       if (batch?.lines && batch.lines.length > 0) onBatch(batch);
     } catch (e) {
       console.error("log.replay 快照失败", e);
@@ -483,7 +488,7 @@ export function createCapture(
     }
     try {
       const from = mirrors.of(device).lastSeqNumber() + 1;
-      const batch = await logReplay({ serial: device, from_seq: from, limit: 100_000 });
+      const batch = await logReplay({ serial: device, from_seq: from, limit: REPLAY_LIMIT });
       onBatch(batch);
       if (activeSession()?.serial === device || state.serial === device) {
         setState("overflowed", true);
