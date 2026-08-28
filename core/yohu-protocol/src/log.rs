@@ -22,22 +22,6 @@ pub struct LogLine {
     pub msg: String,
 }
 
-impl LogLine {
-    /// 还原为导出的文本行（导出 txt 使用）。
-    pub fn raw_text(&self) -> String {
-        match &self.uid {
-            Some(uid) => format!(
-                "{} {:>8} {:>5} {:>5} {} {}: {}",
-                self.ts, uid, self.pid, self.tid, self.level, self.tag, self.msg
-            ),
-            None => format!(
-                "{} {:>5} {:>5} {} {}: {}",
-                self.ts, self.pid, self.tid, self.level, self.tag, self.msg
-            ),
-        }
-    }
-}
-
 /// 一个批量推送（ADR-v6-007：100–200ms 聚合，禁逐行）。
 ///
 /// `from_seq` = 本批首行的 seq；`truncated` 表示本批之后环内仍有更新行。
@@ -123,33 +107,11 @@ pub struct LogFilter {
 mod tests {
     use super::*;
 
-    fn line(level: char, pid: u32, tag: &str, msg: &str) -> LogLine {
-        LogLine {
-            seq: 0,
-            ts: "01-01 00:00:00.000".into(),
-            pid,
-            tid: 1,
-            uid: None,
-            level,
-            tag: tag.into(),
-            msg: msg.into(),
-        }
-    }
-
     #[test]
     fn log_scope_json_internally_tagged() {
         let v = serde_json::to_value(LogScope::Package { pids: vec![1] }).unwrap();
         assert_eq!(v["kind"], "package");
         assert_eq!(v["pids"][0], 1);
-    }
-
-    #[test]
-    fn raw_text_roundtrip_shape() {
-        let l = line('E', 1234, "AndroidRuntime", "FATAL EXCEPTION");
-        assert_eq!(
-            l.raw_text(),
-            "01-01 00:00:00.000  1234     1 E AndroidRuntime: FATAL EXCEPTION"
-        );
     }
 
     #[test]

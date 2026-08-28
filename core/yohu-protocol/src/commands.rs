@@ -174,12 +174,8 @@ pub struct CommandDto {
     pub success_regex: String,
     #[serde(default)]
     pub delay_ms: u64,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::default_true")]
     pub abort_on_fail: bool,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -15,6 +15,11 @@ pub mod settings;
 pub mod transfer;
 pub mod update;
 
+/// 共享 `true` 默认填充（被 settings/commands 的 serde `default` 引用，避免每模块重复定义）。
+pub(crate) fn default_true() -> bool {
+    true
+}
+
 pub use commands::*;
 pub use device::*;
 pub use error::*;

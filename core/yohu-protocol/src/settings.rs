@@ -53,24 +53,20 @@ pub enum UpdateProvider {
     Pgyer,
 }
 
-fn default_true() -> bool {
-    true
-}
-
 /// 日志清单显示哪些元数据列（消息列始终显示）。缺字段视为开启。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogDisplayColumns {
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::default_true")]
     pub ts: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::default_true")]
     pub uid: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::default_true")]
     pub pid: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::default_true")]
     pub tid: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::default_true")]
     pub level: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::default_true")]
     pub tag: bool,
 }
 
@@ -330,6 +326,39 @@ mod tests {
                 .as_str()
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn all_setting_keys_as_str_match_serde_wire_names() {
+        // 锁住 as_str 与 serde snake_case 键名一致，防止漂移（Nit #9）。
+        let all = [
+            SettingKey::AdbPath,
+            SettingKey::DataRoot,
+            SettingKey::DevicesAutoRefresh,
+            SettingKey::BufferCapacity,
+            SettingKey::ClearDeviceOnStart,
+            SettingKey::Theme,
+            SettingKey::Density,
+            SettingKey::ExportDefaultPath,
+            SettingKey::ExportAskEveryTime,
+            SettingKey::ExportMode,
+            SettingKey::LogWriteMode,
+            SettingKey::LogDisplayColumns,
+            SettingKey::UpdateProvider,
+            SettingKey::MirrorMaxSize,
+            SettingKey::MirrorVideoBitRate,
+            SettingKey::MirrorMaxFps,
+            SettingKey::MirrorForceForward,
+        ];
+        for key in all {
+            let wire = serde_json::to_value(key).unwrap();
+            assert_eq!(
+                key.as_str(),
+                wire.as_str().unwrap(),
+                "SettingKey {:?} as_str 与 serde 键名不一致",
+                key
+            );
+        }
     }
 
     #[test]
