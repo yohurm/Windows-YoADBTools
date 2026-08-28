@@ -2,7 +2,6 @@
   position: relative;
   display: inline-flex;
   max-width: 100%;
-  min-width: calc(var(--yohu-space-xl) * 5);
   vertical-align: middle;
   font-family: var(--yohu-font-sans);
 }
@@ -19,7 +18,8 @@
   box-sizing: border-box;
   width: max-content;
   max-width: 100%;
-  min-width: 0;
+  /* min-width 必须在触发钮上：写在根上时短文案 hug 触发钮靠左，右侧留出空白，表单行看起来没贴右。 */
+  min-width: calc(var(--yohu-space-xl) * 5);
   height: var(--yohu-control-height);
   padding: 0 var(--yohu-space-sm);
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);
@@ -43,14 +43,11 @@
 
 .yohu-select__value {
   min-width: 0;
+  flex: 1 1 auto;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.yohu-select--block .yohu-select__value {
-  flex: 1 1 auto;
 }
 
 .yohu-select__value--placeholder {

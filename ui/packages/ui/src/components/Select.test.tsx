@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { YoDialog } from "./Dialog";
 import { YoSelect } from "./Select";
@@ -217,5 +219,22 @@ describe("YoSelect", () => {
   it("block 拉满父级", () => {
     const { container } = render(() => <YoSelect block options={OPTIONS} value="a" />);
     expect(container.querySelector(".yohu-select")?.classList.contains("yohu-select--block")).toBe(true);
+  });
+});
+
+describe("YoSelect 触发布局契约", () => {
+  it("min-width 写在触发钮，不写在根上，避免短文案按钮偏左", () => {
+    const candidates = [
+      resolve(process.cwd(), "src/components/Select.css"),
+      resolve(process.cwd(), "packages/ui/src/components/Select.css"),
+    ];
+    const css = candidates.map((p) => (existsSync(p) ? readFileSync(p, "utf-8") : "")).find(Boolean) ?? "";
+    expect(css.length).toBeGreaterThan(0);
+    const root = css.match(/^\.yohu-select\s*\{([^}]*)\}/m)?.[1] ?? "";
+    const trigger = css.match(/^\.yohu-select__trigger\s*\{([^}]*)\}/m)?.[1] ?? "";
+    expect(root).not.toMatch(/min-width/);
+    expect(trigger).toMatch(/min-width:\s*calc\(var\(--yohu-space-xl\) \* 5\)/);
+    const value = css.match(/^\.yohu-select__value\s*\{([^}]*)\}/m)?.[1] ?? "";
+    expect(value).toMatch(/flex:\s*1 1 auto/);
   });
 });

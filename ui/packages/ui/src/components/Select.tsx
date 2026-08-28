@@ -2,6 +2,7 @@
  * YoSelect —— 自绘下拉选择框（L4 视图 / L5 门面）。
  * HarmonyOS 对照：Select。定位策略在 popover-place；选中/键盘在 select-model。
  * 受控 API：options / value / onChange / disabled / placeholder / block。
+ * 默认 hug 选中文案；最小宽在触发钮上（禁止写在根上，否则短文案按钮靠左）。
  *
  * 交互：
  * - 点击展开、点击外部关闭、Esc 关闭（逐层退出）
