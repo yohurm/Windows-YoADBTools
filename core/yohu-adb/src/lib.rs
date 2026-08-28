@@ -7,9 +7,11 @@ pub mod client;
 pub mod error;
 pub mod parse;
 pub mod process;
+pub mod shell;
 pub mod tool;
 
 pub use client::AdbClient;
 pub use error::AdbError;
 pub use process::{kill_tree, ProcessRunner};
+pub use shell::shell_quote;
 pub use tool::ToolResolver;

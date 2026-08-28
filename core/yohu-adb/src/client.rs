@@ -15,6 +15,12 @@ use crate::process::ProcessRunner;
 use crate::tool::ToolResolver;
 use yohu_protocol::{DeviceInfo, ExecOutcome, ProcessEntry, RemoteEntry};
 
+/// 各 ADB 短命令超时（ms）——单源，避免业务分支散落魔法数。
+const CLEAR_LOG_TIMEOUT_MS: u64 = 10_000;
+const LIST_PS_TIMEOUT_MS: u64 = 15_000;
+const DUMP_LOG_TIMEOUT_MS: u64 = 30_000;
+const READLINK_TIMEOUT_MS: u64 = 10_000;
+
 /// ADB 客户端。
 pub struct AdbClient {
     /// 工具解析（adb.path 运行时更新 → 每次执行重新解析，立即生效）
@@ -118,6 +124,9 @@ impl AdbClient {
         }
         let mut failures: Vec<String> = Vec::new();
         for adb in &candidates {
+            if cancel.is_cancelled() {
+                return Err(AdbError::Cancelled);
+            }
             let result = self
                 .runner
                 .run_capture(
@@ -161,7 +170,7 @@ impl AdbClient {
             .run(
                 serial,
                 &["logcat".into(), "-c".into()],
-                Some(10_000),
+                Some(CLEAR_LOG_TIMEOUT_MS),
                 cancel,
             )
             .await?;
@@ -175,8 +184,7 @@ impl AdbClient {
     }
 
     /// 一次性转储设备 logcat 缓冲（`logcat -d`），不跟流。
-    ///
-    /// 预留给后续「拉历史缓冲」能力；当前 UI 不调用。
+    /// 供 `yohu-logsrv::CaptureService::dump_into_ring`（拉历史缓冲）使用。
     pub async fn dump_log(
         &self,
         serial: &str,
@@ -191,7 +199,7 @@ impl AdbClient {
                     "-v".into(),
                     "threadtime,uid".into(),
                 ],
-                Some(30_000),
+                Some(DUMP_LOG_TIMEOUT_MS),
                 cancel,
             )
             .await?;
@@ -219,8 +227,13 @@ impl AdbClient {
         let out = self
             .run(
                 serial,
-                &["shell".into(), "ls".into(), "-la".into(), path.into()],
-                Some(15_000),
+                &[
+                    "shell".into(),
+                    "ls".into(),
+                    "-la".into(),
+                    crate::shell_quote(path),
+                ],
+                Some(LIST_PS_TIMEOUT_MS),
                 cancel,
             )
             .await?;
@@ -231,6 +244,38 @@ impl AdbClient {
             });
         }
         Ok(ls_parse::parse_ls(&out.stdout))
+    }
+
+    /// 解析设备侧路径的规范路径（`adb shell readlink -f`）。用于符号链接逃逸守卫（ADR-v6-013）。
+    ///
+    /// 返回 `Ok(Some(canonical))` 当且仅当命令成功（退出码 0）且输出一条规范绝对路径；
+    /// 返回 `Ok(None)` 表示「无法解析」：目标不存在、`readlink` 命令不可用、或输出为空。
+    /// 调用方应把 `Ok(None)` 当作**保守放行**（词典校验已过，且 `/sdcard` 本身常为 symlink，
+    /// 不能因解析不成功就阻断合法操作）。真正的执行层错误（设备掉线/超时）仍以 `Err` 返回。
+    pub async fn readlink_f(
+        &self,
+        serial: &str,
+        path: &str,
+        cancel: CancellationToken,
+    ) -> Result<Option<String>, AdbError> {
+        let out = self
+            .run(
+                serial,
+                &[
+                    "shell".into(),
+                    "readlink".into(),
+                    "-f".into(),
+                    crate::shell_quote(path),
+                ],
+                Some(READLINK_TIMEOUT_MS),
+                cancel,
+            )
+            .await?;
+        if out.exit_code != 0 {
+            tracing::debug!(path = %path, stderr = %out.stderr, "readlink -f 未解析到规范路径");
+            return Ok(None);
+        }
+        Ok(parse_readlink_f(&out.stdout))
     }
 
     /// 进程索引。
@@ -249,7 +294,7 @@ impl AdbClient {
                     "-o".into(),
                     "PID,NAME".into(),
                 ],
-                Some(15_000),
+                Some(LIST_PS_TIMEOUT_MS),
                 cancel,
             )
             .await?;
@@ -261,6 +306,18 @@ impl AdbClient {
         }
         Ok(ps_parse::parse_ps(&out.stdout))
     }
+}
+
+/// 解析 `readlink -f` 的 stdout 为规范路径。
+///
+/// 成功时输出单条绝对路径；空输出 / 非绝对路径首行视为「无法解析」，返回 `None`。
+/// 纯函数（无 IO），便于对解析/接受逻辑做单元测试。
+pub fn parse_readlink_f(stdout: &str) -> Option<String> {
+    stdout
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty() && l.starts_with('/'))
+        .map(str::to_string)
 }
 
 /// 实现 domain 执行端口（依赖倒置：适配层映射错误类型）。
@@ -275,5 +332,39 @@ impl yohu_domain::Runner for AdbClient {
         self.run(serial, &argv, timeout_ms, cancel)
             .await
             .map_err(Into::into)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_readlink_f;
+
+    #[test]
+    fn readlink_f_parses_canonical_absolute_path() {
+        assert_eq!(
+            parse_readlink_f("/storage/emulated/0/DCIM\n"),
+            Some("/storage/emulated/0/DCIM".into())
+        );
+        assert_eq!(
+            parse_readlink_f("/storage/self/primary/DCIM\n"),
+            Some("/storage/self/primary/DCIM".into())
+        );
+    }
+
+    #[test]
+    fn readlink_f_returns_none_for_empty_or_non_absolute_output() {
+        assert_eq!(parse_readlink_f(""), None);
+        assert_eq!(parse_readlink_f("\n\n"), None);
+        assert_eq!(parse_readlink_f("relative/path\n"), None);
+        // 目标不存在时 readlink 无 stdout（错误在 stderr）
+        assert_eq!(parse_readlink_f(""), None);
+    }
+
+    #[test]
+    fn readlink_f_skips_leading_blank_lines() {
+        assert_eq!(
+            parse_readlink_f("\n/data/local/tmp/foo\n"),
+            Some("/data/local/tmp/foo".into())
+        );
     }
 }

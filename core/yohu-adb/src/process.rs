@@ -103,6 +103,17 @@ impl ProcessRunner {
         let mut stderr_text = String::new();
         let mut stdout_done = stdout_rx.is_closed();
         let mut stderr_done = stderr_rx.is_closed();
+        // 绝对截止时间：覆盖「输出排空 + 等待退出」全程。F2 根因——旧的 timeout 只包住
+        // child.wait()，而排空循环在子进程关闭管道后才结束；若 adb 挂死且保持管道打开，
+        // 排空循环永不退出、timeout 永不触发。此处用绝对 deadline，任何阶段超时即终止进程树。
+        let deadline = timeout.map(|t| tokio::time::Instant::now() + t);
+        let out_timeout = async {
+            match deadline {
+                Some(d) => tokio::time::sleep_until(d).await,
+                None => std::future::pending::<()>().await,
+            }
+        };
+        let mut timeout_guard = Box::pin(out_timeout);
 
         loop {
             if stdout_done && stderr_done {
@@ -114,6 +125,11 @@ impl ProcessRunner {
                     kill_tree(&mut child);
                     let _ = child.wait().await;
                     return Err(AdbError::Cancelled);
+                }
+                _ = &mut timeout_guard => {
+                    kill_tree(&mut child);
+                    let _ = child.wait().await;
+                    return Err(AdbError::Timeout);
                 }
                 // 关键：通道关闭后必须禁用分支（否则恒就绪 → 忙循环饿死另一读任务）
                 chunk = stdout_rx.recv(), if !stdout_done => {
@@ -134,10 +150,10 @@ impl ProcessRunner {
             let _ = reader.await;
         }
 
-        let status = match timeout {
-            Some(t) => tokio::select! {
-                s = child.wait() => s?,
-                _ = tokio::time::sleep(t) => {
+        let status = match deadline {
+            Some(d) => match tokio::time::timeout_at(d, child.wait()).await {
+                Ok(s) => s?,
+                Err(_) => {
                     kill_tree(&mut child);
                     let _ = child.wait().await;
                     return Err(AdbError::Timeout);
@@ -241,6 +257,14 @@ impl ProcessRunner {
         let exit_code = status.code().unwrap_or(-1);
         if exit_code != 0 && is_device_offline(&stderr_text) {
             return Err(AdbError::DeviceOffline(stderr_text.trim().to_string()));
+        }
+        // F3：非零退出携带真实 stderr（adb push/pull 失败信息多在 stderr）。
+        // 之前只返回 exit_code，transfer 用 stdout 末行当错误文案会得到「退出码 1:（空）」。
+        if exit_code != 0 {
+            return Err(AdbError::BadExit {
+                exit_code,
+                stderr: stderr_text,
+            });
         }
         Ok(exit_code)
     }

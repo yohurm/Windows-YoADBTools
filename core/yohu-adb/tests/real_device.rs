@@ -30,7 +30,7 @@ fn client() -> AdbClient {
         ToolResolver::new(
             Some(real_adb()),
             PathBuf::from("nonexistent-resource"),
-            PathBuf::from("nonexistent-data"),
+            std::env::temp_dir().join(format!("yohu-adb-real-data-{}", std::process::id())),
         ),
         4,
     )
