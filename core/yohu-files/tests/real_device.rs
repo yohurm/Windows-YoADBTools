@@ -18,6 +18,11 @@ fn real_adb() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tools/adb.exe")
 }
 
+/// 每个测试独立的临时目录（避免相对路径在 crate CWD 物化残留目录，M4）。
+fn scratch(part: &str) -> PathBuf {
+    std::env::temp_dir().join(format!("yohu-files-test-{}-{}", std::process::id(), part))
+}
+
 async fn online_device(client: &AdbClient) -> Option<String> {
     let devices = client.devices(CancellationToken::new()).await.ok()?;
     devices
@@ -29,7 +34,7 @@ async fn online_device(client: &AdbClient) -> Option<String> {
 #[tokio::test]
 async fn real_browse_and_transfer_roundtrip() {
     let client = Arc::new(AdbClient::new(
-        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a"), PathBuf::from("n/a")),
+        ToolResolver::new(Some(real_adb()), scratch("res-a"), scratch("data-a")),
         4,
     ));
     let Some(serial) = online_device(&client).await else {
@@ -133,7 +138,7 @@ async fn real_browse_and_transfer_roundtrip() {
 #[tokio::test]
 async fn real_safety_root_rejects_dangerous_path() {
     let client = Arc::new(AdbClient::new(
-        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a"), PathBuf::from("n/a")),
+        ToolResolver::new(Some(real_adb()), scratch("res-b"), scratch("data-b")),
         4,
     ));
     let Some(serial) = online_device(&client).await else {
@@ -163,8 +168,8 @@ async fn real_transfer_cancel_midflight() {
     let client = Arc::new(AdbClient::new(
         ToolResolver::new(
             Some(real_adb()),
-            PathBuf::from("n/a3"),
-            PathBuf::from("n/a3"),
+            scratch("res-c"),
+            scratch("data-c"),
         ),
         4,
     ));

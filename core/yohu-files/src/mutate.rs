@@ -4,7 +4,10 @@ use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 
-use crate::FileError;
+use crate::{resolve_and_recheck, FileError};
+const DELETE_TIMEOUT_MS: u64 = 30_000;
+const MUTATE_TIMEOUT_MS: u64 = 15_000;
+use yohu_adb::shell_quote;
 use yohu_adb::AdbClient;
 use yohu_domain::{validate_entry_name, RemotePath, SafetyRoot};
 
@@ -39,6 +42,8 @@ impl FileMutator {
         cancel: CancellationToken,
     ) -> Result<(), FileError> {
         let normalized = self.normalize_mut(path)?;
+        // 符号链接逃逸守卫：rm -rf /sdcard/link/... 会跟随链接删到安全根外，先解析 realpath 复核
+        resolve_and_recheck(&self.adb, &self.safety, serial, &normalized, cancel.clone()).await?;
         let out = self
             .adb
             .run(
@@ -47,9 +52,9 @@ impl FileMutator {
                     "shell".into(),
                     "rm".into(),
                     "-rf".into(),
-                    normalized.as_str().into(),
+                    shell_quote(normalized.as_str()),
                 ],
-                Some(30_000),
+                Some(DELETE_TIMEOUT_MS),
                 cancel,
             )
             .await?;
@@ -70,6 +75,8 @@ impl FileMutator {
         cancel: CancellationToken,
     ) -> Result<(), FileError> {
         let normalized = self.normalize_mut(path)?;
+        // 符号链接逃逸守卫：mkdir -p /sdcard/link/... 会把目录建到安全根外
+        resolve_and_recheck(&self.adb, &self.safety, serial, &normalized, cancel.clone()).await?;
         let out = self
             .adb
             .run(
@@ -78,9 +85,9 @@ impl FileMutator {
                     "shell".into(),
                     "mkdir".into(),
                     "-p".into(),
-                    normalized.as_str().into(),
+                    shell_quote(normalized.as_str()),
                 ],
-                Some(15_000),
+                Some(MUTATE_TIMEOUT_MS),
                 cancel,
             )
             .await?;
@@ -101,12 +108,18 @@ impl FileMutator {
         cancel: CancellationToken,
     ) -> Result<(), FileError> {
         let normalized = self.normalize_mut(path)?;
+        // 符号链接逃逸守卫：touch /sdcard/link/... 会作用到安全根外
+        resolve_and_recheck(&self.adb, &self.safety, serial, &normalized, cancel.clone()).await?;
         let out = self
             .adb
             .run(
                 serial,
-                &["shell".into(), "touch".into(), normalized.as_str().into()],
-                Some(15_000),
+                &[
+                    "shell".into(),
+                    "touch".into(),
+                    shell_quote(normalized.as_str()),
+                ],
+                Some(MUTATE_TIMEOUT_MS),
                 cancel,
             )
             .await?;

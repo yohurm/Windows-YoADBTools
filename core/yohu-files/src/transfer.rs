@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
-use crate::FileError;
+use crate::{resolve_and_recheck, FileError};
 use yohu_adb::AdbClient;
 use yohu_domain::SafetyRoot;
 use yohu_protocol::{AppEvent, Direction, TransferProgress, TransferState};
@@ -59,6 +59,9 @@ impl TransferRunner {
             .safety
             .check_descendant(&remote)
             .map_err(|e| FileError::OutsideRoot(e.to_string()))?;
+        // 符号链接逃逸守卫：push/pull 的 remote 经设备端 realpath 复核（防止经 /sdcard 内链接作用到安全根外）。
+        // 解析成功且逃逸 → 拒绝；解析失败/命令不可用/目标未存在 → 保守放行（词典校验已过）。
+        resolve_and_recheck(&self.adb, &self.safety, &serial, &remote_norm, cancel.clone()).await?;
 
         let (argv, total): (Vec<String>, u64) = match direction {
             Direction::Push => {
