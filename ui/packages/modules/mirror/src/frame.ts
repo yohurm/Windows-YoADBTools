@@ -1,28 +1,23 @@
 /**
- * 投屏面板贴合几何（纯函数，无 DOM）。
+ * 投屏面板边界样式（--mirror-w/--mirror-h，纯函数，无 DOM）。
  *
- * 面板为贴合设备画面边缘（contain）或撑满内容区（空闲/未启动），
- * 输出 inline 自定义属性（--mirror-w/--mirror-h），由 mirror.css 消费。
+ * 行为定义（自底向上）：
+ *  - 空闲/未启动（非 live）→ 返回 ""，面板回退 width/height:100% 撑满内容区；
+ *    百分比恒定 → 窗口 resize 即时跟随，不会因转场滞后。
+ *  - live 且分辨率与可用区均可测 → 返回按设备宽高比 contain 的贴合 px，
+ *    面板边缘贴合设备画面。
+ *  - 其余 → ""。
+ *
+ * 面板元素上的 transition 常开（见 mirror.css），因此
+ * 默认布局(100%) ↔ 贴合帧(px) 的双向切换（开始收拢、停止展开）都是平滑过渡。
  */
 
 import { fitContain } from "./fit";
 
-/** 是否处于 Live（有画面贴合等比）模式。 */
-export function isFrameMode(phase: string): boolean {
-  return phase === "live";
-}
-
-/**
- * 计算面板 inline 样式（--mirror-w/--mirror-h，单位 px）。
- *  - zoneW/zoneH 非法（<1）→ 返回 ""（回退 100%）；
- *  - Live 且分辨率已知 → 按设备宽高比 contain 贴合；
- *  - 否则（空闲/未启动/失败）→ 撑满内容区。
- */
 export function frameStyle(zoneW: number, zoneH: number, width: number, height: number, phase: string): string {
+  if (phase !== "live") return "";
+  if (!(width > 0 && height > 0)) return "";
   if (zoneW < 1 || zoneH < 1) return "";
-  if (phase === "live" && width > 0 && height > 0) {
-    const box = fitContain(zoneW, zoneH, width / height);
-    return `--mirror-w:${box.w}px; --mirror-h:${box.h}px;`;
-  }
-  return `--mirror-w:${zoneW}px; --mirror-h:${zoneH}px;`;
+  const box = fitContain(zoneW, zoneH, width / height);
+  return `--mirror-w:${box.w}px; --mirror-h:${box.h}px;`;
 }

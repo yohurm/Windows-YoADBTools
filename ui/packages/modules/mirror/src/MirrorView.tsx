@@ -23,7 +23,7 @@ import {
 } from "@yohu/ui";
 
 import { H264CanvasDecoder } from "./decoder";
-import { frameStyle, isFrameMode } from "./frame";
+import { frameStyle } from "./frame";
 import { AndroidKey, TOUCH_DOWN, TOUCH_MOVE, TOUCH_UP } from "./keys";
 import { mirrorStore } from "./store";
 import "./mirror.css";
@@ -229,7 +229,6 @@ export function MirrorView(props: DeviceSession) {
           <YoPanel
             variant="pane"
             class="yohu-mirror__panel"
-            classList={{ "yohu-mirror__panel--frame": isFrameMode(mirrorStore.state.phase) }}
             aria-label="投屏画面"
           >
             <div class="yohu-mirror__stage">

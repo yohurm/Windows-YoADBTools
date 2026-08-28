@@ -29,10 +29,9 @@
   max-width: 100%;
   max-height: 100%;
   min-height: 0;
-}
-
-/* 边缘贴合（Live）时才做丝滑的宽高过渡；空闲面板即时跟随窗口，避免拖动滞后。 */
-.yohu-mirror__panel--frame {
+  /* 面板边界变化常开平滑过渡：默认布局(100%) ↔ 贴合帧(px) 双向切换
+   * （开始收拢、停止展开）都动画，不生硬跳变。
+   * 空闲态 frameStyle 返回 ""（宽度/高度为 100%），窗口 resize 即时跟随，不触发转场。 */
   transition:
     width var(--yohu-motion-spatial-panel),
     height var(--yohu-motion-spatial-panel);
@@ -133,9 +132,9 @@
   transition: none;
 }
 
-/* reduced-motion：边缘贴合过渡降级为即时（与 tokens/motion.css 一致）。 */
+/* reduced-motion：面板边界过渡降级为即时（与 tokens/motion.css 一致）。 */
 @media (prefers-reduced-motion: reduce) {
-  .yohu-mirror__panel--frame {
+  .yohu-mirror__panel {
     transition-duration: 0.01ms !important;
   }
 }
