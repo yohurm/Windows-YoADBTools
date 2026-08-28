@@ -26,23 +26,36 @@ pub struct CommandEvaluator;
 impl CommandEvaluator {
     /// 判定顺序：失败正则命中 → Fail；否则若配置成功正则 →
     /// 命中 Pass / 未命中 Fail；否则退出码 0 → Pass，非 0 → Fail。
+    ///
+    /// 正则在库校验（`validate`）时已保证有效；若此处仍编译失败（数据被绕过校验），
+    /// 视为该命令判定不可信，一律判 Fail，避免「非法正则被静默降级为不配置 → 假 Pass」。
     pub fn evaluate(def: &CommandDefinition, outcome: &ExecOutcome) -> Verdict {
         let combined = format!("{}\n{}", outcome.stdout, outcome.stderr);
 
-        if let Some(re) = Self::compile(&def.failure_regex) {
-            if re.is_match(&combined) {
-                return Verdict::Fail {
-                    reason: format!("输出匹配失败正则: {}", def.failure_regex),
-                };
+        if !def.failure_regex.is_empty() {
+            match Self::compile(&def.failure_regex) {
+                Ok(Some(re)) if re.is_match(&combined) => {
+                    return Verdict::Fail {
+                        reason: format!("输出匹配失败正则: {}", def.failure_regex),
+                    };
+                }
+                Ok(_) => {}
+                Err(_) => {
+                    return Verdict::Fail {
+                        reason: format!("失败正则无效: {}", def.failure_regex),
+                    };
+                }
             }
         }
-        if let Some(re) = Self::compile(&def.success_regex) {
-            return if re.is_match(&combined) {
-                Verdict::Pass
-            } else {
-                Verdict::Fail {
+        if !def.success_regex.is_empty() {
+            return match Self::compile(&def.success_regex) {
+                Ok(Some(re)) if re.is_match(&combined) => Verdict::Pass,
+                Ok(_) => Verdict::Fail {
                     reason: format!("输出未匹配成功正则: {}", def.success_regex),
-                }
+                },
+                Err(_) => Verdict::Fail {
+                    reason: format!("成功正则无效: {}", def.success_regex),
+                },
             };
         }
         if outcome.exit_code == 0 {
@@ -54,12 +67,12 @@ impl CommandEvaluator {
         }
     }
 
-    /// 正则有效性在库校验（validate）时已保证；此处失败仅降级为「不配置」，不 panic。
-    fn compile(pattern: &str) -> Option<Regex> {
+    /// 空模式返回 `Ok(None)`（=不配置）；非空模式编译失败返回 `Err`。
+    fn compile(pattern: &str) -> Result<Option<Regex>, String> {
         if pattern.is_empty() {
-            return None;
+            return Ok(None);
         }
-        Regex::new(pattern).ok()
+        Regex::new(pattern).map(Some).map_err(|e| e.to_string())
     }
 }
 

@@ -205,6 +205,10 @@ impl CommandDefinition {
     }
 
     /// 按序替换 `{0}` `{1}` …。值个数必须等于 `inputs.len()`。
+    ///
+    /// 单趟扫描替换：从原模板逐个识别 `{n}`，插入的值**不再被重扫**。
+    /// 因此若值本身含 `{1}` 等占位符样文本，会被当作字面量保留（原实现顺序
+    /// `replace` 会把值里的 `{N}` 二次替换，破坏用户输入）。
     pub fn fill(&self, values: &[String]) -> Result<Self, LibraryError> {
         if values.len() != self.inputs.len() {
             return Err(LibraryError::FillValueMismatch {
@@ -213,12 +217,30 @@ impl CommandDefinition {
                 actual: values.len(),
             });
         }
-        let mut template = self.template.clone();
-        for (index, value) in values.iter().enumerate() {
-            template = template.replace(&format!("{{{index}}}"), value);
+        let mut out = String::with_capacity(self.template.len());
+        let mut rest = self.template.as_str();
+        loop {
+            let Some(pos) = rest.find('{') else {
+                out.push_str(rest);
+                break;
+            };
+            out.push_str(&rest[..pos]);
+            let after = &rest[pos + 1..];
+            if let Some(end) = after.find('}') {
+                if let Ok(n) = after[..end].parse::<usize>() {
+                    if let Some(value) = values.get(n) {
+                        out.push_str(value);
+                        rest = &after[end + 1..];
+                        continue;
+                    }
+                }
+            }
+            // 不是可识别的占位符（或索引越界，防御）：保留字面 `{`，继续向后扫描
+            out.push('{');
+            rest = after;
         }
         Ok(Self {
-            template,
+            template: out,
             ..self.clone()
         })
     }
@@ -436,6 +458,31 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn fill_preserves_placeholder_like_text_inside_values() {
+        // 值若含 `{1}` 样文本，必须按字面量保留，不能被二次替换（回归 F1）。
+        let mut c = cmd("c1", "x", "{0}");
+        c.inputs = vec![InputField {
+            placeholder: "a".into(),
+        }];
+        assert_eq!(c.fill(&["{1} literal".into()]).unwrap().template, "{1} literal");
+
+        // 多个占位符，值含其它占位符样文本
+        let mut c = cmd("c2", "y", "{0} {1}");
+        c.inputs = vec![
+            InputField {
+                placeholder: "a".into(),
+            },
+            InputField {
+                placeholder: "b".into(),
+            },
+        ];
+        assert_eq!(
+            c.fill(&["a{1}b".into(), "c".into()]).unwrap().template,
+            "a{1}b c"
+        );
     }
 
     #[test]

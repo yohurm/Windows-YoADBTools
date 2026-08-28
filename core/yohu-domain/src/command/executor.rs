@@ -187,15 +187,23 @@ impl<R: Runner> GroupExecutor<R> {
                     ),
                 };
             let abort = command.abort_on_fail && !verdict.is_pass();
-            let _ = progress_tx.try_send(GroupRunEvent {
-                serial: serial.to_string(),
-                name: command.name.clone(),
-                command_index: index,
-                total,
-                verdict,
-                message,
-                duration_ms,
-            });
+            // 每条命令的组进度是结果区渲染依据（非可丢的背压类推送），必须可靠送达；
+            // 若消费方通道已关闭，说明该设备运行被放弃，停止后续命令。
+            if progress_tx
+                .send(GroupRunEvent {
+                    serial: serial.to_string(),
+                    name: command.name.clone(),
+                    command_index: index,
+                    total,
+                    verdict,
+                    message,
+                    duration_ms,
+                })
+                .await
+                .is_err()
+            {
+                return;
+            }
             if abort {
                 return;
             }

@@ -49,19 +49,12 @@ pub fn apply_setting(
             settings.clear_device_on_start = must_bool(key, value)?;
         }
         SettingKey::Theme => {
-            settings.theme = match value.as_str() {
-                Some("light") => yohu_protocol::Theme::Light,
-                Some("dark") => yohu_protocol::Theme::Dark,
-                Some("system") => yohu_protocol::Theme::System,
-                _ => return Err(format!("{} 必须是 light、dark 或 system", key.as_str())),
-            };
+            settings.theme = serde_json::from_value(value.clone())
+                .map_err(|_| format!("{} 必须是 light、dark 或 system", key.as_str()))?;
         }
         SettingKey::Density => {
-            settings.density = match value.as_str() {
-                Some("compact") => yohu_protocol::Density::Compact,
-                Some("comfortable") => yohu_protocol::Density::Comfortable,
-                _ => return Err(format!("{} 必须是 compact 或 comfortable", key.as_str())),
-            };
+            settings.density = serde_json::from_value(value.clone())
+                .map_err(|_| format!("{} 必须是 compact 或 comfortable", key.as_str()))?;
         }
         SettingKey::ExportDefaultPath => {
             settings.export_default_path = must_str(key, value)?;
@@ -70,18 +63,12 @@ pub fn apply_setting(
             settings.export_ask_every_time = must_bool(key, value)?;
         }
         SettingKey::ExportMode => {
-            settings.export_mode = match value.as_str() {
-                Some("latest") => yohu_protocol::ExportMode::Latest,
-                Some("select") => yohu_protocol::ExportMode::Select,
-                _ => return Err(format!("{} 必须是 latest 或 select", key.as_str())),
-            };
+            settings.export_mode = serde_json::from_value(value.clone())
+                .map_err(|_| format!("{} 必须是 latest 或 select", key.as_str()))?;
         }
         SettingKey::LogWriteMode => {
-            settings.log_write_mode = match value.as_str() {
-                Some("overwrite") => yohu_protocol::LogWriteMode::Overwrite,
-                Some("append") => yohu_protocol::LogWriteMode::Append,
-                _ => return Err(format!("{} 必须是 overwrite 或 append", key.as_str())),
-            };
+            settings.log_write_mode = serde_json::from_value(value.clone())
+                .map_err(|_| format!("{} 必须是 overwrite 或 append", key.as_str()))?;
         }
         SettingKey::LogDisplayColumns => {
             settings.log_display_columns = serde_json::from_value(value.clone()).map_err(|_| {
@@ -92,12 +79,8 @@ pub fn apply_setting(
             })?;
         }
         SettingKey::UpdateProvider => {
-            settings.update_provider = match value.as_str() {
-                Some("gitcode") => yohu_protocol::UpdateProvider::Gitcode,
-                Some("github") => yohu_protocol::UpdateProvider::Github,
-                Some("pgyer") => yohu_protocol::UpdateProvider::Pgyer,
-                _ => return Err(format!("{} 必须是 gitcode、github 或 pgyer", key.as_str())),
-            };
+            settings.update_provider = serde_json::from_value(value.clone())
+                .map_err(|_| format!("{} 必须是 gitcode、github 或 pgyer", key.as_str()))?;
         }
         SettingKey::MirrorMaxSize => {
             let n = must_u64(key, value)?;

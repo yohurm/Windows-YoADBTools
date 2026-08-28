@@ -17,6 +17,21 @@ pub fn level_rank(level: char) -> u8 {
     }
 }
 
+/// ASCII 忽略大小写的子串匹配（ADR-v6-006：Tag/关键字 = OrdinalIgnoreCase）。
+/// 用字节级 `eq_ignore_ascii_case`，避免 Unicode `to_lowercase()` 对非 ASCII 的语义偏差。
+fn contains_ascii_ignore_case(haystack: &str, needle: &str) -> bool {
+    let h = haystack.as_bytes();
+    let n = needle.as_bytes();
+    if n.is_empty() {
+        return true;
+    }
+    if n.len() > h.len() {
+        return false;
+    }
+    h.windows(n.len())
+        .any(|w| w.iter().zip(n).all(|(a, b)| a.eq_ignore_ascii_case(b)))
+}
+
 /// 单行匹配。`Package { pids: [] }` 不命中任何行。
 pub fn log_filter_matches(filter: &LogFilter, line: &LogLine) -> bool {
     if let Some(min) = filter.min_level {
@@ -25,12 +40,12 @@ pub fn log_filter_matches(filter: &LogFilter, line: &LogLine) -> bool {
         }
     }
     if let Some(tag) = &filter.tag_contains {
-        if !line.tag.to_lowercase().contains(&tag.to_lowercase()) {
+        if !contains_ascii_ignore_case(&line.tag, tag) {
             return false;
         }
     }
     if let Some(msg) = &filter.message_contains {
-        if !line.msg.to_lowercase().contains(&msg.to_lowercase()) {
+        if !contains_ascii_ignore_case(&line.msg, msg) {
             return false;
         }
     }
