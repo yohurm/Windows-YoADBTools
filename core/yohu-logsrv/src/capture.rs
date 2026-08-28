@@ -78,6 +78,9 @@ pub struct CaptureService {
     ring_capacity: AtomicUsize,
     inner: Mutex<Inner>,
     changed: Notify,
+    /// 应用根取消令牌：每个采集槽位令牌都是它的子令牌。
+    /// 退出序列 root_cancel.cancel() 时所有 logcat 采集被取消，adb 子进程经 kill_tree 收敛，避免孤儿化。
+    root_cancel: CancellationToken,
 }
 
 fn follow_argv(exec_out: bool) -> Vec<String> {
@@ -209,6 +212,7 @@ impl CaptureService {
         adb: Arc<AdbClient>,
         sink: mpsc::Sender<AppEvent>,
         ring_capacity: usize,
+        root_cancel: CancellationToken,
     ) -> Arc<Self> {
         Arc::new(Self {
             adb,
@@ -221,6 +225,7 @@ impl CaptureService {
                 next_generation: 0,
             }),
             changed: Notify::new(),
+            root_cancel,
         })
     }
 
@@ -271,7 +276,7 @@ impl CaptureService {
             None => {
                 inner.next_generation += 1;
                 let generation = inner.next_generation;
-                let cancel = CancellationToken::new();
+                let cancel = self.root_cancel.child_token();
                 inner.captures.insert(
                     serial.to_string(),
                     CaptureSlot {

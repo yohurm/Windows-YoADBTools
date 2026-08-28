@@ -18,6 +18,11 @@ fn real_adb() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tools/adb.exe")
 }
 
+/// 每个测试独立的临时目录（避免相对路径在 crate CWD 物化残留目录，M4）。
+fn scratch(part: &str) -> PathBuf {
+    std::env::temp_dir().join(format!("yohu-logsrv-test-{}-{}", std::process::id(), part))
+}
+
 async fn online_device(client: &AdbClient) -> Option<String> {
     let devices = client
         .devices(tokio_util::sync::CancellationToken::new())
@@ -50,7 +55,7 @@ async fn collect_events(
 #[tokio::test]
 async fn real_capture_stream_batch_and_ring() {
     let client = Arc::new(AdbClient::new(
-        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a"), PathBuf::from("n/a")),
+        ToolResolver::new(Some(real_adb()), scratch("res"), scratch("data")),
         4,
     ));
     let Some(serial) = online_device(&client).await else {
@@ -59,7 +64,12 @@ async fn real_capture_stream_batch_and_ring() {
     };
 
     let (tx, mut rx) = mpsc::channel::<AppEvent>(128);
-    let service = CaptureService::new(client, tx, 50_000);
+    let service = CaptureService::new(
+        client,
+        tx,
+        50_000,
+        tokio_util::sync::CancellationToken::new(),
+    );
 
     service.start(&serial, false).await.expect("开始采集");
     assert!(service.is_capturing(&serial));
@@ -98,7 +108,7 @@ async fn real_capture_stream_batch_and_ring() {
 #[tokio::test]
 async fn real_capture_with_clear_device() {
     let client = Arc::new(AdbClient::new(
-        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a"), PathBuf::from("n/a")),
+        ToolResolver::new(Some(real_adb()), scratch("res"), scratch("data")),
         4,
     ));
     let Some(serial) = online_device(&client).await else {
@@ -106,7 +116,12 @@ async fn real_capture_with_clear_device() {
         return;
     };
     let (tx, mut rx) = mpsc::channel::<AppEvent>(128);
-    let service = CaptureService::new(client, tx, 50_000);
+    let service = CaptureService::new(
+        client,
+        tx,
+        50_000,
+        tokio_util::sync::CancellationToken::new(),
+    );
 
     // 开采前 logcat -c：start(clear_device=true) 内部执行
     service
@@ -125,7 +140,7 @@ async fn real_capture_with_clear_device() {
 #[tokio::test]
 async fn real_detach_clears_ring() {
     let client = Arc::new(AdbClient::new(
-        ToolResolver::new(Some(real_adb()), PathBuf::from("n/a"), PathBuf::from("n/a")),
+        ToolResolver::new(Some(real_adb()), scratch("res"), scratch("data")),
         4,
     ));
     let Some(serial) = online_device(&client).await else {
@@ -133,7 +148,12 @@ async fn real_detach_clears_ring() {
         return;
     };
     let (tx, _rx) = mpsc::channel::<AppEvent>(128);
-    let service = CaptureService::new(client, tx, 50_000);
+    let service = CaptureService::new(
+        client,
+        tx,
+        50_000,
+        tokio_util::sync::CancellationToken::new(),
+    );
 
     service.start(&serial, false).await.expect("开始采集");
     tokio::time::sleep(Duration::from_secs(3)).await;
@@ -151,8 +171,8 @@ async fn real_session_log_write_export() {
     let client = Arc::new(AdbClient::new(
         ToolResolver::new(
             Some(real_adb()),
-            PathBuf::from("n/a2"),
-            PathBuf::from("n/a2"),
+            scratch("res2"),
+            scratch("data2"),
         ),
         4,
     ));
@@ -161,7 +181,12 @@ async fn real_session_log_write_export() {
         return;
     };
     let (tx, mut rx) = mpsc::channel::<AppEvent>(128);
-    let service = CaptureService::new(client, tx, 50_000);
+    let service = CaptureService::new(
+        client,
+        tx,
+        50_000,
+        tokio_util::sync::CancellationToken::new(),
+    );
 
     service.start(&serial, false).await.expect("开始采集");
     let lines = collect_events(&mut rx, 5, Duration::from_secs(30)).await;
@@ -187,7 +212,7 @@ async fn real_session_log_write_export() {
     assert_eq!(listed[0].lines, lines.len() as u64);
 
     let srcs: Vec<String> = listed.iter().map(|f| f.path.clone()).collect();
-    let result = slog.export(&srcs, None).expect("合并导出");
+    let result = slog.export(&srcs, None, None).expect("合并导出");
     let content = std::fs::read_to_string(&result.path).expect("读导出文件");
     assert_eq!(content.lines().count() as u64, result.lines);
     assert_eq!(result.lines, lines.len() as u64, "导出行数与采集行数一致");

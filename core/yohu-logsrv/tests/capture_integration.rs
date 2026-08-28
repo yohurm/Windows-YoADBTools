@@ -48,14 +48,14 @@ fn tool(adb_exe: PathBuf) -> ToolResolver {
     ToolResolver::new(
         Some(adb_exe),
         PathBuf::from("nonexistent-resource"),
-        PathBuf::from("nonexistent-data"),
+        std::env::temp_dir().join(format!("yohu-fake-data-{}", std::process::id())),
     )
 }
 
 fn build_service(adb_exe: PathBuf) -> (Arc<CaptureService>, mpsc::Receiver<AppEvent>) {
     let client = Arc::new(AdbClient::new(tool(adb_exe), 4));
     let (tx, rx) = mpsc::channel::<AppEvent>(64);
-    let service = CaptureService::new(client, tx, 1000);
+    let service = CaptureService::new(client, tx, 1000, tokio_util::sync::CancellationToken::new());
     (service, rx)
 }
 

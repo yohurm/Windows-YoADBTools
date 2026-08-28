@@ -13,6 +13,21 @@ use std::sync::Mutex;
 
 use yohu_protocol::{ExportResult, LogLine, LogWriteMode, SessionFileInfo, SessionLogFile};
 
+/// 还原为导出的文本行（导出/窗口日志 txt 使用）。
+/// 从 protocol wire 类型移到此消费层：wire 类型不携带展示/排版算法（架构 §规则：门面/模型不含实现）。
+pub fn format_line(line: &LogLine) -> String {
+    match &line.uid {
+        Some(uid) => format!(
+            "{} {:>8} {:>5} {:>5} {} {}: {}",
+            line.ts, uid, line.pid, line.tid, line.level, line.tag, line.msg
+        ),
+        None => format!(
+            "{} {:>5} {:>5} {} {}: {}",
+            line.ts, line.pid, line.tid, line.level, line.tag, line.msg
+        ),
+    }
+}
+
 struct WindowFile {
     path: PathBuf,
     handle: Option<File>,
@@ -139,7 +154,7 @@ impl SessionLogService {
                 }
             }
             last = Some(line.seq);
-            buf.push_str(&line.raw_text());
+            buf.push_str(&format_line(line));
             buf.push('\n');
             count += 1;
         }
@@ -223,9 +238,15 @@ impl SessionLogService {
         Ok(out)
     }
 
-    /// 把选定源文件合并导出为一份 txt；`dest` 为空写入本目录时间戳文件。
-    pub fn export(&self, sources: &[String], dest: Option<&Path>) -> io::Result<ExportResult> {
-        fs::create_dir_all(&self.root)?;
+    /// 把选定源文件合并导出为一份 txt。
+    /// `dest` 为空时按 `default_dir`（应用「导出默认目录」）；`default_dir` 也空则写入本目录。
+    /// 均生成带时间戳的文件名（避免固定文件名覆盖/魔法名散落到命令层）。
+    pub fn export(
+        &self,
+        sources: &[String],
+        dest: Option<&Path>,
+        default_dir: Option<&Path>,
+    ) -> io::Result<ExportResult> {
         let path = match dest {
             Some(p) if !p.as_os_str().is_empty() => {
                 if let Some(parent) = p.parent() {
@@ -235,7 +256,13 @@ impl SessionLogService {
                 }
                 p.to_path_buf()
             }
-            _ => self.root.join(format!("logcat-export-{}.txt", stamp())),
+            _ => {
+                let dir = default_dir
+                    .filter(|d| !d.as_os_str().is_empty())
+                    .unwrap_or(&self.root);
+                fs::create_dir_all(dir)?;
+                dir.join(format!("logcat-export-{}.txt", stamp()))
+            }
         };
         let mut content = String::new();
         let mut lines = 0u64;
@@ -317,6 +344,25 @@ mod tests {
     }
 
     #[test]
+    fn format_line_roundtrip_shape() {
+        let mut l = line(0);
+        l.level = 'E';
+        l.pid = 1234;
+        l.tag = "AndroidRuntime".into();
+        l.msg = "FATAL EXCEPTION".into();
+        assert_eq!(
+            format_line(&l),
+            "01-01 00:00:00.000  1234     1 E AndroidRuntime: FATAL EXCEPTION"
+        );
+        l.uid = Some("1000".into());
+        // {:>8} 把 uid 补到 8 宽：`    1000`（4 空格），故 .000 后 5 个空格。
+        assert_eq!(
+            format_line(&l),
+            "01-01 00:00:00.000     1000  1234     1 E AndroidRuntime: FATAL EXCEPTION"
+        );
+    }
+
+    #[test]
     fn overwrite_uses_fixed_name_and_truncates() {
         let root = temp_root("overwrite");
         let svc = SessionLogService::new(root.clone());
@@ -382,7 +428,7 @@ mod tests {
 
         let srcs: Vec<String> = listed.iter().map(|f| f.path.clone()).collect();
         let out = root.join("merged.txt");
-        let res = svc.export(&srcs, Some(&out)).unwrap();
+        let res = svc.export(&srcs, Some(&out), None).unwrap();
         assert_eq!(res.lines, 3);
         let text = std::fs::read_to_string(&out).unwrap();
         assert!(text.contains("m0") && text.contains("m1") && text.contains("m5"));
