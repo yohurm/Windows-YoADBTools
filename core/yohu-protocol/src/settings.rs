@@ -43,12 +43,11 @@ pub enum ExportMode {
     Select,
 }
 
-/// 应用更新源（默认 GitCode；GitHub / 蒲公英可选）。
+/// 应用更新源（默认 GitHub；蒲公英可选）。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum UpdateProvider {
     #[default]
-    Gitcode,
     Github,
     Pgyer,
 }
@@ -121,7 +120,7 @@ pub struct AppSettings {
     /// 日志清单显示列（立即生效；消息列始终在）
     #[serde(default)]
     pub log_display_columns: LogDisplayColumns,
-    /// 应用更新源（立即生效；默认 GitCode `yohurm/ReleaseYoADBTools`）
+    /// 应用更新源（立即生效；默认 GitHub `yohurm/Windows-YoADBTools`）
     #[serde(default)]
     pub update_provider: UpdateProvider,
     /// 投屏长边上限（像素）；0 = 设备原始分辨率。下次启动生效。
@@ -178,7 +177,7 @@ impl Default for AppSettings {
             export_mode: ExportMode::Latest,
             log_write_mode: LogWriteMode::Overwrite,
             log_display_columns: LogDisplayColumns::default(),
-            update_provider: UpdateProvider::Gitcode,
+            update_provider: UpdateProvider::Github,
             mirror_max_size: default_mirror_max_size(),
             mirror_video_bit_rate: default_mirror_video_bit_rate(),
             mirror_max_fps: default_mirror_max_fps(),
@@ -251,7 +250,7 @@ mod tests {
         assert_eq!(s.log_write_mode, LogWriteMode::Overwrite);
         assert!(s.export_default_path.is_empty());
         assert_eq!(s.log_display_columns, LogDisplayColumns::default());
-        assert_eq!(s.update_provider, UpdateProvider::Gitcode);
+        assert_eq!(s.update_provider, UpdateProvider::Github);
         assert_eq!(s.mirror_max_size, 1024);
         assert_eq!(s.mirror_video_bit_rate, 2_000_000);
         assert_eq!(s.mirror_max_fps, 30);
@@ -280,7 +279,7 @@ mod tests {
         assert!(s.export_ask_every_time);
         assert_eq!(s.export_mode, ExportMode::Latest);
         assert_eq!(s.log_write_mode, LogWriteMode::Overwrite);
-        assert_eq!(s.update_provider, UpdateProvider::Gitcode);
+        assert_eq!(s.update_provider, UpdateProvider::Github);
     }
 
     #[test]
@@ -375,10 +374,6 @@ mod tests {
 
     #[test]
     fn update_provider_serializes_lowercase() {
-        assert_eq!(
-            serde_json::to_value(UpdateProvider::Gitcode).unwrap(),
-            serde_json::json!("gitcode")
-        );
         assert_eq!(
             serde_json::to_value(UpdateProvider::Github).unwrap(),
             serde_json::json!("github")

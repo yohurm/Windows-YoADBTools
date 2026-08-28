@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum UpdateError {
     #[error(
-        "未配置更新通道（settings/update.json 或 YOHU_PGY_* / YOHU_GITCODE_* / YOHU_GITHUB_*）"
+        "未配置更新通道（settings/update.json 或 YOHU_PGY_* / YOHU_GITHUB_*）"
     )]
     NotConfigured,
     #[error("未获取到有效下载地址")]

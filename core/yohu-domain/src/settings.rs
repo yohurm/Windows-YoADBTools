@@ -80,7 +80,7 @@ pub fn apply_setting(
         }
         SettingKey::UpdateProvider => {
             settings.update_provider = serde_json::from_value(value.clone())
-                .map_err(|_| format!("{} 必须是 gitcode、github 或 pgyer", key.as_str()))?;
+                .map_err(|_| format!("{} 必须是 github 或 pgyer", key.as_str()))?;
         }
         SettingKey::MirrorMaxSize => {
             let n = must_u64(key, value)?;

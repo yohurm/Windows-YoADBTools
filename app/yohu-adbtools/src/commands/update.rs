@@ -7,7 +7,7 @@ use crate::state::AppState;
 use yohu_protocol::{AppIdentity, IpcError, RemoteUpdate, UpdateChannelInfo};
 use yohu_update::{assert_http_url, check_configured, describe_channel, PlatformInfo};
 
-/// `update.check`：用本机平台身份查询是否有新版本（默认 GitCode Releases）。
+/// `update.check`：用本机平台身份查询是否有新版本（默认 GitHub Releases）。
 #[tauri::command(rename = "update.check")]
 pub async fn update_check(state: State<'_, AppState>) -> Result<RemoteUpdate, IpcError> {
     let platform =

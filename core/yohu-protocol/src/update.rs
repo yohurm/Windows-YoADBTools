@@ -69,16 +69,16 @@ mod tests {
     #[test]
     fn channel_info_snake_case() {
         let v = serde_json::to_value(UpdateChannelInfo {
-            provider: crate::UpdateProvider::Gitcode,
-            remote: "yohurm/ReleaseYoADBTools".into(),
-            page_url: "https://gitcode.com/yohurm/ReleaseYoADBTools".into(),
+            provider: crate::UpdateProvider::Github,
+            remote: "yohurm/Windows-YoADBTools".into(),
+            page_url: "https://github.com/yohurm/Windows-YoADBTools".into(),
         })
         .unwrap();
-        assert_eq!(v["provider"], "gitcode");
-        assert_eq!(v["remote"], "yohurm/ReleaseYoADBTools");
+        assert_eq!(v["provider"], "github");
+        assert_eq!(v["remote"], "yohurm/Windows-YoADBTools");
         assert_eq!(
             v["page_url"],
-            "https://gitcode.com/yohurm/ReleaseYoADBTools"
+            "https://github.com/yohurm/Windows-YoADBTools"
         );
     }
 }

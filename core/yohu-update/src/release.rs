@@ -5,7 +5,7 @@ use yohu_protocol::RemoteUpdate;
 use crate::error::UpdateError;
 use crate::platform::PlatformInfo;
 
-/// 仓库 Release 里的一个附件（GitHub / GitCode 字段对齐）。
+/// 仓库 Release 里的一个附件（平台字段对齐）。
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ReleaseAsset {
     #[serde(default)]
@@ -239,7 +239,7 @@ mod tests {
         let update = remote_from_release(
             "0.1.0",
             "",
-            "https://gitcode.com/yohurm/ReleaseYoADBTools",
+            "https://github.com/yohurm/Windows-YoADBTools",
             &[],
             &win64(),
         )
@@ -247,7 +247,7 @@ mod tests {
         assert!(!update.has_new_version);
         assert_eq!(
             update.download_url,
-            "https://gitcode.com/yohurm/ReleaseYoADBTools"
+            "https://github.com/yohurm/Windows-YoADBTools"
         );
     }
 }

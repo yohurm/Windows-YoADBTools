@@ -7,7 +7,6 @@ use yohu_protocol::{UpdateChannelInfo, UpdateProvider};
 use yohu_runtime::backup_corrupt;
 
 use crate::error::UpdateError;
-use crate::gitcode::{GitCodeReleaseSource, DEFAULT_OWNER as GC_OWNER, DEFAULT_REPO as GC_REPO};
 use crate::github::{GitHubReleaseSource, DEFAULT_OWNER as GH_OWNER, DEFAULT_REPO as GH_REPO};
 use crate::pgyer::PgyerCredentials;
 
@@ -19,10 +18,6 @@ const ENV_GH_OWNER: &str = "YOHU_GITHUB_OWNER";
 const ENV_GH_REPO: &str = "YOHU_GITHUB_REPO";
 const ENV_GH_TOKEN: &str = "YOHU_GITHUB_TOKEN";
 const ENV_GH_TOKEN_ALT: &str = "GITHUB_TOKEN";
-const ENV_GC_OWNER: &str = "YOHU_GITCODE_OWNER";
-const ENV_GC_REPO: &str = "YOHU_GITCODE_REPO";
-const ENV_GC_TOKEN: &str = "YOHU_GITCODE_TOKEN";
-const ENV_GC_TOKEN_ALT: &str = "GITCODE_TOKEN";
 
 #[derive(Debug, Default, Deserialize)]
 struct UpdateFile {
@@ -30,8 +25,6 @@ struct UpdateFile {
     pgyer: PgyerFile,
     #[serde(default)]
     github: GitHubFile,
-    #[serde(default)]
-    gitcode: GitCodeFile,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -52,25 +45,14 @@ struct GitHubFile {
     token: String,
 }
 
-#[derive(Debug, Default, Deserialize)]
-struct GitCodeFile {
-    #[serde(default)]
-    owner: String,
-    #[serde(default)]
-    repo: String,
-    #[serde(default)]
-    token: String,
-}
-
 /// 已解析的检查通道。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UpdateSource {
-    GitCode(GitCodeReleaseSource),
     GitHub(GitHubReleaseSource),
     Pgyer(PgyerCredentials),
 }
 
-/// 解析最终使用的更新源：环境变量可覆盖设置项，缺省 GitCode。
+/// 解析最终使用的更新源：环境变量可覆盖设置项，缺省 GitHub。
 pub fn resolve_provider(preferred: UpdateProvider) -> UpdateProvider {
     parse_provider(&first_non_empty(&[
         &std::env::var(ENV_PROVIDER).unwrap_or_default(),
@@ -88,7 +70,6 @@ pub fn load_update_source(
     match resolve_provider(preferred) {
         UpdateProvider::Pgyer => Ok(UpdateSource::Pgyer(load_pgyer_credentials_from(&file)?)),
         UpdateProvider::Github => Ok(UpdateSource::GitHub(load_github_source_from(&file)?)),
-        UpdateProvider::Gitcode => Ok(UpdateSource::GitCode(load_gitcode_source_from(&file)?)),
     }
 }
 
@@ -98,11 +79,6 @@ pub fn describe_channel(
     preferred: UpdateProvider,
 ) -> Result<UpdateChannelInfo, UpdateError> {
     match load_update_source(settings_dir, preferred)? {
-        UpdateSource::GitCode(source) => Ok(UpdateChannelInfo {
-            provider: UpdateProvider::Gitcode,
-            remote: format!("{}/{}", source.owner, source.repo),
-            page_url: source.page_url(),
-        }),
         UpdateSource::GitHub(source) => Ok(UpdateChannelInfo {
             provider: UpdateProvider::Github,
             remote: format!("{}/{}", source.owner, source.repo),
@@ -141,23 +117,6 @@ fn load_github_source_from(file: &UpdateFile) -> Result<GitHubReleaseSource, Upd
     Ok(GitHubReleaseSource::new(owner, repo)?.with_token(token))
 }
 
-fn load_gitcode_source_from(file: &UpdateFile) -> Result<GitCodeReleaseSource, UpdateError> {
-    let env_owner = std::env::var(ENV_GC_OWNER).unwrap_or_default();
-    let env_repo = std::env::var(ENV_GC_REPO).unwrap_or_default();
-    let env_token = std::env::var(ENV_GC_TOKEN)
-        .or_else(|_| std::env::var(ENV_GC_TOKEN_ALT))
-        .unwrap_or_default();
-    let owner = first_non_empty(&[
-        &env_owner,
-        &file.gitcode.owner,
-        compile_gc_owner(),
-        GC_OWNER,
-    ]);
-    let repo = first_non_empty(&[&env_repo, &file.gitcode.repo, compile_gc_repo(), GC_REPO]);
-    let token = first_non_empty(&[&env_token, &file.gitcode.token, compile_gc_token()]);
-    Ok(GitCodeReleaseSource::new(owner, repo)?.with_token(token))
-}
-
 fn read_update_file(settings_dir: &Path) -> UpdateFile {
     let path = settings_dir.join(UPDATE_FILE);
     let Ok(text) = std::fs::read_to_string(&path) else {
@@ -183,8 +142,6 @@ fn parse_provider(value: &str) -> Option<UpdateProvider> {
         Some(UpdateProvider::Pgyer)
     } else if lower == "github" || lower == "gh" {
         Some(UpdateProvider::Github)
-    } else if lower == "gitcode" || lower == "gc" {
-        Some(UpdateProvider::Gitcode)
     } else {
         None
     }
@@ -221,18 +178,6 @@ fn compile_gh_repo() -> &'static str {
 
 fn compile_gh_token() -> &'static str {
     option_env!("YOHU_GITHUB_TOKEN").unwrap_or("")
-}
-
-fn compile_gc_owner() -> &'static str {
-    option_env!("YOHU_GITCODE_OWNER").unwrap_or("")
-}
-
-fn compile_gc_repo() -> &'static str {
-    option_env!("YOHU_GITCODE_REPO").unwrap_or("")
-}
-
-fn compile_gc_token() -> &'static str {
-    option_env!("YOHU_GITCODE_TOKEN").unwrap_or("")
 }
 
 #[cfg(test)]
@@ -278,57 +223,6 @@ mod tests {
     }
 
     #[test]
-    fn default_source_is_gitcode_release_repo() {
-        let root = isolated_dir();
-        let old_provider = std::env::var(ENV_PROVIDER).ok();
-        let old_owner = std::env::var(ENV_GC_OWNER).ok();
-        let old_repo = std::env::var(ENV_GC_REPO).ok();
-        std::env::remove_var(ENV_PROVIDER);
-        std::env::remove_var(ENV_GC_OWNER);
-        std::env::remove_var(ENV_GC_REPO);
-        let source = load_update_source(&root, UpdateProvider::Gitcode).unwrap();
-        match source {
-            UpdateSource::GitCode(gc) => {
-                assert_eq!(gc.owner, GC_OWNER);
-                assert_eq!(gc.repo, GC_REPO);
-            }
-            other => panic!("缺省应走 GitCode，得到 {other:?}"),
-        }
-        restore_env(ENV_PROVIDER, old_provider);
-        restore_env(ENV_GC_OWNER, old_owner);
-        restore_env(ENV_GC_REPO, old_repo);
-        let _ = std::fs::remove_dir_all(&root);
-    }
-
-    #[test]
-    fn update_json_can_select_gitcode_repo() {
-        let root = isolated_dir();
-        std::fs::write(
-            root.join(UPDATE_FILE),
-            r#"{"gitcode":{"owner":"acme","repo":"tools"}}"#,
-        )
-        .unwrap();
-        let old_provider = std::env::var(ENV_PROVIDER).ok();
-        let old_owner = std::env::var(ENV_GC_OWNER).ok();
-        let old_repo = std::env::var(ENV_GC_REPO).ok();
-        std::env::remove_var(ENV_PROVIDER);
-        std::env::remove_var(ENV_GC_OWNER);
-        std::env::remove_var(ENV_GC_REPO);
-        let source = load_update_source(&root, UpdateProvider::Gitcode).unwrap();
-        match source {
-            UpdateSource::GitCode(gc) => {
-                assert_eq!(gc.owner, "acme");
-                assert_eq!(gc.repo, "tools");
-            }
-            other => panic!("应走 GitCode，得到 {other:?}"),
-        }
-        restore_env(ENV_PROVIDER, old_provider);
-        restore_env(ENV_GC_OWNER, old_owner);
-        restore_env(ENV_GC_REPO, old_repo);
-        let _ = std::fs::remove_dir_all(&root);
-    }
-
-    #[test]
     fn setting_can_select_github_origin_repo() {
         let root = isolated_dir();
         let old_provider = std::env::var(ENV_PROVIDER).ok();
@@ -356,10 +250,10 @@ mod tests {
         let root = isolated_dir();
         let old_provider = std::env::var(ENV_PROVIDER).ok();
         std::env::remove_var(ENV_PROVIDER);
-        let info = describe_channel(&root, UpdateProvider::Gitcode).unwrap();
-        assert_eq!(info.provider, UpdateProvider::Gitcode);
-        assert_eq!(info.remote, format!("{GC_OWNER}/{GC_REPO}"));
-        assert!(info.page_url.starts_with("https://gitcode.com/"));
+        let info = describe_channel(&root, UpdateProvider::Github).unwrap();
+        assert_eq!(info.provider, UpdateProvider::Github);
+        assert_eq!(info.remote, format!("{GH_OWNER}/{GH_REPO}"));
+        assert!(info.page_url.starts_with("https://github.com/"));
         restore_env(ENV_PROVIDER, old_provider);
         let _ = std::fs::remove_dir_all(&root);
     }

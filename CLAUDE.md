@@ -50,7 +50,7 @@ core/
 ├── yohu-logsrv/                        # 采集服务：CaptureService/RingBuffer/Batcher/ProcessIndexService
 ├── yohu-files/                         # 文件：browse/transfer/mutate
 ├── yohu-mirror/                        # 投屏：官方 scrcpy-server + 自写客户端
-└── yohu-update/                        # 更新检查（GitCode/GitHub/蒲公英）
+└── yohu-update/                        # 更新检查（GitHub/蒲公英）
 app/
 └── yohu-adbtools/                      # Tauri 壳：commands(薄)/state/sidecar/panic
 ui/
