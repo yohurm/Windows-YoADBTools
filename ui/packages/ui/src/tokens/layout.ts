@@ -10,6 +10,7 @@ export const Layout = {
   Sidebar: 280,
   Preview: 240,
   SettingsMax: 920,
+  /** YoFormRow 左侧信息最小宽，避免标题被控件挤没。 */
   SettingsLabelMin: 160,
   SettingsLabelMax: 240,
   /** 设置页路径类控件上限，避免输入框横向拉满。 */

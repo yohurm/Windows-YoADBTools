@@ -114,6 +114,9 @@ export type { YoPanelProps, YoPanelPadding, YoPanelVariant } from "./components/
 export { YoPage } from "./components/Page";
 export type { YoPageProps } from "./components/Page";
 
+export { YoFormRow } from "./components/FormRow";
+export type { YoFormRowProps } from "./components/FormRow";
+
 // —— 键盘作用域（L1；页面提供绑定表） ——
 export {
   adjacentJoin,

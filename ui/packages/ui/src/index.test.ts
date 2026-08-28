@@ -23,6 +23,8 @@ const YO_PUBLIC = [
   "YoColHeader",
   "YoPanel",
   "YoPage",
+  "YoFormRow",
+
   // 反馈
   "YoEmptyState",
   "YoLoading",
