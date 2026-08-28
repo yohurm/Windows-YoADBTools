@@ -32,7 +32,7 @@ describe("YoTextField", () => {
         }}
       />
     ));
-    const clear = screen.getByRole("button", { name: "clear" });
+    const clear = screen.getByRole("button", { name: "清除" });
     expect(clear).toBeTruthy();
     fireEvent.click(clear);
     expect(onInput).toHaveBeenCalledWith("", expect.anything());

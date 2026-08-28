@@ -127,7 +127,7 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
                 <button
                   type="button"
                   class="yohu-tabs__close yohu-interactive yohu-focus-ring"
-                  aria-label="close"
+                  aria-label="关闭页签"
                   onClick={(event) => handleClose(tab.id, event)}
                 >
                   <Icon name="close" size={Layout.IconTiny} />
@@ -138,7 +138,7 @@ export function YoTabs(props: YoTabsProps): JSX.Element {
         }}
       </For>
       {props.onNew ? (
-        <button type="button" class="yohu-tabs__new yohu-interactive yohu-focus-ring" aria-label="new tab" onClick={props.onNew}>
+        <button type="button" class="yohu-tabs__new yohu-interactive yohu-focus-ring" aria-label="新建页签" onClick={props.onNew}>
           <Icon name="plus" size={Layout.IconInline} />
         </button>
       ) : null}

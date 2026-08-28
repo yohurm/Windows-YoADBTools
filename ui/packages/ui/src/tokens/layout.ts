@@ -29,6 +29,10 @@ export const Layout = {
   IconInline: 14,
   /** 标题栏应用图标 / 窗口三键（HarmonyOS 小图标 16vp） */
   IconSm: 16,
+  /** 分段控件图标（中等档）。 */
+  IconMd: 20,
+  /** 空态/大图标档。 */
+  IconLg: 40,
   /** 电脑窗口默认 1200×800vp */
   WindowDefaultW: 1200,
   WindowDefaultH: 800,
@@ -58,6 +62,8 @@ export const Layout = {
   /** HarmonyOS Toggle Switch 默认 {width:36vp, height:20vp} */
   SwitchW: 36,
   SwitchH: 20,
+  /** 开关滑块内缩边距（滑块 = SwitchH − 2×Inset）。 */
+  SwitchInset: 2,
   /** 窗口三键与侧栏钮同一竖条宽（鸿蒙 PC 推荐热区 48vp）。 */
   TitlebarCaption: 48,
   /** 右侧铬条贴合，无圆形底板间距。 */

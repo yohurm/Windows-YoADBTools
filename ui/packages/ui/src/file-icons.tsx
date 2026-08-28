@@ -1,26 +1,11 @@
 /**
- * 文件/目录图标（Material Icon Theme 风格子集）。
+ * `YoFileIcon` 组件：SVG 渲染层（字形分组见 `./file-glyph`）。
  * HarmonyOS 对照：无系统文件图标控件；模块只消费 YoFileIcon。
  * 受控 API：kind / name / size。
  */
 import type { JSX } from "solid-js";
 import "./file-icons.css";
-
-/** 与 wire RemoteEntry.kind 对齐，但不依赖 @yohu/api（组件库零 IPC）。 */
-export type FileIconKind = "dir" | "file" | "symlink" | "other";
-
-export type FileGlyph =
-  | "folder"
-  | "file"
-  | "apk"
-  | "image"
-  | "video"
-  | "audio"
-  | "archive"
-  | "xml"
-  | "json"
-  | "text"
-  | "pdf";
+import { fileGlyphFor, type FileGlyph, type FileIconKind } from "./file-glyph";
 
 const GLYPHS: Record<FileGlyph, () => JSX.Element> = {
   folder: () => (
@@ -91,28 +76,6 @@ const GLYPHS: Record<FileGlyph, () => JSX.Element> = {
     </>
   ),
 };
-
-const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "heic"]);
-const VIDEO_EXT = new Set(["mp4", "mkv", "avi", "webm", "mov"]);
-const AUDIO_EXT = new Set(["mp3", "flac", "ogg", "wav", "m4a", "aac"]);
-const ARCHIVE_EXT = new Set(["zip", "rar", "7z", "tar", "gz", "tgz"]);
-const TEXT_EXT = new Set(["txt", "md", "log", "csv", "ini", "conf"]);
-
-/** 由文件名/条目类型解析字形。 */
-export function fileGlyphFor(name: string, kind: FileIconKind): FileGlyph {
-  if (kind === "dir" || kind === "symlink") return "folder";
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  if (ext === "apk" || ext === "aab") return "apk";
-  if (IMAGE_EXT.has(ext)) return "image";
-  if (VIDEO_EXT.has(ext)) return "video";
-  if (AUDIO_EXT.has(ext)) return "audio";
-  if (ARCHIVE_EXT.has(ext)) return "archive";
-  if (ext === "xml") return "xml";
-  if (ext === "json") return "json";
-  if (ext === "pdf") return "pdf";
-  if (TEXT_EXT.has(ext)) return "text";
-  return "file";
-}
 
 export interface YoFileIconProps {
   name: string;

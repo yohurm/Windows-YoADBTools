@@ -115,6 +115,8 @@
   --yohu-layout-icon-tiny: 12px;
   --yohu-layout-icon-inline: 14px;
   --yohu-layout-icon-sm: 16px;
+  --yohu-layout-icon-md: 20px;
+  --yohu-layout-icon-lg: 40px;
   --yohu-layout-window-default-w: 1200px;
   --yohu-layout-window-default-h: 800px;
   --yohu-layout-window-min-w: 360px;
@@ -131,6 +133,7 @@
   --yohu-layout-rail-inset: 8px;
   --yohu-layout-switch-w: 36px;
   --yohu-layout-switch-h: 20px;
+  --yohu-layout-switch-inset: 2px;
   --yohu-layout-titlebar-caption: 48px;
   --yohu-layout-titlebar-caption-gap: 0px;
   --yohu-layout-titlebar-close-margin: 0px;

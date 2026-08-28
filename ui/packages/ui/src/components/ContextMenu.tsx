@@ -3,7 +3,7 @@
  * HarmonyOS 对照：Menu；电脑默认最小宽 224vp；Esc / 点击外侧关闭。
  * 页面不要直接挂本组件：走 defineContextMenu + openContextMenu + 壳上的 YoContextMenuHost。
  */
-import { For, onCleanup, onMount } from "solid-js";
+import { createEffect, For, onCleanup, onMount } from "solid-js";
 import type { JSX } from "solid-js";
 import type { YoMenuItem } from "../context-menu/types";
 import { YoPresence } from "../motion/presence";
@@ -18,6 +18,8 @@ export interface YoContextMenuProps {
   items: YoMenuItem[];
   onClose: () => void;
   onSelect: (id: string) => void;
+  /** 测量回调：菜单挂载/布局就绪后上报实测宽高，供外层按真实尺寸二次夹紧。 */
+  onPlace?: (size: { width: number; height: number }) => void;
 }
 
 export function YoContextMenu(props: YoContextMenuProps): JSX.Element {
@@ -38,6 +40,16 @@ export function YoContextMenu(props: YoContextMenuProps): JSX.Element {
     onCleanup(() => {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
+    });
+  });
+
+  // 打开后等一帧测量真实尺寸上报：估算宽（Layout.MenuMin）对更宽条目偏小，
+  // 实测后由控制器按 clampToRect 二次夹紧，避免贴右/下边溢出。
+  createEffect(() => {
+    if (!props.open || !props.onPlace) return;
+    queueMicrotask(() => {
+      if (!root) return;
+      props.onPlace?.({ width: root.offsetWidth, height: root.offsetHeight });
     });
   });
 

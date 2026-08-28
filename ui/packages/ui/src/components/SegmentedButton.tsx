@@ -17,6 +17,7 @@ import { For } from "solid-js";
 import type { JSX } from "solid-js";
 
 import { Icon, type IconName } from "../icons";
+import { Layout } from "../tokens/layout";
 import { YoIndicator } from "../motion/indicator";
 import {
   isHybridItems,
@@ -70,7 +71,7 @@ export function YoSegmentedButton(props: YoSegmentedButtonProps): JSX.Element {
   const kind = (): YoSegmentedType => props.type ?? "tab";
   const size = (): YoSegmentedButtonSize => props.size ?? "md";
   const hybrid = (): boolean => isHybridItems(props.items);
-  const iconPx = (): number => (hybrid() ? 20 : size() === "sm" ? 16 : 20);
+  const iconPx = (): number => (hybrid() || size() === "md" ? Layout.IconMd : Layout.IconSm);
 
   const commitIndex = (index: number, focus: boolean): void => {
     if (props.disabled) return;

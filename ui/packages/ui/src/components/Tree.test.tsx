@@ -26,7 +26,7 @@ describe("YoTree", () => {
   it("点击展开箭头显示子节点并选中该目录", () => {
     const onSelect = vi.fn();
     render(() => <YoTree data={DATA} onSelect={onSelect} />);
-    fireEvent.click(screen.getByLabelText("expand"));
+    fireEvent.click(screen.getByLabelText("展开"));
     expect(screen.getByText("子1")).toBeTruthy();
     expect(onSelect).toHaveBeenCalledWith("root1", expect.objectContaining({ key: "root1" }));
     fireEvent.click(screen.getByText("子1"));

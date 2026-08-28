@@ -6,8 +6,8 @@
  */
 
 export { elementOf, isActionableTarget, isEditableTarget, isInside, isShellTarget } from "./target";
-export { eventKey, isModKey, matchesChord } from "./chord";
-export type { KeyChord } from "./chord";
+export { eventKey, isCommandModifier, isModKey, modPlatform, matchesChord } from "./chord";
+export type { KeyChord, ModifierPlatform } from "./chord";
 export { adjacentJoin, allKeys, nextKeys, pointerSelectMode } from "./selection";
 export type { SelectJoin, SelectMode } from "./selection";
 export { panelKeyContext, whenIdle, whenList, whenPanel, whenPanelOrField } from "./scope";

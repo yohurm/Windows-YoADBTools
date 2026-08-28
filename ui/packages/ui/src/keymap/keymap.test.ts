@@ -5,9 +5,12 @@ import {
   adjacentJoin,
   attachPanelKeys,
   eventKey,
+  isCommandModifier,
   isEditableTarget,
+  isModKey,
   matchBindings,
   matchesChord,
+  modPlatform,
   nextKeys,
   panelKeyContext,
   pointerSelectMode,
@@ -30,6 +33,30 @@ describe("chord", () => {
     expect(matchesChord(keyEvent({ key: "a", ctrlKey: true }), { key: "a", ctrl: true })).toBe(true);
     expect(matchesChord(keyEvent({ key: "a", ctrlKey: true }), { key: "a" })).toBe(false);
     expect(matchesChord(keyEvent({ key: " " }), { key: "space" })).toBe(true);
+  });
+
+  it("命令修饰键平台语义：macOS=Cmd(meta)，其余=Ctrl", () => {
+    // Windows/Linux：metaKey(Win 键) 不再是命令修饰键，避免 Win+F 误配 Ctrl+F。
+    expect(isCommandModifier("other", keyEvent({ key: "f", ctrlKey: true }))).toBe(true);
+    expect(isCommandModifier("other", keyEvent({ key: "f", metaKey: true }))).toBe(false);
+    expect(isCommandModifier("other", keyEvent({ key: "f" }))).toBe(false);
+    // macOS：Cmd(meta) 作为命令修饰键；字面 Ctrl 不算。
+    expect(isCommandModifier("mac", keyEvent({ key: "f", metaKey: true }))).toBe(true);
+    expect(isCommandModifier("mac", keyEvent({ key: "f", ctrlKey: true }))).toBe(false);
+  });
+
+  it("matchesChord 对 ctrl:true 绑定只认当前平台命令修饰键（Win 键不触发）", () => {
+    // 绑定 ctrl:true：在 Windows 上 Ctrl+F 命中，Win+F 不命中。
+    const chord = { key: "f", ctrl: true };
+    expect(matchesChord(keyEvent({ key: "f", ctrlKey: true }), chord)).toBe(true);
+    expect(matchesChord(keyEvent({ key: "f", metaKey: true }), chord)).toBe(false);
+  });
+
+  it("isModKey 委托给运行时平台：jsdom(非 macOS) 下 Win 键不算命令修饰键", () => {
+    expect(modPlatform()).toBe("other"); // jsdom 环境固定为非 macOS，与应用目标 Windows 一致
+    expect(isModKey(keyEvent({ key: "f", ctrlKey: true }))).toBe(true);
+    expect(isModKey(keyEvent({ key: "f", metaKey: true }))).toBe(false);
+    expect(isModKey(keyEvent({ key: "f" }))).toBe(false);
   });
 });
 

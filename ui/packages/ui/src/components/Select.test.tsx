@@ -169,6 +169,39 @@ describe("YoSelect", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
+  it("逐层退出：菜单关闭后下一次 Esc 才关闭外层 Dialog", () => {
+    const onClose = vi.fn();
+    render(() => (
+      <YoDialog open title="弹窗" onClose={onClose}>
+        <YoSelect options={OPTIONS} placeholder="请选择" />
+      </YoDialog>
+    ));
+    // 第 1 次 Esc：只关最内浮层（Select），Dialog 保持打开
+    fireEvent.click(screen.getByRole("button", { name: /请选择/ }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    // 第 2 次 Esc：现在 Select 已关，事件到达 Dialog，逐层退出
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("键盘：展开态 Tab 提交活动选项并关闭，不依赖浏览器默认迁移", () => {
+    const onChange = vi.fn();
+    render(() => (
+      <YoSelect options={OPTIONS} value="a" placeholder="请选择" onChange={onChange} />
+    ));
+    const trigger = screen.getByRole("button");
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    expect(screen.getByRole("listbox")).toBeTruthy();
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    expect(trigger.getAttribute("aria-activedescendant")).toBe("yohu-option-b");
+    fireEvent.keyDown(trigger, { key: "Tab" });
+    expect(onChange).toHaveBeenCalledWith("b");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
   it("触发钮可访问名是选中文案，不是空盒子", () => {
     render(() => (
       <YoSelect

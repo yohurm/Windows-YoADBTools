@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@solidjs/testing-library";
-import { YoFileIcon, fileGlyphFor } from "./file-icons";
+import { YoFileIcon } from "./file-icons";
+import { fileGlyphFor } from "./file-glyph";
 
 describe("fileGlyphFor", () => {
   it("目录与常见扩展名", () => {

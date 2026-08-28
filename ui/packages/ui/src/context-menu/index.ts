@@ -12,10 +12,9 @@ export type {
   ContextMenuSession,
   YoMenuItem,
 } from "./types";
-export { clampContextMenuPoint, estimateContextMenuHeight } from "./place";
+export { clampContextMenuPoint, clampToRect, estimateContextMenuHeight } from "./place";
 export {
   closeContextMenu,
-  contextMenu,
   createContextMenuController,
   defineContextMenu,
   openContextMenu,

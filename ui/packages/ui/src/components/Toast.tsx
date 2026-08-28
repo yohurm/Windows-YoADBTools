@@ -85,7 +85,7 @@ export interface YoToasterProps {
  */
 export function YoToaster(props: YoToasterProps): JSX.Element {
   return (
-    <div class="yohu-toaster" role="region" aria-label="notifications">
+    <div class="yohu-toaster" role="region" aria-label="通知">
       <For each={props.toaster.toasts()}>
         {(toast) => (
           <YoPresence when={toast.open} recipe="toast" onExitComplete={() => props.toaster.dismiss(toast.id)}>

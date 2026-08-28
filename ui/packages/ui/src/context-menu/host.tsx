@@ -25,6 +25,10 @@ export function YoContextMenuHost(props: YoContextMenuHostProps): JSX.Element {
         items={[...(session()?.items ?? [])]}
         onClose={() => ctl().close()}
         onSelect={(id) => session()?.select(id)}
+        onPlace={(size) => {
+          const s = session();
+          if (s) ctl().refine(s.id, size);
+        }}
       />
     </Portal>
   );

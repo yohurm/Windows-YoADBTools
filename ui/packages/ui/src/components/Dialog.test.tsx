@@ -180,4 +180,57 @@ describe("YoDialog", () => {
       });
     });
   });
+
+  it("两个 Dialog 叠加：Esc 只关最上层（消除键处理竞争）", () => {
+    const onCloseBottom = vi.fn();
+    const onCloseTop = vi.fn();
+    render(() => (
+      <>
+        <YoDialog open onClose={onCloseBottom} footer={<button>下层确定</button>}>
+          下层
+        </YoDialog>
+        <YoDialog open onClose={onCloseTop} footer={<button>上层确定</button>}>
+          上层
+        </YoDialog>
+      </>
+    ));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onCloseTop).toHaveBeenCalledTimes(1);
+    expect(onCloseBottom).not.toHaveBeenCalled();
+  });
+
+  it("两个 Dialog 叠加：Tab 只在最上层循环，不逃逸到背景/下层", () => {
+    render(() => (
+      <>
+        <button>背景</button>
+        <YoDialog open onClose={() => {}} footer={<button>下层按钮</button>}>
+          下层
+        </YoDialog>
+        <YoDialog
+          open
+          onClose={() => {}}
+          footer={
+            <>
+              <button>上层A</button>
+              <button>上层B</button>
+            </>
+          }
+        >
+          上层
+        </YoDialog>
+      </>
+    ));
+    return new Promise<void>((done) => {
+      queueMicrotask(() => {
+        const topLast = screen.getByRole("button", { name: "上层B" });
+        const topFirst = screen.getByRole("button", { name: "上层A" });
+        topLast.focus();
+        fireEvent.keyDown(document, { key: "Tab" });
+        // 应卷回最上层首个按钮，而不是逃逸到背景或下层
+        expect(document.activeElement).toBe(topFirst);
+        expect(document.activeElement?.textContent).not.toBe("背景");
+        done();
+      });
+    });
+  });
 });

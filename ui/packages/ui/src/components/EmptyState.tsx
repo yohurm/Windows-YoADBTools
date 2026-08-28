@@ -5,6 +5,7 @@
  */
 import type { JSX } from "solid-js";
 import { Icon, type IconName } from "../icons";
+import { Layout } from "../tokens/layout";
 import "./EmptyState.css";
 
 export interface YoEmptyStateProps {
@@ -22,7 +23,7 @@ export interface YoEmptyStateProps {
 export function YoEmptyState(props: YoEmptyStateProps): JSX.Element {
   return (
     <div class="yohu-empty-state">
-      {props.icon ? <Icon name={props.icon} size={40} /> : null}
+      {props.icon ? <Icon name={props.icon} size={Layout.IconLg} /> : null}
       <div class="yohu-empty-state__title">{props.title}</div>
       {props.description ? <div class="yohu-empty-state__description">{props.description}</div> : null}
     </div>

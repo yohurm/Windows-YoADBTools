@@ -134,6 +134,10 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
     };
     const handleDocKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== "Escape" || !open()) return;
+      // 逐层退出契约：菜单打开时本层为“最内浮层”，Esc 只消费本层的 Esc 并向下收口。
+      // stopImmediatePropagation 在 document (capture) 阶段阻断后续同节点监听器（含外层 Dialog 的 document 级 Esc），
+      // 使这一次 Esc 只关闭本 Select；外层 Dialog 在菜单关闭后的下一次 Esc 才收到事件并退出。
+      // 需要与 Dialog 内嵌 Select 的“逐层退出”行为保持不变（见 Select.test.tsx）。
       event.preventDefault();
       event.stopImmediatePropagation();
       setOpen(false);
@@ -185,6 +189,10 @@ export function YoSelect(props: YoSelectProps): JSX.Element {
         commitActive();
         break;
       case "tabCommit":
+        // 提交活动选项并关闭。preventDefault 不与浏览器默认 Tab 迁移（及受限焦点上下文如 Dialog
+        // 内由 Dialog 焦点陷阱接管的 Tab 序）争抢：提交后焦点落在触发钮（handleSelect 内 focus），
+        // 后续 Tab 顺序交由所在焦点上下文（普通页面按文档序 / Dialog 陷阱在边界回绕）。
+        event.preventDefault();
         commitActive();
         break;
     }

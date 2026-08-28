@@ -2,6 +2,10 @@
   position: fixed;
   z-index: 40;
   min-width: var(--yohu-layout-menu-min);
+  /* 视口上限兜底：即使落点估算偏小，也不含溢出视口（超出滚动）。 */
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
   padding: var(--yohu-space-xs) 0;
   background: var(--yohu-surface);
   border: var(--yohu-stroke-hairline) solid var(--yohu-border);

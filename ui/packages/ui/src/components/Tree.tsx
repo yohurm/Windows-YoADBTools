@@ -61,6 +61,10 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
   const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set(props.defaultExpandedKeys ?? []));
   const [selected, setSelected] = createSignal<string | null>(null);
   const [focusedKey, setFocusedKey] = createSignal<string | null>(null);
+  let root: HTMLDivElement | undefined;
+  // 属性值选择器转义（引号/反斜杠），避免依赖 CSS.escape（jsdom 测试环境缺失）。
+  const keySelector = (key: string): string =>
+    `[data-tree-key="${String(key).replace(/[\\"]/g, (c) => (c === '"' ? '\\"' : '\\\\'))}"]`;
 
   const isExpanded = (key: string): boolean => {
     const ek = props.expandedKeys;
@@ -92,7 +96,8 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
 
   const focusKey = (key: string): void => {
     setFocusedKey(key);
-    const el = document.querySelector<HTMLElement>(`[data-tree-key="${key}"]`);
+    // 限定在自身树内查找（避免多 YoTree 命中错误节点），并对 key 做 CSS 转义。
+    const el = root?.querySelector<HTMLElement>(keySelector(key));
     el?.focus();
   };
 
@@ -162,7 +167,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
                 <button
                   type="button"
                   class="yohu-tree__chevron"
-                  aria-label={expandedNow() ? "collapse" : "expand"}
+                  aria-label={expandedNow() ? "收起" : "展开"}
                   tabindex={-1}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -178,7 +183,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
               ) : (
                 <span class="yohu-tree__chevron yohu-tree__chevron--leaf" />
               )}
-              {node.icon ? <Icon name={node.icon} size={16} /> : null}
+              {node.icon ? <Icon name={node.icon} size={Layout.IconSm} /> : null}
               <span class="yohu-tree__label" title={node.title}>
                 {node.label}
               </span>
@@ -194,7 +199,7 @@ export function YoTree<T = unknown>(props: YoTreeProps<T>): JSX.Element {
   );
 
   return (
-    <div class="yohu-tree" role="tree" aria-label="树" tabindex={0} onKeyDown={onTreeKeyDown}>
+    <div ref={root} class="yohu-tree" role="tree" aria-label="树" tabindex={0} onKeyDown={onTreeKeyDown}>
       <YoIndicator follow={selected()} variant="fill" />
       {renderNodes(props.data, 0)}
     </div>

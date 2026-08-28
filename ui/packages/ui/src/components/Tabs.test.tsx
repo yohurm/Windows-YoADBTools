@@ -28,7 +28,7 @@ describe("YoTabs", () => {
     const onActivate = vi.fn();
     const onClose = vi.fn();
     render(() => <YoTabs tabs={TABS} activeId="a" onActivate={onActivate} onClose={onClose} />);
-    fireEvent.click(screen.getAllByLabelText("close")[0]);
+    fireEvent.click(screen.getAllByLabelText("关闭页签")[0]);
     expect(onClose).toHaveBeenCalledWith("a");
     expect(onActivate).not.toHaveBeenCalled();
   });
@@ -36,14 +36,14 @@ describe("YoTabs", () => {
   it("提供 onNew 时显示 + 按钮并触发 onNew", () => {
     const onNew = vi.fn();
     render(() => <YoTabs tabs={TABS} activeId="a" onNew={onNew} />);
-    fireEvent.click(screen.getByLabelText("new tab"));
+    fireEvent.click(screen.getByLabelText("新建页签"));
     expect(onNew).toHaveBeenCalledTimes(1);
   });
 
   it("不提供 onClose/onNew 时不渲染关闭与新建按钮", () => {
     render(() => <YoTabs tabs={TABS} activeId="a" />);
-    expect(screen.queryByLabelText("close")).toBeNull();
-    expect(screen.queryByLabelText("new tab")).toBeNull();
+    expect(screen.queryByLabelText("关闭页签")).toBeNull();
+    expect(screen.queryByLabelText("新建页签")).toBeNull();
   });
 
   it("roving tabindex：仅激活 tab 在 Tab 序中（可达性）", () => {

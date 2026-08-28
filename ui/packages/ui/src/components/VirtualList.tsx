@@ -272,16 +272,22 @@ export function YoVirtualList<T>(props: YoVirtualListProps<T>): JSX.Element {
   // 键盘导航后：将新选中行滚入视野并聚焦（行未渲染时先滚动触发渲染再聚焦）。
   createEffect(() => {
     if (!selectable()) return;
-    const key = props.selectedKey?.() ?? null;
+    const singleKey = props.selectedKey?.() ?? null;
+    const multiKeys = props.selectedKeys?.() ?? null;
     void focusTick(); // 依赖：滚动重试
     if (pendingFocusKey === null) return;
-    if (key !== pendingFocusKey) {
+    // 确认本次交互目标已被选中：单选看 `selectedKey`；多选 `selectedKey` 恒 null，
+    // 需改看 `selectedKeys` 是否含目标 key（否则多选下聚焦被立即清空）。
+    const confirmed = isMulti()
+      ? multiKeys !== null && multiKeys.has(pendingFocusKey)
+      : singleKey === pendingFocusKey;
+    if (!confirmed) {
       pendingFocusKey = null; // 回调未采纳本次选中，放弃聚焦
       return;
     }
-    const el = findRowElement(key);
+    const el = findRowElement(pendingFocusKey);
     if (!el) {
-      const index = indexOfKey(key);
+      const index = indexOfKey(pendingFocusKey);
       if (!container || index < 0 || focusAttempts >= 3) {
         pendingFocusKey = null;
         return;

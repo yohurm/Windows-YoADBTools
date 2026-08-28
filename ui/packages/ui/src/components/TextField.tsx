@@ -80,7 +80,7 @@ export function YoTextField(props: YoTextFieldProps): JSX.Element {
           <button
             type="button"
             class="yohu-text-field__clear yohu-focus-ring"
-            aria-label="clear"
+            aria-label="清除"
             onClick={handleClear}
           >
             <Icon name="close" size={Layout.IconInline} />

@@ -5,7 +5,7 @@
 import { Show, createEffect, createSignal, onCleanup } from "solid-js";
 import type { JSX } from "solid-js";
 import { motionDurationMs } from "../tokens/motion";
-import { PRESENCE_EXIT_DURATION, type PresenceRecipe } from "./recipes";
+import { PRESENCE_EXIT_DURATION, PRESENCE_EXIT_SAFETY_MS, type PresenceRecipe } from "./recipes";
 import { shouldSkipMotion } from "./reduced";
 
 export type { PresenceRecipe };
@@ -46,7 +46,7 @@ export function YoPresence(props: YoPresenceProps): JSX.Element {
       return;
     }
     const recipe = props.recipe ?? "fade";
-    const ms = motionDurationMs(PRESENCE_EXIT_DURATION[recipe]) + 50;
+    const ms = motionDurationMs(PRESENCE_EXIT_DURATION[recipe]) + PRESENCE_EXIT_SAFETY_MS;
     const timer = window.setTimeout(() => finishExit(gen), ms);
     const onEnd = (event: AnimationEvent): void => {
       if (!String(event.animationName).includes("-out")) return;

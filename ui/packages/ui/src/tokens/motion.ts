@@ -32,6 +32,9 @@ export type MotionDurationName = keyof typeof MotionDuration;
 /**
  * 鸿蒙弹簧：页面级 interpolatingSpring（Stiffness 128 / Damping 12 / Mass 1）。
  * snap*：指示器位移（ζ≈0.75，约 4% 过冲）；soft*：尺寸滞后（更软、过冲略大）。
+ *
+ * @internal 采样实现参数：只被 `springCssEasing` / `MotionEasing` 内部消费；
+ * 消费弹簧请用公开契约 `MotionEasing.spring` / `MotionEasing.springSoft`。
  */
 export const MotionSpring = {
   stiffness: 128,
@@ -46,7 +49,12 @@ export const MotionSpring = {
   softDamping: 29,
 } as const;
 
-/** 欠阻尼弹簧 0→1 采样为 CSS `linear()`（WebView2 Chromium）。 */
+/**
+ * 欠阻尼弹簧 0→1 采样为 CSS `linear()`（WebView2 Chromium）。
+ *
+ * @internal 采样实现算法：仅在 `MotionEasing` 构建 spring / springSoft 时内部调用，
+ * 不进入对外导出面；如需弹簧样式请直接用 `MotionEasing.spring` / `MotionEasing.springSoft`。
+ */
 export function springCssEasing(
   stiffness: number = MotionSpring.snapStiffness,
   damping: number = MotionSpring.snapDamping,

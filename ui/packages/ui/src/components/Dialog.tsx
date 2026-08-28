@@ -9,12 +9,16 @@
  * - Esc 触发 onClose；关闭后焦点还原到打开前的元素
  * - 遮罩点击不关闭（防误触；仅由显式取消/确认按钮关闭）
  *
+ * 多实例叠加：Esc/Tab 由模块级**单栈焦点管理器**统一裁决，只作用于最上层，
+ * 消除两个 Dialog 各自挂 keydown 时的焦点竞争。视图只 push / pop，不挂监听。
+ *
  * `open` 支持 `boolean` 或响应式 `Accessor<boolean>`。
  */
 import { createEffect, onCleanup } from "solid-js";
 import type { Accessor, JSX } from "solid-js";
 import { YoPresence } from "../motion/presence";
-import { dialogFocusables, dialogTabTarget } from "./dialog-focus";
+import { dialogFocusables } from "./dialog-focus";
+import { popDialog, pushDialog, type DialogStackEntry } from "./dialog-stack";
 import "./Dialog.css";
 
 export interface YoDialogProps {
@@ -40,30 +44,19 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
   const isOpen = (): boolean => (typeof props.open === "function" ? props.open() : props.open);
 
   let panel: HTMLDivElement | undefined;
-  let restoreFocus: HTMLElement | null = null;
 
   createEffect(() => {
     if (!isOpen()) return;
 
-    // 记录打开前焦点（关闭后还原）
-    restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // 记录打开前焦点（关闭时交给单栈焦点管理器还原）
+    const restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        props.onClose();
-        return;
-      }
-      // 焦点陷阱：Tab 在面板内循环
-      if (event.key === "Tab" && panel) {
-        const items = dialogFocusables(panel);
-        const target = dialogTabTarget(items, panel, document.activeElement, event.shiftKey);
-        if (target) {
-          event.preventDefault();
-          target.focus();
-        }
-      }
+    const entry: DialogStackEntry = {
+      getPanel: () => panel,
+      onClose: props.onClose,
+      restoreFocus,
     };
-    document.addEventListener("keydown", handleKeyDown);
+    pushDialog(entry);
 
     // 打开后聚焦面板内首个可聚焦元素
     queueMicrotask(() => {
@@ -74,11 +67,7 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
     });
 
     onCleanup(() => {
-      document.removeEventListener("keydown", handleKeyDown);
-      // 焦点还原
-      if (restoreFocus) {
-        queueMicrotask(() => restoreFocus?.focus());
-      }
+      popDialog(entry);
     });
   });
 
@@ -90,7 +79,7 @@ export function YoDialog(props: YoDialogProps): JSX.Element {
           class="yohu-dialog__panel"
           role="dialog"
           aria-modal="true"
-          aria-label={props.title}
+          aria-label={props.title || undefined}
           tabindex={-1}
           ref={(el) => {
             panel = el;
