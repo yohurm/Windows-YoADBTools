@@ -17,6 +17,7 @@ mod settings_store;
 mod sidecar;
 mod state;
 mod tasks;
+mod terminal_eval;
 mod yolog;
 
 use std::path::PathBuf;
@@ -102,8 +103,12 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         let (event_tx, event_rx) = mpsc::channel::<AppEvent>(8192);
         events::spawn_dispatcher(event_rx, handle.clone());
 
-        let capture =
-            CaptureService::new(client.clone(), event_tx.clone(), snapshot.buffer_capacity);
+        let capture = CaptureService::new(
+            client.clone(),
+            event_tx.clone(),
+            snapshot.buffer_capacity,
+            root_cancel.clone(),
+        );
         let mirror = MirrorService::new(client.clone(), event_tx.clone(), server_jar);
 
         let state = AppState {

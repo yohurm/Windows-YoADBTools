@@ -48,6 +48,30 @@ fn main() {
     let conf_path = manifest.join("tauri.conf.json");
     println!("cargo:rerun-if-changed={}", conf_path.display());
     assert_identity_sync(&conf_path);
+
+    // scrcpy 版本单源校验（M5）：协议钉死 SERVER_VERSION 与 setup 脚本下载版本必须一致。
+    let setup = manifest.join("..").join("..").join("scripts").join("setup-scrcpy-server.ps1");
+    if setup.is_file() {
+        assert_scrcpy_version(&setup);
+    }
+}
+
+/// 校验 `scripts/setup-scrcpy-server.ps1` 的 `$version` 与 `yohu_protocol::scrcpy::SERVER_VERSION` 一致。
+fn assert_scrcpy_version(setup: &Path) {
+    let text = std::fs::read_to_string(setup)
+        .unwrap_or_else(|e| panic!("读取 {} 失败: {e}", setup.display()));
+    let Some(ver) = text.lines().find_map(|l| {
+        let l = l.trim();
+        l.strip_prefix("$version = ").map(|v| v.trim().trim_matches(['"', '\'']))
+    }) else {
+        panic!("setup-scrcpy-server.ps1 未找到 $version 定义");
+    };
+    let expected = yohu_protocol::scrcpy::SERVER_VERSION;
+    if ver != expected {
+        panic!(
+            "scrcpy 版本不一致：setup-scrcpy-server.ps1={ver}，yohu-protocol::scrcpy::SERVER_VERSION={expected}"
+        );
+    }
 }
 
 /// `OUT_DIR` = `target/<profile>/build/<crate>-<hash>/out` → `<profile>` 目录。

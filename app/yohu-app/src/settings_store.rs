@@ -6,6 +6,16 @@ use std::sync::RwLock;
 use yohu_domain::apply_setting;
 use yohu_protocol::{AppSettings, SettingKey};
 
+/// 把损坏的原始内容备份到 `<file>.corrupt-<ts>`（与 library_store 一致），避免静默覆盖用户数据。
+fn backup_corrupt(file: &std::path::Path, text: &str) -> Result<(), String> {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let backup = file.with_extension(format!("corrupt-{stamp}"));
+    std::fs::write(&backup, text).map_err(|e| e.to_string())
+}
+
 /// 文件设置存储。
 pub struct SettingsStore {
     file: PathBuf,
@@ -13,12 +23,19 @@ pub struct SettingsStore {
 }
 
 impl SettingsStore {
-    /// 读取（缺失/损坏 → 默认值，不中断启动）。
+    /// 读取（缺失 → 默认值；损坏 → 备份 `.corrupt-<ts>` 后回落默认，不中断启动）。
     pub fn load(file: PathBuf) -> Self {
-        let settings = std::fs::read_to_string(&file)
-            .ok()
-            .and_then(|text| serde_json::from_str::<AppSettings>(&text).ok())
-            .unwrap_or_default();
+        let settings = match std::fs::read_to_string(&file) {
+            Ok(text) => match serde_json::from_str::<AppSettings>(&text) {
+                Ok(s) => s,
+                Err(_) => {
+                    // 与其他用户数据（library_store）一致：损坏文件先备份再重建，避免静默覆盖。
+                    let _ = backup_corrupt(&file, &text);
+                    AppSettings::default()
+                }
+            },
+            Err(_) => AppSettings::default(), // 缺失 → 默认
+        };
         Self {
             file,
             inner: RwLock::new(settings),

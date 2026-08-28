@@ -1,14 +1,13 @@
 //! 终端域命令：单命令判定 / 命令组编排（薄转发）。
-//! 占位符填充与多设备并行在 domain；本层只查库、在线校验、转发。
+//! 占位符填充与多设备并行判定在 domain / `terminal_eval` 服务；本层只查库、在线校验、转发。
 
 use tauri::{AppHandle, State};
-use tokio_util::sync::CancellationToken;
 
-use crate::commands::{ipc_code, ipc_run};
+use crate::commands::ipc_code;
 use crate::state::AppState;
-use yohu_domain::{run_and_evaluate, LibraryError};
+use yohu_domain::LibraryError;
 use yohu_protocol::{
-    EvalResult, GroupRunRequest, IpcError, IpcErrorCode, SerialEvalResult, TerminalEvalRequest,
+    GroupRunRequest, IpcError, IpcErrorCode, SerialEvalResult, TerminalEvalRequest,
 };
 
 /// `terminal.eval`：按命令库 id 填充占位符，对 serials 并行执行并判定。
@@ -28,53 +27,7 @@ pub async fn terminal_eval(
         })?
     };
     let filled = definition.fill(&req.values).map_err(ipc_library)?;
-    let client = state.client.clone();
-    let mut handles = Vec::with_capacity(req.serials.len());
-    for serial in req.serials {
-        let client = client.clone();
-        let command = filled.clone();
-        handles.push(tokio::spawn(async move {
-            match run_and_evaluate(
-                client.as_ref(),
-                &serial,
-                &command,
-                CancellationToken::new(),
-            )
-            .await
-            {
-                Ok(evaluated) => from_eval(&serial, evaluated.into_eval_result()),
-                Err(error) => {
-                    let mapped = ipc_run(error);
-                    SerialEvalResult {
-                        serial,
-                        ok: false,
-                        message: mapped.message,
-                        exit_code: -1,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                        duration_ms: 0,
-                    }
-                }
-            }
-        }));
-    }
-    let mut results = Vec::with_capacity(handles.len());
-    for handle in handles {
-        results.push(handle.await.map_err(|e| ipc_code(IpcErrorCode::Internal, e.to_string()))?);
-    }
-    Ok(results)
-}
-
-fn from_eval(serial: &str, result: EvalResult) -> SerialEvalResult {
-    SerialEvalResult {
-        serial: serial.to_string(),
-        ok: result.ok,
-        message: result.message,
-        exit_code: result.exit_code,
-        stdout: result.stdout,
-        stderr: result.stderr,
-        duration_ms: result.duration_ms,
-    }
+    crate::terminal_eval::eval_parallel(state.client.clone(), filled, req.serials).await
 }
 
 fn ipc_library(error: LibraryError) -> IpcError {

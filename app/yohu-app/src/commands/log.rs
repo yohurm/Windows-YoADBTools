@@ -75,10 +75,7 @@ pub async fn log_clear_device(state: State<'_, AppState>, serial: String) -> Res
 pub fn log_replay(state: State<'_, AppState>, req: ReplayRequest) -> Result<LogBatch, IpcError> {
     let ring = state.capture.ring(&req.serial);
     let (lines, truncated) = match &req.filter {
-        Some(filter) => {
-            let lines = ring.snapshot_filtered_from(req.from_seq, filter, req.limit as usize);
-            (lines, false)
-        }
+        Some(filter) => ring.snapshot_filtered_from(req.from_seq, filter, req.limit as usize),
         None => ring.snapshot_page(req.from_seq, req.limit as usize),
     };
     let from_seq = lines.first().map(|l| l.seq).unwrap_or(req.from_seq);
@@ -152,25 +149,18 @@ pub fn log_session_file_list(state: State<'_, AppState>) -> Result<Vec<SessionLo
 #[tauri::command(rename = "log.export")]
 pub fn log_export(state: State<'_, AppState>, req: ExportRequest) -> Result<ExportResult, IpcError> {
     let settings = state.settings.snapshot();
-    let dest = export_dest(req.path.as_deref(), &settings.export_default_path);
+    let default_dir = (!settings.export_default_path.is_empty())
+        .then(|| PathBuf::from(&settings.export_default_path));
     let result = state
         .session_log
-        .export(&req.sources, dest.as_deref())
+        .export(
+            &req.sources,
+            req.path.as_deref().map(std::path::Path::new),
+            default_dir.as_deref(),
+        )
         .map_err(ipc)?;
     state.app_log.info(format!("日志已导出: {}", result.path));
     Ok(result)
-}
-
-/// 目标路径：用户指定优先；否则默认导出目录 + 固定文件名；都空由 core 生成。
-fn export_dest(requested: Option<&str>, default_dir: &str) -> Option<PathBuf> {
-    if let Some(p) = requested.filter(|s| !s.is_empty()) {
-        return Some(PathBuf::from(p));
-    }
-    if default_dir.is_empty() {
-        return None;
-    }
-    let dir = default_dir.trim_end_matches(['/', '\\']);
-    Some(PathBuf::from(format!("{dir}/logcat-export.txt")))
 }
 
 #[tauri::command(rename = "log.processSnapshot")]

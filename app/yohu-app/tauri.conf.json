@@ -5,9 +5,9 @@
   "version": "0.1.0",
   "identifier": "com.yohu.adbtools",
   "build": {
-    "beforeDevCommand": "pnpm --dir ../ui dev",
+    "beforeDevCommand": "pnpm --dir ../../ui dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm --dir ../ui build",
+    "beforeBuildCommand": "pnpm --dir ../../ui build",
     "frontendDist": "../../ui/apps/shell/dist"
   },
   "app": {
@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
     }
   },
   "bundle": {
