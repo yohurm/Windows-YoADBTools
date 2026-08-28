@@ -5,9 +5,15 @@
   "version": "0.1.0",
   "identifier": "com.yohu.adbtools",
   "build": {
-    "beforeDevCommand": "pnpm --dir ../../ui dev",
+    "beforeDevCommand": {
+      "script": "pnpm dev",
+      "cwd": "../../ui"
+    },
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm --dir ../../ui build",
+    "beforeBuildCommand": {
+      "script": "pnpm build",
+      "cwd": "../../ui"
+    },
     "frontendDist": "../../ui/apps/shell/dist"
   },
   "app": {
