@@ -150,29 +150,31 @@ export const SettingsView: Component = () => {
     }
   };
 
-  const applyUpdate = async (): Promise<void> => {
+  const downloadUpdate = async (): Promise<void> => {
     try {
-      await updateStore.apply();
+      await updateStore.download();
     } catch (e) {
-      toaster.show(`更新失败: ${errorText(e)}`, "error");
+      toaster.show(`下载失败: ${errorText(e)}`, "error");
     }
   };
 
-  const updateBusy = (): boolean => {
+  const installUpdate = async (): Promise<void> => {
+    try {
+      await updateStore.install();
+    } catch (e) {
+      toaster.show(`安装失败: ${errorText(e)}`, "error");
+    }
+  };
+
+  const downloading = (): boolean => updateStore.phase() === "downloading";
+  const applying = (): boolean => updateStore.phase() === "applying";
+  const foundOpen = (): boolean => {
     const phase = updateStore.phase();
-    return phase === "downloading" || phase === "applying";
+    return updateStore.pending() !== null && (phase === "idle" || phase === "downloading");
   };
-
-  const applyLabel = (): string => {
-    switch (updateStore.phase()) {
-      case "downloading":
-        return "下载中…";
-      case "ready":
-      case "applying":
-        return "正在安装…";
-      default:
-        return "立即更新";
-    }
+  const confirmOpen = (): boolean => {
+    const phase = updateStore.phase();
+    return updateStore.pending() !== null && (phase === "ready" || phase === "applying");
   };
 
   const browseFile = async (
@@ -430,18 +432,6 @@ export const SettingsView: Component = () => {
           </YoFormRow>
         </YoPanel>
 
-        <YoPanel title="更新">
-          <YoFormRow title="检查更新">
-            <YoButton
-              variant="secondary"
-              disabled={updateStore.checking()}
-              onClick={() => void checkAppUpdate()}
-            >
-              {updateStore.checking() ? "检查中…" : "检查更新"}
-            </YoButton>
-          </YoFormRow>
-        </YoPanel>
-
         <YoPanel title="关于">
           <div class="yohu-settings__about">
             <img
@@ -458,6 +448,15 @@ export const SettingsView: Component = () => {
           </div>
           <YoFormRow title="版本">
             <span class="yohu-settings__value">{settingsStore.identity.version}</span>
+            <YoButton
+              size="sm"
+              variant="secondary"
+              loading={updateStore.checking()}
+              disabled={updateStore.checking()}
+              onClick={() => void checkAppUpdate()}
+            >
+              检查更新
+            </YoButton>
           </YoFormRow>
           <YoFormRow title="标识">
             <span class="yohu-settings__value">{settingsStore.identity.identifier}</span>
@@ -472,43 +471,74 @@ export const SettingsView: Component = () => {
       </div>
 
       <YoDialog
-        open={() => updateStore.pending() !== null}
+        open={foundOpen}
         title="发现新版本"
         onClose={() => updateStore.dismiss()}
         footer={
-          <>
-            <Show when={updateStore.phase() !== "applying"}>
+          <Show
+            when={!downloading()}
+            fallback={
               <YoButton variant="ghost" onClick={() => updateStore.dismiss()}>
-                稍后
+                取消
               </YoButton>
-            </Show>
-            <YoButton variant="ghost" disabled={updateBusy()} onClick={() => void openDownload()}>
+            }
+          >
+            <YoButton variant="ghost" onClick={() => updateStore.dismiss()}>
+              稍后
+            </YoButton>
+            <YoButton variant="ghost" onClick={() => void openDownload()}>
               浏览器下载
             </YoButton>
             <Show when={updateStore.canApply()}>
-              <YoButton disabled={updateBusy()} onClick={() => void applyUpdate()}>
-                {applyLabel()}
-              </YoButton>
+              <YoButton onClick={() => void downloadUpdate()}>下载</YoButton>
             </Show>
-          </>
+          </Show>
         }
       >
         <p class="yohu-settings__update-ver">{updateStore.pending()?.version}</p>
-        <p class="yohu-settings__update-desc">{updateStore.pending()?.description || "有新版本可用。"}</p>
-        <Show when={updateStore.phase() !== "idle"}>
+        <Show when={(updateStore.pending()?.size_bytes ?? 0) > 0}>
+          <p class="yohu-settings__update-meta">{formatBytes(updateStore.pending()?.size_bytes ?? 0)}</p>
+        </Show>
+        <Show when={updateStore.pending()?.description}>
+          <p class="yohu-settings__update-desc">{updateStore.pending()?.description}</p>
+        </Show>
+        <Show when={downloading()}>
           <div class="yohu-settings__update-progress">
             <YoProgressBar
               value={updateStore.percent()}
-              indeterminate={updateStore.phase() === "applying" || (updateStore.progress()?.total_bytes ?? 0) <= 0}
+              indeterminate={(updateStore.progress()?.total_bytes ?? 0) <= 0}
             />
             <p class="yohu-settings__update-progress-text">
-              {updateStore.phase() === "applying"
-                ? "正在覆盖安装，应用即将重启…"
-                : updateStore.progress()?.total_bytes
-                  ? `已下载 ${formatBytes(updateStore.progress()?.received_bytes ?? 0)} / ${formatBytes(updateStore.progress()?.total_bytes ?? 0)}`
-                  : "正在下载安装包…"}
+              {updateStore.progress()?.total_bytes
+                ? `已下载 ${formatBytes(updateStore.progress()?.received_bytes ?? 0)} / ${formatBytes(updateStore.progress()?.total_bytes ?? 0)}`
+                : "正在下载安装包…"}
             </p>
           </div>
+        </Show>
+      </YoDialog>
+
+      <YoDialog
+        open={confirmOpen}
+        title="安装更新"
+        onClose={() => updateStore.dismiss()}
+        footer={
+          <>
+            <Show when={!applying()}>
+              <YoButton variant="ghost" onClick={() => updateStore.dismiss()}>
+                取消
+              </YoButton>
+            </Show>
+            <YoButton loading={applying()} disabled={applying()} onClick={() => void installUpdate()}>
+              {applying() ? "正在安装…" : "安装并重启"}
+            </YoButton>
+          </>
+        }
+      >
+        <p class="yohu-settings__update-copy">
+          已下载 {updateStore.pending()?.version}。安装将关闭应用并覆盖当前版本，完成后自动启动。
+        </p>
+        <Show when={applying()}>
+          <p class="yohu-settings__update-progress-text">正在覆盖安装，应用即将重启…</p>
         </Show>
       </YoDialog>
 

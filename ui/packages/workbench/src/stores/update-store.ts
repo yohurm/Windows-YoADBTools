@@ -1,5 +1,6 @@
 /**
- * 更新检查 store：检查/下载/覆盖安装。View 只绑信号与对话框。
+ * 更新检查 store：检查 / 下载 / 覆盖安装。
+ * 编排 @yohu/api（对应 core `yohu-update`）；View 只绑信号与对话框。
  */
 
 import { createSignal } from "solid-js";
@@ -28,6 +29,7 @@ export function createUpdateStore() {
   const [channel, setChannel] = createSignal<UpdateChannelInfo | null>(null);
   const [phase, setPhase] = createSignal<UpdateApplyPhase>("idle");
   const [progress, setProgress] = createSignal<UpdateProgress | null>(null);
+  const [installerPath, setInstallerPath] = createSignal<string | null>(null);
 
   void onUpdateProgress((e) => {
     setProgress({
@@ -38,10 +40,13 @@ export function createUpdateStore() {
     });
     if (e.stage === "applying") {
       setPhase("applying");
-    } else if (e.stage === "ready") {
-      setPhase("ready");
-    } else if (e.stage === "downloading" || e.stage === "verifying") {
-      setPhase("downloading");
+      return;
+    }
+    if (e.stage === "downloading" || e.stage === "verifying") {
+      const current = phase();
+      if (current !== "applying" && current !== "ready") {
+        setPhase("downloading");
+      }
     }
   });
 
@@ -61,14 +66,14 @@ export function createUpdateStore() {
         setPending(result);
         setPhase("idle");
         setProgress(null);
+        setInstallerPath(null);
       } else {
         setPending(null);
         setPhase("idle");
         setProgress(null);
+        setInstallerPath(null);
       }
       return result;
-    } catch (e) {
-      throw e;
     } finally {
       setChecking(false);
     }
@@ -85,9 +90,10 @@ export function createUpdateStore() {
     return Math.min(100, Math.round((p.received_bytes / p.total_bytes) * 100));
   }
 
-  async function apply(): Promise<void> {
+  async function download(): Promise<void> {
     const update = pending();
     if (!update || !isInstallerUrl(update.download_url)) return;
+    if (phase() === "downloading" || phase() === "applying") return;
     setPhase("downloading");
     try {
       const downloaded = await updateDownload({
@@ -96,11 +102,24 @@ export function createUpdateStore() {
         size_bytes: update.size_bytes,
         version: update.version,
       });
-      setPhase("applying");
-      await updateInstall(downloaded.path);
+      setInstallerPath(downloaded.path);
+      setPhase("ready");
     } catch (e) {
       setPhase("idle");
       setProgress(null);
+      setInstallerPath(null);
+      throw e;
+    }
+  }
+
+  async function install(): Promise<void> {
+    const path = installerPath();
+    if (!path) return;
+    setPhase("applying");
+    try {
+      await updateInstall(path);
+    } catch (e) {
+      setPhase("ready");
       throw e;
     }
   }
@@ -112,6 +131,7 @@ export function createUpdateStore() {
     setPending(null);
     setPhase("idle");
     setProgress(null);
+    setInstallerPath(null);
   }
 
   function dismiss(): void {
@@ -122,6 +142,7 @@ export function createUpdateStore() {
     setPending(null);
     setPhase("idle");
     setProgress(null);
+    setInstallerPath(null);
   }
 
   return {
@@ -130,11 +151,13 @@ export function createUpdateStore() {
     channel,
     phase,
     progress,
+    installerPath,
     percent,
     canApply,
     refresh,
     check,
-    apply,
+    download,
+    install,
     openDownload,
     dismiss,
   };

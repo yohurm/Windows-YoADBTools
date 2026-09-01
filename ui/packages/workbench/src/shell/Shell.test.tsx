@@ -576,11 +576,14 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     });
   });
 
-  it("更新面板可检查更新；已最新提示；有新版本则下载覆盖安装", async () => {
+  it("关于面板可检查更新；已最新提示；有新版本则下载后确认安装", async () => {
     render(() => <SettingsView />);
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "检查更新" })).toBeTruthy();
     });
+    expect(screen.queryByRole("heading", { name: "更新" })).toBeNull();
+    const about = screen.getByRole("heading", { name: "关于" }).closest(".yohu-panel");
+    expect(about?.textContent).toContain("检查更新");
     fireEvent.click(screen.getByRole("button", { name: "检查更新" }) as HTMLButtonElement);
     await waitFor(() => {
       expect(mocks.updateCheck).toHaveBeenCalled();
@@ -604,7 +607,7 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
       expect(screen.getByText("1.2.0")).toBeTruthy();
       expect(screen.getByText("修复若干问题")).toBeTruthy();
     });
-    fireEvent.click(screen.getByRole("button", { name: "立即更新" }) as HTMLButtonElement);
+    fireEvent.click(screen.getByRole("button", { name: "下载" }) as HTMLButtonElement);
     await waitFor(() => {
       expect(mocks.updateDownload).toHaveBeenCalledWith({
         url: "https://example.com/setup.exe",
@@ -612,6 +615,11 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
         size_bytes: 0,
         version: "1.2.0",
       });
+      expect(mocks.updateInstall).not.toHaveBeenCalled();
+      expect(screen.getByText("安装更新")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "安装并重启" }) as HTMLButtonElement);
+    await waitFor(() => {
       expect(mocks.updateInstall).toHaveBeenCalledWith("C:\\Temp\\YohuAdbTools-update\\setup.exe");
     });
   });

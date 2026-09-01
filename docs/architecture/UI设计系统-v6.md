@@ -340,7 +340,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - 页眉与卡片左缘共用 `--yohu-layout-page-margin`（PC 40vp）；页宽 `--yohu-layout-settings-max` 只约束滚动列，不把标题挤进 920 列。
 - 表单项走 `YoFormRow`：左侧标题行（标题 + 备注水平相邻，生效徽章进 `note` 槽）+ 其下副标题，右侧功能控件 hug；两列 `align-items: center`。开关 / 数字 / 下拉 / 多选复选进右侧槽。说明文字是副标题，禁止再独占下一行，禁止设置页自写一行 flex。
 - 文件位置项（ADB 路径 / 数据目录 / 默认导出路径）统一：只读展示框显示绝对路径 + 「浏览」；展示框宽 ≤ `--yohu-layout-settings-control-max`，超长折叠中间（目录头 ellipsis、末段完整）。空值显示 `system.info` 解析路径。数字/下拉仍走 `YoTextField`/`YoSelect`。
-- **关于**：末张分组卡片。应用图标（与安装包同源）+ 展示名 + 定位；版本 / 标识 / 版权；数据根、设置目录、应用日志只读路径 + 「打开」（`system.openPath`）。禁止再写死版本号。
+- **关于**：末张分组卡片。应用图标（与安装包同源）+ 展示名 + 定位；版本（右侧版本号后跟「检查更新」，无单独更新卡片）/ 标识 / 版权；数据根、设置目录、应用日志只读路径 + 「打开」（`system.openPath`）。禁止再写死版本号。发现新版本后先下载，完成后再确认覆盖安装。
 - 日志显示列：多选走 `YoCheckbox`（不是启用开关），进 `YoFormRow` 右侧槽、过窄时组内折行；消息列始终显示、不提供开关。立即生效。
 - `YoDialog`：中性 10% 遮罩 + `--yohu-shadow-dialog`（失焦 `-unfocused`）；最大宽 400、高 90%；标题 Title_S Bold；电脑小圆角 `radius-sm`。最小 360×240 仅适用于独立子窗口，不套浮层。
 - `YoToast`：描边；最大宽 400；展示 ≤ `--yohu-dur-toast`（3s）。

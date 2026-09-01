@@ -8,6 +8,7 @@
 - IPC：`update.check` / `update.info` / `update.download` / `update.install` / `update.cancel` / `update.open`
 - 事件：`update/progress`（200ms 节流；阶段切换必达）
 - 不使用 `tauri-plugin-updater`
+- UI 不单独成模块：设置「关于」版本行绑 `update.*`；YoUI 零 IPC，不进 `@yohu/ui` / `modules/*`
 
 ## 覆盖安装
 
