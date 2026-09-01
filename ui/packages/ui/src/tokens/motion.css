@@ -198,6 +198,21 @@
   animation: yohu-fade-out var(--yohu-motion-effects-exit) both;
 }
 
+/* 底部停靠（传输进度框）：从下方升起，不是页面级淡入。 */
+.yohu-presence[data-recipe="rise"] {
+  display: block;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.yohu-presence[data-recipe="rise"][data-state="open"] {
+  animation: yohu-rise-in var(--yohu-motion-effects-enter) both;
+}
+
+.yohu-presence[data-recipe="rise"][data-state="closed"] {
+  animation: yohu-rise-out var(--yohu-motion-effects-exit) both;
+}
+
 /* —— 配方：折叠 / 侧栏 / 指示 —— */
 
 .yohu-collapse {
@@ -219,6 +234,32 @@
 .yohu-collapse__inner > * {
   min-height: min-content;
   flex-shrink: 0;
+}
+
+/*
+ * 配方 panel：Fluent Collapse 双轨（高度空间运动 ∥ 内容淡入上移）。
+ * 高度走 spatial-panel（300ms 标准，大行程无弹簧过冲）；内容走 effects 进出场。
+ * 两轨同时起步、曲线不对称，可打断；禁止再叠一层 collapse。
+ */
+.yohu-collapse[data-recipe="panel"] {
+  transition: grid-template-rows var(--yohu-motion-spatial-panel);
+}
+
+.yohu-collapse[data-recipe="panel"] .yohu-collapse__inner {
+  contain: layout;
+  opacity: 0;
+  transform: translateY(var(--yohu-space-xs));
+  transition:
+    opacity var(--yohu-motion-effects-exit),
+    transform var(--yohu-motion-effects-exit);
+}
+
+.yohu-collapse[data-recipe="panel"][data-open="true"] .yohu-collapse__inner {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--yohu-motion-effects-enter),
+    transform var(--yohu-motion-effects-enter);
 }
 
 .yohu-recipe-rail {
@@ -358,6 +399,7 @@
 @media (prefers-reduced-motion: reduce) {
   .yohu-recipe-rail,
   .yohu-collapse,
+  .yohu-collapse[data-recipe="panel"] .yohu-collapse__inner,
   .yohu-switch,
   .yohu-switch__thumb,
   .yohu-recipe-indicator[data-ready],
@@ -380,6 +422,7 @@
   .yohu-select__menu,
   .yohu-context-menu,
   .yohu-presence[data-recipe="fade"],
+  .yohu-presence[data-recipe="rise"],
   .yohu-recipe-dismiss-fade {
     animation: none !important;
   }

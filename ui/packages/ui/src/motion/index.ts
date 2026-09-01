@@ -1,7 +1,7 @@
 export { YoPresence } from "./presence";
 export type { YoPresenceProps } from "./presence";
 export { YoCollapse } from "./collapse";
-export type { YoCollapseProps } from "./collapse";
+export type { YoCollapseProps, CollapseRecipe } from "./collapse";
 export { YoSwap } from "./swap";
 export type { YoSwapProps } from "./swap";
 export { YoIndicator } from "./indicator";

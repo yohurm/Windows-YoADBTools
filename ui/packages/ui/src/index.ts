@@ -199,6 +199,7 @@ export {
 export type {
   YoPresenceProps,
   YoCollapseProps,
+  CollapseRecipe,
   YoSwapProps,
   YoIndicatorProps,
   IndicatorVariant,

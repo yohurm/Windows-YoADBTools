@@ -48,4 +48,13 @@ describe("YoCollapse", () => {
     expect(root?.querySelector(".yohu-collapse__inner")?.getAttribute("aria-hidden")).toBeNull();
     expect(screen.getByText("折叠内容")).toBeTruthy();
   });
+
+  it("recipe=panel 写入 data-recipe", () => {
+    render(() => (
+      <YoCollapse open recipe="panel">
+        <div>面板</div>
+      </YoCollapse>
+    ));
+    expect(document.querySelector(".yohu-collapse")?.getAttribute("data-recipe")).toBe("panel");
+  });
 });
