@@ -140,6 +140,18 @@ function wiredStore(): LogStoreApi {
   return store;
 }
 
+function anyCapturing(store: LogStoreApi): boolean {
+  return store.state.sessions.some((s) => s.capturing);
+}
+
+function generationOf(store: LogStoreApi, serial?: string | null): number {
+  return store.state.devices[serial ?? store.state.serial ?? ""]?.generation ?? 0;
+}
+
+function overflowedOf(store: LogStoreApi, serial?: string | null): boolean {
+  return store.state.devices[serial ?? store.state.serial ?? ""]?.overflowed === true;
+}
+
 async function liveStore(): Promise<LogStoreApi> {
   const store = wiredStore();
   await store.startCapture();
@@ -332,7 +344,7 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     await vi.waitFor(() => {
       expect(mocks.logReplay).toHaveBeenCalledWith({ serial: "S1", from_seq: 2, limit: 100_000 });
     });
-    expect(store.state.overflowed).toBe(true);
+    expect(overflowedOf(store, "S1")).toBe(true);
   });
 
   it("掉线：只清该设备窗口与镜像，停该机采集", async () => {
@@ -342,7 +354,7 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     expect(store.state.sessions[0]!.capturing).toBe(true);
     mocks.deviceOfflineHandlers.at(-1)?.({ serial: "S1" });
     expect(store.state.sessions[0]!.capturing).toBe(false);
-    expect(store.state.capturing).toBe(false);
+    expect(anyCapturing(store)).toBe(false);
     expect(store.mirror.size()).toBe(0);
     expect(store.state.sessions[0]!.visible).toHaveLength(0);
   });
@@ -352,11 +364,11 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     await store.startCapture();
     expect(mocks.logCaptureStart).toHaveBeenCalledWith("S1");
     expect(store.state.sessions[0]!.capturing).toBe(true);
-    expect(store.state.capturing).toBe(true);
+    expect(anyCapturing(store)).toBe(true);
     await store.stopCapture();
     expect(mocks.logCaptureStop).toHaveBeenCalledWith("S1");
     expect(store.state.sessions[0]!.capturing).toBe(false);
-    expect(store.state.capturing).toBe(false);
+    expect(anyCapturing(store)).toBe(false);
   });
 
   it("startCapture 清空镜像，只保留启动后的行", async () => {
@@ -411,15 +423,15 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     const b = store.startCapture();
     await vi.waitFor(() => {
       expect(mocks.logCaptureStart).toHaveBeenCalledTimes(1);
-      expect(store.state.startPending).toBe(true);
+      expect(store.state.sessions[0]!.starting).toBe(true);
     });
     expect(store.state.sessions[0]!.capturing).toBe(false);
     release();
     await Promise.all([a, b]);
     expect(mocks.logCaptureStart).toHaveBeenCalledTimes(1);
     expect(store.state.sessions[0]!.capturing).toBe(true);
-    expect(store.state.generation).toBe(1);
-    expect(store.state.startPending).toBe(false);
+    expect(generationOf(store, "S1")).toBe(1);
+    expect(store.state.sessions[0]!.starting).toBe(false);
   });
 
   it("同设备 bindSerial 不 stop、不改窗口 capturing", async () => {
@@ -437,7 +449,7 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     await store.bindSerial("S1");
     expect(mocks.logCaptureStop).not.toHaveBeenCalled();
     expect(store.state.sessions[0]!.capturing).toBe(true);
-    expect(store.state.generation).toBe(7);
+    expect(generationOf(store, "S1")).toBe(7);
   });
 
   it("start 失败后 pending 清除；若 status 已 Live 则窗口 capturing", async () => {
@@ -452,9 +464,9 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
       last_seq: 0,
     });
     await expect(store.startCapture()).rejects.toThrow("ipc");
-    expect(store.state.startPending).toBe(false);
+    expect(store.state.sessions[0]!.starting).toBe(false);
     expect(store.state.sessions[0]!.capturing).toBe(true);
-    expect(store.state.generation).toBe(3);
+    expect(generationOf(store, "S1")).toBe(3);
   });
 
   it("start 成功后若 status 世代已结束则纠正窗口 capturing", async () => {
@@ -469,11 +481,11 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     });
     await store.startCapture();
     expect(store.state.sessions[0]!.capturing).toBe(false);
-    expect(store.state.generation).toBe(1);
-    expect(store.state.startPending).toBe(false);
+    expect(generationOf(store, "S1")).toBe(1);
+    expect(store.state.sessions[0]!.starting).toBe(false);
   });
 
-  it("startPending 期间 stop 立即发 stop IPC，不等待 start 返回", async () => {
+  it("starting 期间 stop 立即发 stop IPC，不等待 start 返回", async () => {
     let releaseStart!: (value: { serial: string; generation: number; adopted: boolean }) => void;
     mocks.logCaptureStart.mockReturnValueOnce(
       new Promise((resolve) => {
@@ -485,14 +497,14 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     store.ensureSession();
     const starting = store.startCapture();
     await vi.waitFor(() => {
-      expect(store.state.startPending).toBe(true);
+      expect(store.state.sessions[0]!.starting).toBe(true);
     });
     const stopping = store.stopCapture();
     expect(mocks.logCaptureStop).toHaveBeenCalledWith("S1");
     releaseStart({ serial: "S1", generation: 1, adopted: false });
     await starting.catch(() => undefined);
     await stopping;
-    expect(store.state.startPending).toBe(false);
+    expect(store.state.sessions[0]!.starting).toBe(false);
     expect(store.state.sessions[0]!.capturing).toBe(false);
   });
 
@@ -502,7 +514,7 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     store.ensureSession();
     mocks.logCaptureStart.mockRejectedValueOnce(new Error("offline"));
     await expect(store.startCapture()).rejects.toThrow("offline");
-    expect(store.state.startPending).toBe(false);
+    expect(store.state.sessions[0]!.starting).toBe(false);
     expect(store.state.sessions[0]!.capturing).toBe(false);
   });
 
@@ -525,7 +537,7 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     await stopping;
     await starting;
     expect(mocks.logCaptureStart).toHaveBeenCalledTimes(2);
-    expect(store.state.generation).toBe(2);
+    expect(generationOf(store, "S1")).toBe(2);
     expect(store.state.sessions[0]!.capturing).toBe(true);
   });
 
@@ -538,7 +550,7 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     expect(store.state.sessions[0]!.visible).toHaveLength(0);
     expect(store.state.sessions[0]!.fromSeq).toBe(1);
     expect(store.state.sessions[0]!.capturing).toBe(true);
-    expect(store.state.generation).toBe(4);
+    expect(generationOf(store, "S1")).toBe(4);
     push("S1", [mk(1, { msg: "fresh" })]);
     expect(store.state.sessions[0]!.visible[0]!.line.msg).toBe("fresh");
   });
@@ -550,11 +562,11 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     mocks.logCaptureStart.mockResolvedValueOnce({ serial: "S1", generation: 2, adopted: false });
     await store.stopCapture();
     await store.startCapture();
-    expect(store.state.generation).toBe(2);
+    expect(generationOf(store, "S1")).toBe(2);
     expect(store.state.sessions[0]!.capturing).toBe(true);
     mocks.captureStateHandlers.at(-1)?.({ serial: "S1", generation: 1, state: "stopped" });
     expect(store.state.sessions[0]!.capturing).toBe(true);
-    expect(store.state.generation).toBe(2);
+    expect(generationOf(store, "S1")).toBe(2);
   });
 
   it("切焦点不停已采设备，窗口仍收行", async () => {
@@ -672,6 +684,90 @@ describe("logStore 多窗口 × 多设备", () => {
     expect(store.state.sessions[0]!.visible[0]!.line.msg).toBe("keep-a");
     expect(store.mirrors.of("S1").size()).toBe(1);
     expect(store.mirrors.of("S2").size()).toBe(0);
+  });
+
+  it("进程索引按设备分桶：B 的 ps 不改写 A 的包名绑定", async () => {
+    const store = wiredStore();
+    const a = store.createSession({ kind: "package", pkg: "com.foo", includeChild: false }, "com.foo", "S1");
+    store.setActive(a);
+    mocks.processIndexHandlers.at(-1)?.({
+      serial: "S1",
+      entries: [{ pid: 10, name: "com.foo" }],
+      degraded: false,
+    });
+    expect(pidSetOf(store.state.sessions.find((s) => s.id === a)!.binding)).toEqual([10]);
+
+    const b = store.createSession({ kind: "package", pkg: "com.bar", includeChild: false }, "com.bar", "S2");
+    store.setActive(b);
+    mocks.processIndexHandlers.at(-1)?.({
+      serial: "S2",
+      entries: [{ pid: 99, name: "com.bar" }],
+      degraded: false,
+    });
+    expect(pidSetOf(store.state.sessions.find((s) => s.id === a)!.binding)).toEqual([10]);
+    expect(pidSetOf(store.state.sessions.find((s) => s.id === b)!.binding)).toEqual([99]);
+    expect(store.state.devices.S1?.processEntries).toEqual([{ pid: 10, name: "com.foo" }]);
+    expect(store.state.devices.S2?.processEntries).toEqual([{ pid: 99, name: "com.bar" }]);
+  });
+
+  it("过滤变更用本窗口设备的进程索引重绑", async () => {
+    const store = wiredStore();
+    const a = store.createSession({ kind: "package", pkg: "com.foo", includeChild: true }, "com.foo", "S1");
+    mocks.processIndexHandlers.at(-1)?.({
+      serial: "S1",
+      entries: [
+        { pid: 10, name: "com.foo" },
+        { pid: 11, name: "com.foo:svc" },
+      ],
+      degraded: false,
+    });
+    store.createSession({ kind: "all" }, "B", "S2");
+    mocks.processIndexHandlers.at(-1)?.({
+      serial: "S2",
+      entries: [{ pid: 50, name: "com.foo" }],
+      degraded: false,
+    });
+    store.patchFilter(a, { tagContains: "x" });
+    expect(pidSetOf(store.state.sessions.find((s) => s.id === a)!.binding).sort((x, y) => x - y)).toEqual([10, 11]);
+  });
+
+  it("overflowed 按设备：A 溢出不影响正在看 B 的窗口", async () => {
+    const store = wiredStore();
+    await store.startCapture();
+    const b = store.createSession({ kind: "all" }, "B", "S2");
+    store.setActive(b);
+    mocks.logCaptureStart.mockResolvedValueOnce({ serial: "S2", generation: 3, adopted: false });
+    await store.startCapture();
+    mocks.logOverflowHandlers.at(-1)?.({ serial: "S1" });
+    await vi.waitFor(() => {
+      expect(overflowedOf(store, "S1")).toBe(true);
+    });
+    expect(overflowedOf(store, "S2")).toBe(false);
+  });
+
+  it("不同设备 start 互不等待同一把闸门", async () => {
+    let releaseS1!: () => void;
+    mocks.logCaptureStart.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseS1 = () => resolve({ serial: "S1", generation: 1, adopted: false });
+        }),
+    );
+    const store = wiredStore();
+    const startingS1 = store.startCapture();
+    await vi.waitFor(() => {
+      expect(store.state.sessions[0]!.starting).toBe(true);
+    });
+    const b = store.createSession({ kind: "all" }, "B", "S2");
+    store.setActive(b);
+    mocks.logCaptureStart.mockResolvedValueOnce({ serial: "S2", generation: 8, adopted: false });
+    await store.startCapture();
+    expect(mocks.logCaptureStart).toHaveBeenCalledWith("S2");
+    expect(store.state.sessions.find((s) => s.id === b)!.capturing).toBe(true);
+    expect(store.state.sessions[0]!.capturing).toBe(false);
+    releaseS1();
+    await startingS1;
+    expect(store.state.sessions[0]!.capturing).toBe(true);
   });
 });
 

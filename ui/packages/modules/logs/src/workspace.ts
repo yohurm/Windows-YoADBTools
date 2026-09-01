@@ -1,6 +1,7 @@
 /**
  * 日志会话工作区：窗口（Tab）生命周期、过滤补丁、包名 PID 重绑后的可见区重建。
  * 不碰采集 IPC。每个窗口绑定一台设备；新建/复制空且停，不从共享环重放。
+ * 进程索引按 serial 分桶，禁止用焦点设备的 ps 去重绑其他窗口。
  */
 
 import type { SetStoreFunction } from "solid-js/store";
@@ -32,6 +33,8 @@ export interface LogSessionState {
   serial: string | null;
   /** 本窗口是否在消费该设备的 logcat 扇出 */
   capturing: boolean;
+  /** start IPC 进行中；空态/按钮不得再显示「未采集」 */
+  starting: boolean;
   /** 本窗口起始序号；<0 表示从未开始，禁止重放镜像 */
   fromSeq: number;
   scope: SessionScope;
@@ -47,22 +50,21 @@ export interface LogSessionState {
   binding: PidBinding;
 }
 
+/** 每设备一份投影：世代 / 溢出 / 进程索引。窗口只引用 serial，不共用全局数组。 */
+export interface DeviceUiState {
+  generation: number;
+  overflowed: boolean;
+  processEntries: ProcessEntry[];
+  indexDegraded: boolean;
+}
+
 export interface LogUiState {
   /** 左侧焦点：新建窗口的默认设备，不等于唯一采集设备 */
   serial: string | null;
-  /** 任一窗口正在采集（快照循环/兼容投影） */
-  capturing: boolean;
-  /** 焦点设备最近观测世代 */
-  generation: number;
-  generations: Record<string, number>;
-  /** start IPC 进行中；空态/按钮不得再显示「未采集」 */
-  startPending: boolean;
-  startPendingId: number | null;
-  overflowed: boolean;
+  /** 按 serial 分桶的设备投影 */
+  devices: Record<string, DeviceUiState>;
   sessions: LogSessionState[];
   activeSessionId: number | null;
-  processEntries: ProcessEntry[];
-  indexDegraded: boolean;
   /** 与 core `buffer_capacity` 对齐：镜像与可见区同一上限 */
   bufferCapacity: number;
 }
@@ -78,7 +80,7 @@ export type WorkspaceApi = {
   patchFilter: (id: number, patch: Partial<LogSessionState>) => void;
   rebuildAll: () => void;
   rebuildSession: (id: number) => void;
-  bindPackageSessions: (serial?: string, entries?: readonly ProcessEntry[]) => void;
+  bindPackageSessions: (serial: string, entries?: readonly ProcessEntry[]) => void;
   assignDefaultSerial: (serial: string | null) => void;
   resetDeviceViews: (serial: string) => void;
   setFollowing: (id: number, following: boolean) => void;
@@ -88,6 +90,24 @@ export type WorkspaceApi = {
 
 let nextSessionId = 1;
 
+export function emptyDevice(): DeviceUiState {
+  return { generation: 0, overflowed: false, processEntries: [], indexDegraded: false };
+}
+
+export function deviceSlice(state: LogUiState, serial: string | null | undefined): DeviceUiState {
+  if (!serial) return emptyDevice();
+  return state.devices[serial] ?? emptyDevice();
+}
+
+export function ensureDevice(
+  state: LogUiState,
+  setState: SetStoreFunction<LogUiState>,
+  serial: string,
+): void {
+  if (state.devices[serial]) return;
+  setState("devices", serial, emptyDevice());
+}
+
 export function createWorkspace(
   state: LogUiState,
   setState: SetStoreFunction<LogUiState>,
@@ -96,12 +116,17 @@ export function createWorkspace(
   const sessionIndex = (id: number): number => state.sessions.findIndex((s) => s.id === id);
   const bufferCapacity = (): number => state.bufferCapacity;
 
+  function processIndexOf(serial: string | null): readonly ProcessEntry[] {
+    return deviceSlice(state, serial).processEntries;
+  }
+
   function makeSession(scope: SessionScope, title: string, serial: string | null): LogSessionState {
     const session: LogSessionState = {
       id: nextSessionId++,
       title,
       serial,
       capturing: false,
+      starting: false,
       fromSeq: SESSION_NEVER_STARTED,
       scope,
       minLevel: null,
@@ -115,7 +140,7 @@ export function createWorkspace(
       binding: emptyBinding(),
     };
     if (scope.kind === "package") {
-      session.binding = rebindPids(session.binding, state.processEntries, scope.pkg, scope.includeChild);
+      session.binding = rebindPids(session.binding, processIndexOf(serial), scope.pkg, scope.includeChild);
     }
     return session;
   }
@@ -142,11 +167,11 @@ export function createWorkspace(
     state.sessions.forEach((s) => rebuildSession(s.id));
   }
 
-  function bindPackageSessions(serial?: string, entries?: readonly ProcessEntry[]): void {
-    const index = entries ?? state.processEntries;
+  function bindPackageSessions(serial: string, entries?: readonly ProcessEntry[]): void {
+    const index = entries ?? processIndexOf(serial);
     state.sessions.forEach((session, idx) => {
       if (session.scope.kind !== "package") return;
-      if (serial && session.serial !== serial) return;
+      if (session.serial !== serial) return;
       const binding = rebindPids(session.binding, index, session.scope.pkg, session.scope.includeChild);
       setState("sessions", idx, { binding });
       rebuildSession(session.id);
@@ -166,6 +191,7 @@ export function createWorkspace(
       if (session.serial !== serial) return;
       setState("sessions", idx, {
         capturing: false,
+        starting: false,
         fromSeq: SESSION_NEVER_STARTED,
         visible: [],
         signalCount: 0,
@@ -232,6 +258,7 @@ export function createWorkspace(
     copy.paused = false;
     copy.following = true;
     copy.capturing = false;
+    copy.starting = false;
     copy.fromSeq = SESSION_NEVER_STARTED;
     copy.binding = copyBinding(src.binding);
     setState("sessions", (s) => [...s, copy]);
@@ -252,7 +279,12 @@ export function createWorkspace(
     setState("sessions", idx, patch);
     const next = state.sessions[idx]!;
     if (next.scope.kind === "package") {
-      const binding = rebindPids(next.binding, state.processEntries, next.scope.pkg, next.scope.includeChild);
+      const binding = rebindPids(
+        next.binding,
+        processIndexOf(next.serial),
+        next.scope.pkg,
+        next.scope.includeChild,
+      );
       setState("sessions", idx, { binding });
     }
     rebuildSession(id);

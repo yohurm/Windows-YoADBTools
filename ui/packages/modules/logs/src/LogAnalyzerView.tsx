@@ -38,7 +38,7 @@ import { NewSessionDialog } from "./NewSessionDialog";
 import { copyLogText, LOGS_KEY_BINDINGS, LOGS_LIST_SELECTOR, type LogsKeyAction } from "./keys";
 import { DEFAULT_LOG_DISPLAY_COLUMNS, logColTemplate, visibleLogColumns, type LogColumnSpec } from "./layout";
 import { logsRowMenu, logsTabMenu } from "./menu";
-import { logStore } from "./store";
+import { deviceSlice, logStore } from "./store";
 import type { LogSessionState } from "./workspace";
 import "./logs.css";
 
@@ -124,8 +124,8 @@ function LogCell(props: { col: LogColumnSpec; row: ViewRow; keyword: string }) {
   }
 }
 
-function sessionPending(session: { id: number }): boolean {
-  return logStore.state.startPendingId === session.id;
+function sessionPending(session: { starting: boolean }): boolean {
+  return session.starting;
 }
 
 function shortSerial(serial: string | null): string {
@@ -226,8 +226,10 @@ export function LogAnalyzerView(props: DeviceSession) {
 
   const windowLive = (): boolean => {
     const session = active();
-    return Boolean(session && (session.capturing || sessionPending(session)));
+    return Boolean(session && (session.capturing || session.starting));
   };
+
+  const overflowed = createMemo(() => deviceSlice(logStore.state, active()?.serial).overflowed);
 
   const windowSerial = (): string | null => active()?.serial ?? props.selectedSerials[0] ?? null;
 
@@ -388,7 +390,7 @@ export function LogAnalyzerView(props: DeviceSession) {
           }}
         >
           {windowLive()
-            ? sessionPending(active() ?? { id: -1 }) && !active()?.capturing
+            ? active()?.starting && !active()?.capturing
               ? "取消启动"
               : "停止"
             : "开始"}
@@ -416,7 +418,7 @@ export function LogAnalyzerView(props: DeviceSession) {
         <YoButton variant="secondary" onClick={() => void doExport()}>
           导出
         </YoButton>
-        <Show when={logStore.state.overflowed}>
+        <Show when={overflowed()}>
           <YoBadge text="缓冲滞后（已回补）" tone="warn" />
         </Show>
       </YoChrome>
@@ -603,7 +605,7 @@ export function LogAnalyzerView(props: DeviceSession) {
                 <span classList={{ "yohu-logs__status-signal": session.signalCount > 0 }}>
                   信号 {session.signalCount}
                 </span>
-                <Show when={logStore.state.overflowed}>
+                <Show when={overflowed()}>
                   <span class="yohu-logs__status-lag">缓冲滞后（已回补）</span>
                 </Show>
               </div>

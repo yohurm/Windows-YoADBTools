@@ -82,9 +82,15 @@ export function NewSessionDialog(props: {
     setError("");
   };
 
-  const packageNames = createMemo(() =>
-    [...new Set(logStore.state.processEntries.map((e) => e.name))].sort(),
+  const processEntries = createMemo(
+    () => logStore.state.devices[deviceSerial()]?.processEntries ?? [],
   );
+
+  const indexDegraded = createMemo(
+    () => logStore.state.devices[deviceSerial()]?.indexDegraded === true,
+  );
+
+  const packageNames = createMemo(() => [...new Set(processEntries().map((e) => e.name))].sort());
 
   const filteredPackages = createMemo(() => {
     const q = query().trim().toLowerCase();
@@ -95,7 +101,7 @@ export function NewSessionDialog(props: {
 
   const filteredPids = createMemo(() => {
     const q = query().trim().toLowerCase();
-    const entries = [...logStore.state.processEntries].sort(
+    const entries = [...processEntries()].sort(
       (a, b) => a.name.localeCompare(b.name) || a.pid - b.pid,
     );
     if (!q) return entries;
@@ -297,7 +303,7 @@ export function NewSessionDialog(props: {
         <Show when={mode() === "package"}>
           <YoCheckbox label="包含子进程（pkg:xxx）" checked={includeChild()} onChange={setIncludeChild} />
         </Show>
-        <Show when={logStore.state.indexDegraded}>
+        <Show when={indexDegraded()}>
           <p class="yohu-logs__new-hint">进程列表读取失败，可直接在上方输入包名或 PID。</p>
         </Show>
         <Show when={error()}>
