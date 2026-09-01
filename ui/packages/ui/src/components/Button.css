@@ -8,7 +8,7 @@
   font-family: var(--yohu-font-sans);
   font-size: var(--yohu-font-body);
   font-weight: var(--yohu-font-weight-semibold);
-  line-height: 1;
+  line-height: var(--yohu-font-leading-tight);
   cursor: pointer;
   white-space: nowrap;
   user-select: none;

@@ -8,7 +8,7 @@
   font-family: var(--yohu-font-sans);
   font-size: var(--yohu-font-caption);
   font-weight: var(--yohu-font-weight-semibold);
-  line-height: 1;
+  line-height: var(--yohu-font-leading-tight);
   white-space: nowrap;
   box-sizing: border-box;
 }

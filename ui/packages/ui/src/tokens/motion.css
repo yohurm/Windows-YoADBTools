@@ -379,6 +379,7 @@
   justify-content: flex-end;
   overflow: hidden;
   min-width: 0;
+  line-height: inherit;
 }
 
 .yohu-swap[data-anchor="start"] .yohu-swap__clip {
@@ -392,6 +393,7 @@
 .yohu-swap__inner {
   flex: 0 0 auto;
   white-space: nowrap;
+  line-height: inherit;
 }
 
 /* —— reduced-motion：配方统一降级；循环指示改为静止 —— */

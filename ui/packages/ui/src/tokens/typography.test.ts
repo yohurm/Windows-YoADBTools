@@ -24,7 +24,7 @@ describe("HarmonyOS PC 排版 token", () => {
     expect(FontWeights.Bold).toBe(700);
   });
 
-  it("行高：铬条紧凑 / 正文 1.55 / 数据列 1.4", () => {
+  it("行高：铬条/按钮紧凑 1.25 / 正文 1.55 / 数据列 1.4", () => {
     expect(FontLeading.Tight).toBe(1.25);
     expect(FontLeading.Ui).toBe(1.55);
     expect(FontLeading.Data).toBe(1.4);

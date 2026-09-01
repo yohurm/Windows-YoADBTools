@@ -19,6 +19,8 @@ const FONT_SIZE_RE = /font-size\s*:\s*\d/;
 const MOTION_RE = /(?:transition|animation)\s*:[^;]*\b\d+(?:\.\d+)?(?:ms|s)\b/;
 /** 圆角声明必须是 var(--yohu-radius-*)。 */
 const RADIUS_DECL_RE = /border-radius\s*:\s*([^;]+)/;
+/** 行高必须走 --yohu-font-leading-*。`line-height: 1` 会裁切中文底部（雅黑 ink 超出 em）。 */
+const LINE_HEIGHT_DECL_RE = /line-height\s*:\s*([^;]+)/;
 /** 关键帧只允许 tokens/motion.css（动画系统-v6.md L5）。 */
 const KEYFRAMES_RE = /@keyframes\s+/;
 const KEYFRAMES_ALLOW = new Set(["packages/ui/src/tokens/motion.css"]);
@@ -96,6 +98,16 @@ for (const file of files) {
       if (radius && !/^var\(--yohu-radius-/.test(radius[1].trim()) && radius[1].trim() !== "inherit") {
         violations.push(`${rel}:${i + 1}: 硬编码圆角 → ${line.trim()}（须用 var(--yohu-radius-*)）`);
       }
+      const leading = LINE_HEIGHT_DECL_RE.exec(line);
+      if (
+        leading &&
+        leading[1].trim() !== "inherit" &&
+        !/^var\(--yohu-font-leading-/.test(leading[1].trim())
+      ) {
+        violations.push(
+          `${rel}:${i + 1}: 硬编码行高 → ${line.trim()}（须用 var(--yohu-font-leading-*)；禁止 1，会裁切中文底部）`,
+        );
+      }
     }
   });
   if (isCss && rel.startsWith("packages/modules/") && rel !== "packages/ui/src/components/page.css") {
@@ -129,4 +141,4 @@ if (violations.length > 0) {
   for (const v of violations) console.error(`  ${v}`);
   process.exit(1);
 }
-console.log("tokens 纪律检查通过：前端（组件库/壳/模块）零硬编码色值/字号/动效时长/圆角");
+console.log("tokens 纪律检查通过：前端（组件库/壳/模块）零硬编码色值/字号/动效时长/圆角/行高");

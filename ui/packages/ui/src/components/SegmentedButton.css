@@ -45,7 +45,7 @@
   color: var(--yohu-fg-2);
   font-family: inherit;
   font-weight: var(--yohu-font-weight-medium);
-  line-height: 1;
+  line-height: var(--yohu-font-leading-tight);
   cursor: pointer;
 }
 
