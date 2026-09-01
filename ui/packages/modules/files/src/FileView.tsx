@@ -306,7 +306,7 @@ export function FileView(props: DeviceSession) {
           <PreviewPane />
         </div>
       </div>
-      <div data-drop="ignore">
+      <div class="yohu-files__transfer-slot" data-drop="ignore">
         <TransferPanel />
       </div>
 

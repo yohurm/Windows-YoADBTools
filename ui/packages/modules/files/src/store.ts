@@ -86,6 +86,8 @@ export function createFileStore() {
   });
   const [ui, setUi] = createStore({
     previewOpen: false,
+    /** 传输列表展开；新任务会强制打开。 */
+    transfersOpen: true,
     colWidths: [...COL_DEFAULT],
   });
 
@@ -134,6 +136,7 @@ export function createFileStore() {
           ...patch,
         },
       ]);
+      setUi("transfersOpen", true);
     } else {
       setTransfers(index, name !== undefined ? { ...patch, name } : patch);
     }
@@ -398,6 +401,10 @@ export function createFileStore() {
     setUi("previewOpen", (v) => !v);
   }
 
+  function toggleTransfers(): void {
+    setUi("transfersOpen", (v) => !v);
+  }
+
   const selectedSet = (): Set<string> => new Set(selection.names);
 
   const selectedEntries = (): RemoteEntry[] => entries.filter((e) => selection.names.includes(e.name));
@@ -438,6 +445,7 @@ export function createFileStore() {
     clearSelection,
     resizeCol,
     togglePreview,
+    toggleTransfers,
     selectedSet,
     selectedEntries,
     singleFile,

@@ -2,7 +2,7 @@
  * 文件管理（UI设计系统-v6.md §4.3）。
  * 面包屑路径栏 → 四列清单（名称定宽截断 / 类型 / 大小 / 日期吃剩余；
  * 表头轨道走 YoColHeader（悬浮片与文案边距分权）；行间 hairline 走 YoVirtualList 单源，背板 canvas）
- * + 独立预览分区 → 传输面板（卡片式；终态 3s 淡出）。
+ * + 独立预览分区 → 传输面板（Presence rise + Collapse panel 双轨；终态 3s 淡出）。
  * ========================================================================== */
 
 /* ===== 路径栏（面包屑化，逐级可点） ===== */
@@ -287,7 +287,60 @@
   flex: 1 1 auto;
 }
 
-/* ===== 传输列表（容器走 YoPanel） ===== */
+/* ===== 传输列表（容器走 YoPanel；开合走 YoCollapse） ===== */
+
+.yohu-files__transfer-slot {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.yohu-files__transfers {
+  width: 100%;
+  min-width: 0;
+}
+
+.yohu-files__transfer-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--yohu-space-sm);
+  width: 100%;
+  min-height: var(--yohu-control-height);
+  padding: 0 var(--yohu-space-sm) 0 var(--yohu-space-md);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--yohu-font-sans);
+  text-align: left;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.yohu-files__transfer-title {
+  font-size: var(--yohu-font-caption);
+  font-weight: var(--yohu-font-weight-semibold);
+  line-height: var(--yohu-font-leading-tight);
+  color: var(--yohu-fg);
+}
+
+.yohu-files__transfer-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-2);
+}
+
+.yohu-files__transfer-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--yohu-space-xs);
+  padding: 0 var(--yohu-space-sm) var(--yohu-space-sm);
+  max-height: var(--yohu-layout-output-max);
+  overflow: auto;
+  box-sizing: border-box;
+}
 
 .yohu-files__transfer {
   display: flex;
@@ -296,7 +349,6 @@
   border: none;
   border-radius: var(--yohu-radius-sm);
   background: var(--yohu-surface-2);
-  margin-bottom: var(--yohu-space-xs);
 }
 
 .yohu-files__transfer--failed {

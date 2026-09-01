@@ -18,6 +18,7 @@ import {
   validateEntryName,
   isNotFoundError,
 } from "./model";
+import { createFileStore } from "./store";
 
 describe("joinPath", () => {
   it("根目录拼接", () => {
@@ -200,5 +201,16 @@ describe("isNotFoundError", () => {
     expect(isNotFoundError({ code: "not_found", message: "传输不存在: 3" })).toBe(true);
     expect(isNotFoundError("not found")).toBe(true);
     expect(isNotFoundError(new Error("其它错误"))).toBe(false);
+  });
+});
+
+describe("传输面板开合", () => {
+  it("toggleTransfers 翻转 transfersOpen", () => {
+    const store = createFileStore();
+    expect(store.ui.transfersOpen).toBe(true);
+    store.toggleTransfers();
+    expect(store.ui.transfersOpen).toBe(false);
+    store.toggleTransfers();
+    expect(store.ui.transfersOpen).toBe(true);
   });
 });
