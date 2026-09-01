@@ -17,7 +17,6 @@ import {
   type LogDisplayColumns,
   type SettingKey,
   type Theme,
-  type UpdateProvider,
 } from "@yohu/api";
 import {
   YoBadge,
@@ -47,11 +46,6 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
 const DENSITY_OPTIONS: { value: Density; label: string }[] = [
   { value: "comfortable", label: "舒适（默认）" },
   { value: "compact", label: "紧凑" },
-];
-
-const UPDATE_PROVIDER_OPTIONS: { value: UpdateProvider; label: string }[] = [
-  { value: "github", label: "GitHub（默认）" },
-  { value: "pgyer", label: "蒲公英" },
 ];
 
 const WRITE_MODE_OPTIONS = [
@@ -405,36 +399,7 @@ export const SettingsView: Component = () => {
         </YoPanel>
 
         <YoPanel title="更新">
-          <YoFormRow
-            title="更新源"
-            description={
-              settingsStore.state.update_provider === "pgyer"
-                ? "蒲公英需在设置目录的 update.json 填写 api_key / app_key"
-                : `当前仓库 ${updateStore.channel()?.remote || "—"}`
-            }
-            note={<EffectBadge text="立即生效" />}
-          >
-            <YoSelect
-              options={UPDATE_PROVIDER_OPTIONS}
-              value={settingsStore.state.update_provider}
-              onChange={(v) => {
-                void settingsStore
-                  .set("update_provider", v)
-                  .then(() => updateStore.refresh())
-                  .then(() => toaster.show("已保存（立即生效）", "success"))
-                  .catch((e) => toaster.show(`保存失败: ${String(e)}`, "error"));
-              }}
-            />
-          </YoFormRow>
-          <YoFormRow
-            title="检查更新"
-            description={
-              settingsStore.state.update_provider === "pgyer"
-                ? "用蒲公英检查是否有新版本"
-                : "查询 GitHub Releases latest，比较本机版本后打开 Windows x64 安装包"
-            }
-            note={<EffectBadge text="立即生效" />}
-          >
+          <YoFormRow title="检查更新">
             <YoButton
               variant="secondary"
               disabled={updateStore.checking()}

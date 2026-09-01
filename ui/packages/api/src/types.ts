@@ -88,8 +88,6 @@ export type Theme = "light" | "dark" | "system";
 
 export type Density = "compact" | "comfortable";
 
-export type UpdateProvider = "github" | "pgyer";
-
 /** 日志写入方式（实时逐窗口日志文件）。 */
 export type LogWriteMode = "overwrite" | "append";
 /** 手动导出行为。 */
@@ -108,7 +106,6 @@ export interface AppSettings {
   export_mode: ExportMode;
   log_write_mode: LogWriteMode;
   log_display_columns: LogDisplayColumns;
-  update_provider: UpdateProvider;
   mirror_max_size: number;
   mirror_video_bit_rate: number;
   mirror_max_fps: number;
@@ -138,7 +135,6 @@ export type SettingKey =
   | "export_mode"
   | "log_write_mode"
   | "log_display_columns"
-  | "update_provider"
   | "mirror_max_size"
   | "mirror_video_bit_rate"
   | "mirror_max_fps"
@@ -380,7 +376,6 @@ export interface RemoteUpdate {
 
 /** `update.info` 响应（不含密钥）。 */
 export interface UpdateChannelInfo {
-  provider: UpdateProvider;
   remote: string;
   page_url: string;
 }

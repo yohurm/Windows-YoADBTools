@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
-import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStatus, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateProvider } from "./types";
+import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStatus, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -221,7 +221,6 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
         export_mode: "latest",
         log_write_mode: "overwrite",
         log_display_columns: { ts: true, uid: false, pid: true, tid: true, level: true, tag: true },
-        update_provider: "github",
         mirror_max_size: 1024,
         mirror_video_bit_rate: 2_000_000,
         mirror_max_fps: 30,
@@ -277,7 +276,6 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
 
   it("UpdateChannelInfo 字段为 snake_case", () => {
     const info: UpdateChannelInfo = {
-      provider: "github",
       remote: "yohurm/Windows-YoADBTools",
       page_url: "https://github.com/yohurm/Windows-YoADBTools",
     };
@@ -323,4 +321,3 @@ export type _SettingValue_Number = Expect<Equal<SettingValue<"buffer_capacity">,
 export type _SettingValue_Bool = Expect<Equal<SettingValue<"clear_device_on_start">, boolean>>;
 export type _SettingValue_Enum = Expect<Equal<SettingValue<"log_write_mode">, "overwrite" | "append">>;
 export type _SettingValue_Object = Expect<Equal<SettingValue<"log_display_columns">, LogDisplayColumns>>;
-export type _SettingValue_Provider = Expect<Equal<SettingValue<"update_provider">, UpdateProvider>>;

@@ -25,7 +25,6 @@ pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::
         SettingKey::ExportMode => serde_json::json!(s.export_mode),
         SettingKey::LogWriteMode => serde_json::json!(s.log_write_mode),
         SettingKey::LogDisplayColumns => serde_json::json!(s.log_display_columns),
-        SettingKey::UpdateProvider => serde_json::json!(s.update_provider),
         SettingKey::MirrorMaxSize => serde_json::json!(s.mirror_max_size),
         SettingKey::MirrorVideoBitRate => serde_json::json!(s.mirror_video_bit_rate),
         SettingKey::MirrorMaxFps => serde_json::json!(s.mirror_max_fps),

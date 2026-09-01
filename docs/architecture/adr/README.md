@@ -25,4 +25,4 @@
 | 019 | 右键 | 见 `右键菜单-v6.md` |
 | 020 | 事件名 | `/` 分层；invoke 仍点分 |
 | [021](ADR-v6-021.md) | 日志导出真相 | **开放：** 环 vs session-logs |
-| [022](ADR-v6-022.md) | 更新通道 | `yohu-update`；非 plugin-updater |
+| [022](ADR-v6-022.md) | 更新通道 | GitHub Releases；非 plugin-updater |

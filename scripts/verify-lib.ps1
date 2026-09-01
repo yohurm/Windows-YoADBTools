@@ -24,7 +24,7 @@ function Write-AppSettings {
         单一来源生成 %LOCALAPPDATA%\<ProductDataDir>\settings\settings.json。
     .DESCRIPTION
         契约：core/yohu-protocol/src/settings.rs 的 AppSettings（字段名与 SettingKey::as_str 一致）。
-        这里只写验证脚本关心的键；其余字段（export_*、log_display_columns、mirror_*、update_provider、
+        这里只写验证脚本关心的键；其余字段（export_*、log_display_columns、mirror_*、
         log_write_mode、export_mode 等）由 AppSettings 的字段级 serde(default) 回落，
         行为与旧硬编码哈希完全一致（settings 契约测试锁死默认值）。
     .PARAMETER AdbPath

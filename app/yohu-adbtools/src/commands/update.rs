@@ -12,8 +12,7 @@ use yohu_update::{assert_http_url, check_configured, describe_channel, PlatformI
 pub async fn update_check(state: State<'_, AppState>) -> Result<RemoteUpdate, IpcError> {
     let platform =
         PlatformInfo::from_identity(&AppIdentity::with_version(env!("CARGO_PKG_VERSION")));
-    let provider = state.settings.snapshot().update_provider;
-    check_configured(&state.paths.settings_dir, provider, platform)
+    check_configured(&state.paths.settings_dir, platform)
         .await
         .map_err(ipc_update)
 }
@@ -21,8 +20,7 @@ pub async fn update_check(state: State<'_, AppState>) -> Result<RemoteUpdate, Ip
 /// `update.info`：当前通道（不含密钥），供设置页展示。
 #[tauri::command(rename = "update.info")]
 pub fn update_info(state: State<'_, AppState>) -> Result<UpdateChannelInfo, IpcError> {
-    let provider = state.settings.snapshot().update_provider;
-    describe_channel(&state.paths.settings_dir, provider).map_err(ipc_update)
+    describe_channel(&state.paths.settings_dir).map_err(ipc_update)
 }
 
 /// `update.open`：打开检查结果中的 http(s) 下载地址。

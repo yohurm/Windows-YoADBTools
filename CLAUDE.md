@@ -13,7 +13,7 @@
 - **组件库**：YoUI / `@yohu/ui` 第一公民（公开组件 `Yo*` 标注；token 单源；lint 禁硬编码色值/字号/动效时长/圆角）；见 `docs/architecture/youi.md`
 - **右键菜单（ADR-v6-019）**：引擎在 `@yohu/ui` `context-menu/`（`defineContextMenu` / `openContextMenu` / 壳唯一 `YoContextMenuHost`）；场景表按模块 `menu.ts` 收口；禁止模块自挂 `YoContextMenu`。详见 `docs/architecture/右键菜单-v6.md`
 - **目标平台**：Windows 10/11 x64；复用系统 WebView2（不捆绑运行时）
-- **打包**：Tauri bundler（NSIS per-user）+ WebView2 embedBootstrapper；安装包 **≤ 12 MB**；sidecar 官方 adb.exe（不重实现 ADB 协议，ADR-v6-008）
+- **打包**：Tauri bundler（NSIS per-user）+ WebView2 embedBootstrapper；sidecar 官方 adb.exe（不重实现 ADB 协议，ADR-v6-008）
 
 ## 核心功能
 1. **设备管理** — `yohu-adb` 的 `devices -l` 扫描（device/unauthorized/offline + 型号）；全局焦点 + 每模块选择作用域（终端 MultiOptional，文件/日志 SingleRequired）；手动刷新 + 启动预热 + 可选自动刷新（`devices_auto_refresh`）
@@ -50,7 +50,7 @@ core/
 ├── yohu-logsrv/                        # 采集服务：CaptureService/RingBuffer/Batcher/ProcessIndexService
 ├── yohu-files/                         # 文件：browse/transfer/mutate
 ├── yohu-mirror/                        # 投屏：官方 scrcpy-server + 自写客户端
-└── yohu-update/                        # 更新检查（GitHub/蒲公英）
+└── yohu-update/                        # 更新检查（GitHub Releases）
 app/
 └── yohu-adbtools/                      # Tauri 壳：commands(薄)/state/sidecar/panic
 ui/
@@ -83,7 +83,7 @@ pnpm -C ui build
 # 开发运行（WebView2 + dev server）
 cargo tauri dev
 
-# 发布（NSIS ≤ 12 MB；WebView2 模式见架构文档 §11.2）
+# 发布（NSIS；WebView2 模式见架构文档 §11.2）
 cargo tauri build
 ```
 
@@ -94,7 +94,7 @@ cargo tauri build
 4. `scripts/verify-v6-smoke.ps1` — 冒烟全绿（启动/导航/设备/设置）
 5. `scripts/verify-v6-full.ps1` — 全功能联调全绿（需设备；覆盖终端/文件/日志多会话）
 6. `scripts/verify-v6-logs-perf.ps1` — 性能验收：默认 10k 缓冲 + 3 会话 + 虚拟列表，批量 IPC < 16ms/批，UI 交互不掉帧
-7. `cargo tauri build` — 安装包 ≤ 12 MB
+7. `cargo tauri build` — 产出 NSIS 安装包
 8. 安装启动冒烟确认
 
 ## 实施状态
@@ -104,7 +104,7 @@ cargo tauri build
 - **S3 文件模块已落地**：设备目录浏览（YoVirtualList 虚拟化）/ 上传（tauri-plugin-dialog 选文件）/ 下载（save 对话框）/ 删除（确认框 + core 侧 SafetyRoot）/ 新建目录 / 传输面板（进度条/取消/状态徽章）
 - **S4 日志模块已落地**：多窗口 Tab（默认 System；按包名/PID 再开，每窗口绑定设备）/ 每设备一路 logcat + 窗口引用计数启停 / 切焦点不停其他设备 / AS 风格过滤栏（级别含以上/Tag/关键字，无正则）/ 进程索引重绑（历史 PID 集上限 8）/ 信号扫描（崩溃/ANR 徽章）/ 堆叠折叠 / 溢出回补（log.replay）/ 导出 / 快捷键（Space/Ctrl+L/F/T/W/Tab）/ 批量 IPC 消费端过滤（pipeline.ts 纯函数 + 14 单测）
 - **体积优化**：release profile 启用 lto + codegen-units=1 + strip + panic=abort → exe 6.4 MB
-- **NSIS 安装包已打通**：`cargo tauri build` 产出 **5.80 MB**（≤12 MB 达标；含 sidecar adb 内嵌 + WebView2 embedBootstrapper 引导）；原生 tauri-cli（cargo install）；tauri.conf 路径约定（frontendDist 相对 config 目录、beforeX 命令 cwd=app/）；NSIS 工具链离线缓存方案（winget NSIS → `%LOCALAPPDATA%\tauri\nsis-3.11`）；scripts/build-release.ps1 全流程封装
+- **NSIS 安装包已打通**：`cargo tauri build` 产出安装包（含 sidecar adb 内嵌 + WebView2 embedBootstrapper 引导）；原生 tauri-cli（cargo install）；tauri.conf 路径约定（frontendDist 相对 config 目录、beforeX 命令 cwd=app/）；NSIS 工具链离线缓存方案（winget NSIS → `%LOCALAPPDATA%\tauri\nsis-3.11`）；scripts/build-release.ps1 全流程封装
 - **fake-adb 集成测试已落地**：tools/fake-adb（脚本化假 adb，零共享状态：测试拷贝 exe + 同名 json 到独立临时目录）；yohu-logsrv 集成测试含 adopt / stop 期间 start 等世代；期间修复两个真实缺陷：run_capture 关闭通道忙循环（饿死 stderr 读任务）与 Batcher 生产端结束丢尾部批次（现冲刷 flush）
 - **真机测试已落地**（motorola edge 60 pro，自动跳过无设备环境）：yohu-adb 6 用例（扫描/型号/进程/组命令端到端）、yohu-logsrv 4 用例（采集 1000 行/导出/清缓冲/导出过滤）、yohu-files 3 用例（浏览/push-pull/传输中途取消）；yohu-adb 另含 3 用例自愈式扫描（fallback.rs）
 - **Phase A/B UI 打磨已落地**：三层 token + 双主题语义板 + 密度变量 + 级别板 + 动效 token（HarmonyOS 100/160/300/350ms + 标准/减速曲线，motion.ts ↔ theme.css 契约测试，lint 扩展动效时长纪律）；YoDialog/YoSelect/YoTabs/YoTree 键盘/ARIA 补全；YoVirtualList 选择模式（roving tabindex + ↑/↓/Home/End/Enter/Space + listbox/option 语义）；Dialog/Toast 入场动画（prefers-reduced-motion 降级）

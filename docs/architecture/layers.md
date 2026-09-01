@@ -4,7 +4,7 @@
 
 | # | 目标 | 成功标准 |
 |---|------|----------|
-| G1 | 轻量化 | 安装包 ≤ 12 MB；复用系统 WebView；无自包含运行时 |
+| G1 | 轻量化 | 复用系统 WebView；无自包含运行时；安装包大小不作硬门槛 |
 | G2 | YoUI | 界面由 `@yohu/ui` 构成；token 单源 |
 | G3 | 功能 | 终端 / 文件 / 日志 / 投屏对齐需求 §5 |
 | G4 | 性能 | 默认 10k 环 + 3 会话 + 虚拟列表；批量 IPC |
@@ -38,7 +38,7 @@ yohu-runtime ∥ yohu-protocol   宿主过程/持久化/OS 根  ∥  wire
 | `yohu-domain` | 判定、安全根、过滤、选择、`apply_setting`、内存 AppLog | 进程、fs、reqwest、Tauri |
 | `yohu-adb` | 工具解析、信号量、devices/ls/ps、实现 `Runner` | 日志会话、文件浏览用例、投屏 demux |
 | `yohu-files` / `logsrv` / `mirror` | 各自用例 | capability 互引；绕过 SafetyRoot |
-| `yohu-update` | 更新检查（GitHub/蒲公英） | 依赖 adb |
+| `yohu-update` | 更新检查（GitHub Releases） | 依赖 adb |
 | `yohu-adbtools` | 组合根、IPC 映射、任务中心、OLE 拖出 | 业务判定、路径校验 |
 
 `yohu-adb → yohu-domain` 是 DIP：`AdbClient` 实现 `Runner`。不要拆。

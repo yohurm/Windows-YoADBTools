@@ -9,17 +9,16 @@
   "export_default_path": "",
   "export_ask_every_time": true,
   "export_mode": "latest",
-  "log_write_mode": "overwrite",
-  "log_display_columns": {
-    "ts": true,
-    "uid": true,
-    "pid": true,
-    "tid": true,
-    "level": true,
-    "tag": true
-  },
-  "update_provider": "github",
-  "mirror_max_size": 1024,
+    "log_write_mode": "overwrite",
+    "log_display_columns": {
+      "ts": true,
+      "uid": true,
+      "pid": true,
+      "tid": true,
+      "level": true,
+      "tag": true
+    },
+    "mirror_max_size": 1024,
   "mirror_video_bit_rate": 2000000,
   "mirror_max_fps": 30,
   "mirror_force_forward": false

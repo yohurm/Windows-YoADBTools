@@ -1,9 +1,9 @@
 # 模块：应用更新
 
 - 能力：`yohu-update`（core，零 Tauri、零 adb）
-- 默认 GitHub Releases（`yohurm/Windows-YoADBTools`）；可选蒲公英（ADR-v6-022）
+- 固定 GitHub Releases（`yohurm/Windows-YoADBTools`）；无更新源切换
 - **公开仓库检查更新不需要 token**（`GET /repos/.../releases/latest`）
-- 密钥与仓库覆盖：环境变量 + `settings/update.json`；设置项只选 `UpdateProvider`
+- 仓库覆盖：环境变量 + `settings/update.json`（不要把 PAT 打进安装包）
 - 安装包：打 `vX.Y.Z` 标签 → `.github/workflows/release.yml` 打包 NSIS 并挂到该 tag 的 GitHub Release
 - IPC：`update.check` / `update.info` / `update.open`
 - 不使用 `tauri-plugin-updater`

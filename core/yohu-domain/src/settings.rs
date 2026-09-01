@@ -78,10 +78,6 @@ pub fn apply_setting(
                 )
             })?;
         }
-        SettingKey::UpdateProvider => {
-            settings.update_provider = serde_json::from_value(value.clone())
-                .map_err(|_| format!("{} 必须是 github 或 pgyer", key.as_str()))?;
-        }
         SettingKey::MirrorMaxSize => {
             let n = must_u64(key, value)?;
             settings.mirror_max_size = u32::try_from(n).map_err(|_| "数值过大")?;
@@ -117,11 +113,11 @@ mod tests {
     }
 
     #[test]
-    fn theme_and_provider_apply() {
+    fn theme_and_density_apply() {
         let mut s = AppSettings::default();
         apply_setting(&mut s, SettingKey::Theme, &json!("dark")).unwrap();
-        apply_setting(&mut s, SettingKey::UpdateProvider, &json!("github")).unwrap();
+        apply_setting(&mut s, SettingKey::Density, &json!("compact")).unwrap();
         assert_eq!(s.theme, yohu_protocol::Theme::Dark);
-        assert_eq!(s.update_provider, yohu_protocol::UpdateProvider::Github);
+        assert_eq!(s.density, yohu_protocol::Density::Compact);
     }
 }

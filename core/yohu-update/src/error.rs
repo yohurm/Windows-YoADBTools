@@ -5,9 +5,7 @@ use thiserror::Error;
 /// 更新模块错误。
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum UpdateError {
-    #[error(
-        "未配置更新通道（settings/update.json 或 YOHU_PGY_* / YOHU_GITHUB_*）"
-    )]
+    #[error("未配置 GitHub 仓库（settings/update.json 或 YOHU_GITHUB_*）")]
     NotConfigured,
     #[error("未获取到有效下载地址")]
     NoDownloadUrl,
