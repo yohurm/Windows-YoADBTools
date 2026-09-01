@@ -52,8 +52,11 @@ jobs:
         working-directory: ui
         run: pnpm install --frozen-lockfile && pnpm build
 
+      - name: Rust 构建（含 fake-adb 明文 bin）
+        run: cargo build --workspace
+
       - name: Rust 测试
-        # 发版机无真机；real_* 在有设备时也会因 logcat 进程树超时失败，不能挡安装包。
+        # 集成测试要先有 target/*/fake-adb.exe；real_* 在发版机上跳过。
         run: cargo test --workspace -- --skip real_
 
       - name: tauri-cli
