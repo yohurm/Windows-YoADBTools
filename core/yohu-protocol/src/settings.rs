@@ -47,7 +47,9 @@ pub enum ExportMode {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum UpdateProvider {
+    /// GitHub Releases。`gitcode` 是旧设置值，读入时当成 GitHub。
     #[default]
+    #[serde(alias = "gitcode")]
     Github,
     Pgyer,
 }
@@ -381,6 +383,10 @@ mod tests {
         assert_eq!(
             serde_json::to_value(UpdateProvider::Pgyer).unwrap(),
             serde_json::json!("pgyer")
+        );
+        assert_eq!(
+            serde_json::from_value::<UpdateProvider>(serde_json::json!("gitcode")).unwrap(),
+            UpdateProvider::Github
         );
     }
 

@@ -88,7 +88,7 @@ export type Theme = "light" | "dark" | "system";
 
 export type Density = "compact" | "comfortable";
 
-export type UpdateProvider = "gitcode" | "github" | "pgyer";
+export type UpdateProvider = "github" | "pgyer";
 
 /** 日志写入方式（实时逐窗口日志文件）。 */
 export type LogWriteMode = "overwrite" | "append";

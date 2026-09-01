@@ -25,7 +25,7 @@ export const APP_SETTINGS_DEFAULT: AppSettings = {
     level: true,
     tag: true,
   },
-  update_provider: "gitcode",
+  update_provider: "github",
   mirror_max_size: 1024,
   mirror_video_bit_rate: 2_000_000,
   mirror_max_fps: 30,

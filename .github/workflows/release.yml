@@ -1,0 +1,88 @@
+name: Release
+
+# 打 vX.Y.Z 标签后打包 NSIS，并挂到该 tag 的 GitHub Release。
+# 应用内「检查更新」读 /releases/latest，比较本机 CARGO_PKG_VERSION。
+# 公开仓库检查更新不需要 PAT；本 workflow 用 GITHUB_TOKEN（contents: write）。
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: 打包并发布
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+
+      - name: sidecar adb
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/setup-adb.ps1
+
+      - name: sidecar scrcpy-server
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/setup-scrcpy-server.ps1
+
+      - name: pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      - name: 前端依赖 + 构建
+        working-directory: ui
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Rust 测试
+        run: cargo test --workspace
+
+      - name: tauri-cli
+        run: cargo install tauri-cli --locked
+
+      - name: 打包 NSIS
+        working-directory: app/yohu-adbtools
+        run: cargo tauri build
+
+      - name: 体积断言（≤ 12 MB）
+        shell: powershell
+        run: |
+          $setup = Get-ChildItem target/release/bundle/nsis -Filter "*setup.exe" | Select-Object -First 1
+          if (-not $setup) { throw "未找到安装包产物" }
+          $mb = [math]::Round($setup.Length / 1MB, 2)
+          Write-Host "安装包：$($setup.Name) = $mb MB"
+          if ($mb -gt 12) { throw "超过 12 MB 预算" }
+
+      - name: 上传安装包产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: YohuAdbTools-installer
+          path: target/release/bundle/nsis/*setup.exe
+          if-no-files-found: error
+
+      - name: 创建 GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: powershell
+        run: |
+          $setup = Get-ChildItem target/release/bundle/nsis -Filter "*setup.exe" | Select-Object -First 1
+          if (-not $setup) { throw "未找到安装包产物" }
+          gh release create $env:GITHUB_REF_NAME $setup.FullName --generate-notes --title $env:GITHUB_REF_NAME

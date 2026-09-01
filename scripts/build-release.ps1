@@ -58,4 +58,5 @@ $mb = [math]::Round($setup.Length / 1MB, 2)
 Write-Host ""
 Write-Host "安装包：$($setup.FullName)（$mb MB）"
 if ($mb -gt 12) { throw "超过 12 MB 预算！" }
-Write-Host "v6 发布构建完成 "
+Write-Host "v6 发布构建完成"
+Write-Host "挂到 GitHub Release：打标签 vX.Y.Z 推送（.github/workflows/release.yml），或 scripts\publish-github-release.ps1 -Tag vX.Y.Z"

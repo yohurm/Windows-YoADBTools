@@ -50,8 +50,7 @@ const DENSITY_OPTIONS: { value: Density; label: string }[] = [
 ];
 
 const UPDATE_PROVIDER_OPTIONS: { value: UpdateProvider; label: string }[] = [
-  { value: "gitcode", label: "GitCode（默认）" },
-  { value: "github", label: "GitHub" },
+  { value: "github", label: "GitHub（默认）" },
   { value: "pgyer", label: "蒲公英" },
 ];
 
@@ -429,7 +428,11 @@ export const SettingsView: Component = () => {
           </YoFormRow>
           <YoFormRow
             title="检查更新"
-            description="默认从 GitCode 仓库 yohurm/ReleaseYoADBTools 拉取 Windows x64 安装包"
+            description={
+              settingsStore.state.update_provider === "pgyer"
+                ? "用蒲公英检查是否有新版本"
+                : "查询 GitHub Releases latest，比较本机版本后打开 Windows x64 安装包"
+            }
             note={<EffectBadge text="立即生效" />}
           >
             <YoButton

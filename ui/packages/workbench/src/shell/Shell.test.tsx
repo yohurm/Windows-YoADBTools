@@ -185,9 +185,9 @@ beforeEach(() => {
   mocks.dialogSaveFile.mockResolvedValue(null);
   mocks.systemOpenPath.mockResolvedValue(undefined);
   mocks.updateInfo.mockResolvedValue({
-    provider: "gitcode",
-    remote: "yohurm/ReleaseYoADBTools",
-    page_url: "https://gitcode.com/yohurm/ReleaseYoADBTools",
+    provider: "github",
+    remote: "yohurm/Windows-YoADBTools",
+    page_url: "https://github.com/yohurm/Windows-YoADBTools",
   });
   mocks.updateCheck.mockResolvedValue({
     has_new_version: false,
@@ -567,11 +567,11 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     });
   });
 
-  it("更新面板默认 GitCode；检查更新已最新提示；有新版本则打开下载", async () => {
+  it("更新面板默认 GitHub；检查更新已最新提示；有新版本则打开下载", async () => {
     render(() => <SettingsView />);
     await waitFor(() => {
       expect(screen.getByText("更新源")).toBeTruthy();
-      expect(screen.getByText(/当前仓库 yohurm\/ReleaseYoADBTools/)).toBeTruthy();
+      expect(screen.getByText(/当前仓库 yohurm\/Windows-YoADBTools/)).toBeTruthy();
       expect(screen.getByRole("button", { name: "检查更新" })).toBeTruthy();
     });
     fireEvent.click(screen.getByRole("button", { name: "检查更新" }) as HTMLButtonElement);

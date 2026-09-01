@@ -221,7 +221,7 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
         export_mode: "latest",
         log_write_mode: "overwrite",
         log_display_columns: { ts: true, uid: false, pid: true, tid: true, level: true, tag: true },
-        update_provider: "gitcode",
+        update_provider: "github",
         mirror_max_size: 1024,
         mirror_video_bit_rate: 2_000_000,
         mirror_max_fps: 30,
@@ -277,9 +277,9 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
 
   it("UpdateChannelInfo 字段为 snake_case", () => {
     const info: UpdateChannelInfo = {
-      provider: "gitcode",
-      remote: "yohurm/ReleaseYoADBTools",
-      page_url: "https://gitcode.com/yohurm/ReleaseYoADBTools",
+      provider: "github",
+      remote: "yohurm/Windows-YoADBTools",
+      page_url: "https://github.com/yohurm/Windows-YoADBTools",
     };
     expect(JSON.parse(JSON.stringify(info))).toEqual(info);
   });
