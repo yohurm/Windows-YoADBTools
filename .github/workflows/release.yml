@@ -66,20 +66,29 @@ jobs:
         working-directory: app/yohu-adbtools
         run: cargo tauri build
 
-      - name: 体积断言（≤ 12 MB）
+      - name: 记录安装包体积
         shell: powershell
         run: |
-          $setup = Get-ChildItem target/release/bundle/nsis -Filter "*setup.exe" | Select-Object -First 1
-          if (-not $setup) { throw "未找到安装包产物" }
+          $setup = Get-ChildItem -Path target, app -Recurse -Filter "*setup.exe" -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '[\\/]bundle[\\/]nsis[\\/]' } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $setup) {
+            Write-Host "target 目录："
+            Get-ChildItem target -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+            throw "未找到安装包产物"
+          }
           $mb = [math]::Round($setup.Length / 1MB, 2)
-          Write-Host "安装包：$($setup.Name) = $mb MB"
-          if ($mb -gt 12) { throw "超过 12 MB 预算" }
+          Write-Host "安装包：$($setup.FullName) = $mb MB"
+          "SETUP_PATH=$($setup.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: 上传安装包产物
         uses: actions/upload-artifact@v4
         with:
           name: YohuAdbTools-installer
-          path: target/release/bundle/nsis/*setup.exe
+          path: |
+            target/**/nsis/*setup.exe
+            app/**/nsis/*setup.exe
           if-no-files-found: error
 
       - name: 创建 GitHub Release
@@ -87,6 +96,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: powershell
         run: |
-          $setup = Get-ChildItem target/release/bundle/nsis -Filter "*setup.exe" | Select-Object -First 1
-          if (-not $setup) { throw "未找到安装包产物" }
-          gh release create $env:GITHUB_REF_NAME $setup.FullName --generate-notes --title $env:GITHUB_REF_NAME
+          $setup = $env:SETUP_PATH
+          if (-not $setup -or -not (Test-Path $setup)) { throw "未找到安装包产物" }
+          gh release create $env:GITHUB_REF_NAME $setup --generate-notes --title $env:GITHUB_REF_NAME

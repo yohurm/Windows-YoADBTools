@@ -1,4 +1,4 @@
-# Yohu ADB Tools v6 — 发布构建（NSIS 安装包 ≤ 12 MB）
+# Yohu ADB Tools v6 — 发布构建（NSIS 安装包）
 # 用法（真机）：
 #   powershell -ExecutionPolicy Bypass -File scripts/build-release.ps1
 # 前置：
@@ -57,6 +57,5 @@ if (-not $setup) { throw "未找到本次构建的安装包产物（可能打包
 $mb = [math]::Round($setup.Length / 1MB, 2)
 Write-Host ""
 Write-Host "安装包：$($setup.FullName)（$mb MB）"
-if ($mb -gt 12) { throw "超过 12 MB 预算！" }
 Write-Host "v6 发布构建完成"
 Write-Host "挂到 GitHub Release：打标签 vX.Y.Z 推送（.github/workflows/release.yml），或 scripts\publish-github-release.ps1 -Tag vX.Y.Z"

@@ -18,7 +18,7 @@ version = "0.1.1"
 edition = "2021"
 license = "MIT"
 
-# 体积优化（G1 轻量化：安装包 ≤ 12 MB）
+# 体积优化（strip / LTO；不把安装包大小当硬门槛）
 [profile.release]
 lto = true
 codegen-units = 1
