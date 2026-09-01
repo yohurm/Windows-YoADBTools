@@ -4,7 +4,7 @@
  * 文件位置项：只读展示框显示绝对路径 + 统一「浏览」；超长折叠中间。
  */
 
-import { Component, For, onMount, type JSX } from "solid-js";
+import { Component, For, Show, onMount, type JSX } from "solid-js";
 
 import { APP_ICON_SRC } from "../app-identity";
 import {
@@ -26,6 +26,7 @@ import {
   YoDialog,
   YoFormRow,
   YoPanel,
+  YoProgressBar,
   YoSelect,
   YoSwitch,
   YoTextField,
@@ -47,6 +48,12 @@ const DENSITY_OPTIONS: { value: Density; label: string }[] = [
   { value: "comfortable", label: "舒适（默认）" },
   { value: "compact", label: "紧凑" },
 ];
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 const WRITE_MODE_OPTIONS = [
   { value: "overwrite", label: "覆盖（默认）" },
@@ -140,6 +147,31 @@ export const SettingsView: Component = () => {
       await updateStore.openDownload();
     } catch (e) {
       toaster.show(`打开下载失败: ${errorText(e)}`, "error");
+    }
+  };
+
+  const applyUpdate = async (): Promise<void> => {
+    try {
+      await updateStore.apply();
+    } catch (e) {
+      toaster.show(`更新失败: ${errorText(e)}`, "error");
+    }
+  };
+
+  const updateBusy = (): boolean => {
+    const phase = updateStore.phase();
+    return phase === "downloading" || phase === "applying";
+  };
+
+  const applyLabel = (): string => {
+    switch (updateStore.phase()) {
+      case "downloading":
+        return "下载中…";
+      case "ready":
+      case "applying":
+        return "正在安装…";
+      default:
+        return "立即更新";
     }
   };
 
@@ -445,15 +477,39 @@ export const SettingsView: Component = () => {
         onClose={() => updateStore.dismiss()}
         footer={
           <>
-            <YoButton variant="ghost" onClick={() => updateStore.dismiss()}>
-              稍后
+            <Show when={updateStore.phase() !== "applying"}>
+              <YoButton variant="ghost" onClick={() => updateStore.dismiss()}>
+                稍后
+              </YoButton>
+            </Show>
+            <YoButton variant="ghost" disabled={updateBusy()} onClick={() => void openDownload()}>
+              浏览器下载
             </YoButton>
-            <YoButton onClick={() => void openDownload()}>前往下载</YoButton>
+            <Show when={updateStore.canApply()}>
+              <YoButton disabled={updateBusy()} onClick={() => void applyUpdate()}>
+                {applyLabel()}
+              </YoButton>
+            </Show>
           </>
         }
       >
         <p class="yohu-settings__update-ver">{updateStore.pending()?.version}</p>
         <p class="yohu-settings__update-desc">{updateStore.pending()?.description || "有新版本可用。"}</p>
+        <Show when={updateStore.phase() !== "idle"}>
+          <div class="yohu-settings__update-progress">
+            <YoProgressBar
+              value={updateStore.percent()}
+              indeterminate={updateStore.phase() === "applying" || (updateStore.progress()?.total_bytes ?? 0) <= 0}
+            />
+            <p class="yohu-settings__update-progress-text">
+              {updateStore.phase() === "applying"
+                ? "正在覆盖安装，应用即将重启…"
+                : updateStore.progress()?.total_bytes
+                  ? `已下载 ${formatBytes(updateStore.progress()?.received_bytes ?? 0)} / ${formatBytes(updateStore.progress()?.total_bytes ?? 0)}`
+                  : "正在下载安装包…"}
+            </p>
+          </div>
+        </Show>
       </YoDialog>
 
       <YoToaster toaster={toaster} />

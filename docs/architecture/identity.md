@@ -33,6 +33,8 @@
         ├── adb-terminal/config/library.json
         ├── log-analyzer/exports/ + session-logs/
         └── file-manager/drag-out/
+
+%TEMP%/<DATA_DIR_NAME>-update/     # NSIS 安装包下载缓存（覆盖安装不进 INSTDIR）
 ```
 
 产品子路径由壳 `AppPaths` 用 `dir::*` 拼装；OS 根只经 `yohu_runtime::app_data_root`。

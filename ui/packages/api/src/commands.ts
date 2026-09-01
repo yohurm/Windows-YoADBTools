@@ -38,6 +38,8 @@ import type {
   DragOutRequest,
   RemoteUpdate,
   UpdateChannelInfo,
+  UpdateDownloadRequest,
+  UpdateDownloadResult,
   MirrorStart,
   MirrorStartRequest,
   MirrorStatus,
@@ -172,5 +174,12 @@ export const systemLog = (level: string, module: string, message: string) =>
 export const updateCheck = () => invoke<RemoteUpdate>("update.check");
 
 export const updateInfo = () => invoke<UpdateChannelInfo>("update.info");
+
+export const updateDownload = (request: UpdateDownloadRequest) =>
+  invoke<UpdateDownloadResult>("update.download", { request });
+
+export const updateInstall = (path: string) => invoke<void>("update.install", { path });
+
+export const updateCancel = () => invoke<void>("update.cancel");
 
 export const updateOpen = (url: string) => invoke<void>("update.open", { url });

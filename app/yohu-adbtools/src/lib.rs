@@ -138,6 +138,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             )),
             transfer_next: std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0)),
             browse_cancel: std::sync::Mutex::new(CancellationToken::new()),
+            update_download_cancel: std::sync::Mutex::new(None),
         };
         app.manage(state);
 
@@ -226,6 +227,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::system::system_log,
             commands::update::update_check,
             commands::update::update_info,
+            commands::update::update_download,
+            commands::update::update_install,
+            commands::update::update_cancel,
             commands::update::update_open,
         ])
         .build(tauri::generate_context!())?;

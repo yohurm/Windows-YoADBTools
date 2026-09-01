@@ -149,3 +149,14 @@
   color: var(--yohu-fg-2);
   white-space: pre-wrap;
 }
+
+.yohu-settings__update-progress {
+  margin-top: var(--yohu-space-md);
+}
+
+.yohu-settings__update-progress-text {
+  margin: var(--yohu-space-sm) 0 0;
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-3);
+  font-variant-numeric: tabular-nums;
+}

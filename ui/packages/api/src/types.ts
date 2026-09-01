@@ -374,6 +374,31 @@ export interface RemoteUpdate {
   size_bytes: number;
 }
 
+/** `update.download` 请求。 */
+export interface UpdateDownloadRequest {
+  url: string;
+  sha256: string;
+  size_bytes: number;
+  version: string;
+}
+
+/** `update.download` 响应。 */
+export interface UpdateDownloadResult {
+  path: string;
+  size_bytes: number;
+}
+
+/** `update/progress` 阶段。 */
+export type UpdateStage = "downloading" | "verifying" | "ready" | "applying";
+
+/** `update/progress` 负载。 */
+export interface UpdateProgress {
+  version: string;
+  stage: UpdateStage;
+  received_bytes: number;
+  total_bytes: number;
+}
+
 /** `update.info` 响应（不含密钥）。 */
 export interface UpdateChannelInfo {
   remote: string;
@@ -485,7 +510,8 @@ export type AppEvent =
       control: boolean;
       error?: string;
     }
-  | { kind: "mirrorPacket" } & MirrorPacket;
+  | { kind: "mirrorPacket" } & MirrorPacket
+  | { kind: "updateProgress" } & UpdateProgress;
 
 /** 事件名常量（与 yohu-protocol::event_names 一致）。 */
 export const EVENT_NAMES = {
@@ -501,6 +527,7 @@ export const EVENT_NAMES = {
   settingsChanged: "settings/changed",
   mirrorState: "mirror/state",
   mirrorPacket: "mirror/packet",
+  updateProgress: "update/progress",
 } as const;
 
 // ===== error =====

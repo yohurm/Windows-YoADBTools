@@ -19,6 +19,22 @@ pub enum UpdateError {
     Parse(String),
     #[error("下载地址非法")]
     InvalidUrl,
+    #[error("安装包文件名非法")]
+    InvalidInstaller,
+    #[error("安装包过大")]
+    TooLarge,
+    #[error("安装包校验失败（SHA-256 不匹配）")]
+    ChecksumMismatch,
+    #[error("安装包大小不匹配")]
+    SizeMismatch,
+    #[error("安装包不存在或已失效")]
+    InstallerNotFound,
+    #[error("更新已取消")]
+    Cancelled,
+    #[error("覆盖安装仅支持 Windows")]
+    NotWindows,
+    #[error("写入安装包失败: {0}")]
+    Io(String),
 }
 
 impl From<reqwest::Error> for UpdateError {

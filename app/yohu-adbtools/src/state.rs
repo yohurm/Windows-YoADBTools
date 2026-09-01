@@ -61,6 +61,8 @@ pub struct AppState {
     pub transfer_next: Arc<AtomicU32>,
     /// 当前目录列举取消令牌（新 list 取消上一趟，防过期结果覆盖）
     pub browse_cancel: Mutex<CancellationToken>,
+    /// 进行中的应用更新下载取消令牌
+    pub update_download_cancel: Mutex<Option<CancellationToken>>,
 }
 
 impl AppState {

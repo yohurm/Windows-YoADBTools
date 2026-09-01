@@ -129,6 +129,9 @@ export const onMirrorState = (h: (e: Extract<AppEvent, { kind: "mirrorState" }>)
 export const onMirrorPacket = (h: (e: Extract<AppEvent, { kind: "mirrorPacket" }>) => void) =>
   on(EVENT_NAMES.mirrorPacket, "mirrorPacket", h);
 
+export const onUpdateProgress = (h: (e: Extract<AppEvent, { kind: "updateProgress" }>) => void) =>
+  on(EVENT_NAMES.updateProgress, "updateProgress", h);
+
 /** 订阅 wry 窗口级拖放（Explorer `CF_HDROP`）。未挂载文件页时由调用方忽略。 */
 export function onNativeDragDrop(handler: (event: NativeDragDropEvent) => void): Promise<UnlistenFn> {
   const attach = async (): Promise<UnlistenFn> => {

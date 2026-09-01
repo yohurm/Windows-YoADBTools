@@ -82,12 +82,20 @@ pub fn ipc_file(e: FileError) -> IpcError {
 /// 更新检查错误 → IPC。
 pub fn ipc_update(e: UpdateError) -> IpcError {
     let code = match e {
-        UpdateError::NotConfigured | UpdateError::InvalidUrl => IpcErrorCode::InvalidArgs,
-        UpdateError::NoDownloadUrl => IpcErrorCode::NotFound,
+        UpdateError::NotConfigured
+        | UpdateError::InvalidUrl
+        | UpdateError::InvalidInstaller
+        | UpdateError::TooLarge
+        | UpdateError::ChecksumMismatch
+        | UpdateError::SizeMismatch => IpcErrorCode::InvalidArgs,
+        UpdateError::NoDownloadUrl | UpdateError::InstallerNotFound => IpcErrorCode::NotFound,
+        UpdateError::Cancelled => IpcErrorCode::Cancelled,
         UpdateError::Platform(_)
         | UpdateError::Http(_)
         | UpdateError::Network(_)
-        | UpdateError::Parse(_) => IpcErrorCode::Internal,
+        | UpdateError::Parse(_)
+        | UpdateError::Io(_)
+        | UpdateError::NotWindows => IpcErrorCode::Internal,
     };
     IpcError {
         code,

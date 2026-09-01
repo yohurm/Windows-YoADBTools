@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
-import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStatus, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo } from "./types";
+import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStatus, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateDownloadRequest, type UpdateProgress } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -282,6 +282,23 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
     expect(JSON.parse(JSON.stringify(info))).toEqual(info);
   });
 
+  it("UpdateDownloadRequest / UpdateProgress 字段为 snake_case", () => {
+    const req: UpdateDownloadRequest = {
+      url: "https://example.com/setup.exe",
+      sha256: "ab",
+      size_bytes: 9,
+      version: "0.1.2",
+    };
+    expect(JSON.parse(JSON.stringify(req))).toEqual(req);
+    const progress: UpdateProgress = {
+      version: "0.1.2",
+      stage: "downloading",
+      received_bytes: 1,
+      total_bytes: 2,
+    };
+    expect(JSON.parse(JSON.stringify(progress))).toEqual(progress);
+  });
+
   it("APP_SETTINGS_DEFAULT 与 protocol testdata 对齐", () => {
     const fixturePath = resolve(
       dirname(fileURLToPath(import.meta.url)),
@@ -305,6 +322,7 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
     }
     expect(EVENT_NAMES.mirrorState).toBe("mirror/state");
     expect(EVENT_NAMES.devicesChanged).toBe("devices/changed");
+    expect(EVENT_NAMES.updateProgress).toBe("update/progress");
   });
 });
 

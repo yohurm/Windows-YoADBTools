@@ -22,6 +22,9 @@ const mocks = vi.hoisted(() => ({
   updateCheck: vi.fn(),
   updateInfo: vi.fn(),
   updateOpen: vi.fn(),
+  updateDownload: vi.fn(),
+  updateInstall: vi.fn(),
+  updateCancel: vi.fn(),
   taskHandler: null as null | ((e: unknown) => void),
 }));
 
@@ -44,6 +47,10 @@ vi.mock("@yohu/api", async (importOriginal) => {
     updateCheck: (...a: unknown[]) => mocks.updateCheck(...a),
     updateInfo: (...a: unknown[]) => mocks.updateInfo(...a),
     updateOpen: (...a: unknown[]) => mocks.updateOpen(...a),
+    updateDownload: (...a: unknown[]) => mocks.updateDownload(...a),
+    updateInstall: (...a: unknown[]) => mocks.updateInstall(...a),
+    updateCancel: (...a: unknown[]) => mocks.updateCancel(...a),
+    onUpdateProgress: noop,
     settingsGet: notConfigured,
     adbExec: notConfigured,
     terminalEval: notConfigured,
@@ -200,6 +207,9 @@ beforeEach(() => {
     size_bytes: 0,
   });
   mocks.updateOpen.mockResolvedValue(undefined);
+  mocks.updateDownload.mockResolvedValue({ path: "C:\\Temp\\YohuAdbTools-update\\setup.exe", size_bytes: 10 });
+  mocks.updateInstall.mockResolvedValue(undefined);
+  mocks.updateCancel.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -566,7 +576,7 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     });
   });
 
-  it("更新面板可检查更新；已最新提示；有新版本则打开下载", async () => {
+  it("更新面板可检查更新；已最新提示；有新版本则下载覆盖安装", async () => {
     render(() => <SettingsView />);
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "检查更新" })).toBeTruthy();
@@ -594,9 +604,15 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
       expect(screen.getByText("1.2.0")).toBeTruthy();
       expect(screen.getByText("修复若干问题")).toBeTruthy();
     });
-    fireEvent.click(screen.getByRole("button", { name: "前往下载" }) as HTMLButtonElement);
+    fireEvent.click(screen.getByRole("button", { name: "立即更新" }) as HTMLButtonElement);
     await waitFor(() => {
-      expect(mocks.updateOpen).toHaveBeenCalledWith("https://example.com/setup.exe");
+      expect(mocks.updateDownload).toHaveBeenCalledWith({
+        url: "https://example.com/setup.exe",
+        sha256: "",
+        size_bytes: 0,
+        version: "1.2.0",
+      });
+      expect(mocks.updateInstall).toHaveBeenCalledWith("C:\\Temp\\YohuAdbTools-update\\setup.exe");
     });
   });
 });

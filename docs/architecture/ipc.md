@@ -20,7 +20,7 @@
 | `mirror.start/stop/status/inject/closeControl/savePng` | 投屏槽位 |
 | `settings.get` / `settings.set` | 全量快照事件 |
 | `system.info` / `openPath` / `reportError` / `log` | 关于 / 打开路径 / 上报 |
-| `update.check` / `info` / `open` | ADR-v6-022 |
+| `update.check` / `info` / `download` / `install` / `cancel` / `open` | ADR-v6-022 |
 
 本机选路走 `@yohu/api` 的 `dialogOpen*` / `dialogSaveFile`（封装 `tauri-plugin-dialog`）。窗口三键仅 `@yohu/workbench` `window-chrome.ts`。
 
@@ -38,6 +38,7 @@
 | `settings/changed` | 必达；带全量快照 |
 | `mirror/state` | 必达 |
 | `mirror/packet` | 逐帧 `try_send`，可丢帧 |
+| `update/progress` | 下载 200ms 可丢；阶段切换必达 |
 
 ## 背压
 

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AppSettings, CaptureState, DeviceInfo, LogBatch, MirrorPacket, MirrorSessionState,
-    ProcessIndexSnapshot, TransferProgress,
+    ProcessIndexSnapshot, TransferProgress, UpdateProgress,
 };
 
 /// 后台任务登记信息（状态栏）。
@@ -80,6 +80,7 @@ pub enum AppEvent {
         error: Option<String>,
     },
     MirrorPacket(MirrorPacket),
+    UpdateProgress(UpdateProgress),
 }
 
 /// `LogBatch` 包装（内部 tag 枚举需要 struct 变体承载）。
@@ -104,6 +105,7 @@ pub mod event_names {
     pub const SETTINGS_CHANGED: &str = "settings/changed";
     pub const MIRROR_STATE: &str = "mirror/state";
     pub const MIRROR_PACKET: &str = "mirror/packet";
+    pub const UPDATE_PROGRESS: &str = "update/progress";
 }
 
 impl AppEvent {
@@ -123,6 +125,7 @@ impl AppEvent {
             AppEvent::SettingsChanged { .. } => SETTINGS_CHANGED,
             AppEvent::MirrorState { .. } => MIRROR_STATE,
             AppEvent::MirrorPacket(_) => MIRROR_PACKET,
+            AppEvent::UpdateProgress(_) => UPDATE_PROGRESS,
         }
     }
 }
@@ -216,6 +219,22 @@ mod tests {
     }
 
     #[test]
+    fn update_progress_event_flattens_fields() {
+        let event = AppEvent::UpdateProgress(crate::UpdateProgress {
+            version: "0.1.2".into(),
+            stage: crate::UpdateStage::Downloading,
+            received_bytes: 10,
+            total_bytes: 20,
+        });
+        let v = serde_json::to_value(&event).expect("serialize");
+        assert_eq!(v["kind"], "updateProgress");
+        assert_eq!(v["version"], "0.1.2");
+        assert_eq!(v["stage"], "downloading");
+        assert_eq!(v["received_bytes"], 10);
+        assert_eq!(event.name(), event_names::UPDATE_PROGRESS);
+    }
+
+    #[test]
     fn event_names_are_tauri_safe() {
         for name in [
             event_names::DEVICES_CHANGED,
@@ -230,6 +249,7 @@ mod tests {
             event_names::SETTINGS_CHANGED,
             event_names::MIRROR_STATE,
             event_names::MIRROR_PACKET,
+            event_names::UPDATE_PROGRESS,
         ] {
             assert!(
                 name.chars()
