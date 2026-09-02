@@ -28,6 +28,7 @@ pub fn settings_get(state: State<'_, AppState>, key: SettingKey) -> serde_json::
         SettingKey::MirrorMaxSize => serde_json::json!(s.mirror_max_size),
         SettingKey::MirrorVideoBitRate => serde_json::json!(s.mirror_video_bit_rate),
         SettingKey::MirrorMaxFps => serde_json::json!(s.mirror_max_fps),
+        SettingKey::MirrorProtocol => serde_json::json!(s.mirror_protocol),
         SettingKey::MirrorForceForward => serde_json::json!(s.mirror_force_forward),
     }
 }

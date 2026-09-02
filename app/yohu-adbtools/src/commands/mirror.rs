@@ -1,10 +1,11 @@
-//! 投屏模块命令：薄转发 MirrorService。
+//! 投屏模块命令：薄转发 MirrorService。壳泵 FramePipe → Tauri Channel。
 
+use tauri::ipc::Channel;
 use tauri::State;
 
 use crate::commands::{ipc, ipc_code};
 use crate::state::AppState;
-use yohu_mirror::MirrorError;
+use yohu_mirror::{encode_frame, MirrorError};
 use yohu_protocol::{
     IpcError, IpcErrorCode, MirrorInjectRequest, MirrorSavePngRequest, MirrorStart,
     MirrorStartRequest, MirrorStatus,
@@ -28,6 +29,7 @@ fn ipc_mirror(e: MirrorError) -> IpcError {
 pub async fn mirror_start(
     state: State<'_, AppState>,
     req: MirrorStartRequest,
+    packets: Channel<Vec<u8>>,
 ) -> Result<MirrorStart, IpcError> {
     tracing::info!(
         serial = %req.serial,
@@ -55,7 +57,16 @@ pub async fn mirror_start(
             .mirror_tasks
             .lock()
             .expect("mirror task lock poisoned")
-            .insert(req.serial, task_id);
+            .insert(req.serial.clone(), task_id);
+        if let Some(pipe) = state.mirror.frame_pipe(&req.serial) {
+            tauri::async_runtime::spawn(async move {
+                while let Some(frame) = pipe.recv().await {
+                    if packets.send(encode_frame(&frame)).is_err() {
+                        break;
+                    }
+                }
+            });
+        }
     }
     Ok(result)
 }
