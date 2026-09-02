@@ -467,7 +467,10 @@ mod tests {
         c.inputs = vec![InputField {
             placeholder: "a".into(),
         }];
-        assert_eq!(c.fill(&["{1} literal".into()]).unwrap().template, "{1} literal");
+        assert_eq!(
+            c.fill(&["{1} literal".into()]).unwrap().template,
+            "{1} literal"
+        );
 
         // 多个占位符，值含其它占位符样文本
         let mut c = cmd("c2", "y", "{0} {1}");

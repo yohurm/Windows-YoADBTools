@@ -237,7 +237,11 @@ mod tests {
         let cases: Vec<Case> =
             serde_json::from_str(include_str!("../testdata/entry_name.json")).expect("fixture");
         for (i, case) in cases.iter().enumerate() {
-            assert_eq!(validate_entry_name(&case.name).is_ok(), case.valid, "case {i}");
+            assert_eq!(
+                validate_entry_name(&case.name).is_ok(),
+                case.valid,
+                "case {i}"
+            );
         }
     }
 }
