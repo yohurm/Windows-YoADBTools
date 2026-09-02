@@ -3,6 +3,8 @@
  * 引用计数、世代、掉线、溢出回补在本文件；批次扇出在 ingest；会话文件在 session-files。
  * 切焦点不停其他设备流。闸门按 serial，禁止跨设备互等。
  * 同窗口 adopt 续采：保留 fromSeq 与可见区，只从 core 环补洞；新流才清镜像/本窗口面板。
+ * 窗口第一次点开始：fromSeq=0，按本窗口过滤从当前环/镜像补齐，再跟新行。
+ * 开始前先打一次 ps，包名窗口带着 pidSet 入镜，不空等下一次触摸或 2.5s 索引。
  * 掉线只停采集、关会话文件、清镜像；已画出的行保留。
  * WebView 从冻结恢复时 replay 补 UI 镜像（JS 暂停时 overflow 事件可能根本没发出）。
  */
@@ -225,10 +227,10 @@ export function createCapture(
 
       setState("sessions", idx, { starting: true });
       try {
-        const resumeWindow = live.fromSeq >= 0;
+        await refreshProcesses(current);
+        const resumeWindow = state.sessions[idx]!.fromSeq >= 0;
         const already = capturingCount(current);
         let startedGen = deviceSlice(state, current).generation;
-        let adopted = already > 0;
         if (already === 0) {
           const result = await logCaptureStart(current);
           YoLog.info("logs", "采集已启动", {
@@ -237,7 +239,6 @@ export function createCapture(
             adopted: result.adopted,
           });
           startedGen = result.generation;
-          adopted = result.adopted;
           setDeviceGen(current, result.generation);
           if (!result.adopted) {
             mirrors.clear(current);
@@ -246,25 +247,8 @@ export function createCapture(
           }
         }
         await files.open(state.sessions[idx]!, current, mode);
-        if (adopted && resumeWindow) {
-          setState("sessions", idx, { capturing: true, starting: false, serial: current });
-        } else if (adopted) {
-          const fromSeq = Math.max(0, mirrors.of(current).lastSeqNumber() + 1);
-          setState("sessions", idx, {
-            capturing: true,
-            starting: false,
-            fromSeq,
-            serial: current,
-          });
-        } else {
-          setState("sessions", idx, {
-            capturing: true,
-            starting: false,
-            fromSeq: 0,
-            serial: current,
-          });
-        }
-        if (already === 0) await pullSnapshot(current);
+        subscribeWindow(idx, current, sessionId, resumeWindow);
+        await pullSnapshot(current);
         await confirmStart(current, startedGen, sessionId);
       } catch (e) {
         try {
@@ -272,12 +256,7 @@ export function createCapture(
           if (status.capturing) {
             const resumeWindow = state.sessions[idx]!.fromSeq >= 0;
             await files.open(state.sessions[idx]!, current, mode);
-            if (resumeWindow) {
-              setState("sessions", idx, { capturing: true, starting: false, serial: current });
-            } else {
-              const fromSeq = Math.max(0, mirrors.of(current).lastSeqNumber() + 1);
-              setState("sessions", idx, { capturing: true, starting: false, fromSeq, serial: current });
-            }
+            subscribeWindow(idx, current, sessionId, resumeWindow);
             setDeviceGen(current, status.generation);
             await pullSnapshot(current);
           } else {
@@ -295,6 +274,21 @@ export function createCapture(
         }
       }
     });
+  }
+
+  /** 本窗口开始订阅：续采保留 fromSeq；第一次开始 fromSeq=0，立刻从环补齐匹配行。 */
+  function subscribeWindow(idx: number, device: string, sessionId: number, resumeWindow: boolean): void {
+    if (resumeWindow) {
+      setState("sessions", idx, { capturing: true, starting: false, serial: device });
+    } else {
+      setState("sessions", idx, {
+        capturing: true,
+        starting: false,
+        fromSeq: 0,
+        serial: device,
+      });
+    }
+    workspace.catchUpSession(sessionId);
   }
 
   async function pullSnapshot(device: string): Promise<void> {

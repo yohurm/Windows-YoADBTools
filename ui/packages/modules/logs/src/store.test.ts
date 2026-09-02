@@ -39,6 +39,7 @@ vi.mock("@yohu/api", () => {
   return {
     APP_SETTINGS_DEFAULT: { buffer_capacity: 10_000 },
     deviceRefresh: notConfigured,
+    deviceList: notConfigured,
     systemInfo: notConfigured,
     settingsSet: notConfigured,
     systemReportError: noop,
@@ -578,18 +579,35 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     expect(store.state.sessions[0]!.capturing).toBe(true);
   });
 
-  it("新窗口 adopt 不清空镜像，从尾 seq 起收新行", async () => {
+  it("窗口点开始先打 processSnapshot 再启流", async () => {
+    const store = wiredStore();
+    const order: string[] = [];
+    mocks.logProcessSnapshot.mockImplementation(async () => {
+      order.push("ps");
+      return [];
+    });
+    mocks.logCaptureStart.mockImplementation(async (serial: unknown) => {
+      order.push("start");
+      return { serial, generation: 1, adopted: false };
+    });
+    await store.startCapture();
+    expect(order).toEqual(["ps", "start"]);
+    expect(store.state.sessions[0]!.fromSeq).toBe(0);
+    expect(store.state.sessions[0]!.capturing).toBe(true);
+  });
+
+  it("新窗口第一次开始：fromSeq=0，按过滤从当前环补齐，不清空镜像", async () => {
     const store = wiredStore();
     push("S1", [mk(0, { msg: "kept" })]);
     mocks.logCaptureStart.mockResolvedValueOnce({ serial: "S1", generation: 4, adopted: true });
     await store.startCapture();
     expect(store.mirror.size()).toBe(1);
-    expect(store.state.sessions[0]!.visible).toHaveLength(0);
-    expect(store.state.sessions[0]!.fromSeq).toBe(1);
+    expect(store.state.sessions[0]!.fromSeq).toBe(0);
     expect(store.state.sessions[0]!.capturing).toBe(true);
+    expect(store.state.sessions[0]!.visible.map((r) => r.line.msg)).toEqual(["kept"]);
     expect(generationOf(store, "S1")).toBe(4);
     push("S1", [mk(1, { msg: "fresh" })]);
-    expect(store.state.sessions[0]!.visible[0]!.line.msg).toBe("fresh");
+    expect(store.state.sessions[0]!.visible.map((r) => r.line.msg)).toEqual(["kept", "fresh"]);
   });
 
   it("同窗口 adopt 续采：保留 fromSeq 与可见区，只补新行", async () => {
@@ -655,6 +673,28 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     expect(pidSetOf(session.binding)).toEqual([10]);
   });
 
+  it("包名窗口点开始立即从当前环补齐匹配行，不等下一次触摸", async () => {
+    const store = await liveStore();
+    push("S1", [
+      mk(0, { pid: 10, msg: "foo" }),
+      mk(1, { pid: 99, msg: "other" }),
+    ]);
+    mocks.processIndexHandlers.at(-1)?.({
+      serial: "S1",
+      entries: [{ pid: 10, name: "com.foo" }],
+      degraded: false,
+    });
+    mocks.logProcessSnapshot.mockResolvedValue([{ pid: 10, name: "com.foo" }]);
+    const id = store.createSession({ kind: "package", pkg: "com.foo", includeChild: false }, "com.foo");
+    store.setActive(id);
+    await store.startCapture();
+    const session = store.state.sessions.find((s) => s.id === id)!;
+    expect(session.capturing).toBe(true);
+    expect(session.fromSeq).toBe(0);
+    expect(session.visible.map((r) => r.line.msg)).toEqual(["foo"]);
+    expect(mocks.logCaptureStart).toHaveBeenCalledTimes(1);
+  });
+
   it("采集中的包名窗口在进程索引更新后按 seq 补齐新 PID 行", async () => {
     const store = wiredStore();
     const id = store.createSession({ kind: "package", pkg: "com.foo", includeChild: false }, "com.foo");
@@ -702,16 +742,17 @@ describe("logStore 多窗口 × 多设备", () => {
     store.setActive(other);
     await store.startCapture();
     expect(mocks.logCaptureStart).toHaveBeenCalledTimes(1);
+    expect(store.state.sessions.find((s) => s.id === other)!.visible.map((r) => r.line.seq)).toEqual([0, 1]);
     push("S1", [mk(2), mk(3)]);
     expect(store.state.sessions.find((s) => s.id === system.id)!.visible.map((r) => r.line.seq)).toEqual([0, 1, 2, 3]);
-    expect(store.state.sessions.find((s) => s.id === other)!.visible.map((r) => r.line.seq)).toEqual([2, 3]);
+    expect(store.state.sessions.find((s) => s.id === other)!.visible.map((r) => r.line.seq)).toEqual([0, 1, 2, 3]);
 
     await store.stopCapture();
     expect(mocks.logCaptureStop).not.toHaveBeenCalled();
     expect(store.state.sessions.find((s) => s.id === other)!.capturing).toBe(false);
     expect(store.state.sessions.find((s) => s.id === system.id)!.capturing).toBe(true);
     push("S1", [mk(4)]);
-    expect(store.state.sessions.find((s) => s.id === other)!.visible.map((r) => r.line.seq)).toEqual([2, 3]);
+    expect(store.state.sessions.find((s) => s.id === other)!.visible.map((r) => r.line.seq)).toEqual([0, 1, 2, 3]);
     expect(store.state.sessions.find((s) => s.id === system.id)!.visible.map((r) => r.line.seq)).toEqual([0, 1, 2, 3, 4]);
 
     store.setActive(system.id);
