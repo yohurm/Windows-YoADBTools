@@ -23,9 +23,14 @@ interface ModuleDescriptor {
 ## 数据链
 
 ```text
-DeviceRail → deviceStore → resolve_targets → DeviceSession.selectedSerials
+adb devices -l → device_catalog.last_devices（唯一目录）
+  写：device.refresh / 启动预热 / 自动刷新
+  读：device.list、devices/changed、require_online
+DeviceRail → deviceStore（投影）→ resolve_targets → DeviceSession.selectedSerials
 settings.json → settings.set / settings/changed → settingsStore → DeviceSession.settings
 ```
+
+成功扫描（含空列表）整表替换目录。扫描失败不改目录。禁止用上次快照顶替空扫描。
 
 选择策略在 domain 与 TS 各有一份，testdata JSON 对齐（点击不能等 IPC）。
 

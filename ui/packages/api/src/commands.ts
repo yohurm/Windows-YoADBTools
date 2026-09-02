@@ -49,6 +49,8 @@ import type {
 
 // ===== device =====
 
+export const deviceList = () => invoke<DeviceInfo[]>("device.list");
+
 export const deviceRefresh = () => invoke<DeviceInfo[]>("device.refresh");
 
 // ===== adb =====

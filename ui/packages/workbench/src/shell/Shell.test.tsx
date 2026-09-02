@@ -12,6 +12,7 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import type { Component } from "solid-js";
 
 const mocks = vi.hoisted(() => ({
+  deviceList: vi.fn(),
   deviceRefresh: vi.fn(),
   systemInfo: vi.fn(),
   settingsSet: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock("@yohu/api", async (importOriginal) => {
   });
   return {
     ...actual,
+    deviceList: (...a: unknown[]) => mocks.deviceList(...a),
     deviceRefresh: (...a: unknown[]) => mocks.deviceRefresh(...a),
     systemInfo: (...a: unknown[]) => mocks.systemInfo(...a),
     settingsSet: (...a: unknown[]) => mocks.settingsSet(...a),
@@ -186,6 +188,7 @@ beforeEach(() => {
   mocks.settingsSet.mockImplementation(async (key: string, value: unknown) => {
     return { ...DEFAULT_SETTINGS, [key]: value };
   });
+  mocks.deviceList.mockResolvedValue([]);
   mocks.deviceRefresh.mockResolvedValue([]);
   mocks.dialogOpenFile.mockResolvedValue(null);
   mocks.dialogOpenDirectory.mockResolvedValue(null);
@@ -267,6 +270,22 @@ describe("DeviceRail（§3 设备卡片）", () => {
     expect(screen.getByText("无设备")).toBeTruthy();
     expect(container.querySelector(".yohu-device-rail__empty-error")?.textContent).toContain("adb 未找到");
     expect(screen.getByText("重试扫描")).toBeTruthy();
+  });
+
+  it("扫描空列表即无设备，不保留上次在线", async () => {
+    mocks.deviceRefresh.mockResolvedValue([
+      { serial: "A1", model: "Moto X", state: "online", connection: "usb" },
+    ]);
+    await deviceStore.refresh();
+    expect(deviceStore.state.statusText).toBe("在线 1 台");
+    mocks.deviceRefresh.mockResolvedValue([]);
+    await deviceStore.refresh();
+    expect(deviceStore.state.devices).toHaveLength(0);
+    expect(deviceStore.state.statusText).toBe("无在线设备");
+    expect(deviceStore.state.focusSerial).toBeNull();
+    const { container } = render(() => <DeviceRail />);
+    expect(screen.getByText("无设备")).toBeTruthy();
+    expect(container.querySelectorAll('[role="option"]').length).toBe(0);
   });
 
   it("两台在线时执行目标仅为焦点，不广播全部在线设备", async () => {

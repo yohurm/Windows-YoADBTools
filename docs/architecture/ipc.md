@@ -8,7 +8,8 @@
 
 | 命令 | 说明 |
 |------|------|
-| `device.refresh` | `devices -l`；推 `devices/changed` |
+| `device.list` | 读目录快照，不跑 adb |
+| `device.refresh` | `devices -l` 整表替换目录；推 `devices/changed`；先前在线且本次名单没有的 serial 推 `device/offline` |
 | `adb.exec` | 短命令 |
 | `terminal.eval` / `group.run` / `group.cancel` | 领域判定 + 组编排 |
 | `commandlib.load` / `save` | 命令库；损坏备份后默认库 |

@@ -126,6 +126,23 @@ pub fn lookup_selected_devices<'a>(
         .collect()
 }
 
+/// 一次成功的 `adb devices -l` 就是设备目录。
+/// 空列表 = 当前没有设备；禁止用上次快照顶替（那会让已拔线的设备继续显示在线）。
+/// 返回 (新目录, 先前在线且本次名单里没有的 serial)。
+pub fn catalog_after_scan(
+    previous: &[DeviceInfo],
+    scanned: Vec<DeviceInfo>,
+) -> (Vec<DeviceInfo>, Vec<String>) {
+    let present: std::collections::HashSet<&str> =
+        scanned.iter().map(|d| d.serial.as_str()).collect();
+    let went_offline = previous
+        .iter()
+        .filter(|d| d.state == DeviceState::Online && !present.contains(d.serial.as_str()))
+        .map(|d| d.serial.clone())
+        .collect();
+    (scanned, went_offline)
+}
+
 /// 目录刷新后的焦点收敛：仍在线则保持，否则落到第一台在线设备。
 pub fn reconcile_focus(focus: Option<&str>, online: &[String]) -> Option<String> {
     if let Some(serial) = focus.filter(|s| online.iter().any(|o| o == s)) {
@@ -338,5 +355,34 @@ mod tests {
                 .collect();
             assert_eq!(found, case.expect, "serials={:?}", case.serials);
         }
+    }
+
+    #[test]
+    fn catalog_after_scan_empty_replaces_previous_online() {
+        let previous = vec![device("A1", DeviceState::Online)];
+        let (next, went_offline) = catalog_after_scan(&previous, Vec::new());
+        assert!(next.is_empty());
+        assert_eq!(went_offline, vec!["A1".to_string()]);
+    }
+
+    #[test]
+    fn catalog_after_scan_keeps_present_online() {
+        let previous = vec![device("A1", DeviceState::Online)];
+        let scanned = vec![device("A1", DeviceState::Online)];
+        let (next, went_offline) = catalog_after_scan(&previous, scanned);
+        assert_eq!(next.len(), 1);
+        assert!(went_offline.is_empty());
+    }
+
+    #[test]
+    fn catalog_after_scan_offline_when_serial_missing() {
+        let previous = vec![
+            device("A1", DeviceState::Online),
+            device("B2", DeviceState::Unauthorized),
+        ];
+        let scanned = vec![device("B2", DeviceState::Unauthorized)];
+        let (next, went_offline) = catalog_after_scan(&previous, scanned);
+        assert_eq!(next[0].serial, "B2");
+        assert_eq!(went_offline, vec!["A1".to_string()]);
     }
 }

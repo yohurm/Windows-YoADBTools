@@ -18,8 +18,8 @@ pub use command::{
     LibraryError, RunError, Runner, Verdict,
 };
 pub use focus::{
-    assert_device_online, assert_targets_online, device_display_name, lookup_selected_devices,
-    reconcile_focus, DeviceSessionError, SelectionMode,
+    assert_device_online, assert_targets_online, catalog_after_scan, device_display_name,
+    lookup_selected_devices, reconcile_focus, DeviceSessionError, SelectionMode,
 };
 pub use log_filter::{level_rank, log_filter_matches};
 pub use safety::{validate_entry_name, PathError, RemotePath, SafetyError, SafetyRoot};

@@ -44,7 +44,7 @@ export const App: Component = () => {
       setDensity(settingsStore.state.density);
       YoLog.info("shell", "设置已加载", { theme: settingsStore.state.theme });
     });
-    void deviceStore.refresh();
+    void deviceStore.load();
 
     const syncMaximized = (): void => {
       void windowIsMaximized().then(setMaximized);

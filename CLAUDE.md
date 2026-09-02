@@ -16,7 +16,7 @@
 - **打包**：Tauri bundler（NSIS per-user）+ WebView2 embedBootstrapper；sidecar 官方 adb.exe（不重实现 ADB 协议，ADR-v6-008）
 
 ## 核心功能
-1. **设备管理** — `yohu-adb` 的 `devices -l` 扫描（device/unauthorized/offline + 型号）；全局焦点 + 每模块选择作用域（终端 MultiOptional，文件/日志 SingleRequired）；手动刷新 + 启动预热 + 可选自动刷新（`devices_auto_refresh`）
+1. **设备管理** — `yohu-adb` 的 `devices -l` 扫描（device/unauthorized/offline + 型号）；目录唯一数据源是最近一次成功扫描（空列表即无设备）；全局焦点 + 每模块选择作用域（终端 MultiOptional，文件/日志 SingleRequired）；手动刷新 + 启动预热 + 可选自动刷新（`devices_auto_refresh`）
 2. **ADB 命令终端** — 命令库/命令组（占位符 `{0}{1}`）/多设备并行/组编排（顺序、延时、失败中断）；成败判定在 core 领域层 `CommandEvaluator`（**失败正则 → 成功正则 → 退出码**，ADR-v6-009）；命令管理窗口（深拷贝编辑、全量提交、取消零污染）
 3. **文件管理** — `ls` 浏览、push/pull（`transfer/progress` 事件 200ms 节流 + 可取消）、删除/新建目录；**core 侧 SafetyRoot 强制校验**（`/sdcard`、`/storage` 子路径，拒绝 `..`，不信任 UI，ADR-v6-013）
 4. **日志分析** — core **每设备一路** logcat（`adb logcat -v threadtime,uid`）+ 设备级共享环形缓冲（`buffer_capacity` 默认 10000，与 UI 镜像/可见区同一上限）；**窗口/过滤在 UI 消费端**（ADR-v6-006）：多窗口 Tab（默认 System，Scope=all；可按包名/PID 再开）；每窗口绑定 serial + capturing/fromSeq；启停只打当前窗口，设备流按窗口引用计数 0↔1 / 1↔0；切焦点不停其他设备；进程索引（`ps` 2.5s 周期）+ 包名 PID 自动重绑（历史 PID 集上限 8）；AS 风格过滤栏（级别含以上/包名含子进程开关/精确 PID/Tag/关键字，无正则）；每窗口独立暂停（Space）与滚动挂起（离开底部只计数不跟滚）；清设备缓冲 = `logcat -c` + 清共享缓冲；导出 txt 走 core（`log.export`，持有全量缓冲）；快捷键 Space/Ctrl+L/Ctrl+F/Ctrl+T/Ctrl+W/Ctrl+Tab；掉线只停该 serial 的采集，已画出的行保留
