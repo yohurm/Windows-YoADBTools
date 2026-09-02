@@ -1,8 +1,14 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.45（2026-08-28，Select 触发钮 min-width）    
+> **状态：** v1.48（2026-09-02，日志面板常驻）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（YoUI；token 单源 + 组件）+ `@yohu/workbench`（壳）+ `@yohu/modules/*`。所有改动必须同步更新本文件。
+>
+> **v1.48 变更（日志面板常驻）**：显示面板 append-only。只在重新开始采集或清空时冲刷。掉线 / 无输出 / 停采 / 包名 PID 重绑不得清空已画出的行。过滤从已有行筛选，镜像只按 seq 补洞。
+>
+> **v1.47 变更（日志可见区不冲刷）**：跟滚恢复只按 seq 补洞，过滤变更才整表重建。System 无过滤时镜像为空不得清空已画出的行。同窗口 adopt 续采保留可见区。空闲后不得落到「等待设备输出」并把旧行冲掉。
+>
+> **v1.46 变更（日志级别色单源）**：logcat 色值只走 `--yohu-level-*`（`LogLevelLight/Dark`）。行 `data-level` 写入 `--yohu-log-ink`；左条、级别字、Tag 共用 ink。Error 消息同色；Fatal 字母反色块，Tag/左条用 `--yohu-level-f-bg`。删除 View `LEVEL_SUFFIX` 与 `--level/--bar` 双 class。`--yohu-tag` 仍是徽章语义色，不是 logcat Tag。
 >
 > **v1.45 变更（Select 触发钮 min-width）**：`YoSelect` 最小宽写在触发钮上，禁止写在根节点。短文案 hug 时根比按钮宽、按钮靠左，表单行右侧对不齐（设置「外观」主题/密度暴露）。文案 `flex: 1` 让箭头贴触发钮右缘。
 >
@@ -301,7 +307,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 ### 4.1 日志分析（核心打磨对象）
 
 - 布局：内容区顶部模块页眉（标题 + 选中设备名 + 采集操作）→ 会话 Tab（canvas 上）→ `YoPanel` 会话分区（过滤 / **固定表头** + 虚拟列表 / 状态行）。
-- 行结构（列对齐，等宽，**定宽 grid 轨道**）：`[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 4ch] [Tag 24ch] [消息 →]`。UID 来自 `logcat -v threadtime,uid`（数字或 `root`/`shell`/`wifi` 名）。禁止 `max-width` / 不定宽 flex 让消息列左右错位。解析失败（level=`?`）整行消息通栏，禁止画 `0 ?` 假列。级别用色字 + `--yohu-stroke-emphasis` 左条；Fatal 反色块（`radius-2xs`）；级别与检索高亮挂 `.yohu-tone`；行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。行间 hairline 走 VirtualList 单源。
+- 行结构（列对齐，等宽，**定宽 grid 轨道**）：`[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 4ch] [Tag 24ch] [消息 →]`。UID 来自 `logcat -v threadtime,uid`（数字或 `root`/`shell`/`wifi` 名）。禁止 `max-width` / 不定宽 flex 让消息列左右错位。解析失败（level=`?`）整行消息通栏，禁止画 `0 ?` 假列。级别色：`pipeline.levelKey` → 行 `data-level` → `--yohu-log-ink`（绑定 `--yohu-level-*`）；左条 / 级别字 / Tag 共用 ink。Error 消息同色（`--yohu-level-e`）。Fatal 级别字母反色块（`radius-2xs`，`--yohu-level-f` on `--yohu-level-f-bg`），Tag 与左条用 f-bg。级别、Tag、Error 消息、检索高亮挂 `.yohu-tone`。禁止 View 再写 `LEVEL_SUFFIX` / `--level` / `--bar` class，禁止 Tag 走 `--yohu-accent` 或 `--yohu-tag`。行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。行间 hairline 走 VirtualList 单源。
 - **固定表头**：列名钉在滚动区外，与行共用 `.yohu-logs__cols`；高度 `--yohu-row-height-header`；背板 `--yohu-canvas`。无排序、无列宽拖拽，禁止改走 `YoColHeader`。禁止把表头放进虚拟列表行。显示列读壳注入的 `DeviceSession.settings.log_display_columns`（消息始终在），`grid-template-columns` 按可见列内联写入。禁止模块再 `settings.get` 或把显示列拷进 logStore。
 - 信号行（崩溃/ANR）行底色 `--yohu-signal-bg` + 左侧 Error 条；选中时信号底让位给选中片，左条保留。
 - 过滤栏：级别含以上 / Tag / 关键字检索（放大镜图标 + 「清除」；过滤生效时检索框 accent 边框）+ 会话 scope 用 `YoBadge tone=accent`；控件走 `--yohu-control-height`。
@@ -310,7 +316,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - 新建窗口：设备走 `YoSelect block`（触发钮显示选中设备，菜单独立定位层 Portal；禁止芯片/空触发钮）；划分用 `YoSegmentedButton`（包名 / PID，无左侧标题；高度走 `--yohu-segment-single`）。
 - 状态行：`采集指示（绿点/灰点）· 设备 · 缓冲 n · 可见 n · 信号 n · 进程索引 n s 前 · 滞后回补提示`。
 - 空态：未采集 → 插画图标 + 「点击开始采集」主按钮；启动采集 / 采集中空 → `YoLoading`；过滤无命中 → 「无匹配日志，调整过滤条件」。
-- **采集可见性**：点「开始」先清空 UI 镜像与可见区，core 同步 `ring.clear()`，只展示启动之后的 logcat；失败 toast 出错误。
+- **采集可见性**：点「开始」新开流时清空 UI 镜像与本窗口面板，core 同步 `ring.clear()`，只展示本流 logcat。同窗口在 core 仍 Live 时点开始是 adopt 续采：保留已画出的行，从环补洞。失败 toast 出错误。显示面板常驻：设备无输出、掉线、停采都不冲刷。过滤从已有行筛选；跟滚 / PID 重绑只按 seq 补洞。空闲后不得落到「等待设备输出」并把旧行冲掉。
 - **导出**：设置项 `export.default_path` / `export.ask_every_time` / `export.write_mode`（覆盖|续写）。
 
 ### 4.2 ADB 命令终端
