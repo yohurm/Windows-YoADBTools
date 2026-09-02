@@ -5115,6 +5115,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "yohu-adb",
+ "yohu-domain",
  "yohu-protocol",
  "yohu-runtime",
 ]

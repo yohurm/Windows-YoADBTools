@@ -23,9 +23,9 @@ fn lock_device() -> std::sync::MutexGuard<'static, ()> {
 }
 
 use yohu_adb::{AdbClient, ToolResolver};
-use yohu_mirror::MirrorService;
+use yohu_mirror::{FramePipe, MirrorService};
 use yohu_protocol::{
-    scrcpy, AppEvent, MirrorControlMessage, MirrorPacket, MirrorSessionState, MirrorStartRequest,
+    scrcpy, AppEvent, MirrorControlMessage, MirrorSessionState, MirrorStartRequest,
 };
 
 fn real_adb() -> PathBuf {
@@ -75,6 +75,7 @@ fn start_req(serial: &str, control: bool, force_forward: bool) -> MirrorStartReq
         max_fps: 15,
         control,
         force_forward,
+        video_codec: "h264".into(),
     }
 }
 
@@ -90,6 +91,7 @@ struct LiveStream {
 
 async fn wait_live_packets(
     rx: &mut mpsc::Receiver<AppEvent>,
+    frames: &FramePipe,
     serial: &str,
     generation: u64,
     min_packets: usize,
@@ -105,61 +107,65 @@ async fn wait_live_packets(
         failed: None,
     };
     let deadline = tokio::time::Instant::now() + timeout;
+    let mut pipe_open = true;
     while tokio::time::Instant::now() < deadline {
         let remain = deadline.saturating_duration_since(tokio::time::Instant::now());
-        match tokio::time::timeout(remain.min(Duration::from_millis(400)), rx.recv()).await {
-            Ok(Some(AppEvent::MirrorState {
-                serial: s,
-                generation: g,
-                state,
-                width,
-                height,
-                codec,
-                error,
-                ..
-            })) if s == serial && g == generation => {
-                if width > 0 {
-                    out.width = width;
-                    out.height = height;
-                }
-                if !codec.is_empty() {
-                    out.codec = codec;
-                }
-                match state {
-                    MirrorSessionState::Live => {}
-                    MirrorSessionState::Failed => {
-                        out.failed = error.or_else(|| Some("failed".into()));
-                        return out;
+        tokio::select! {
+            biased;
+            ev = rx.recv() => {
+                match ev {
+                    Some(AppEvent::MirrorState {
+                        serial: s,
+                        generation: g,
+                        state,
+                        width,
+                        height,
+                        codec,
+                        error,
+                        ..
+                    }) if s == serial && g == generation => {
+                        if width > 0 {
+                            out.width = width;
+                            out.height = height;
+                        }
+                        if !codec.is_empty() {
+                            out.codec = codec;
+                        }
+                        match state {
+                            MirrorSessionState::Live => {}
+                            MirrorSessionState::Failed => {
+                                out.failed = error.or_else(|| Some("failed".into()));
+                                return out;
+                            }
+                            MirrorSessionState::Stopped if out.packets > 0 => return out,
+                            _ => {}
+                        }
                     }
-                    MirrorSessionState::Stopped if out.packets > 0 => return out,
-                    _ => {}
+                    Some(_) => {}
+                    None => break,
                 }
             }
-            Ok(Some(AppEvent::MirrorPacket(MirrorPacket {
-                serial: s,
-                generation: g,
-                config,
-                keyframe,
-                width,
-                height,
-                codec,
-                ..
-            }))) if s == serial && g == generation => {
+            frame = frames.recv(), if pipe_open => {
+                let Some(frame) = frame else {
+                    pipe_open = false;
+                    continue;
+                };
+                if frame.generation != generation {
+                    continue;
+                }
                 out.packets += 1;
-                out.config |= config;
-                out.keyframe |= keyframe;
-                if width > 0 {
-                    out.width = width;
-                    out.height = height;
-                    out.codec = codec;
+                out.config |= frame.config;
+                out.keyframe |= frame.keyframe;
+                if frame.width > 0 {
+                    out.width = frame.width;
+                    out.height = frame.height;
+                    out.codec = "h264".into();
                 }
                 if out.packets >= min_packets && out.config && out.keyframe {
                     return out;
                 }
             }
-            Ok(Some(_)) => {}
-            Ok(None) => break,
-            Err(_) => {}
+            _ = tokio::time::sleep(remain.min(Duration::from_millis(400))) => {}
         }
     }
     out
@@ -174,7 +180,10 @@ async fn real_mirror_push_server_jar() {
         return;
     };
     let jar = server_jar();
-    assert!(jar.is_file(), "缺少 tools/scrcpy-server，请运行 setup-scrcpy-server.ps1");
+    assert!(
+        jar.is_file(),
+        "缺少 tools/scrcpy-server，请运行 setup-scrcpy-server.ps1"
+    );
     let out = client
         .run(
             &serial,
@@ -214,9 +223,17 @@ async fn real_mirror_video_only_live_packets() {
         .expect("mirror.start");
     assert!(!started.adopted);
     assert!(service.status(&serial).mirroring);
+    let pipe = service.frame_pipe(&serial).expect("frame pipe");
 
-    let stream = wait_live_packets(&mut rx, &serial, started.generation, 8, Duration::from_secs(40))
-        .await;
+    let stream = wait_live_packets(
+        &mut rx,
+        pipe.as_ref(),
+        &serial,
+        started.generation,
+        8,
+        Duration::from_secs(40),
+    )
+    .await;
     if stream.failed.is_some() || stream.packets < 8 || !stream.config || !stream.keyframe {
         service.stop(&serial).await;
         if let Some(err) = stream.failed {
@@ -233,7 +250,12 @@ async fn real_mirror_video_only_live_packets() {
         );
     }
     assert_eq!(stream.codec, "h264");
-    assert!(stream.width >= 16 && stream.height >= 16, "尺寸 {}x{}", stream.width, stream.height);
+    assert!(
+        stream.width >= 16 && stream.height >= 16,
+        "尺寸 {}x{}",
+        stream.width,
+        stream.height
+    );
     eprintln!(
         "[真机] Live {}x{} {} 包={} config={} key={}",
         stream.width, stream.height, stream.codec, stream.packets, stream.config, stream.keyframe
@@ -265,8 +287,16 @@ async fn real_mirror_force_forward_live() {
         .start(start_req(&serial, false, true))
         .await
         .expect("forward start");
-    let stream = wait_live_packets(&mut rx, &serial, started.generation, 3, Duration::from_secs(40))
-        .await;
+    let pipe = service.frame_pipe(&serial).expect("frame pipe");
+    let stream = wait_live_packets(
+        &mut rx,
+        pipe.as_ref(),
+        &serial,
+        started.generation,
+        3,
+        Duration::from_secs(40),
+    )
+    .await;
     service.stop(&serial).await;
     if let Some(err) = stream.failed {
         panic!("force_forward 失败: {err}");
@@ -298,8 +328,16 @@ async fn real_mirror_control_force_forward_live() {
         .start(start_req(&serial, true, true))
         .await
         .expect("control+forward start");
-    let stream = wait_live_packets(&mut rx, &serial, started.generation, 2, Duration::from_secs(40))
-        .await;
+    let pipe = service.frame_pipe(&serial).expect("frame pipe");
+    let stream = wait_live_packets(
+        &mut rx,
+        pipe.as_ref(),
+        &serial,
+        started.generation,
+        2,
+        Duration::from_secs(40),
+    )
+    .await;
     service.stop(&serial).await;
     if let Some(err) = stream.failed {
         panic!("control+force_forward 失败: {err}");
@@ -331,8 +369,16 @@ async fn real_mirror_control_inject() {
         .start(start_req(&serial, true, false))
         .await
         .expect("control start");
-    let stream = wait_live_packets(&mut rx, &serial, started.generation, 2, Duration::from_secs(40))
-        .await;
+    let pipe = service.frame_pipe(&serial).expect("frame pipe");
+    let stream = wait_live_packets(
+        &mut rx,
+        pipe.as_ref(),
+        &serial,
+        started.generation,
+        2,
+        Duration::from_secs(40),
+    )
+    .await;
     if stream.failed.is_some() || stream.packets < 2 {
         service.stop(&serial).await;
         if let Some(err) = stream.failed {
@@ -370,8 +416,16 @@ async fn real_mirror_missing_server_errors() {
         .start(start_req(&serial, false, false))
         .await
         .expect("start 在 Starting 阶段返回");
-    let stream = wait_live_packets(&mut rx, &serial, started.generation, 1, Duration::from_secs(8))
-        .await;
+    let pipe = service.frame_pipe(&serial).expect("frame pipe");
+    let stream = wait_live_packets(
+        &mut rx,
+        pipe.as_ref(),
+        &serial,
+        started.generation,
+        1,
+        Duration::from_secs(8),
+    )
+    .await;
     assert!(
         stream.failed.is_some(),
         "缺少 server 应 Failed，实际 packets={}",

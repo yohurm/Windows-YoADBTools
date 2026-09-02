@@ -9,16 +9,17 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
-use yohu_runtime::ChildHandle;
 use yohu_adb::AdbClient;
 use yohu_protocol::{
-    scrcpy, AppEvent, MirrorControlMessage, MirrorPacket, MirrorSessionState, MirrorStartRequest,
+    scrcpy, AppEvent, MirrorControlMessage, MirrorSessionState, MirrorStartRequest,
 };
+use yohu_runtime::ChildHandle;
 
 use crate::b64;
 use crate::control;
 use crate::demux::{codec_name, parse_header, HeaderKind};
 use crate::error::MirrorError;
+use crate::frame::{EncodedFrame, FramePipe, CODEC_H264};
 use crate::tunnel;
 
 const ACCEPT_TIMEOUT: Duration = Duration::from_secs(15);
@@ -33,6 +34,15 @@ pub enum ControlCmd {
 pub struct SessionOpts {
     pub req: MirrorStartRequest,
     pub server_path: PathBuf,
+    pub frames: Arc<FramePipe>,
+}
+
+struct CloseFrames(Arc<FramePipe>);
+
+impl Drop for CloseFrames {
+    fn drop(&mut self) {
+        self.0.close();
+    }
 }
 
 struct TunnelCleanup {
@@ -67,17 +77,21 @@ fn random_scid() -> u32 {
 }
 
 fn server_argv(req: &MirrorStartRequest, scid: u32, forward: bool) -> Vec<String> {
+    let limits = yohu_domain::encoder_limits(req.max_size, req.max_fps);
     let mut kv = vec![
         format!("scid={scid:08x}"),
         "log_level=info".into(),
         "audio=false".into(),
         "video=true".into(),
+        "video_codec=h264".into(),
         format!("control={}", req.control),
-        format!("max_size={}", req.max_size),
+        format!("max_size={}", limits.max_size),
         format!("video_bit_rate={}", req.video_bit_rate),
-        format!("max_fps={}", req.max_fps),
         "cleanup=true".into(),
     ];
+    if limits.max_fps > 0 {
+        kv.push(format!("max_fps={}", limits.max_fps));
+    }
     if forward {
         kv.push("tunnel_forward=true".into());
     }
@@ -153,6 +167,7 @@ pub async fn run_session(
     on_live: impl FnOnce(u32, u32, String),
 ) -> Result<(), MirrorError> {
     let serial = opts.req.serial.clone();
+    let _close = CloseFrames(Arc::clone(&opts.frames));
     tracing::info!(
         serial = %serial,
         generation,
@@ -390,7 +405,6 @@ async fn run_connected(
     }
 
     let mut packets: u64 = 0;
-    let mut dropped: u64 = 0;
     let mut saw_config = false;
     let mut saw_key = false;
     // 只读模式会 drop control_tx，通道立即关闭。若不禁用本分支，
@@ -468,28 +482,26 @@ async fn run_connected(
                             saw_key = true;
                             tracing::info!(serial = %serial, size, "收到关键帧");
                         }
-                        let packet = MirrorPacket {
-                            serial: serial.clone(),
+                        opts.frames.push(EncodedFrame {
                             generation,
-                            codec: codec.clone(),
+                            codec: CODEC_H264,
                             width,
                             height,
                             config,
                             keyframe,
                             pts,
-                            data_b64: b64::encode(&payload),
-                        };
+                            payload,
+                            dropped: 0,
+                        });
                         packets += 1;
-                        if sink.try_send(AppEvent::MirrorPacket(packet)).is_err() {
-                            dropped += 1;
-                            if dropped == 1 || dropped.is_multiple_of(50) {
-                                tracing::warn!(
-                                    serial = %serial,
-                                    dropped,
-                                    packets,
-                                    "投屏包通道满，丢弃编码包"
-                                );
-                            }
+                        let dropped = opts.frames.dropped();
+                        if dropped > 0 && (dropped == 1 || dropped.is_multiple_of(50)) {
+                            tracing::warn!(
+                                serial = %serial,
+                                dropped,
+                                packets,
+                                "投屏帧队列满，已丢非关键帧"
+                            );
                         } else if packets == 1 || packets.is_multiple_of(120) {
                             tracing::info!(
                                 serial = %serial,

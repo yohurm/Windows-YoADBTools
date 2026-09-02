@@ -11,5 +11,6 @@ tokio-util = "0.7"
 thiserror.workspace = true
 tracing.workspace = true
 yohu-protocol.workspace = true
+yohu-domain.workspace = true
 yohu-adb.workspace = true
 yohu-runtime.workspace = true

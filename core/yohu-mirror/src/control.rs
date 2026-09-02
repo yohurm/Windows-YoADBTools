@@ -127,10 +127,7 @@ mod tests {
 
     #[test]
     fn empty_commands_are_single_byte() {
-        assert_eq!(
-            encode(&MirrorControlMessage::ExpandNotification),
-            vec![5]
-        );
+        assert_eq!(encode(&MirrorControlMessage::ExpandNotification), vec![5]);
         assert_eq!(encode(&MirrorControlMessage::RotateDevice), vec![11]);
     }
 }

@@ -36,11 +36,7 @@ pub async fn setup_reverse(
     let out = adb
         .run(
             serial,
-            &[
-                "reverse".into(),
-                abstract_spec(scid),
-                format!("tcp:{port}"),
-            ],
+            &["reverse".into(), abstract_spec(scid), format!("tcp:{port}")],
             Some(10_000),
             cancel,
         )
@@ -64,11 +60,7 @@ pub async fn setup_forward(
     let out = adb
         .run(
             serial,
-            &[
-                "forward".into(),
-                format!("tcp:{port}"),
-                abstract_spec(scid),
-            ],
+            &["forward".into(), format!("tcp:{port}"), abstract_spec(scid)],
             Some(10_000),
             cancel,
         )
@@ -97,11 +89,7 @@ pub async fn remove_forward(adb: &AdbClient, serial: &str, port: u16) {
     let _ = adb
         .run(
             serial,
-            &[
-                "forward".into(),
-                "--remove".into(),
-                format!("tcp:{port}"),
-            ],
+            &["forward".into(), "--remove".into(), format!("tcp:{port}")],
             Some(5_000),
             CancellationToken::new(),
         )
@@ -193,10 +181,7 @@ pub async fn connect_forward(
 /// forward 后续 socket（4.1 只在第一路发 dummy；控制通道不要再读那一字节）。
 ///
 /// 必须在读设备名之前调用：server 先 `accept` 齐控制通道才 `sendDeviceMeta`。
-pub async fn connect_tcp(
-    port: u16,
-    cancel: &CancellationToken,
-) -> Result<TcpStream, MirrorError> {
+pub async fn connect_tcp(port: u16, cancel: &CancellationToken) -> Result<TcpStream, MirrorError> {
     let addr = format!("127.0.0.1:{port}");
     let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
     loop {

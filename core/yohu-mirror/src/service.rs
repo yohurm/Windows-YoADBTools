@@ -14,6 +14,7 @@ use yohu_protocol::{
 };
 
 use crate::error::MirrorError;
+use crate::frame::FramePipe;
 use crate::session::{self, ControlCmd, SessionOpts};
 
 const START_WAIT: Duration = Duration::from_secs(20);
@@ -36,6 +37,7 @@ struct MirrorSlot {
     codec: String,
     control: bool,
     error: Option<String>,
+    frames: Arc<FramePipe>,
 }
 
 struct Inner {
@@ -50,12 +52,14 @@ enum StartDecision {
         generation: u64,
         cancel: CancellationToken,
         control_rx: mpsc::Receiver<ControlCmd>,
+        frames: Arc<FramePipe>,
     },
     Wait,
 }
 
 fn remember_and_remove(inner: &mut Inner, serial: &str) -> Option<MirrorSlot> {
     let slot = inner.slots.remove(serial)?;
+    slot.frames.close();
     inner
         .last_generation
         .insert(serial.to_string(), slot.generation);
@@ -71,7 +75,11 @@ pub struct MirrorService {
 }
 
 impl MirrorService {
-    pub fn new(adb: Arc<AdbClient>, sink: mpsc::Sender<AppEvent>, server_path: PathBuf) -> Arc<Self> {
+    pub fn new(
+        adb: Arc<AdbClient>,
+        sink: mpsc::Sender<AppEvent>,
+        server_path: PathBuf,
+    ) -> Arc<Self> {
         Arc::new(Self {
             adb,
             sink,
@@ -125,6 +133,7 @@ impl MirrorService {
                 let generation = inner.next_generation;
                 let cancel = CancellationToken::new();
                 let (control_tx, control_rx) = mpsc::channel(32);
+                let frames = FramePipe::new();
                 inner.slots.insert(
                     serial.to_string(),
                     MirrorSlot {
@@ -138,12 +147,14 @@ impl MirrorService {
                         codec: String::new(),
                         control: false,
                         error: None,
+                        frames: Arc::clone(&frames),
                     },
                 );
                 StartDecision::Begin {
                     generation,
                     cancel,
                     control_rx,
+                    frames,
                 }
             }
         }
@@ -157,12 +168,21 @@ impl MirrorService {
         )
     }
 
+    pub fn frame_pipe(&self, serial: &str) -> Option<Arc<FramePipe>> {
+        self.inner
+            .lock()
+            .expect("mirror lock poisoned")
+            .slots
+            .get(serial)
+            .map(|slot| Arc::clone(&slot.frames))
+    }
+
     pub async fn start(
         self: &Arc<Self>,
         req: MirrorStartRequest,
     ) -> Result<MirrorStart, MirrorError> {
         let serial = req.serial.clone();
-        let (my_generation, cancel, control_rx) = loop {
+        let (my_generation, cancel, control_rx, frames) = loop {
             match self.decide_start(&serial) {
                 StartDecision::Adopt(result) => {
                     tracing::info!(
@@ -176,9 +196,10 @@ impl MirrorService {
                     generation,
                     cancel,
                     control_rx,
+                    frames,
                 } => {
                     self.changed.notify_waiters();
-                    break (generation, cancel, control_rx);
+                    break (generation, cancel, control_rx, frames);
                 }
                 StartDecision::Wait => {
                     let notified = self.changed.notified();
@@ -232,6 +253,7 @@ impl MirrorService {
         let opts = SessionOpts {
             req,
             server_path: self.server_path.clone(),
+            frames,
         };
         let handle = tokio::spawn(async move {
             let live_service = Arc::clone(&service);
@@ -257,9 +279,7 @@ impl MirrorService {
         let published = {
             let mut inner = self.inner.lock().expect("mirror lock poisoned");
             match inner.slots.get_mut(&serial) {
-                Some(slot)
-                    if slot.generation == my_generation && slot.phase == Phase::Starting =>
-                {
+                Some(slot) if slot.generation == my_generation && slot.phase == Phase::Starting => {
                     slot.handle = handle.take();
                     true
                 }
@@ -304,6 +324,7 @@ impl MirrorService {
                     Some(slot) => {
                         slot.phase = Phase::Stopping;
                         slot.cancel.cancel();
+                        slot.frames.close();
                         slot.control_tx = None;
                         break (slot.generation, slot.handle.take());
                     }
@@ -364,7 +385,11 @@ impl MirrorService {
         }
     }
 
-    pub async fn inject(&self, serial: &str, message: MirrorControlMessage) -> Result<(), MirrorError> {
+    pub async fn inject(
+        &self,
+        serial: &str,
+        message: MirrorControlMessage,
+    ) -> Result<(), MirrorError> {
         let tx = {
             let inner = self.inner.lock().expect("mirror lock poisoned");
             match inner.slots.get(serial) {
@@ -400,9 +425,10 @@ impl MirrorService {
     async fn abandon_starting(&self, serial: &str, generation: u64) {
         let dropped = {
             let mut inner = self.inner.lock().expect("mirror lock poisoned");
-            let matches = inner.slots.get(serial).is_some_and(|slot| {
-                slot.generation == generation && slot.phase == Phase::Starting
-            });
+            let matches = inner
+                .slots
+                .get(serial)
+                .is_some_and(|slot| slot.generation == generation && slot.phase == Phase::Starting);
             if matches {
                 let _ = remember_and_remove(&mut inner, serial);
                 true
