@@ -8,6 +8,7 @@ pub mod applog;
 pub mod command;
 pub mod focus;
 pub mod log_filter;
+pub mod mirror;
 pub mod safety;
 pub mod settings;
 
@@ -22,5 +23,10 @@ pub use focus::{
     lookup_selected_devices, reconcile_focus, DeviceSessionError, SelectionMode,
 };
 pub use log_filter::{level_rank, log_filter_matches};
+pub use mirror::{
+    apply_protocol, encoder_limits, is_tcp_connection, params_of, start_encode,
+    start_force_forward, EncoderLimits, MirrorEncodeParams, EMBED_LONG_EDGE_CAP, USB_ENCODE,
+    WIFI_ENCODE,
+};
 pub use safety::{validate_entry_name, PathError, RemotePath, SafetyError, SafetyRoot};
 pub use settings::apply_setting;

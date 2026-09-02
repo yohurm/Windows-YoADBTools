@@ -6,8 +6,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AppSettings, CaptureState, DeviceInfo, LogBatch, MirrorPacket, MirrorSessionState,
-    ProcessIndexSnapshot, TransferProgress, UpdateProgress,
+    AppSettings, CaptureState, DeviceInfo, LogBatch, MirrorSessionState, ProcessIndexSnapshot,
+    TransferProgress, UpdateProgress,
 };
 
 /// 后台任务登记信息（状态栏）。
@@ -79,7 +79,6 @@ pub enum AppEvent {
         #[serde(skip_serializing_if = "Option::is_none")]
         error: Option<String>,
     },
-    MirrorPacket(MirrorPacket),
     UpdateProgress(UpdateProgress),
 }
 
@@ -104,7 +103,6 @@ pub mod event_names {
     pub const TASK_SUMMARY: &str = "task/summary";
     pub const SETTINGS_CHANGED: &str = "settings/changed";
     pub const MIRROR_STATE: &str = "mirror/state";
-    pub const MIRROR_PACKET: &str = "mirror/packet";
     pub const UPDATE_PROGRESS: &str = "update/progress";
 }
 
@@ -124,7 +122,6 @@ impl AppEvent {
             AppEvent::TaskSummary { .. } => TASK_SUMMARY,
             AppEvent::SettingsChanged { .. } => SETTINGS_CHANGED,
             AppEvent::MirrorState { .. } => MIRROR_STATE,
-            AppEvent::MirrorPacket(_) => MIRROR_PACKET,
             AppEvent::UpdateProgress(_) => UPDATE_PROGRESS,
         }
     }
@@ -199,26 +196,6 @@ mod tests {
     }
 
     #[test]
-    fn mirror_packet_event_flattens_fields() {
-        let event = AppEvent::MirrorPacket(crate::MirrorPacket {
-            serial: "s1".into(),
-            generation: 1,
-            codec: "h264".into(),
-            width: 8,
-            height: 8,
-            config: true,
-            keyframe: false,
-            pts: 0,
-            data_b64: "Zg==".into(),
-        });
-        let v = serde_json::to_value(&event).expect("serialize");
-        assert_eq!(v["kind"], "mirrorPacket");
-        assert_eq!(v["serial"], "s1");
-        assert_eq!(v["data_b64"], "Zg==");
-        assert_eq!(event.name(), event_names::MIRROR_PACKET);
-    }
-
-    #[test]
     fn update_progress_event_flattens_fields() {
         let event = AppEvent::UpdateProgress(crate::UpdateProgress {
             version: "0.1.2".into(),
@@ -248,7 +225,6 @@ mod tests {
             event_names::TASK_SUMMARY,
             event_names::SETTINGS_CHANGED,
             event_names::MIRROR_STATE,
-            event_names::MIRROR_PACKET,
             event_names::UPDATE_PROGRESS,
         ] {
             assert!(

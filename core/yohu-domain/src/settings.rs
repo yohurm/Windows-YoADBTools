@@ -1,6 +1,8 @@
 //! 设置键校验与应用（贴 protocol 模型；落盘与副作用仍在壳）。
 
-use yohu_protocol::{AppSettings, SettingKey};
+use yohu_protocol::{AppSettings, MirrorProtocol, SettingKey};
+
+use crate::mirror::apply_protocol;
 
 fn must_str(key: SettingKey, value: &serde_json::Value) -> Result<String, String> {
     value
@@ -93,6 +95,11 @@ pub fn apply_setting(
             let n = must_u64(key, value)?;
             settings.mirror_max_fps = u32::try_from(n).map_err(|_| "数值过大")?;
         }
+        SettingKey::MirrorProtocol => {
+            let protocol: MirrorProtocol = serde_json::from_value(value.clone())
+                .map_err(|_| format!("{} 必须是 usb 或 wifi", key.as_str()))?;
+            apply_protocol(settings, protocol);
+        }
         SettingKey::MirrorForceForward => {
             settings.mirror_force_forward = must_bool(key, value)?;
         }
@@ -119,5 +126,18 @@ mod tests {
         apply_setting(&mut s, SettingKey::Density, &json!("compact")).unwrap();
         assert_eq!(s.theme, yohu_protocol::Theme::Dark);
         assert_eq!(s.density, yohu_protocol::Density::Compact);
+    }
+
+    #[test]
+    fn mirror_protocol_fills_encode_params_without_inventing_custom() {
+        let mut s = AppSettings::default();
+        apply_setting(&mut s, SettingKey::MirrorProtocol, &json!("wifi")).unwrap();
+        assert_eq!(s.mirror_max_size, 1024);
+        assert_eq!(s.mirror_video_bit_rate, 2_000_000);
+        assert_eq!(s.mirror_max_fps, 30);
+        assert_eq!(s.mirror_protocol, yohu_protocol::MirrorProtocol::Wifi);
+        apply_setting(&mut s, SettingKey::MirrorMaxFps, &json!(15)).unwrap();
+        assert_eq!(s.mirror_max_fps, 15);
+        assert_eq!(s.mirror_protocol, yohu_protocol::MirrorProtocol::Wifi);
     }
 }

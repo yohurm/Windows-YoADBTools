@@ -111,7 +111,7 @@ pub struct AppSettings {
     /// 日志清单显示列（立即生效；消息列始终在）
     #[serde(default)]
     pub log_display_columns: LogDisplayColumns,
-    /// 投屏长边上限（像素）；0 = 设备原始分辨率。下次启动生效。
+    /// 投屏长边上限（像素）；0 = 原始（编码器仍封顶 1920）。下次启动生效。
     #[serde(default = "default_mirror_max_size")]
     pub mirror_max_size: u32,
     /// 投屏视频码率（bps）。下次启动生效。
@@ -120,9 +120,21 @@ pub struct AppSettings {
     /// 投屏帧率上限；0 = 不限制。下次启动生效。
     #[serde(default = "default_mirror_max_fps")]
     pub mirror_max_fps: u32,
+    /// 投屏协议（usb / wifi）。下次启动生效。
+    #[serde(default)]
+    pub mirror_protocol: MirrorProtocol,
     /// 强制 ADB forward（跳过 reverse）。下次启动生效。
     #[serde(default)]
     pub mirror_force_forward: bool,
+}
+
+/// 投屏链路协议。USB 与无线各套一套编码参数；改长边/码率/帧率不另立协议。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MirrorProtocol {
+    #[default]
+    Usb,
+    Wifi,
 }
 
 fn default_buffer_capacity() -> usize {
@@ -135,19 +147,19 @@ fn default_export_ask() -> bool {
     true
 }
 
-/// 投屏默认长边（与 scrcpy `-m` 同类；0 = 原始）。
+/// 投屏默认长边（USB 协议；0 = 原始，编码器封顶 1920）。
 pub fn default_mirror_max_size() -> u32 {
-    1024
+    1920
 }
 
-/// 投屏默认码率 2 Mbps（工作台内嵌，低于官方客户端 8 Mbps 默认）。
+/// 投屏默认码率 8 Mbps（对齐官方 scrcpy）。
 pub fn default_mirror_video_bit_rate() -> u32 {
-    2_000_000
+    8_000_000
 }
 
-/// 投屏默认帧率上限。
+/// 投屏默认帧率上限；0 = 不限制。
 pub fn default_mirror_max_fps() -> u32 {
-    30
+    0
 }
 
 impl Default for AppSettings {
@@ -168,6 +180,7 @@ impl Default for AppSettings {
             mirror_max_size: default_mirror_max_size(),
             mirror_video_bit_rate: default_mirror_video_bit_rate(),
             mirror_max_fps: default_mirror_max_fps(),
+            mirror_protocol: MirrorProtocol::Usb,
             mirror_force_forward: false,
         }
     }
@@ -192,6 +205,7 @@ pub enum SettingKey {
     MirrorMaxSize,
     MirrorVideoBitRate,
     MirrorMaxFps,
+    MirrorProtocol,
     MirrorForceForward,
 }
 
@@ -214,6 +228,7 @@ impl SettingKey {
             SettingKey::MirrorMaxSize => "mirror_max_size",
             SettingKey::MirrorVideoBitRate => "mirror_video_bit_rate",
             SettingKey::MirrorMaxFps => "mirror_max_fps",
+            SettingKey::MirrorProtocol => "mirror_protocol",
             SettingKey::MirrorForceForward => "mirror_force_forward",
         }
     }
@@ -235,9 +250,10 @@ mod tests {
         assert_eq!(s.log_write_mode, LogWriteMode::Overwrite);
         assert!(s.export_default_path.is_empty());
         assert_eq!(s.log_display_columns, LogDisplayColumns::default());
-        assert_eq!(s.mirror_max_size, 1024);
-        assert_eq!(s.mirror_video_bit_rate, 2_000_000);
-        assert_eq!(s.mirror_max_fps, 30);
+        assert_eq!(s.mirror_max_size, 1920);
+        assert_eq!(s.mirror_video_bit_rate, 8_000_000);
+        assert_eq!(s.mirror_max_fps, 0);
+        assert_eq!(s.mirror_protocol, MirrorProtocol::Usb);
         assert!(!s.mirror_force_forward);
         let fixture: serde_json::Value =
             serde_json::from_str(include_str!("../testdata/app_settings_default.json"))
@@ -325,6 +341,7 @@ mod tests {
             SettingKey::MirrorMaxSize,
             SettingKey::MirrorVideoBitRate,
             SettingKey::MirrorMaxFps,
+            SettingKey::MirrorProtocol,
             SettingKey::MirrorForceForward,
         ];
         for key in all {

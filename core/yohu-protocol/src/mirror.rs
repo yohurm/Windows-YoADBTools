@@ -38,27 +38,16 @@ pub enum MirrorSessionState {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MirrorStartRequest {
     pub serial: String,
-    /// 0 = 设备原始长边
+    /// 0 = 原始（编码器仍封顶 1920）
     pub max_size: u32,
     pub video_bit_rate: u32,
-    /// 0 = 不限制
+    /// 0 = 不限制（不向 scrcpy-server 传 max_fps）
     pub max_fps: u32,
     pub control: bool,
     pub force_forward: bool,
-}
-
-/// 编码包（data 为标准 Base64；禁止把原始字节走 JSON 数组）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MirrorPacket {
-    pub serial: String,
-    pub generation: u64,
-    pub codec: String,
-    pub width: u32,
-    pub height: u32,
-    pub config: bool,
-    pub keyframe: bool,
-    pub pts: u64,
-    pub data_b64: String,
+    /// 本期仅 h264；协议留位。
+    #[serde(default = "default_video_codec")]
+    pub video_codec: String,
 }
 
 /// 控制注入（UI 只发语义，序列化在 core）。
@@ -109,8 +98,13 @@ impl Default for MirrorStartRequest {
             max_fps: crate::default_mirror_max_fps(),
             control: false,
             force_forward: false,
+            video_codec: default_video_codec(),
         }
     }
+}
+
+fn default_video_codec() -> String {
+    "h264".into()
 }
 
 #[cfg(test)]
