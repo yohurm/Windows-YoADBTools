@@ -50,6 +50,12 @@ const FPS_OPTIONS = [
   { value: "15", label: "15 fps" },
   { value: "30", label: "30 fps" },
   { value: "60", label: "60 fps" },
+  { value: "120", label: "120 fps" },
+];
+
+const PROTOCOL_OPTIONS = [
+  { value: "usb", label: "USB" },
+  { value: "wifi", label: "无线" },
 ];
 
 const NAV_KEYS: { label: string; keycode: number }[] = [
@@ -109,20 +115,17 @@ export function MirrorView(props: DeviceSession) {
   onCleanup(() => {
     zoneObserver?.disconnect();
     mirrorStore.bindDecoder(null);
-    decoder.reset();
+    decoder.dispose();
   });
 
   createEffect(() => {
     const serial = props.selectedSerials[0] ?? null;
     void mirrorStore.bindSerial(serial);
+    mirrorStore.bindConnection(props.selectedDevices[0]?.connection ?? "usb");
   });
 
   createEffect(() => {
-    const width = mirrorStore.state.width;
-    const height = mirrorStore.state.height;
-    if (!canvas || width < 1 || height < 1) return;
-    if (canvas.width !== width) canvas.width = width;
-    if (canvas.height !== height) canvas.height = height;
+    mirrorStore.applySettings(props.settings);
   });
 
   const live = () => mirrorStore.state.phase === "live";
@@ -256,22 +259,27 @@ export function MirrorView(props: DeviceSession) {
                 }}
                 onContextMenu={(event) => event.preventDefault()}
               />
-              <Show when={waiting()}>
-                <YoLoading
-                  cover
-                  title={waitingCopy(mirrorStore.state.phase).title}
-                  description={waitingCopy(mirrorStore.state.phase).description}
-                />
-              </Show>
-              <Show when={!live() && !waiting()}>
-                <YoEmptyState
-                  icon="mirror"
-                  title={emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title}
-                  description={
-                    emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
-                      .description
-                  }
-                />
+              <Show when={!painted()}>
+                <div class="yohu-mirror__overlay">
+                  <Show
+                    when={waiting()}
+                    fallback={
+                      <YoEmptyState
+                        icon="mirror"
+                        title={emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title}
+                        description={
+                          emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
+                            .description
+                        }
+                      />
+                    }
+                  >
+                    <YoLoading
+                      title={waitingCopy(mirrorStore.state.phase).title}
+                      description={waitingCopy(mirrorStore.state.phase).description}
+                    />
+                  </Show>
+                </div>
               </Show>
             </div>
           </YoPanel>
@@ -280,6 +288,16 @@ export function MirrorView(props: DeviceSession) {
         <YoPanel class="yohu-mirror__func" variant="pane" padding="md" aria-label="投屏功能栏">
           <div class="yohu-mirror__group" title="下次开始生效">
             <div class="yohu-mirror__group-label">质量</div>
+            <label class="yohu-mirror__field">
+              <span class="yohu-mirror__field-name">投屏协议</span>
+              <YoSelect
+                block
+                options={PROTOCOL_OPTIONS}
+                value={mirrorStore.state.protocol}
+                disabled={mirrorStore.state.phase === "starting"}
+                onChange={(v) => void mirrorStore.persistQuality("mirror_protocol", v as "usb" | "wifi")}
+              />
+            </label>
             <label class="yohu-mirror__field">
               <span class="yohu-mirror__field-name">长边</span>
               <YoSelect
@@ -328,7 +346,7 @@ export function MirrorView(props: DeviceSession) {
                 onChange={(v) => void mirrorStore.setReadOnly(v)}
               />
             </label>
-            <label class="yohu-mirror__toggle" title="下次开始生效">
+            <label class="yohu-mirror__toggle" title="无线调试（tcp:）开始时默认转发，不必手开">
               <span class="yohu-mirror__field-name">强制转发</span>
               <YoSwitch
                 ariaLabel="强制 ADB forward"

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   settingsSet: vi.fn(),
   dialogSaveFile: vi.fn(),
   mirrorSavePng: vi.fn(),
+  frameHandler: null as ((bytes: Uint8Array) => void) | null,
   stateHandlers: [] as ((e: {
     serial: string;
     generation: number;
@@ -19,7 +20,6 @@ const mocks = vi.hoisted(() => ({
     control: boolean;
     error?: string;
   }) => void)[],
-  packetHandlers: [] as ((e: { serial: string; generation: number }) => void)[],
   offlineHandlers: [] as ((e: { serial: string }) => void)[],
   settingsHandlers: [] as ((e: {
     key: string;
@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
       mirror_max_size: number;
       mirror_video_bit_rate: number;
       mirror_max_fps: number;
+      mirror_protocol: "usb" | "wifi";
       mirror_force_forward: boolean;
     };
   }) => void)[],
@@ -34,12 +35,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@yohu/api", () => ({
   APP_SETTINGS_DEFAULT: {
-    mirror_max_size: 1024,
-    mirror_video_bit_rate: 2_000_000,
-    mirror_max_fps: 30,
+    mirror_max_size: 1920,
+    mirror_video_bit_rate: 8_000_000,
+    mirror_max_fps: 0,
+    mirror_protocol: "usb",
     mirror_force_forward: false,
   },
   errorText: (e: unknown) => String(e),
+  createMirrorFrameChannel: (h: (bytes: Uint8Array) => void) => {
+    mocks.frameHandler = h;
+    return { onmessage: h };
+  },
   mirrorStart: (...a: unknown[]) => mocks.mirrorStart(...a),
   mirrorStop: (...a: unknown[]) => mocks.mirrorStop(...a),
   mirrorStatus: (...a: unknown[]) => mocks.mirrorStatus(...a),
@@ -50,9 +56,6 @@ vi.mock("@yohu/api", () => ({
   mirrorSavePng: (...a: unknown[]) => mocks.mirrorSavePng(...a),
   onMirrorState: (h: (typeof mocks.stateHandlers)[0]) => {
     mocks.stateHandlers.push(h);
-  },
-  onMirrorPacket: (h: (typeof mocks.packetHandlers)[0]) => {
-    mocks.packetHandlers.push(h);
   },
   onDeviceOffline: (h: (typeof mocks.offlineHandlers)[0]) => {
     mocks.offlineHandlers.push(h);
@@ -82,19 +85,20 @@ describe("mirror store", () => {
     mocks.settingsSet.mockReset();
     mocks.dialogSaveFile.mockReset();
     mocks.mirrorSavePng.mockReset();
+    mocks.frameHandler = null;
     mocks.settingsSet.mockResolvedValue({
-      mirror_max_size: 1024,
-      mirror_video_bit_rate: 2_000_000,
-      mirror_max_fps: 30,
+      mirror_max_size: 1920,
+      mirror_video_bit_rate: 8_000_000,
+      mirror_max_fps: 0,
+      mirror_protocol: "usb",
       mirror_force_forward: false,
     });
     mocks.stateHandlers.length = 0;
-    mocks.packetHandlers.length = 0;
     mocks.offlineHandlers.length = 0;
     mocks.settingsHandlers.length = 0;
   });
 
-  it("无设备时 start 为空操作；绑定后 start 走 IPC", async () => {
+  it("无设备时 start 为空操作；绑定后 start 走 IPC 与 Channel", async () => {
     const { createMirrorStore } = await import("./store");
     const store = createMirrorStore();
     await store.start();
@@ -102,14 +106,16 @@ describe("mirror store", () => {
     await store.bindSerial("S1");
     mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
     await store.start();
-    expect(mocks.mirrorStart).toHaveBeenCalledWith({
+    expect(mocks.mirrorStart.mock.calls[0]?.[0]).toEqual({
       serial: "S1",
-      max_size: 1024,
-      video_bit_rate: 2_000_000,
-      max_fps: 30,
+      max_size: 1920,
+      video_bit_rate: 8_000_000,
+      max_fps: 0,
       control: false,
       force_forward: false,
+      video_codec: "h264",
     });
+    expect(mocks.mirrorStart.mock.calls[0]?.[1]).toBeTruthy();
     const onState = mocks.stateHandlers.at(-1)!;
     onState({
       serial: "S1",
@@ -169,27 +175,47 @@ describe("mirror store", () => {
     expect(store.state.error).toBe("设备已掉线");
   });
 
-  it("原始+不限在 start 时封顶为 1024@30", async () => {
+  it("原始+不限在 start 时封顶为 1920 且不限帧", async () => {
     const { createMirrorStore, encoderLimits } = await import("./store");
-    expect(encoderLimits(0, 0)).toEqual({ maxSize: 1024, maxFps: 30, capped: true });
-    expect(encoderLimits(1024, 0)).toEqual({ maxSize: 1024, maxFps: 0, capped: false });
+    expect(encoderLimits(0, 0)).toEqual({ maxSize: 1920, maxFps: 0, capped: true });
+    expect(encoderLimits(1920, 0)).toEqual({ maxSize: 1920, maxFps: 0, capped: false });
     const store = createMirrorStore();
     await store.bindSerial("S1");
     store.applySettings({
       mirror_max_size: 0,
       mirror_video_bit_rate: 8_000_000,
       mirror_max_fps: 0,
+      mirror_protocol: "usb",
       mirror_force_forward: true,
     });
     mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
     await store.start();
-    expect(mocks.mirrorStart).toHaveBeenCalledWith({
+    expect(mocks.mirrorStart.mock.calls[0]?.[0]).toEqual({
+      serial: "S1",
+      max_size: 1920,
+      video_bit_rate: 8_000_000,
+      max_fps: 0,
+      control: false,
+      force_forward: true,
+      video_codec: "h264",
+    });
+  });
+
+  it("tcp 连接自动 wifi 档并默认 forward", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    store.bindConnection("tcp:192.168.1.8:5555");
+    mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
+    await store.start();
+    expect(mocks.mirrorStart.mock.calls[0]?.[0]).toEqual({
       serial: "S1",
       max_size: 1024,
-      video_bit_rate: 8_000_000,
+      video_bit_rate: 2_000_000,
       max_fps: 30,
       control: false,
       force_forward: true,
+      video_codec: "h264",
     });
   });
 

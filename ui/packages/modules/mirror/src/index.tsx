@@ -6,6 +6,7 @@
 import { ModuleId } from "@yohu/api";
 
 import { MirrorView } from "./MirrorView";
+import { MirrorStatus } from "./Status";
 
 export const descriptor = {
   id: ModuleId.Mirror,
@@ -13,4 +14,5 @@ export const descriptor = {
   icon: "mirror" as const,
   selectionMode: "singleRequired" as const,
   Component: MirrorView,
+  Status: MirrorStatus,
 };
