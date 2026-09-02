@@ -64,3 +64,17 @@ describe("日志显示列", () => {
     expect(logColTemplate(display)).toBe("minmax(0, 1fr)");
   });
 });
+
+describe("日志级别色单源", () => {
+  it("行 data-level 绑定 --yohu-log-ink，不再用 level/bar 双 class", () => {
+    expect(logsCss).toContain('--yohu-log-ink: var(--yohu-fg-3)');
+    expect(logsCss).toContain('[data-level="e"] { --yohu-log-ink: var(--yohu-level-e); }');
+    expect(logsCss).toContain('[data-level="f"] { --yohu-log-ink: var(--yohu-level-f-bg); }');
+    expect(logsCss).toContain(".yohu-logs__row-tag {");
+    expect(logsCss).toContain("color: var(--yohu-log-ink)");
+    expect(logsCss).toContain('[data-level="e"] .yohu-logs__row-msg');
+    expect(logsCss).not.toContain(".yohu-logs__level--");
+    expect(logsCss).not.toContain(".yohu-logs__row--bar-");
+    expect(logsCss).not.toMatch(/\.yohu-logs__row-tag\s*\{\s*color:\s*var\(--yohu-accent\)/);
+  });
+});

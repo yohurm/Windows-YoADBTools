@@ -129,7 +129,8 @@ export const DarkColors: Record<SemanticColorName, string> = {
   SwitchOff: Harmony.compBackgroundSecondary.dark,
 };
 
-/** logcat 级别板：复用官方 brand / confirm / alert / warning + 文本四级。 */
+/** logcat 级别板：复用官方 brand / confirm / alert / warning + 文本四级。
+ *  排出 `--yohu-level-*`；日志行经 `levelKey` → `data-level` → `--yohu-log-ink` 消费，禁止模块另起色表。 */
 export const LogLevelLight = {
   v: Harmony.fontTertiary.light,
   d: Harmony.brand.light,

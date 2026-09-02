@@ -7,12 +7,27 @@
 import type { LogBatch, LogFilter, LogLine, ProcessEntry } from "@yohu/api";
 
 // ===== 级别 =====
+// 字母表单源：过滤序（levelRank）与着色键（levelKey → --yohu-level-*）都从这里取。
+// 色值在 YoUI token 板 LogLevelLight/Dark，禁止模块再写第二套色。
 
 export const LEVELS = ["V", "D", "I", "W", "E", "F"] as const;
+export type LevelLetter = (typeof LEVELS)[number];
+/** 与 `--yohu-level-*` / 行 `data-level` 对齐的小写键。 */
+export type LevelKey = "v" | "d" | "i" | "w" | "e" | "f";
+
+function levelIndex(level: string): number {
+  return (LEVELS as readonly string[]).indexOf(level.toUpperCase());
+}
+
+/** Wire 级别字母 → token 键。未知（含 `?`）返回 null，行不写 data-level。 */
+export function levelKey(level: string): LevelKey | null {
+  const idx = levelIndex(level);
+  return idx < 0 ? null : (LEVELS[idx]!.toLowerCase() as LevelKey);
+}
 
 /** 级别序：未知=0，V=1 … F=6（与 yohu-domain::level_rank 对齐）。 */
 export function levelRank(level: string): number {
-  const idx = (LEVELS as readonly string[]).indexOf(level.toUpperCase());
+  const idx = levelIndex(level);
   return idx < 0 ? 0 : idx + 1;
 }
 
@@ -219,7 +234,7 @@ export class RingMirror {
     return added;
   }
 
-  /** 过滤重放（会话重建/过滤变更）。 */
+  /** 过滤重放：只给 catch-up / 用户改过滤补洞，禁止用来整表替换面板。 */
   replay(filter: (line: LogLine) => boolean, limit: number): LogLine[] {
     const out: LogLine[] = [];
     for (let i = this.buf.length - 1; i >= 0 && out.length < limit; i--) {

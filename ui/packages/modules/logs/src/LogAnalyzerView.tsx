@@ -32,7 +32,7 @@ import {
   pointerSelectMode,
 } from "@yohu/ui";
 
-import { LEVELS, type ViewRow } from "./pipeline";
+import { LEVELS, levelKey, type ViewRow } from "./pipeline";
 import { ExportDialog } from "./ExportDialog";
 import { NewSessionDialog } from "./NewSessionDialog";
 import { copyLogText, LOGS_KEY_BINDINGS, LOGS_LIST_SELECTOR, type LogsKeyAction } from "./keys";
@@ -67,11 +67,6 @@ const LEVEL_OPTIONS = [
   ...LEVELS.map((l) => ({ value: l, label: l })),
 ];
 
-const LEVEL_SUFFIX: Record<string, string> = { V: "v", D: "d", I: "i", W: "w", E: "e", F: "f" };
-
-const levelClass = (level: string): string => `yohu-logs__level--${LEVEL_SUFFIX[level] ?? "dim"}`;
-const barClass = (level: string): string => `yohu-logs__row--bar-${LEVEL_SUFFIX[level] ?? "dim"}`;
-
 const rowKey = (row: ViewRow): string => `${row.line.seq}-${row.line.pid}`;
 
 function highlight(msg: string, keyword: string): (string | { mark: string })[] {
@@ -103,16 +98,16 @@ function LogCell(props: { col: LogColumnSpec; row: ViewRow; keyword: string }) {
     case "tid":
       return <span class="yohu-logs__row-tid">{line().tid}</span>;
     case "level":
-      return <span class={`yohu-logs__row-level yohu-tone ${levelClass(line().level)}`}>{line().level}</span>;
+      return <span class="yohu-logs__row-level yohu-tone">{line().level}</span>;
     case "tag":
       return (
-        <span class="yohu-logs__row-tag" title={line().tag}>
+        <span class="yohu-logs__row-tag yohu-tone" title={line().tag}>
           {line().tag}
         </span>
       );
     case "msg":
       return (
-        <span class="yohu-logs__row-msg">
+        <span class="yohu-logs__row-msg" classList={{ "yohu-tone": levelKey(line().level) === "e" }}>
           <For each={highlight(line().msg, props.keyword)}>
             {(part) => (typeof part === "string" ? part : <mark class="yohu-logs__mark yohu-tone">{part.mark}</mark>)}
           </For>
@@ -248,7 +243,7 @@ export function LogAnalyzerView(props: DeviceSession) {
     const id = logStore.state.activeSessionId;
     if (id === null) return;
     const session = logStore.state.sessions.find((s) => s.id === id);
-    if (session?.capturing) logStore.patchFilter(id, { paused: !session.paused });
+    if (session?.capturing) logStore.setPaused(id, !session.paused);
   };
 
   const copySelected = (): void => {
@@ -519,7 +514,10 @@ export function LogAnalyzerView(props: DeviceSession) {
                   </For>
                 </div>
                 <div class="yohu-logs__list-body">
-                  <Show when={session.visible.length > 0} fallback={<SessionEmpty session={session} writeMode={props.settings.log_write_mode} />}>
+                  <Show
+                    when={(logStore.state.sessions.find((s) => s.id === session.id)?.visible.length ?? 0) > 0}
+                    fallback={<SessionEmpty session={session} writeMode={props.settings.log_write_mode} />}
+                  >
                     <YoVirtualList<ViewRow>
                       items={() => logStore.state.sessions.find((s) => s.id === session.id)?.visible ?? []}
                       getItemKey={rowKey}
@@ -552,8 +550,8 @@ export function LogAnalyzerView(props: DeviceSession) {
                       renderRow={(row) => (
                         <div
                           class="yohu-logs__cols yohu-logs__row"
+                          data-level={levelKey(row.line.level) ?? undefined}
                           classList={{
-                            [barClass(row.line.level)]: true,
                             "yohu-logs__row--signal": row.signal !== undefined,
                             "yohu-logs__row--raw": row.line.level === "?",
                           }}

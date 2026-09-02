@@ -10,6 +10,7 @@ import {
   SessionFilter,
   collapseStack,
   emptyBinding,
+  levelKey,
   levelRank,
   matchesLine,
   matchesWireFilter,
@@ -45,6 +46,20 @@ describe("levelRank", () => {
     expect(levelRank("W")).toBeLessThan(levelRank("E"));
     expect(levelRank("F")).toBe(6);
     expect(levelRank("?")).toBe(0);
+  });
+});
+
+describe("levelKey（着色键，与 --yohu-level-* / data-level 对齐）", () => {
+  it("已知级别映射到 token 小写键", () => {
+    expect(levelKey("V")).toBe("v");
+    expect(levelKey("e")).toBe("e");
+    expect(levelKey("F")).toBe("f");
+  });
+
+  it("未知级别不着色", () => {
+    expect(levelKey("?")).toBeNull();
+    expect(levelKey("")).toBeNull();
+    expect(levelKey("X")).toBeNull();
   });
 });
 

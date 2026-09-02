@@ -2,8 +2,9 @@
  * 日志分析模块（UI设计系统-v6.md §4.1）。
  * 行结构列对齐等宽：[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 4ch] [Tag 24ch] [消息]；
  * 表头钉在虚拟列表外（flex-shrink: 0），与行共用 .yohu-logs__cols；轨道由显示列内联写入；
- * 级别色字 + 3px 级别左条；Fatal 反色块；信号行底色 + Error 左条；
- * 日志列表不动效（性能优先，§2.4）。
+ * 行 data-level 绑定 --yohu-log-ink（token 板 --yohu-level-* 单源）：
+ * 左条 / 级别字 / Tag 共用 ink；Error 消息同色；Fatal 级别字母反色块，Tag 用 f-bg；
+ * 信号行底色 + Error 左条；日志列表不动效（性能优先，§2.4）。
  * ========================================================================== */
 
 .yohu-logs__tabs {
@@ -120,10 +121,20 @@
 }
 
 .yohu-logs__row {
+  --yohu-log-ink: var(--yohu-fg-3);
   height: 100%;
   white-space: nowrap;
   user-select: none;
+  border-left-color: var(--yohu-log-ink);
 }
+
+.yohu-logs__row[data-level="v"] { --yohu-log-ink: var(--yohu-level-v); }
+.yohu-logs__row[data-level="d"] { --yohu-log-ink: var(--yohu-level-d); }
+.yohu-logs__row[data-level="i"] { --yohu-log-ink: var(--yohu-level-i); }
+.yohu-logs__row[data-level="w"] { --yohu-log-ink: var(--yohu-level-w); }
+.yohu-logs__row[data-level="e"] { --yohu-log-ink: var(--yohu-level-e); }
+/* Fatal 字母是反色块（--yohu-level-f = font_on）；Tag / 左条用 warning 底色才可读。 */
+.yohu-logs__row[data-level="f"] { --yohu-log-ink: var(--yohu-level-f-bg); }
 
 .yohu-logs__row--raw {
   grid-template-columns: minmax(0, 1fr);
@@ -139,14 +150,6 @@
 .yohu-interactive--selected .yohu-logs__row--signal {
   background-color: transparent;
 }
-
-/* 级别左条（3px） */
-.yohu-logs__row--bar-v { border-left-color: var(--yohu-level-v); }
-.yohu-logs__row--bar-d { border-left-color: var(--yohu-level-d); }
-.yohu-logs__row--bar-i { border-left-color: var(--yohu-level-i); }
-.yohu-logs__row--bar-w { border-left-color: var(--yohu-level-w); }
-.yohu-logs__row--bar-e { border-left-color: var(--yohu-level-e); }
-.yohu-logs__row--bar-f { border-left-color: var(--yohu-level-f-bg); }
 
 /* 列对齐：每行独立 grid，轨道必须定宽（禁止 max-width / minmax 让消息列错位） */
 .yohu-logs__row-ts,
@@ -173,30 +176,23 @@
   text-align: right;
 }
 
+.yohu-logs__row-level,
+.yohu-logs__row-tag {
+  color: var(--yohu-log-ink);
+}
+
 .yohu-logs__row-level {
   font-weight: var(--yohu-font-weight-semibold);
   text-align: center;
   box-sizing: border-box;
 }
 
-.yohu-logs__level--v { color: var(--yohu-level-v); }
-.yohu-logs__level--d { color: var(--yohu-level-d); }
-.yohu-logs__level--i { color: var(--yohu-level-i); }
-.yohu-logs__level--w { color: var(--yohu-level-w); }
-.yohu-logs__level--e { color: var(--yohu-level-e); }
-
-/* Fatal 反色块 */
-.yohu-logs__level--f {
+/* Fatal 反色块：字母用 font_on，不走 ink。 */
+.yohu-logs__row[data-level="f"] .yohu-logs__row-level {
   color: var(--yohu-level-f);
   background-color: var(--yohu-level-f-bg);
   border-radius: var(--yohu-radius-2xs);
   padding: 0 var(--yohu-space-2xs);
-}
-
-.yohu-logs__level--dim { color: var(--yohu-fg-3); }
-
-.yohu-logs__row-tag {
-  color: var(--yohu-accent);
 }
 
 .yohu-logs__row-msg {
@@ -204,6 +200,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+.yohu-logs__row[data-level="e"] .yohu-logs__row-msg {
+  color: var(--yohu-log-ink);
 }
 
 .yohu-logs__mark {
