@@ -126,9 +126,6 @@ export const onSettingsChanged = (h: (e: Extract<AppEvent, { kind: "settingsChan
 export const onMirrorState = (h: (e: Extract<AppEvent, { kind: "mirrorState" }>) => void) =>
   on(EVENT_NAMES.mirrorState, "mirrorState", h);
 
-export const onMirrorPacket = (h: (e: Extract<AppEvent, { kind: "mirrorPacket" }>) => void) =>
-  on(EVENT_NAMES.mirrorPacket, "mirrorPacket", h);
-
 export const onUpdateProgress = (h: (e: Extract<AppEvent, { kind: "updateProgress" }>) => void) =>
   on(EVENT_NAMES.updateProgress, "updateProgress", h);
 

@@ -88,6 +88,8 @@ export type Theme = "light" | "dark" | "system";
 
 export type Density = "compact" | "comfortable";
 
+export type MirrorProtocol = "usb" | "wifi";
+
 /** 日志写入方式（实时逐窗口日志文件）。 */
 export type LogWriteMode = "overwrite" | "append";
 /** 手动导出行为。 */
@@ -109,6 +111,7 @@ export interface AppSettings {
   mirror_max_size: number;
   mirror_video_bit_rate: number;
   mirror_max_fps: number;
+  mirror_protocol: MirrorProtocol;
   mirror_force_forward: boolean;
 }
 
@@ -138,6 +141,7 @@ export type SettingKey =
   | "mirror_max_size"
   | "mirror_video_bit_rate"
   | "mirror_max_fps"
+  | "mirror_protocol"
   | "mirror_force_forward";
 
 /** `settings.get` 单键值类型：按键映射到 `AppSettings` 对应字段类型。
@@ -433,18 +437,7 @@ export interface MirrorStartRequest {
   max_fps: number;
   control: boolean;
   force_forward: boolean;
-}
-
-export interface MirrorPacket {
-  serial: string;
-  generation: number;
-  codec: string;
-  width: number;
-  height: number;
-  config: boolean;
-  keyframe: boolean;
-  pts: number;
-  data_b64: string;
+  video_codec: string;
 }
 
 export type MirrorControlMessage =
@@ -510,7 +503,6 @@ export type AppEvent =
       control: boolean;
       error?: string;
     }
-  | { kind: "mirrorPacket" } & MirrorPacket
   | { kind: "updateProgress" } & UpdateProgress;
 
 /** 事件名常量（与 yohu-protocol::event_names 一致）。 */
@@ -526,7 +518,6 @@ export const EVENT_NAMES = {
   taskSummary: "task/summary",
   settingsChanged: "settings/changed",
   mirrorState: "mirror/state",
-  mirrorPacket: "mirror/packet",
   updateProgress: "update/progress",
 } as const;
 

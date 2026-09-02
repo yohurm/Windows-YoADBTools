@@ -221,9 +221,10 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
         export_mode: "latest",
         log_write_mode: "overwrite",
         log_display_columns: { ts: true, uid: false, pid: true, tid: true, level: true, tag: true },
-        mirror_max_size: 1024,
-        mirror_video_bit_rate: 2_000_000,
-        mirror_max_fps: 30,
+        mirror_max_size: 1920,
+        mirror_video_bit_rate: 8_000_000,
+        mirror_max_fps: 0,
+        mirror_protocol: "usb",
         mirror_force_forward: false,
       },
     };
@@ -339,3 +340,4 @@ export type _SettingValue_Number = Expect<Equal<SettingValue<"buffer_capacity">,
 export type _SettingValue_Bool = Expect<Equal<SettingValue<"clear_device_on_start">, boolean>>;
 export type _SettingValue_Enum = Expect<Equal<SettingValue<"log_write_mode">, "overwrite" | "append">>;
 export type _SettingValue_Object = Expect<Equal<SettingValue<"log_display_columns">, LogDisplayColumns>>;
+export type _SettingValue_MirrorProtocol = Expect<Equal<SettingValue<"mirror_protocol">, "usb" | "wifi">>;

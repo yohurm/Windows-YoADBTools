@@ -25,8 +25,9 @@ export const APP_SETTINGS_DEFAULT: AppSettings = {
     level: true,
     tag: true,
   },
-  mirror_max_size: 1024,
-  mirror_video_bit_rate: 2_000_000,
-  mirror_max_fps: 30,
+  mirror_max_size: 1920,
+  mirror_video_bit_rate: 8_000_000,
+  mirror_max_fps: 0,
+  mirror_protocol: "usb",
   mirror_force_forward: false,
 };
