@@ -2,6 +2,9 @@
  * 采集客户端：窗口订阅 ↔ 每设备一路 logcat。
  * 引用计数、世代、掉线、溢出回补在本文件；批次扇出在 ingest；会话文件在 session-files。
  * 切焦点不停其他设备流。闸门按 serial，禁止跨设备互等。
+ * 同窗口 adopt 续采：保留 fromSeq 与可见区，只从 core 环补洞；新流才清镜像/本窗口面板。
+ * 掉线只停采集、关会话文件、清镜像；已画出的行保留。
+ * WebView 从冻结恢复时 replay 补 UI 镜像（JS 暂停时 overflow 事件可能根本没发出）。
  */
 
 import type { SetStoreFunction } from "solid-js/store";
@@ -52,6 +55,7 @@ export type CaptureApi = {
   exportSession: (sources: string[], path?: string) => Promise<string | null>;
   closeSession: (id: number) => void;
   closeOthers: (id: number) => void;
+  resumeFollow: (id: number) => void;
   serial: () => string | null;
   bufferCapacity: () => number;
 };
@@ -156,7 +160,7 @@ export function createCapture(
     mirrors.setCapacity(next);
     if (next === state.bufferCapacity) return;
     setState("bufferCapacity", next);
-    workspace.rebuildAll();
+    workspace.trimPanels();
   }
 
   async function confirmStart(device: string, startedGen: number, sessionId: number): Promise<void> {
@@ -221,31 +225,61 @@ export function createCapture(
 
       setState("sessions", idx, { starting: true });
       try {
+        const resumeWindow = live.fromSeq >= 0;
         const already = capturingCount(current);
         let startedGen = deviceSlice(state, current).generation;
+        let adopted = already > 0;
         if (already === 0) {
           const result = await logCaptureStart(current);
-          YoLog.info("logs", "采集已启动", { serial: current, generation: result.generation, adopted: result.adopted });
+          YoLog.info("logs", "采集已启动", {
+            serial: current,
+            generation: result.generation,
+            adopted: result.adopted,
+          });
           startedGen = result.generation;
+          adopted = result.adopted;
           setDeviceGen(current, result.generation);
           if (!result.adopted) {
             mirrors.clear(current);
             setOverflowed(current, false);
+            workspace.clearPanel(sessionId);
           }
         }
-        const fromSeq = Math.max(0, mirrors.of(current).lastSeqNumber() + 1);
         await files.open(state.sessions[idx]!, current, mode);
-        setState("sessions", idx, { capturing: true, starting: false, fromSeq, serial: current });
+        if (adopted && resumeWindow) {
+          setState("sessions", idx, { capturing: true, starting: false, serial: current });
+        } else if (adopted) {
+          const fromSeq = Math.max(0, mirrors.of(current).lastSeqNumber() + 1);
+          setState("sessions", idx, {
+            capturing: true,
+            starting: false,
+            fromSeq,
+            serial: current,
+          });
+        } else {
+          setState("sessions", idx, {
+            capturing: true,
+            starting: false,
+            fromSeq: 0,
+            serial: current,
+          });
+        }
         if (already === 0) await pullSnapshot(current);
         await confirmStart(current, startedGen, sessionId);
       } catch (e) {
         try {
           const status = await logCaptureStatus(current);
           if (status.capturing) {
-            const fromSeq = Math.max(0, mirrors.of(current).lastSeqNumber() + 1);
+            const resumeWindow = state.sessions[idx]!.fromSeq >= 0;
             await files.open(state.sessions[idx]!, current, mode);
-            setState("sessions", idx, { capturing: true, starting: false, fromSeq, serial: current });
+            if (resumeWindow) {
+              setState("sessions", idx, { capturing: true, starting: false, serial: current });
+            } else {
+              const fromSeq = Math.max(0, mirrors.of(current).lastSeqNumber() + 1);
+              setState("sessions", idx, { capturing: true, starting: false, fromSeq, serial: current });
+            }
             setDeviceGen(current, status.generation);
+            await pullSnapshot(current);
           } else {
             setState("sessions", idx, { starting: false });
           }
@@ -334,10 +368,7 @@ export function createCapture(
   }
 
   async function clearVisible(id: number): Promise<void> {
-    const idx = sessionIndex(id);
-    if (idx >= 0) {
-      setState("sessions", idx, { visible: [], signalCount: 0, pendingCount: 0 });
-    }
+    workspace.clearPanel(id);
   }
 
   async function clearDevice(): Promise<void> {
@@ -345,14 +376,10 @@ export function createCapture(
     if (!current) return;
     await logClearDevice(current);
     mirrors.clear(current);
+    workspace.clearDevicePanels(current);
     state.sessions.forEach((session, i) => {
       if (session.serial !== current) return;
-      setState("sessions", i, {
-        visible: [],
-        signalCount: 0,
-        pendingCount: 0,
-        fromSeq: session.capturing ? 0 : session.fromSeq,
-      });
+      if (session.capturing) setState("sessions", i, { fromSeq: 0 });
     });
   }
 
@@ -361,7 +388,7 @@ export function createCapture(
     if (!current) return;
     await logClear(current);
     mirrors.clear(current);
-    workspace.rebuildAll();
+    workspace.clearDevicePanels(current);
   }
 
   async function refreshProcesses(target?: string | null): Promise<void> {
@@ -413,8 +440,7 @@ export function createCapture(
     setOverflowed(device, false);
     setProcessIndex(device, [], false);
     mirrors.clear(device);
-    files.closeDevice(device, state.sessions);
-    workspace.resetDeviceViews(device);
+    stopWindowsOn(device);
   }
 
   void onSettingsChanged((e) => {
@@ -430,6 +456,21 @@ export function createCapture(
   });
   void onDeviceOffline((e) => onOffline(e.serial));
 
+  const inVitest = Boolean((import.meta as ImportMeta & { vitest?: unknown }).vitest);
+  if (typeof document !== "undefined" && !inVitest) {
+    const onUiResume = (): void => {
+      if (document.hidden) return;
+      const serials = new Set(
+        state.sessions.filter((s) => s.capturing && s.serial).map((s) => s.serial!),
+      );
+      for (const device of serials) {
+        void pullSnapshot(device);
+      }
+    };
+    document.addEventListener("visibilitychange", onUiResume);
+    window.addEventListener("focus", onUiResume);
+  }
+
   return {
     bindSerial,
     setBufferCapacity,
@@ -442,6 +483,13 @@ export function createCapture(
     exportSession,
     closeSession,
     closeOthers,
+    resumeFollow: (id: number): void => {
+      workspace.resumeFollow(id);
+      const session = state.sessions.find((s) => s.id === id);
+      if (session?.serial && (session.capturing || session.starting)) {
+        void pullSnapshot(session.serial);
+      }
+    },
     serial,
     bufferCapacity,
   };

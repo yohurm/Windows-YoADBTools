@@ -1,12 +1,14 @@
 /**
  * 窗口扇出：设备批次 → 该 serial 上每个订阅窗口的过滤 / 可见区 / 会话文件。
  * 不碰采集启停与世代；镜像按设备分桶，窗口只读自己的 serial。
+ * 入镜按窗口末行 seq 去重，replay 重叠批次不会把已画出的行再追加一遍。
  */
 
 import type { SetStoreFunction } from "solid-js/store";
 import type { LogBatch } from "@yohu/api";
 
-import { collapseStack, matchesLine, scanSignal, toSessionFilter, type MirrorBank } from "./pipeline";
+import { appendLines, countSignals, lastSeqOf } from "./panel";
+import { matchesLine, toSessionFilter, type MirrorBank } from "./pipeline";
 import type { SessionFilesApi } from "./session-files";
 import type { LogUiState } from "./workspace";
 
@@ -30,7 +32,10 @@ export function createIngest(
       if (session.serial !== batch.serial) return;
       if (!session.capturing || session.fromSeq < 0) return;
       const filter = toSessionFilter(session);
-      const matched = batch.lines.filter((line) => line.seq >= session.fromSeq && matchesLine(line, filter));
+      const after = lastSeqOf(session.visible, session.fromSeq);
+      const matched = batch.lines.filter(
+        (line) => line.seq > after && line.seq >= session.fromSeq && matchesLine(line, filter),
+      );
       if (matched.length === 0) return;
       const idx = sessionIndex(session.id);
       if (idx < 0) return;
@@ -38,7 +43,7 @@ export function createIngest(
       files.append(batch.serial, session.id, matched);
 
       if (session.paused) return;
-      const signals = matched.reduce((acc, l) => acc + (scanSignal(l) ? 1 : 0), 0);
+      const signals = countSignals(matched);
       if (!session.following) {
         setState("sessions", idx, {
           pendingCount: session.pendingCount + matched.length,
@@ -46,12 +51,8 @@ export function createIngest(
         });
         return;
       }
-      const cap = bufferCapacity();
-      const current = state.sessions[idx]!.visible;
-      const merged = [...current, ...collapseStack(matched)];
-      const trimmed = merged.length > cap ? merged.slice(merged.length - cap) : merged;
       setState("sessions", idx, {
-        visible: trimmed,
+        visible: appendLines(state.sessions[idx]!.visible, matched, bufferCapacity()),
         signalCount: session.signalCount + signals,
       });
     });

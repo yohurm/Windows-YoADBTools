@@ -1,19 +1,29 @@
 /**
- * 日志会话工作区：窗口（Tab）生命周期、过滤补丁、包名 PID 重绑后的可见区重建。
+ * 日志会话工作区：窗口（Tab）生命周期、显示过滤、包名 PID 重绑。
  * 不碰采集 IPC。每个窗口绑定一台设备；新建/复制空且停，不从共享环重放。
  * 进程索引按 serial 分桶，禁止用焦点设备的 ps 去重绑其他窗口。
+ *
+ * 显示面板是窗口私有、append-only。只在重新开始采集或清空时 flush。
+ * 掉线 / 停采 / 无输出 / PID 重绑 / 跟滚 / 镜像落后都不得冲掉已画出的行。
+ * 镜像只按 seq 补洞，禁止整表替换面板。
  */
 
 import type { SetStoreFunction } from "solid-js/store";
-import type { ProcessEntry } from "@yohu/api";
+import type { LogLine, ProcessEntry } from "@yohu/api";
 
 import {
-  collapseStack,
+  appendLines,
+  countSignals,
+  keepMatching,
+  lastSeqOf,
+  panelFromLines,
+  trimRows,
+} from "./panel";
+import {
   copyBinding,
   emptyBinding,
   matchesLine,
   rebindPids,
-  scanSignal,
   toSessionFilter,
   type PidBinding,
   type SessionScope,
@@ -21,7 +31,7 @@ import {
 } from "./pipeline";
 import type { MirrorBank } from "./pipeline";
 
-/** 从未开始采集：重建/入镜均跳过共享环。 */
+/** 从未开始采集：入镜/补洞均跳过共享环。 */
 export const SESSION_NEVER_STARTED = -1;
 
 export const SYSTEM_SESSION_TITLE = "System";
@@ -35,7 +45,7 @@ export interface LogSessionState {
   capturing: boolean;
   /** start IPC 进行中；空态/按钮不得再显示「未采集」 */
   starting: boolean;
-  /** 本窗口起始序号；<0 表示从未开始，禁止重放镜像 */
+  /** 本窗口起始序号；<0 表示从未开始，禁止从镜像补洞 */
   fromSeq: number;
   scope: SessionScope;
   minLevel: string | null;
@@ -49,6 +59,11 @@ export interface LogSessionState {
   visible: ViewRow[];
   binding: PidBinding;
 }
+
+/** 显示过滤补丁。暂停走 setPaused，禁止经 patchFilter 整表重建。 */
+export type SessionFilterPatch = Partial<
+  Pick<LogSessionState, "minLevel" | "tagContains" | "keyword" | "scope" | "paused">
+>;
 
 /** 每设备一份投影：世代 / 溢出 / 进程索引。窗口只引用 serial，不共用全局数组。 */
 export interface DeviceUiState {
@@ -77,12 +92,14 @@ export type WorkspaceApi = {
   renameSession: (id: number, title: string) => void;
   duplicateSession: (id: number) => number | null;
   setActive: (id: number) => void;
-  patchFilter: (id: number, patch: Partial<LogSessionState>) => void;
-  rebuildAll: () => void;
-  rebuildSession: (id: number) => void;
+  patchFilter: (id: number, patch: SessionFilterPatch) => void;
+  setPaused: (id: number, paused: boolean) => void;
+  trimPanels: () => void;
+  catchUpSession: (id: number) => void;
   bindPackageSessions: (serial: string, entries?: readonly ProcessEntry[]) => void;
   assignDefaultSerial: (serial: string | null) => void;
-  resetDeviceViews: (serial: string) => void;
+  clearPanel: (id: number) => void;
+  clearDevicePanels: (serial: string) => void;
   setFollowing: (id: number, following: boolean) => void;
   resumeFollow: (id: number) => void;
   detachFollow: (id: number) => void;
@@ -107,6 +124,8 @@ export function ensureDevice(
   if (state.devices[serial]) return;
   setState("devices", serial, emptyDevice());
 }
+
+const DISPLAY_KEYS: readonly (keyof SessionFilterPatch)[] = ["minLevel", "tagContains", "keyword", "scope"];
 
 export function createWorkspace(
   state: LogUiState,
@@ -145,26 +164,82 @@ export function createWorkspace(
     return session;
   }
 
-  function rebuildSession(id: number): void {
+  function writePanel(idx: number, rows: ViewRow[], signalCount: number, pendingCount: number): void {
+    setState("sessions", idx, {
+      visible: trimRows(rows, bufferCapacity()),
+      signalCount,
+      pendingCount,
+    });
+  }
+
+  function clearPanel(id: number): void {
+    const idx = sessionIndex(id);
+    if (idx < 0) return;
+    writePanel(idx, [], 0, 0);
+  }
+
+  function clearDevicePanels(serial: string): void {
+    state.sessions.forEach((session) => {
+      if (session.serial !== serial) return;
+      clearPanel(session.id);
+    });
+  }
+
+  function extraFromMirror(session: LogSessionState, after: number): LogLine[] {
+    if (session.fromSeq < 0 || !session.serial) return [];
+    const filter = toSessionFilter(session);
+    return mirrors.of(session.serial).replay((line) => {
+      if (line.seq <= after || line.seq < session.fromSeq) return false;
+      return matchesLine(line, filter);
+    }, bufferCapacity());
+  }
+
+  /** 按 seq 追加镜像里尚未画出的匹配行。空面板可以首次填入，但不得整表替换。 */
+  function catchUpSession(id: number): void {
     const idx = sessionIndex(id);
     if (idx < 0) return;
     const session = state.sessions[idx]!;
-    if (session.fromSeq < 0 || !session.serial) {
-      setState("sessions", idx, { visible: [], signalCount: 0, pendingCount: 0 });
+    if (session.paused) return;
+    const after = lastSeqOf(session.visible, session.fromSeq);
+    const lines = extraFromMirror(session, after);
+    if (lines.length === 0) {
+      if (session.following) setState("sessions", idx, { pendingCount: 0 });
       return;
     }
-    const filter = toSessionFilter(session);
-    const lines = mirrors.of(session.serial).replay((line) => {
-      if (line.seq < session.fromSeq) return false;
-      return matchesLine(line, filter);
-    }, bufferCapacity());
-    const visible = collapseStack(lines);
-    const signalCount = lines.reduce((acc, l) => acc + (scanSignal(l) ? 1 : 0), 0);
-    setState("sessions", idx, { visible, signalCount, pendingCount: 0 });
+    const signals = session.signalCount + countSignals(lines);
+    if (!session.following) {
+      setState("sessions", idx, {
+        pendingCount: session.pendingCount + lines.length,
+        signalCount: signals,
+      });
+      return;
+    }
+    writePanel(idx, appendLines(session.visible, lines, bufferCapacity()), signals, 0);
   }
 
-  function rebuildAll(): void {
-    state.sessions.forEach((s) => rebuildSession(s.id));
+  /**
+   * 用户改了级别/Tag/关键字：保留面板里仍匹配的行，再按 seq 从镜像补新命中。
+   * 镜像为空时只可能变少（过滤变严），不会把已有行冲成空。
+   */
+  function refilterSession(id: number): void {
+    const idx = sessionIndex(id);
+    if (idx < 0) return;
+    const session = state.sessions[idx]!;
+    const filter = toSessionFilter(session);
+    const kept = keepMatching(session.visible, filter);
+    const after = kept.length > 0 ? kept[kept.length - 1]!.seq : lastSeqOf([], session.fromSeq);
+    const extra = extraFromMirror(session, after);
+    const next = panelFromLines([...kept, ...extra], bufferCapacity());
+    writePanel(idx, next.visible, next.signalCount, 0);
+  }
+
+  function trimPanels(): void {
+    const cap = bufferCapacity();
+    state.sessions.forEach((session, idx) => {
+      const trimmed = trimRows(session.visible, cap);
+      if (trimmed.length === session.visible.length) return;
+      setState("sessions", idx, { visible: trimmed });
+    });
   }
 
   function bindPackageSessions(serial: string, entries?: readonly ProcessEntry[]): void {
@@ -174,7 +249,9 @@ export function createWorkspace(
       if (session.serial !== serial) return;
       const binding = rebindPids(session.binding, index, session.scope.pkg, session.scope.includeChild);
       setState("sessions", idx, { binding });
-      rebuildSession(session.id);
+      if (state.sessions[idx]!.following && !state.sessions[idx]!.paused) {
+        catchUpSession(session.id);
+      }
     });
   }
 
@@ -183,20 +260,6 @@ export function createWorkspace(
       if (session.serial === null) {
         setState("sessions", idx, { serial });
       }
-    });
-  }
-
-  function resetDeviceViews(serial: string): void {
-    state.sessions.forEach((session, idx) => {
-      if (session.serial !== serial) return;
-      setState("sessions", idx, {
-        capturing: false,
-        starting: false,
-        fromSeq: SESSION_NEVER_STARTED,
-        visible: [],
-        signalCount: 0,
-        pendingCount: 0,
-      });
     });
   }
 
@@ -273,21 +336,43 @@ export function createWorkspace(
     setState("activeSessionId", id);
   }
 
-  function patchFilter(id: number, patch: Partial<LogSessionState>): void {
+  function rebindIfPackage(idx: number): void {
+    const next = state.sessions[idx]!;
+    if (next.scope.kind !== "package") return;
+    const binding = rebindPids(
+      next.binding,
+      processIndexOf(next.serial),
+      next.scope.pkg,
+      next.scope.includeChild,
+    );
+    setState("sessions", idx, { binding });
+  }
+
+  function patchFilter(id: number, patch: SessionFilterPatch): void {
     const idx = sessionIndex(id);
     if (idx < 0) return;
-    setState("sessions", idx, patch);
-    const next = state.sessions[idx]!;
-    if (next.scope.kind === "package") {
-      const binding = rebindPids(
-        next.binding,
-        processIndexOf(next.serial),
-        next.scope.pkg,
-        next.scope.includeChild,
-      );
-      setState("sessions", idx, { binding });
+    const { paused, ...display } = patch;
+    if (Object.keys(display).length > 0) {
+      setState("sessions", idx, display);
+      rebindIfPackage(idx);
     }
-    rebuildSession(id);
+    if (paused !== undefined) {
+      setState("sessions", idx, { paused });
+    }
+    const displayChanged = DISPLAY_KEYS.some((key) => key in patch);
+    if (displayChanged) {
+      refilterSession(id);
+      return;
+    }
+    if (paused === false) catchUpSession(id);
+  }
+
+  function setPaused(id: number, paused: boolean): void {
+    const idx = sessionIndex(id);
+    if (idx < 0) return;
+    if (state.sessions[idx]!.paused === paused) return;
+    setState("sessions", idx, { paused });
+    if (!paused) catchUpSession(id);
   }
 
   function setFollowing(id: number, following: boolean): void {
@@ -297,7 +382,7 @@ export function createWorkspace(
     if (session.following === following) return;
     if (following) {
       setState("sessions", idx, { following: true, pendingCount: 0 });
-      rebuildSession(id);
+      catchUpSession(id);
       return;
     }
     setState("sessions", idx, { following: false });
@@ -312,11 +397,13 @@ export function createWorkspace(
     duplicateSession,
     setActive,
     patchFilter,
-    rebuildAll,
-    rebuildSession,
+    setPaused,
+    trimPanels,
+    catchUpSession,
     bindPackageSessions,
     assignDefaultSerial,
-    resetDeviceViews,
+    clearPanel,
+    clearDevicePanels,
     setFollowing,
     resumeFollow: (id) => setFollowing(id, true),
     detachFollow: (id) => setFollowing(id, false),

@@ -1,6 +1,7 @@
 /**
  * 日志模块门面：工作区 + 窗口扇出 + 采集客户端。只依赖 @yohu/api。
  * 焦点由 View 经 bindSerial 注入默认设备；窗口/过滤/可见区在消费端（ADR-v6-006）。
+ * 显示面板由 workspace 持有，ingest 只按 seq 追加。
  */
 
 import { createStore } from "solid-js/store";
