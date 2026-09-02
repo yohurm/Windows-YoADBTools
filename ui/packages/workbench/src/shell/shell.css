@@ -320,7 +320,7 @@
 }
 
 
-/* ===== 状态栏（§3：左版本 · 中留白 · 右设备/任务） ===== */
+/* ===== 状态栏（§3：左版本 · 中留白 · 右设备/任务/状态） ===== */
 
 .yohu-status__version {
   font-size: var(--yohu-font-caption);
@@ -351,4 +351,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.yohu-status__metrics {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--yohu-space-sm);
+  font-size: var(--yohu-font-caption);
+  color: var(--yohu-fg-2);
+}
+
+.yohu-status__metrics:not(:has(*)) {
+  display: none;
 }

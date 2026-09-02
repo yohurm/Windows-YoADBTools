@@ -152,6 +152,7 @@ registerModule({
   icon: "mirror",
   selectionMode: "singleRequired",
   Component: () => null,
+  Status: () => <span>12 fps</span>,
 });
 
 const DEFAULT_SETTINGS = { ...APP_SETTINGS_DEFAULT, theme: "light" as const };
@@ -438,6 +439,7 @@ describe("StatusBar（§3 状态栏）", () => {
     await settingsStore.load();
     render(() => <StatusBar />);
     expect(screen.getByText("Yohu ADB Tools v9.9.9")).toBeTruthy();
+    expect(screen.getByText("12 fps")).toBeTruthy();
     mocks.systemInfo.mockResolvedValue({
       identity: { ...DEFAULT_IDENTITY },
       paths: { ...RESOLVED_PATHS },

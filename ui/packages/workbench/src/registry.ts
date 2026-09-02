@@ -31,6 +31,8 @@ export interface ModuleDescriptor {
   isPlanned?: boolean;
   /** 主视图组件（壳注入 DeviceSession：设备 + 设置；模块不读壳 store） */
   Component: Component<DeviceSession>;
+  /** 状态栏右侧状态槽。模块自绘；无内容时不输出节点。壳不读模块 store。 */
+  Status?: Component;
 }
 
 const registry: ModuleDescriptor[] = [];

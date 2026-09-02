@@ -1,12 +1,13 @@
 /**
- * 底部状态栏（UI设计系统-v6.md §3）：左版本 · 中留白 · 右「设备 · 任务」。
- * 任务项悬停显示明细（title = TaskInfo.detail，core 侧登记）。
+ * 底部状态栏（UI设计系统-v6.md §3）：左版本 · 中留白 · 右「设备 · 任务 · 状态」。
+ * 状态槽由已注册模块的 Status 贡献（投屏实测 fps 等）；任务项悬停显示明细。
  */
 
 import { Component, For, Show } from "solid-js";
 
 import { YoStatusBar } from "@yohu/ui";
 
+import { modules } from "../registry";
 import { deviceStore, settingsStore, taskStore } from "../stores";
 
 export const StatusBar: Component = () => {
@@ -16,6 +17,7 @@ export const StatusBar: Component = () => {
     const ver = settingsStore.identity.version;
     return ver ? `${name} v${ver}` : name;
   };
+  const statusMods = () => modules().filter((m) => m.Status);
 
   return (
     <YoStatusBar
@@ -35,6 +37,14 @@ export const StatusBar: Component = () => {
               </For>
             </span>
           </Show>
+          <span class="yohu-status__metrics">
+            <For each={statusMods()}>
+              {(mod) => {
+                const Status = mod.Status!;
+                return <Status />;
+              }}
+            </For>
+          </span>
         </span>
       }
     />
