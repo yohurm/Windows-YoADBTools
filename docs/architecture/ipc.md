@@ -18,7 +18,7 @@
 | `log.clear` / `log.clearDevice` / `log.replay` / `log.processSnapshot` | 环 / logcat -c / 回补 / ps |
 | `log.sessionFileOpen/Append/Close/Latest/List` | 逐窗口实时文件（见 ADR-v6-021） |
 | `log.export` | **现状：** 合并 session-logs 源文件（不是环快照） |
-| `mirror.start/stop/status/inject/closeControl/savePng` | 投屏槽位 |
+| `mirror.start/stop/status/inject/closeControl/savePng` | 投屏槽位；`start` 带二进制 `Channel`（ADR-v6-023） |
 | `settings.get` / `settings.set` | 全量快照事件 |
 | `system.info` / `openPath` / `reportError` / `log` | 关于 / 打开路径 / 上报 |
 | `update.check` / `info` / `download` / `install` / `cancel` / `open` | ADR-v6-022 |
@@ -38,7 +38,6 @@
 | `group/progress` / `task/summary` | 命令/任务 |
 | `settings/changed` | 必达；带全量快照 |
 | `mirror/state` | 必达 |
-| `mirror/packet` | 逐帧 `try_send`，可丢帧 |
 | `update/progress` | 下载 200ms 可丢；阶段切换必达 |
 
 ## 背压
@@ -46,3 +45,5 @@
 RingBuffer seq 单调；Batcher 有界 mpsc 满则丢**推送**不丢环；UI 经 overflow + `log.replay` 补镜像。
 
 **导出：** 文档曾写「导出永远读环」。实现是 UI 过滤行写入 `session-logs`，`log.export` 合并这些文件（ADR-v6-021）。replay 仍读环。
+
+**投屏帧：** 不再走 `AppEvent` JSON。`yohu-mirror::FramePipe` 有界 8 帧（先丢非关键帧、不丢 config）；壳泵到 `ipc::Channel<Vec<u8>>`。满则丢待发帧，不影响设备 TCP。

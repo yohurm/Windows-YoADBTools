@@ -15,6 +15,7 @@ interface ModuleDescriptor {
   kind?: "workspace" | "system";
   isPlanned?: boolean;
   Component: Component<DeviceSession>;
+  Status?: Component;      // 状态栏右槽；无内容时不输出节点
 }
 ```
 

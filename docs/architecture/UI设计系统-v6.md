@@ -1,8 +1,10 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.48（2026-09-02，日志面板常驻）    
+> **状态：** v1.49（2026-09-02，投屏协议与状态栏 fps）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（YoUI；token 单源 + 组件）+ `@yohu/workbench`（壳）+ `@yohu/modules/*`。所有改动必须同步更新本文件。
+>
+> **v1.49 变更（投屏协议与状态栏 fps）**：投屏「档位」改为「投屏协议」（USB / 无线），去掉自定义。实测 fps 进状态栏右槽（模块 `Status`），不盖画面。选项「原始」不加括号说明。
 >
 > **v1.48 变更（日志面板常驻）**：显示面板 append-only。只在重新开始采集或清空时冲刷。掉线 / 无输出 / 停采 / 包名 PID 重绑不得清空已画出的行。过滤从已有行筛选，镜像只按 seq 补洞。
 >
@@ -296,7 +298,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - **模块页眉**：在右侧内容区顶部（`YoChrome`）。左侧为功能标题区（Subtitle Bold）+ 选中设备名（`deviceLabel` 中性徽章，文案来自 `DeviceSession.selectedLabel`），右侧为功能栏；与窗口标题栏分离，不挤进中区。无操作的模块（设置）只显示标题，但标题行高度仍是 `--yohu-control-height`（与有按钮的页同一占位）。底垫 `--yohu-layout-chrome-pad`。页眉是页壳的第一子节点（`flex: 0 0 auto`），禁止与内容区作为 fragment 兄弟交给模块转场。
 - **模块页壳**：效率型与占位模块（终端/文件/日志/投屏）根节点一律 `YoPage`（`.yohu-page`：`padding: page-inset`、`gap: page-gap`）。`YoChrome` 是第一子节点。内容进 `YoPanel`（`variant=pane` 撑满）。禁止模块再写一套页垫。空态文案不得复写页眉模块名。设置页分组走 `YoPanel` 默认 card，边距仍是 `page-margin`。
 - **通铺与分区**：窗口 `--yohu-canvas` 通铺；标题栏与工作区、状态栏不拉结构分割线。侧栏展开时与内容区之间画 hairline。模块分区 = `YoPanel`（surface + radius-md + hairline 描边 + XS 阴影）。分割线还用于：页签指示、表头/列、数据行、对话框头尾、输入类控件。路径栏与清单靠 canvas 分层，不另拉线。
-- **状态栏**：左「展示名 v版本」（`system.info.identity`）/ 中留白 / 右「设备 · 任务 · 状态」；任务悬停显示明细。透明贴合 canvas。Caption + leading-tight。
+- **状态栏**：左「展示名 v版本」（`system.info.identity`）/ 中留白 / 右「设备 · 任务 · 状态」；任务悬停显示明细。状态槽由模块 `Status` 贡献（投屏出画后显示实测 fps）。透明贴合 canvas。Caption + leading-tight。
 - **对话框**：Title_S Bold；PC 小圆角 `radius-sm`；宽 ≤400、高 ≤90%；**不要**把窗口最小 360×240 套到浮层确认框。
 - **快捷键统一表（v6.1 目标）**：`Ctrl+K` 命令面板（模块跳转/刷新设备/开始采集…）；模块内快捷键不变。
 
@@ -337,8 +339,9 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 ### 4.4 投屏显示
 
 - 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。画面在 `YoPanel variant=pane` 内等比适应（`max-width/height: 100%`），不是编码器 `max_size`。
-- 空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 `YoLoading cover`，不走空态。Live 不等于已出画：首帧绘制前舞台保持加载，避免黑屏空等。
-- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（长边 / 码率 / 帧率，**下次开始生效**）、**通道**（只读即时关控制，开控制需重启会话；强制转发下次开始）、**导航**（仅非只读时出现；控制关闭时键禁用）。禁止再把这些控件放进页眉 extra。
+- 舞台是叠层包含块：底层 canvas 铺满（display×DPR）；空态/加载进 overlay，禁止与 canvas 共 flex 流。空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 overlay 内的 `YoLoading`，不走空态。Live 不等于已出画：首帧绘制前舞台保持加载，避免黑屏空等。
+- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）、**通道**（只读即时关控制，开控制需重启会话；强制转发下次开始；无线调试常规走 forward）、**导航**（仅非只读时出现；控制关闭时键禁用）。禁止再把这些控件放进页眉 extra。
+- 实测 fps 在状态栏右下角（1s 窗口已绘帧），不是画面角标，也不是质量栏的编码器上限。
 
 ### 4.5 设置
 

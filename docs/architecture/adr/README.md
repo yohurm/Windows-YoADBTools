@@ -10,7 +10,7 @@
 | 004 | 框架 | SolidJS |
 | 005 | core 边界 | core 零 Tauri |
 | 006 | 采集 | 每设备一路；过滤在消费端；replay 读环 |
-| 007 | 批量 IPC | 100–200ms；丢推送不丢环；投屏帧例外 |
+| 007 | 批量 IPC | 100–200ms；丢推送不丢环；投屏帧见 023 |
 | 008 | ADB | sidecar 官方 adb.exe |
 | 009 | 判定 | CommandEvaluator 在 domain |
 | 010 | 日志分离 | AppLog 内存环 vs logcat |
@@ -26,3 +26,4 @@
 | 020 | 事件名 | `/` 分层；invoke 仍点分 |
 | [021](ADR-v6-021.md) | 日志导出真相 | **开放：** 环 vs session-logs |
 | [022](ADR-v6-022.md) | 更新通道 | GitHub Releases；非 plugin-updater |
+| [023](ADR-v6-023.md) | 投屏画质 | 协议 USB/wifi + 二进制 Channel + display×DPR |
