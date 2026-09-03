@@ -1,5 +1,5 @@
-//! 设备目录：最近一次成功的 `adb devices -l` 就是唯一快照。
-//! 扫描失败不改目录；扫描成功（含空列表）整表替换。commands 只转发。
+//! 设备目录：最近一次成功的 `adb devices -l` 就是唯一存在性快照。
+//! 扫描失败不改目录；扫描成功（含空列表）整表替换。离开 Online 的 serial 收敛采集/投屏/状态 Hub。
 
 use tokio_util::sync::CancellationToken;
 
@@ -56,6 +56,12 @@ pub async fn refresh(state: &AppState) -> Result<Vec<DeviceInfo>, String> {
     }
 
     let settings = state.settings.snapshot();
+    let online: Vec<String> = devices
+        .iter()
+        .filter(|d| d.state == DeviceState::Online)
+        .map(|d| d.serial.clone())
+        .collect();
+    state.status.sync_online(&online);
     for device in &devices {
         if device.state == DeviceState::Online {
             let serial = device.serial.clone();

@@ -30,7 +30,7 @@ use tauri::{Manager, RunEvent};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
-use yohu_adb::{AdbClient, ToolResolver};
+use yohu_adb::{AdbClient, DeviceStatusHub, ToolResolver};
 use yohu_domain::AppLog;
 use yohu_files::{FileBrowser, FileMutator, TransferRunner};
 use yohu_logsrv::{CaptureService, SessionLogService};
@@ -113,6 +113,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             snapshot.buffer_capacity,
             root_cancel.clone(),
         );
+        let status = DeviceStatusHub::new(client.clone(), event_tx.clone(), root_cancel.clone());
         let mirror = MirrorService::new(client.clone(), event_tx.clone(), server_jar);
         let present = PresentHost::new(event_tx.clone(), std::sync::Arc::clone(&mirror));
 
@@ -120,6 +121,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             client: client.clone(),
             tool,
             capture,
+            status,
             mirror,
             present: std::sync::Arc::clone(&present),
             browser: FileBrowser::new(client.clone()),
@@ -202,6 +204,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .invoke_handler(tauri::generate_handler![
             commands::device::device_list,
             commands::device::device_refresh,
+            commands::device::device_status,
+            commands::device::device_set_night_mode,
             commands::adb::adb_exec,
             commands::terminal::terminal_eval,
             commands::terminal::group_run,
@@ -235,7 +239,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::mirror::mirror_close_control,
             commands::mirror::mirror_layout,
             commands::mirror::mirror_screenshot,
-            commands::settings::settings_get,
             commands::settings::settings_set,
             commands::system::system_info,
             commands::system::system_open_path,

@@ -32,7 +32,7 @@ pub async fn files_list(
         .map_err(ipc_file)
 }
 
-/// `files.push`：本机 → 设备（异步传输，进度经 `transfer.progress` 事件）。
+/// `files.push`：本机 → 设备（异步传输，进度经 `transfer/progress` 事件）。
 #[tauri::command(rename = "files.push")]
 pub async fn files_push(
     state: State<'_, AppState>,

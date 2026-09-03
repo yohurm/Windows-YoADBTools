@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
-use yohu_adb::{AdbClient, ToolResolver};
+use yohu_adb::{AdbClient, DeviceStatusHub, ToolResolver};
 use yohu_domain::{
     assert_device_online, assert_targets_online, AppLog, CommandLibrary, DeviceSessionError,
 };
@@ -29,6 +29,7 @@ pub struct AppState {
     pub client: Arc<AdbClient>,
     pub tool: Arc<ToolResolver>,
     pub capture: Arc<CaptureService>,
+    pub status: Arc<DeviceStatusHub>,
     pub mirror: Arc<MirrorService>,
     pub present: Arc<PresentHost>,
     pub browser: FileBrowser,
