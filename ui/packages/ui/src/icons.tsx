@@ -5,6 +5,7 @@
  * **被挪走**（导航点进模块后图标消失）。因此每个 glyph 必须是工厂函数。
  */
 import type { JSX } from "solid-js";
+import { HARMONY_GLYPHS, HARMONY_VIEWBOX, type HarmonyIconName } from "./harmony-glyphs";
 import "./icons.css";
 
 /** 图标名（组件库图标集，模块注册表只允许使用这些名字） */
@@ -32,7 +33,8 @@ export type IconName =
   | "arrow-down"
   | "window-max"
   | "window-min"
-  | "window-restore";
+  | "window-restore"
+  | HarmonyIconName;
 
 export interface IconProps {
   /** 图标名 */
@@ -43,7 +45,7 @@ export interface IconProps {
 
 const FILLED: ReadonlySet<IconName> = new Set(["play", "pause"]);
 
-/** 图标路径工厂（描边风格，24×24）。每次调用返回新节点。 */
+/** 图标路径工厂。描边 24×24；鸿蒙符号见 `HARMONY_GLYPHS`（1024 填充）。 */
 const ICON_GLYPHS: Record<IconName, () => JSX.Element> = {
   refresh: () => (
     <>
@@ -162,6 +164,7 @@ const ICON_GLYPHS: Record<IconName, () => JSX.Element> = {
       <path d="M9 9V7a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2" />
     </>
   ),
+  ...HARMONY_GLYPHS,
 };
 
 /** 图标名清单（注册表/测试用，与 ICON_GLYPHS 对齐）。 */
@@ -169,20 +172,21 @@ export const ICON_NAMES = Object.keys(ICON_GLYPHS) as IconName[];
 
 /**
  * 图标组件：按名字渲染自绘 SVG。
- * play/pause 为实心（fill），其余为描边（stroke）；颜色走 currentColor。
+ * play/pause 与鸿蒙符号为实心（fill），其余为描边（stroke）；颜色走 currentColor。
  */
 export function Icon(props: IconProps): JSX.Element {
   const size = () => props.size ?? 16;
-  const filled = () => FILLED.has(props.name);
+  const harmony = () => props.name in HARMONY_GLYPHS;
+  const filled = () => FILLED.has(props.name) || harmony();
   return (
     <svg
       class="yohu-icon"
       width={size()}
       height={size()}
-      viewBox="0 0 24 24"
+      viewBox={harmony() ? HARMONY_VIEWBOX : "0 0 24 24"}
       fill={filled() ? "currentColor" : "none"}
       stroke={filled() ? "none" : "currentColor"}
-      stroke-width={2}
+      stroke-width={filled() ? undefined : 2}
       stroke-linecap="round"
       stroke-linejoin="round"
       aria-hidden="true"

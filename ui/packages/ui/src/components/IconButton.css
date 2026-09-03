@@ -25,6 +25,11 @@
   background-color: var(--yohu-state-pressed);
 }
 
+.yohu-icon-button--pressed:not(:disabled) {
+  background-color: var(--yohu-accent-soft);
+  color: var(--yohu-accent);
+}
+
 .yohu-icon-button:disabled {
   color: var(--yohu-disabled);
   cursor: not-allowed;

@@ -30,4 +30,11 @@ describe("YoIconButton", () => {
     expect((btn as HTMLButtonElement).disabled).toBe(true);
     expect(container.querySelector(".yohu-icon-button--loading")).toBeTruthy();
   });
+
+  it("pressed 时带 aria-pressed", () => {
+    render(() => <YoIconButton icon="nav-home" title="Home" pressed />);
+    const btn = screen.getByRole("button", { name: "Home" });
+    expect(btn.getAttribute("aria-pressed")).toBe("true");
+    expect(btn.className).toContain("yohu-icon-button--pressed");
+  });
 });

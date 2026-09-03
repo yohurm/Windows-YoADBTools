@@ -27,6 +27,8 @@ export interface YoButtonProps {
   type?: "button" | "submit" | "reset";
   /** 展开控件（预览栏等） */
   "aria-expanded"?: boolean;
+  /** 切换按下态 */
+  "aria-pressed"?: boolean;
   children: JSX.Element;
 }
 
@@ -47,6 +49,7 @@ export function YoButton(props: YoButtonProps): JSX.Element {
       disabled={props.disabled || props.loading}
       aria-busy={props.loading}
       aria-expanded={props["aria-expanded"]}
+      aria-pressed={props["aria-pressed"]}
       onClick={props.onClick}
     >
       {props.loading ? <span class="yohu-button__spinner" aria-hidden="true" /> : null}

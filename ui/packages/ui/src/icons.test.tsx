@@ -29,21 +29,29 @@ describe("Icon", () => {
     expect(container.querySelectorAll("svg[data-icon]")).toHaveLength(names.length);
   });
 
-  it("play/pause 为实心，其余为描边", () => {
+  it("play/pause 与鸿蒙符号为实心，描边图标 fill 为 none", () => {
     const { container } = render(() => (
       <>
         <Icon name="play" />
         <Icon name="folder" />
+        <Icon name="nav-back" />
       </>
     ));
     const play = container.querySelector('svg[data-icon="play"]');
     const folder = container.querySelector('svg[data-icon="folder"]');
+    const back = container.querySelector('svg[data-icon="nav-back"]');
     expect(play?.getAttribute("fill")).toBe("currentColor");
     expect(folder?.getAttribute("fill")).toBe("none");
     expect(folder?.getAttribute("stroke")).toBe("currentColor");
+    expect(back?.getAttribute("fill")).toBe("currentColor");
+    expect(back?.getAttribute("stroke")).toBe("none");
+    expect(back?.getAttribute("viewBox")).toBe("0 0 1024 1024");
   });
 
   it("含窗口三键图标", () => {
     expect(ICON_NAMES).toEqual(expect.arrayContaining(["window-max", "window-min", "window-restore"]));
+    expect(ICON_NAMES).toEqual(
+      expect.arrayContaining(["nav-back", "nav-home", "nav-recent", "nav-power", "volume-up", "display-on"]),
+    );
   });
 });

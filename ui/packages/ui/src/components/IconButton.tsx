@@ -22,6 +22,8 @@ export interface YoIconButtonProps {
   onClick?: (event: MouseEvent) => void;
   /** 展开控件（侧栏等） */
   "aria-expanded"?: boolean;
+  /** 切换按下态（仅显示等） */
+  pressed?: boolean;
 }
 
 /**
@@ -32,11 +34,15 @@ export function YoIconButton(props: YoIconButtonProps): JSX.Element {
     <button
       type="button"
       class="yohu-icon-button yohu-focus-ring"
-      classList={{ "yohu-icon-button--loading": !!props.loading }}
+      classList={{
+        "yohu-icon-button--loading": !!props.loading,
+        "yohu-icon-button--pressed": !!props.pressed,
+      }}
       title={props.title}
       aria-label={props.title}
       aria-busy={props.loading}
       aria-expanded={props["aria-expanded"]}
+      aria-pressed={props.pressed}
       disabled={props.disabled || props.loading}
       onClick={props.onClick}
     >

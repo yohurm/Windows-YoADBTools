@@ -55,4 +55,13 @@ describe("YoButton", () => {
     expect(screen.queryByRole("button", { name: "预览" })).toBeNull();
     expect(document.querySelector(".yohu-swap")?.getAttribute("data-resizing")).toBeNull();
   });
+
+  it("aria-pressed 透传到按钮", () => {
+    render(() => (
+      <YoButton size="sm" variant="secondary" aria-pressed>
+        仅显示
+      </YoButton>
+    ));
+    expect(screen.getByRole("button", { name: "仅显示" }).getAttribute("aria-pressed")).toBe("true");
+  });
 });
