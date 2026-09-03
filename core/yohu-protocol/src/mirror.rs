@@ -10,20 +10,6 @@ pub struct MirrorStart {
     pub adopted: bool,
 }
 
-/// 会话快照。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MirrorStatus {
-    pub serial: String,
-    pub mirroring: bool,
-    pub generation: u64,
-    pub width: u32,
-    pub height: u32,
-    pub codec: String,
-    pub control: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
-}
-
 /// 控制面状态（`send().await` 必达）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

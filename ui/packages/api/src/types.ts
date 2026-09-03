@@ -419,17 +419,6 @@ export interface MirrorStart {
   adopted: boolean;
 }
 
-export interface MirrorStatus {
-  serial: string;
-  mirroring: boolean;
-  generation: number;
-  width: number;
-  height: number;
-  codec: string;
-  control: boolean;
-  error?: string;
-}
-
 export interface MirrorStartRequest {
   serial: string;
   control: boolean;

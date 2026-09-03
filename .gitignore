@@ -70,6 +70,4 @@ coverage/
 /tools/AdbWinApi.dll
 /tools/AdbWinUsbApi.dll
 /tools/scrcpy-server
-# leftover, unused (ADR-v6-024: in-process MF, no ffmpeg sidecar)
-/tools/ffmpeg/*
-!/tools/ffmpeg/.gitkeep
+/tools/ffmpeg/

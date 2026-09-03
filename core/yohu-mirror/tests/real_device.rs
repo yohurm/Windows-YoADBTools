@@ -221,7 +221,10 @@ async fn real_mirror_video_only_live_packets() {
         .await
         .expect("mirror.start");
     assert!(!started.adopted);
-    assert!(service.status(&serial).mirroring);
+    assert!(
+        service.frame_pipe(&serial).is_some(),
+        "Live 槽位应有 FramePipe"
+    );
     let pipe = service.frame_pipe(&serial).expect("frame pipe");
 
     let stream = wait_live_packets(
@@ -268,7 +271,10 @@ async fn real_mirror_video_only_live_packets() {
     assert_eq!(adopted.generation, started.generation);
 
     service.stop(&serial).await;
-    assert!(!service.status(&serial).mirroring, "停止后不应仍在投屏");
+    assert!(
+        service.frame_pipe(&serial).is_none(),
+        "停止后不应仍有 FramePipe"
+    );
     eprintln!("[真机] 停止完成");
 }
 
@@ -385,10 +391,6 @@ async fn real_mirror_control_inject() {
         }
         panic!("带控制启动也应出包，实际 {}", stream.packets);
     }
-    assert!(
-        service.status(&serial).control,
-        "Live 后 status.control 应为 true"
-    );
     service
         .inject(&serial, MirrorControlMessage::DisplayPower { on: true })
         .await

@@ -8,9 +8,7 @@ use std::time::Duration;
 use tokio::sync::{mpsc, Notify};
 use tokio_util::sync::CancellationToken;
 use yohu_adb::AdbClient;
-use yohu_protocol::{
-    AppEvent, MirrorControlMessage, MirrorSessionState, MirrorStart, MirrorStatus,
-};
+use yohu_protocol::{AppEvent, MirrorControlMessage, MirrorSessionState, MirrorStart};
 
 use crate::error::MirrorError;
 use crate::frame::FramePipe;
@@ -32,11 +30,7 @@ struct MirrorSlot {
     cancel: CancellationToken,
     handle: Option<tokio::task::JoinHandle<()>>,
     control_tx: Option<mpsc::Sender<ControlCmd>>,
-    width: u32,
-    height: u32,
-    codec: String,
     control: bool,
-    error: Option<String>,
     frames: Arc<FramePipe>,
 }
 
@@ -100,32 +94,6 @@ impl MirrorService {
         })
     }
 
-    pub fn status(&self, serial: &str) -> MirrorStatus {
-        let inner = self.inner.lock().expect("mirror lock poisoned");
-        match inner.slots.get(serial) {
-            Some(slot) => MirrorStatus {
-                serial: serial.to_string(),
-                mirroring: slot.phase == Phase::Starting || slot.phase == Phase::Live,
-                generation: slot.generation,
-                width: slot.width,
-                height: slot.height,
-                codec: slot.codec.clone(),
-                control: slot.control,
-                error: slot.error.clone(),
-            },
-            None => MirrorStatus {
-                serial: serial.to_string(),
-                mirroring: false,
-                generation: inner.last_generation.get(serial).copied().unwrap_or(0),
-                width: 0,
-                height: 0,
-                codec: String::new(),
-                control: false,
-                error: None,
-            },
-        }
-    }
-
     fn decide_start(&self, serial: &str) -> StartDecision {
         let mut inner = self.inner.lock().expect("mirror lock poisoned");
         match inner.slots.get(serial) {
@@ -149,11 +117,7 @@ impl MirrorService {
                         cancel: cancel.clone(),
                         handle: None,
                         control_tx: Some(control_tx),
-                        width: 0,
-                        height: 0,
-                        codec: String::new(),
                         control: false,
-                        error: None,
                         frames: Arc::clone(&frames),
                     },
                 );
@@ -291,8 +255,8 @@ impl MirrorService {
                         warm: warm.take(),
                     },
                     rx,
-                    move |width, height, codec| {
-                        live_service.mark_live(&live_serial, my_generation, width, height, codec);
+                    move |_width, _height, _codec| {
+                        live_service.mark_live(&live_serial, my_generation);
                     },
                 )
                 .await;
@@ -345,14 +309,11 @@ impl MirrorService {
         })
     }
 
-    fn mark_live(&self, serial: &str, generation: u64, width: u32, height: u32, codec: String) {
+    fn mark_live(&self, serial: &str, generation: u64) {
         let mut inner = self.inner.lock().expect("mirror lock poisoned");
         if let Some(slot) = inner.slots.get_mut(serial) {
             if slot.generation == generation && slot.phase == Phase::Starting {
                 slot.phase = Phase::Live;
-                slot.width = width;
-                slot.height = height;
-                slot.codec = codec;
             }
         }
         self.changed.notify_waiters();

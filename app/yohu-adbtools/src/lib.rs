@@ -231,7 +231,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::log::log_process_snapshot,
             commands::mirror::mirror_start,
             commands::mirror::mirror_stop,
-            commands::mirror::mirror_status,
             commands::mirror::mirror_inject,
             commands::mirror::mirror_close_control,
             commands::mirror::mirror_layout,

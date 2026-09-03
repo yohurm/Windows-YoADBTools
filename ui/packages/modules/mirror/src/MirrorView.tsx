@@ -188,12 +188,16 @@ export function MirrorView(props: DeviceSession) {
     const _has = mirrorStore.state.hasFrame;
     const _w = mirrorStore.state.width;
     const _h = mirrorStore.state.height;
+    const _ro = mirrorStore.state.readOnly;
+    const _ctrl = mirrorStore.state.control;
     void _phase;
     void _paused;
     void _full;
     void _has;
     void _w;
     void _h;
+    void _ro;
+    void _ctrl;
     pushLayout(!_paused && (_phase === "live" || _phase === "starting"));
   });
 

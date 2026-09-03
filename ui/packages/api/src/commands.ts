@@ -42,7 +42,6 @@ import type {
   UpdateDownloadResult,
   MirrorStart,
   MirrorStartRequest,
-  MirrorStatus,
   MirrorInjectRequest,
   MirrorLayout,
   MirrorScreenshotRequest,
@@ -137,9 +136,6 @@ export const mirrorStart = (req: MirrorStartRequest) =>
   invoke<MirrorStart>("mirror.start", { req });
 
 export const mirrorStop = (serial: string) => invoke<void>("mirror.stop", { serial });
-
-export const mirrorStatus = (serial: string) =>
-  invoke<MirrorStatus>("mirror.status", { serial });
 
 export const mirrorInject = (req: MirrorInjectRequest) =>
   invoke<void>("mirror.inject", { req });

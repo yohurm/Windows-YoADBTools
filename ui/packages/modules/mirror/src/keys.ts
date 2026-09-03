@@ -7,7 +7,3 @@ export const AndroidKey = {
   Power: 26,
   AppSwitch: 187,
 } as const;
-
-export const TOUCH_DOWN = 0;
-export const TOUCH_UP = 1;
-export const TOUCH_MOVE = 2;

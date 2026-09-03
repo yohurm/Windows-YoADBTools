@@ -96,6 +96,8 @@ pub struct Gpu {
     compose: Option<ID3D11Texture2D>,
     nv12: Option<ID3D11Texture2D>,
     vp_ok: bool,
+    last_cpu: Option<Vec<u8>>,
+    last_video: Option<(ID3D11Texture2D, u32)>,
 }
 
 impl Gpu {
@@ -171,6 +173,8 @@ impl Gpu {
             compose: None,
             nv12: None,
             vp_ok: true,
+            last_cpu: None,
+            last_video: None,
         };
         gpu.bind_backbuffer()?;
         Ok(gpu)
@@ -223,6 +227,8 @@ impl Gpu {
         dest: Letterbox,
     ) -> WinResult<()> {
         if self.vp_ok && self.blit_cpu_vp(width, height, nv12, dest).is_ok() {
+            self.last_cpu = Some(nv12.to_vec());
+            self.last_video = None;
             return self.present();
         }
         if self.vp_ok {
@@ -231,6 +237,8 @@ impl Gpu {
         }
         self.upload_planes(width, height, nv12)?;
         self.draw_shader(dest)?;
+        self.last_cpu = Some(nv12.to_vec());
+        self.last_video = None;
         self.present()
     }
 
@@ -251,6 +259,8 @@ impl Gpu {
             self.processor = None;
         }
         self.blit_texture_vp(texture, subresource, dest)?;
+        self.last_cpu = None;
+        self.last_video = Some((texture.clone(), subresource));
         self.present()
     }
 
@@ -602,42 +612,106 @@ impl Gpu {
         unsafe { self.swapchain.Present(0, DXGI_PRESENT(0)).ok() }
     }
 
-    pub fn screenshot_bgra(&self) -> WinResult<(u32, u32, Vec<u8>)> {
-        let src: ID3D11Texture2D = unsafe { self.swapchain.GetBuffer(0)? };
-        let desc = D3D11_TEXTURE2D_DESC {
-            Width: self.buf_w,
-            Height: self.buf_h,
-            MipLevels: 1,
-            ArraySize: 1,
-            Format: DXGI_FORMAT_B8G8R8A8_UNORM,
-            SampleDesc: DXGI_SAMPLE_DESC {
-                Count: 1,
-                Quality: 0,
-            },
-            Usage: D3D11_USAGE_STAGING,
-            BindFlags: 0,
-            CPUAccessFlags: D3D11_CPU_ACCESS_READ.0 as u32,
-            MiscFlags: 0,
-        };
-        let staging = create_texture(&self.device, &desc)?;
-        unsafe { self.context.CopyResource(&staging, &src) };
-        let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
-        unsafe {
-            self.context
-                .Map(&staging, 0, D3D11_MAP_READ, 0, Some(&mut mapped))?;
+    pub fn screenshot_bgra(&mut self) -> WinResult<(u32, u32, Vec<u8>)> {
+        let width = self.video_w;
+        let height = self.video_h;
+        if width == 0 || height == 0 {
+            return Err(windows::core::Error::from_win32());
         }
-        let mut out = vec![0u8; (self.buf_w * self.buf_h * 4) as usize];
-        let pitch = mapped.RowPitch as usize;
-        let src_ptr = mapped.pData as *const u8;
-        for y in 0..self.buf_h as usize {
-            let row = unsafe {
-                std::slice::from_raw_parts(src_ptr.add(y * pitch), self.buf_w as usize * 4)
+        let nv12 = if let Some(cpu) = self.last_cpu.as_ref() {
+            cpu.clone()
+        } else {
+            let Some((texture, subresource)) = self.last_video.clone() else {
+                return Err(windows::core::Error::from_win32());
             };
-            out[y * self.buf_w as usize * 4..(y + 1) * self.buf_w as usize * 4].copy_from_slice(row);
-        }
-        unsafe { self.context.Unmap(&staging, 0) };
-        Ok((self.buf_w, self.buf_h, out))
+            destage_nv12(&self.device, &self.context, &texture, subresource, width, height)?
+        };
+        Ok((width, height, nv12_to_bgra(width, height, &nv12)))
     }
+}
+
+fn destage_nv12(
+    device: &ID3D11Device,
+    context: &ID3D11DeviceContext,
+    texture: &ID3D11Texture2D,
+    subresource: u32,
+    width: u32,
+    height: u32,
+) -> WinResult<Vec<u8>> {
+    let desc = D3D11_TEXTURE2D_DESC {
+        Width: width.max(2) & !1,
+        Height: height.max(2) & !1,
+        MipLevels: 1,
+        ArraySize: 1,
+        Format: DXGI_FORMAT_NV12,
+        SampleDesc: DXGI_SAMPLE_DESC {
+            Count: 1,
+            Quality: 0,
+        },
+        Usage: D3D11_USAGE_STAGING,
+        BindFlags: 0,
+        CPUAccessFlags: D3D11_CPU_ACCESS_READ.0 as u32,
+        MiscFlags: 0,
+    };
+    let staging = create_texture(device, &desc)?;
+    unsafe {
+        context.CopySubresourceRegion(&staging, 0, 0, 0, 0, texture, subresource, None);
+    }
+    let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+    unsafe {
+        context.Map(&staging, 0, D3D11_MAP_READ, 0, Some(&mut mapped))?;
+    }
+    let packed = pack_nv12_mapped(&mapped, desc.Width, desc.Height);
+    unsafe {
+        context.Unmap(&staging, 0);
+    }
+    Ok(packed)
+}
+
+fn pack_nv12_mapped(mapped: &D3D11_MAPPED_SUBRESOURCE, width: u32, height: u32) -> Vec<u8> {
+    let w = width as usize;
+    let h = height as usize;
+    let pitch = mapped.RowPitch as usize;
+    let src = mapped.pData as *const u8;
+    let mut out = vec![0u8; w * h * 3 / 2];
+    for y in 0..h {
+        let row = unsafe { std::slice::from_raw_parts(src.add(y * pitch), w) };
+        out[y * w..(y + 1) * w].copy_from_slice(row);
+    }
+    let uv = w * h;
+    for y in 0..h / 2 {
+        let row = unsafe { std::slice::from_raw_parts(src.add((h + y) * pitch), w) };
+        let o = uv + y * w;
+        out[o..o + w].copy_from_slice(row);
+    }
+    out
+}
+
+fn nv12_to_bgra(width: u32, height: u32, nv12: &[u8]) -> Vec<u8> {
+    let w = width as usize;
+    let h = height as usize;
+    let y_size = w * h;
+    let mut out = vec![0u8; y_size * 4];
+    if nv12.len() < y_size + y_size / 2 {
+        return out;
+    }
+    for y in 0..h {
+        for x in 0..w {
+            let luma = nv12[y * w + x] as f32 / 255.0;
+            let uv_i = y_size + (y / 2) * w + (x & !1);
+            let u = nv12[uv_i] as f32 / 255.0 - 0.5;
+            let v = nv12[uv_i + 1] as f32 / 255.0 - 0.5;
+            let r = (luma + 1.5748 * v).clamp(0.0, 1.0);
+            let g = (luma - 0.1873 * u - 0.4681 * v).clamp(0.0, 1.0);
+            let b = (luma + 1.8556 * u).clamp(0.0, 1.0);
+            let i = (y * w + x) * 4;
+            out[i] = (b * 255.0) as u8;
+            out[i + 1] = (g * 255.0) as u8;
+            out[i + 2] = (r * 255.0) as u8;
+            out[i + 3] = 255;
+        }
+    }
+    out
 }
 
 fn create_device() -> WinResult<(ID3D11Device, ID3D11DeviceContext)> {

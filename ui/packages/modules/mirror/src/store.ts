@@ -27,9 +27,6 @@ import {
   YoLog,
 } from "@yohu/api";
 
-/** 等待投屏进入 Live 的超时（ms）。 */
-const WAIT_LIVE_TIMEOUT_MS = 20_000;
-
 export type MirrorPhase = "idle" | "starting" | "live" | "failed";
 
 export interface MirrorUiState {
@@ -106,7 +103,6 @@ export function createMirrorStore() {
 
   let gate: Promise<void> = Promise.resolve();
   let sessionQualityTouched = false;
-  let startWatchId: number | undefined;
   const unlistens: Promise<() => void>[] = [];
 
   function runExclusive(fn: () => Promise<void>): Promise<void> {
@@ -116,39 +112,6 @@ export function createMirrorStore() {
       () => undefined,
     );
     return run;
-  }
-
-  function clearStartWatch(): void {
-    if (startWatchId !== undefined) {
-      window.clearTimeout(startWatchId);
-      startWatchId = undefined;
-    }
-  }
-
-  function armStartWatch(serial: string, generation: number): void {
-    clearStartWatch();
-    startWatchId = window.setTimeout(() => {
-      startWatchId = undefined;
-      void runExclusive(async () => {
-        if (state.phase !== "starting" || state.serial !== serial || state.generation !== generation) {
-          return;
-        }
-        YoLog.error("mirror", "等待 Live 超时，停止卡住会话");
-        try {
-          await hideSurface(serial);
-          await mirrorStop(serial);
-        } catch (e) {
-          YoLog.warn("mirror", "超时停止失败", String(e));
-        }
-        if (state.phase === "starting" && state.serial === serial && state.generation === generation) {
-          setState({
-            phase: "failed",
-            error: "投屏启动超时",
-            hasFrame: false,
-          });
-        }
-      });
-    }, WAIT_LIVE_TIMEOUT_MS);
   }
 
   function applySettings(
@@ -181,7 +144,6 @@ export function createMirrorStore() {
     }
     if (prev && (state.phase === "live" || state.phase === "starting")) {
       await runExclusive(async () => {
-        clearStartWatch();
         await hideSurface(prev);
         await mirrorStop(prev);
       });
@@ -235,9 +197,7 @@ export function createMirrorStore() {
         });
         setState({ generation: result.generation });
         YoLog.info("mirror", "start 返回", result);
-        armStartWatch(serial, result.generation);
       } catch (e) {
-        clearStartWatch();
         const error = errorText(e);
         YoLog.error("mirror", "start 失败", error);
         setState({
@@ -254,7 +214,6 @@ export function createMirrorStore() {
     if (!serial) return;
     await runExclusive(async () => {
       YoLog.info("mirror", "停止", serial);
-      clearStartWatch();
       await hideSurface(serial);
       await mirrorStop(serial);
       setState({
@@ -275,23 +234,19 @@ export function createMirrorStore() {
   }
 
   async function setReadOnly(next: boolean): Promise<void> {
-    setState("readOnly", next);
-    if (state.phase !== "live" && state.phase !== "starting") return;
+    if (next === state.readOnly) return;
     const serial = state.serial;
-    if (!serial) return;
-    if (next) {
-      try {
-        await mirrorCloseControl(serial);
-        setState("control", false);
-      } catch {
-        await stop();
-        setState("readOnly", true);
-        await start();
-      }
+    if (!serial || state.phase !== "live") {
+      setState("readOnly", next);
       return;
     }
-    await stop();
+    if (next) {
+      await mirrorCloseControl(serial);
+      setState({ readOnly: true, control: false });
+      return;
+    }
     setState("readOnly", false);
+    await stop();
     await start();
   }
 
@@ -354,9 +309,6 @@ export function createMirrorStore() {
         codec: e.codec,
         error: e.error,
       });
-      if (e.state !== "starting") {
-        clearStartWatch();
-      }
       setState({
         generation: e.generation,
         phase: phaseOf(e.state),
@@ -391,7 +343,6 @@ export function createMirrorStore() {
   unlistens.push(
     onDeviceOffline((e) => {
       if (e.serial !== state.serial) return;
-      clearStartWatch();
       setState({
         phase: "idle",
         error: "设备已掉线",
@@ -419,7 +370,6 @@ export function createMirrorStore() {
 
   const hot = (import.meta as { hot?: { dispose: (cb: () => void) => void } }).hot;
   hot?.dispose(() => {
-    clearStartWatch();
     for (const p of unlistens) void p.then((unlisten) => unlisten());
   });
 

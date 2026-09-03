@@ -109,6 +109,11 @@ impl FramePipe {
             self.notify.notified().await;
         }
     }
+
+    /// 呈现线程直取。禁止再泵进无界通道，否则本队列的 8 帧背压失效。
+    pub fn try_recv(&self) -> Option<EncodedFrame> {
+        self.pop()
+    }
 }
 
 fn evict_for(
@@ -224,6 +229,16 @@ mod tests {
         let first = pipe.pop().expect("latest config");
         assert_eq!(first.pts, 7);
         assert!(pipe.pop().is_none());
+    }
+
+    #[test]
+    fn try_recv_drains_without_wait() {
+        let pipe = FramePipe::new();
+        pipe.push(frame(true, false, 0));
+        pipe.push(frame(false, true, 1));
+        assert!(pipe.try_recv().expect("config").config);
+        assert!(pipe.try_recv().expect("idr").keyframe);
+        assert!(pipe.try_recv().is_none());
     }
 
     #[test]

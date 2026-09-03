@@ -256,7 +256,7 @@ describe("mirror store", () => {
     });
   });
 
-  it("saveScreenshot 取消时不写盘", async () => {
+    it("saveScreenshot 取消时不写盘", async () => {
     const { createMirrorStore } = await import("./store");
     const store = createMirrorStore();
     await store.bindSerial("S1");
@@ -265,16 +265,25 @@ describe("mirror store", () => {
     expect(mocks.mirrorScreenshot).not.toHaveBeenCalled();
   });
 
-  it("starting 超过 20s 则超时失败并停止", async () => {
+  it("Live 只读只 closeControl，失败不上重启", async () => {
     const { createMirrorStore } = await import("./store");
     const store = createMirrorStore();
     await store.bindSerial("S1");
+    await store.setReadOnly(false);
     mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
     await store.start();
-    expect(store.state.phase).toBe("starting");
-    await vi.advanceTimersByTimeAsync(20_000);
-    expect(store.state.phase).toBe("failed");
-    expect(store.state.error).toBe("投屏启动超时");
-    expect(mocks.mirrorStop).toHaveBeenCalledWith("S1");
+    mocks.stateHandlers.at(-1)!({
+      serial: "S1",
+      generation: 1,
+      state: "live",
+      width: 1080,
+      height: 1920,
+      codec: "h265",
+      control: true,
+    });
+    mocks.mirrorCloseControl.mockRejectedValueOnce(new Error("NotLive"));
+    await expect(store.setReadOnly(true)).rejects.toThrow("NotLive");
+    expect(mocks.mirrorStop).not.toHaveBeenCalled();
+    expect(store.state.readOnly).toBe(false);
   });
 });

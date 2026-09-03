@@ -7,7 +7,7 @@ use crate::state::AppState;
 use yohu_mirror::{MirrorError, MirrorSessionRequest};
 use yohu_protocol::{
     IpcError, IpcErrorCode, MirrorInjectRequest, MirrorLayout, MirrorScreenshotRequest, MirrorStart,
-    MirrorStartRequest, MirrorStatus,
+    MirrorStartRequest,
 };
 
 fn ipc_mirror(e: MirrorError) -> IpcError {
@@ -95,11 +95,6 @@ pub async fn mirror_stop(state: State<'_, AppState>, serial: String) -> Result<(
     state.mirror.stop(&serial).await;
     state.finish_mirror_task(&serial);
     Ok(())
-}
-
-#[tauri::command(rename = "mirror.status")]
-pub fn mirror_status(state: State<'_, AppState>, serial: String) -> MirrorStatus {
-    state.mirror.status(&serial)
 }
 
 #[tauri::command(rename = "mirror.inject")]

@@ -18,7 +18,7 @@
 | `log.clear` / `log.clearDevice` / `log.replay` / `log.processSnapshot` | 环 / logcat -c / 回补 / ps |
 | `log.sessionFileOpen/Append/Close/Latest/List` | 逐窗口实时文件（见 ADR-v6-021） |
 | `log.export` | **现状：** 合并 session-logs 源文件（不是环快照） |
-| `mirror.start/stop/status/inject/closeControl/layout/screenshot` | 投屏槽位；画面在壳内 Present（ADR-v6-024）。`mirror.start` 只传 `serial/control/connection/session_quality_touched` |
+| `mirror.start/stop/inject/closeControl/layout/screenshot` | 投屏槽位；画面在壳内 Present（ADR-v6-024）。`mirror.start` 只传 `serial/control/connection/session_quality_touched`。Live 状态只信 `mirror/state`，无 `mirror.status` |
 | `settings.get` / `settings.set` | 全量快照事件 |
 | `system.info` / `openPath` / `reportError` / `log` | 关于 / 打开路径 / 上报 |
 | `update.check` / `info` / `download` / `install` / `cancel` / `open` | ADR-v6-022 |
@@ -47,4 +47,4 @@ RingBuffer seq 单调；Batcher 有界 mpsc 满则丢**推送**不丢环；UI �
 
 **导出：** 文档曾写「导出永远读环」。实现是 UI 过滤行写入 `session-logs`，`log.export` 合并这些文件（ADR-v6-021）。replay 仍读环。
 
-**投屏帧：** 不进 JS。`yohu-mirror::FramePipe` 有界 8 帧，sticky 最后一份 config（先丢 delta，不丢 config）；壳内 Media Foundation + D3D11 Present。满则丢待发帧，不影响设备 TCP。`mirror.start` 只传 `serial/control/connection/session_quality_touched`。
+**投屏帧：** 不进 JS。`yohu-mirror::FramePipe` 有界 8 帧，sticky 最后一份 config（先丢 delta，不丢 config）；**呈现线程 `try_recv` 直取**，禁止再泵进无界通道。满则丢待发帧，不影响设备 TCP。`mirror.start` 只传 `serial/control/connection/session_quality_touched`。

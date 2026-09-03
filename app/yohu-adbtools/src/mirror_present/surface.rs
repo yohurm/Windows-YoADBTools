@@ -30,9 +30,13 @@ use super::mf::{DecodedPicture, MfDecoder};
 use super::scale::{fit_letterbox, map_client_to_video, Letterbox};
 
 const CLASS: PCWSTR = w!("YohuMirrorPresent");
+const PRESENT_IDLE: Duration = Duration::from_millis(4);
+const MIN_LAYOUT_PX: u32 = 64;
+const TOUCH_DOWN: u8 = 0;
+const TOUCH_UP: u8 = 1;
+const TOUCH_MOVE: u8 = 2;
 
 pub enum Cmd {
-    Frame(EncodedFrame),
     Layout(MirrorLayout),
     Screenshot {
         path: String,
@@ -72,22 +76,14 @@ pub fn spawn_session(
     event_tx: tokio_mpsc::Sender<AppEvent>,
 ) -> Sender<Cmd> {
     let (tx, rx) = mpsc::channel::<Cmd>();
-    let pump_tx = tx.clone();
     std::thread::Builder::new()
         .name(format!("mirror-present-{serial}"))
         .spawn(move || {
-            if let Err(e) = run_loop(serial, generation, owner, rx, mirror, event_tx) {
+            if let Err(e) = run_loop(serial, generation, owner, rx, pipe, mirror, event_tx) {
                 tracing::error!("投屏呈现退出: {e}");
             }
         })
         .expect("spawn present thread");
-    tauri::async_runtime::spawn(async move {
-        while let Some(frame) = pipe.recv().await {
-            if pump_tx.send(Cmd::Frame(frame)).is_err() {
-                break;
-            }
-        }
-    });
     tx
 }
 
@@ -96,6 +92,7 @@ fn run_loop(
     generation: u64,
     owner: isize,
     rx: Receiver<Cmd>,
+    pipe: Arc<FramePipe>,
     mirror: Arc<MirrorService>,
     event_tx: tokio_mpsc::Sender<AppEvent>,
 ) -> Result<(), String> {
@@ -138,21 +135,26 @@ fn run_loop(
     let mut beat = Instant::now();
     loop {
         pump_messages(hwnd);
-        match rx.recv_timeout(Duration::from_millis(4)) {
+        match rx.recv_timeout(PRESENT_IDLE) {
             Ok(Cmd::Stop) | Err(RecvTimeoutError::Disconnected) => break,
             Ok(Cmd::Layout(layout)) => apply_layout(hwnd, &layout),
             Ok(Cmd::Screenshot { path, reply }) => {
                 let result = screenshot(hwnd, &path);
                 let _ = reply.send(result);
             }
-            Ok(Cmd::Frame(frame)) => {
-                let Some(frames) = collect_frames(&rx, hwnd, frame) else {
-                    break;
-                };
+            Err(RecvTimeoutError::Timeout) => {}
+        }
+        if !drain_cmds(&rx, hwnd) {
+            break;
+        }
+        let ingest = with_state(hwnd, |s| s.visible).unwrap_or(false);
+        if ingest {
+            let frames = drain_pipe(&pipe);
+            if !frames.is_empty() {
                 tick.ingest(hwnd, frames);
             }
-            Err(RecvTimeoutError::Timeout) => tick.drain(hwnd),
         }
+        tick.drain(hwnd);
         if beat.elapsed() >= Duration::from_secs(1) {
             tick.log_beat();
             beat = Instant::now();
@@ -178,7 +180,6 @@ struct DecodeTick {
     started: Instant,
     fed: u32,
     decoded: u32,
-    skipped: u32,
 }
 
 impl DecodeTick {
@@ -191,7 +192,6 @@ impl DecodeTick {
             started: Instant::now(),
             fed: 0,
             decoded: 0,
-            skipped: 0,
         }
     }
 
@@ -199,7 +199,7 @@ impl DecodeTick {
         let mut last = None;
         let mut out_w = 0;
         let mut out_h = 0;
-        for frame in select_live_frames(&mut self.last_config, frames, &mut self.skipped) {
+        for frame in select_live_frames(&mut self.last_config, frames) {
             if let Some(pic) = self.decode(hwnd, frame) {
                 if let Some(dec) = self.decoder.as_ref() {
                     out_w = dec.width;
@@ -234,17 +234,15 @@ impl DecodeTick {
     }
 
     fn log_beat(&mut self) {
-        if self.fed > 0 || self.decoded > 0 || self.skipped > 0 {
+        if self.fed > 0 || self.decoded > 0 {
             tracing::info!(
                 fed = self.fed,
                 decoded = self.decoded,
-                skipped = self.skipped,
                 "MF 解码节拍"
             );
         }
         self.fed = 0;
         self.decoded = 0;
-        self.skipped = 0;
     }
 
     fn decode(&mut self, hwnd: HWND, frame: EncodedFrame) -> Option<DecodedPicture> {
@@ -300,45 +298,37 @@ impl DecodeTick {
     }
 }
 
-fn collect_frames(rx: &Receiver<Cmd>, hwnd: HWND, first: EncodedFrame) -> Option<Vec<EncodedFrame>> {
-    let mut frames = vec![first];
+fn drain_cmds(rx: &Receiver<Cmd>, hwnd: HWND) -> bool {
     loop {
         match rx.try_recv() {
-            Ok(Cmd::Frame(frame)) => frames.push(frame),
             Ok(Cmd::Layout(layout)) => apply_layout(hwnd, &layout),
             Ok(Cmd::Screenshot { path, reply }) => {
                 let _ = reply.send(screenshot(hwnd, &path));
             }
-            Ok(Cmd::Stop) | Err(TryRecvError::Disconnected) => return None,
-            Err(TryRecvError::Empty) => break,
+            Ok(Cmd::Stop) | Err(TryRecvError::Disconnected) => return false,
+            Err(TryRecvError::Empty) => return true,
         }
     }
-    Some(frames)
+}
+
+fn drain_pipe(pipe: &FramePipe) -> Vec<EncodedFrame> {
+    let mut frames = Vec::new();
+    while let Some(frame) = pipe.try_recv() {
+        frames.push(frame);
+    }
+    frames
 }
 
 fn select_live_frames(
     last_config: &mut Option<Vec<u8>>,
     frames: Vec<EncodedFrame>,
-    skipped: &mut u32,
 ) -> Vec<EncodedFrame> {
     for frame in &frames {
         if frame.config {
             *last_config = Some(frame.payload.clone());
         }
     }
-    let mut pictures: Vec<EncodedFrame> = frames.into_iter().filter(|f| !f.config).collect();
-    if pictures.len() <= 8 {
-        return pictures;
-    }
-    if let Some(i) = pictures.iter().rposition(|f| f.keyframe) {
-        *skipped += i as u32;
-        pictures = pictures.split_off(i);
-    } else {
-        let drop_n = pictures.len().saturating_sub(1);
-        *skipped += drop_n as u32;
-        pictures = pictures.split_off(drop_n);
-    }
-    pictures
+    frames.into_iter().filter(|f| !f.config).collect()
 }
 
 fn access_unit(config: Option<&[u8]>, payload: &[u8], keyframe: bool) -> Vec<u8> {
@@ -378,7 +368,7 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
     let prepared = with_state(hwnd, |s| {
         s.video_w = width;
         s.video_h = height;
-        if !s.visible || s.layout_w < 64 || s.layout_h < 64 {
+        if !s.visible || s.layout_w < MIN_LAYOUT_PX || s.layout_h < MIN_LAYOUT_PX {
             return None;
         }
         let gpu = s.gpu.take()?;
@@ -510,7 +500,7 @@ fn apply_layout(hwnd: HWND, layout: &MirrorLayout) {
 fn screenshot(hwnd: HWND, path: &str) -> Result<(), String> {
     let pixels = with_state(hwnd, |s| {
         s.gpu
-            .as_ref()
+            .as_mut()
             .ok_or_else(|| "尚无画面".into())
             .and_then(|g| g.screenshot_bgra().map_err(|e| e.to_string()))
     })
@@ -663,17 +653,17 @@ fn handle_pointer(hwnd: HWND, msg: u32, lparam: LPARAM) {
         let action = match msg {
             WM_LBUTTONDOWN | WM_RBUTTONDOWN => {
                 s.pressing = true;
-                0
+                TOUCH_DOWN
             }
             WM_MOUSEMOVE => {
                 if !s.pressing {
                     return;
                 }
-                2
+                TOUCH_MOVE
             }
             WM_LBUTTONUP | WM_RBUTTONUP => {
                 s.pressing = false;
-                1
+                TOUCH_UP
             }
             _ => return,
         };
