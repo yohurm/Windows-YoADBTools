@@ -34,6 +34,7 @@ pub fn spawn_dispatcher(
             } = &event
             {
                 if let Some(app_state) = app.try_state::<AppState>() {
+                    app_state.present.detach(serial);
                     app_state.finish_mirror_task(serial);
                 }
             }

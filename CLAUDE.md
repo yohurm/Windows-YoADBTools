@@ -4,7 +4,7 @@
 多模块 Windows 桌面设备工具工作台（Yohu ADB Tools）。**v6 全新架构（2026-08-14 定稿）：推倒重来，不兼容旧设计与旧代码**。C#/WPF（v5）已下线，不再作为实现依据。
 
 - 需求：`docs/requirements/需求分析.md`（v6 版）
-- 架构：`docs/architecture/README.md`（分层/IPC/模块/ADR-v6-001～023）；右键菜单见 `docs/architecture/右键菜单-v6.md`
+- 架构：`docs/architecture/README.md`（分层/IPC/模块/ADR-v6-001～024）；右键菜单见 `docs/architecture/右键菜单-v6.md`
 
 ## 技术栈
 - **核心**：Rust（tokio），Cargo workspace：`yohu-runtime`（进程/原子写/OS 根）∥ `yohu-protocol`（wire，零 IO）← `yohu-domain`（判定/安全根/过滤）← `yohu-adb`（设备运输）← `yohu-logsrv` / `yohu-files` / `yohu-mirror`；`yohu-update` 只依赖 protocol+runtime。**core 零 Tauri 依赖**（ADR-v6-005）
@@ -20,12 +20,12 @@
 2. **ADB 命令终端** — 命令库/命令组（占位符 `{0}{1}`）/多设备并行/组编排（顺序、延时、失败中断）；成败判定在 core 领域层 `CommandEvaluator`（**失败正则 → 成功正则 → 退出码**，ADR-v6-009）；命令管理窗口（深拷贝编辑、全量提交、取消零污染）
 3. **文件管理** — `ls` 浏览、push/pull（`transfer/progress` 事件 200ms 节流 + 可取消）、删除/新建目录；**core 侧 SafetyRoot 强制校验**（`/sdcard`、`/storage` 子路径，拒绝 `..`，不信任 UI，ADR-v6-013）
 4. **日志分析** — core **每设备一路** logcat（`adb logcat -v threadtime,uid`）+ 设备级共享环形缓冲（`buffer_capacity` 默认 10000，与 UI 镜像/可见区同一上限）；**窗口/过滤在 UI 消费端**（ADR-v6-006）：多窗口 Tab（默认 System，Scope=all；可按包名/PID 再开）；每窗口绑定 serial + capturing/fromSeq；启停只打当前窗口，设备流按窗口引用计数 0↔1 / 1↔0；切焦点不停其他设备；进程索引（`ps` 2.5s 周期）+ 包名 PID 自动重绑（历史 PID 集上限 8）；窗口第一次点开始先 `processSnapshot` 再 `fromSeq=0` 按过滤从当前环补齐；AS 风格过滤栏（级别含以上/包名含子进程开关/精确 PID/Tag/关键字，无正则）；每窗口独立暂停（Space）与滚动挂起（离开底部只计数不跟滚）；清设备缓冲 = `logcat -c` + 清共享缓冲；导出 txt 走 core（`log.export`，持有全量缓冲）；快捷键 Space/Ctrl+L/Ctrl+F/Ctrl+T/Ctrl+W/Ctrl+Tab；掉线只停该 serial 的采集，已画出的行保留
-5. **投屏显示** — 官方 `scrcpy-server` 4.1 sidecar + `yohu-mirror` 自写客户端（USB reverse 优先，`tcp:` 默认 forward）；投屏协议 usb/wifi；二进制 Channel 帧；WebView2 WebCodecs + display×DPR 画进面板；默认只读；可选控制；每设备一路 + generation
+5. **投屏显示** — 官方 `scrcpy-server` 4.1 sidecar + `yohu-mirror` 自写客户端（USB reverse 优先，`tcp:` 默认 forward）；投屏协议 usb/wifi；帧在壳内 Media Foundation → D3D11 YUV HWND（对齐 YoPanel，ADR-v6-024）；默认只读；可选控制；每设备一路 + generation
 6. **设置面板** — `adb_path`（立即）/`data_root`（重启）/`devices_auto_refresh`（重启）/`buffer_capacity`（窗口立即、采集环下次启动）/`clear_device_on_start`（下次采集）/`theme`（立即，默认 system）/`density`（立即，默认 comfortable＝鸿蒙 PC）/`mirror_*`（下次启动）；设置根固定 `%LOCALAPPDATA%\YohuAdbTools\settings\`；关于页身份与路径来自 `system.info`；检查更新后可应用内下载 NSIS 并 `/S` 覆盖安装（`update.download` / `update.install`）
 
 ## 架构约定（v6，ADR 全量见架构文档 §14）
 - **依赖方向**：`UI → @yohu/api → IPC ← commands ← core crates`；`yohu-runtime ∥ yohu-protocol`；`yohu-adb → runtime+protocol+domain`；设备 capability → adb；`yohu-update` 禁止 adb。`apps/shell` 是唯一组合点（`registerModule`）；模块只依赖 `@yohu/api` + `@yohu/ui`。禁止 core 引用 Tauri、UI 模块互 import / 依赖 `@yohu/workbench`（`scripts/check-ui-deps.mjs`）、跨层绕过 IPC
-- **批量 IPC（ADR-v6-007）**：logcat 行/传输进度 100–200ms 聚合（单批 ≤1000 行 / 512KB，先到先发），**禁逐行**；背压：下游事件队列有界，溢出**丢推送不丢环**（RingBuffer seq 单调），UI 经 `log/overflow` 提示后 `log.replay(fromSeq)` 补齐。**导出现状**见 ADR-v6-021（session-logs，不是环）。**投屏帧**走 `mirror.start` 二进制 Channel（ADR-v6-023），不进 JSON 事件总线。**Tauri 2.9 事件名禁止点号**（ADR-v6-020），事件用 `/`（`log/lines`），invoke 命令名仍点分（`log.export`）
+- **批量 IPC（ADR-v6-007）**：logcat 行/传输进度 100–200ms 聚合（单批 ≤1000 行 / 512KB，先到先发），**禁逐行**；背压：下游事件队列有界，溢出**丢推送不丢环**（RingBuffer seq 单调），UI 经 `log/overflow` 提示后 `log.replay(fromSeq)` 补齐。**导出现状**见 ADR-v6-021（session-logs，不是环）。**投屏帧**不进 JS（ADR-v6-024），壳内 Present；`mirror/painted` 报首帧与 fps。**Tauri 2.9 事件名禁止点号**（ADR-v6-020），事件用 `/`（`log/lines`），invoke 命令名仍点分（`log.export`）
 - **采集模型（ADR-v6-006/016）**：每设备至多一路 logcat 流（多设备可并行）；槽位 Empty/Starting/Live/Stopping；`start` **仅 Live adopt**，Starting/Stopping 等待；`CaptureState` 带 generation 且必达；窗口=会话订阅（serial/capturing/fromSeq），过滤/可见列表仍在 UI；设备流按窗口引用计数；切焦点不停其他设备；`start` 失败与成功均以 `log.capture.status` 快照对账；启动中可并发 `stop` 取消 Starting
 - **会话与过滤**：Scope（All=System / Package / Pid）；包名匹配 = PidSet ∪ HistoryPidSet；PID 精确相等；级别最低含以上；Tag/关键字包含（OrdinalIgnoreCase）；过滤变更仅当前窗口重建可见区（且只重放 seq≥fromSeq）
 - **成败判定分离**：ADB 客户端不判定；判定在 `yohu-domain`（CommandEvaluator）

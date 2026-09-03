@@ -11,6 +11,9 @@ mod dnd;
 mod events;
 mod group_runs;
 mod library_store;
+mod mirror_present;
+#[cfg(windows)]
+pub use mirror_present::MfDecoder;
 mod panic_hook;
 mod paths;
 mod settings_store;
@@ -38,6 +41,7 @@ use crate::paths::AppPaths;
 use crate::settings_store::SettingsStore;
 use crate::state::AppState;
 use crate::tasks::TaskCenter;
+use crate::mirror_present::PresentHost;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // WebView2 默认不挂无障碍树；UIA 联调与读屏都需要强制打开。
@@ -110,12 +114,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             root_cancel.clone(),
         );
         let mirror = MirrorService::new(client.clone(), event_tx.clone(), server_jar);
+        let present = PresentHost::new(event_tx.clone(), std::sync::Arc::clone(&mirror));
 
         let state = AppState {
             client: client.clone(),
             tool,
             capture,
             mirror,
+            present: std::sync::Arc::clone(&present),
             browser: FileBrowser::new(client.clone()),
             mutator: FileMutator::new(client.clone()),
             transfers: TransferRunner::new(client.clone()),
@@ -142,12 +148,21 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         };
         app.manage(state);
 
+        if let Some(win) = app.get_webview_window("main") {
+            #[cfg(windows)]
+            match win.hwnd() {
+                Ok(hwnd) => present.set_owner(hwnd.0 as isize),
+                Err(e) => tracing::error!("无法取得主窗口 HWND: {e}"),
+            }
+        }
+
         let exit_handle = handle.clone();
         let exit_cancel = root_cancel.clone();
         tauri::async_runtime::spawn(async move {
             exit_cancel.cancelled().await;
             let state = exit_handle.state::<AppState>();
             state.mirror.stop_all().await;
+            state.present.detach_all();
         });
 
         // 5) 启动预热（异步，不阻塞窗口）：adb 解压 + 首扫设备
@@ -219,7 +234,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::mirror::mirror_status,
             commands::mirror::mirror_inject,
             commands::mirror::mirror_close_control,
-            commands::mirror::mirror_save_png,
+            commands::mirror::mirror_layout,
+            commands::mirror::mirror_screenshot,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::system::system_info,

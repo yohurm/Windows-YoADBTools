@@ -26,6 +26,7 @@ pub fn parse_devices_list(output: &str) -> Vec<DeviceInfo> {
             };
             let mut model = None;
             let mut connection = "usb".to_string();
+            // transport_id 不是连接方式。无 usb:/tcp: 时保持默认 usb（勿写成 t:{id}）。
             for attr in parts {
                 if let Some(v) = attr.strip_prefix("model:") {
                     model = Some(v.replace('_', " "));
@@ -33,11 +34,6 @@ pub fn parse_devices_list(output: &str) -> Vec<DeviceInfo> {
                     connection = format!("usb:{v}");
                 } else if let Some(v) = attr.strip_prefix("tcp:") {
                     connection = format!("tcp:{v}");
-                } else if let Some(v) = attr.strip_prefix("transport_id:") {
-                    // 无连接方式信息时以 transport 兜底展示
-                    if connection == "usb" {
-                        connection = format!("t:{v}");
-                    }
                 }
             }
             Some(DeviceInfo {
@@ -69,6 +65,7 @@ FAKE1234        offline
         assert_eq!(devices[0].serial, "R58M1234A");
         assert_eq!(devices[0].state, DeviceState::Online);
         assert_eq!(devices[0].model.as_deref(), Some("Pixel 7"));
+        assert_eq!(devices[0].connection, "usb");
         assert_eq!(devices[1].model.as_deref(), Some("sdk gphone64 x86 64"));
         assert_eq!(devices[2].state, DeviceState::Unauthorized);
         assert_eq!(devices[2].connection, "usb:1-2");

@@ -1,8 +1,10 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.49（2026-09-02，投屏协议与状态栏 fps）    
+> **状态：** v1.50（2026-09-02，投屏面板铬过渡）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（YoUI；token 单源 + 组件）+ `@yohu/workbench`（壳）+ `@yohu/modules/*`。所有改动必须同步更新本文件。
+>
+> **v1.50 变更（投屏面板铬过渡）**：Live 后面板宽高贴合画面，铬层走 `yohu-recipe-mirror-frame`（`spatialPanel` 300ms）。壳 HWND 跟盒，不在 CSS 里缩放视频。
 >
 > **v1.49 变更（投屏协议与状态栏 fps）**：投屏「档位」改为「投屏协议」（USB / 无线），去掉自定义。实测 fps 进状态栏右槽（模块 `Status`），不盖画面。选项「原始」不加括号说明。
 >
@@ -339,9 +341,10 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 ### 4.4 投屏显示
 
 - 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。画面在 `YoPanel variant=pane` 内等比适应（`max-width/height: 100%`），不是编码器 `max_size`。
-- 舞台是叠层包含块：底层 canvas 铺满（display×DPR）；空态/加载进 overlay，禁止与 canvas 共 flex 流。空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 overlay 内的 `YoLoading`，不走空态。Live 不等于已出画：首帧绘制前舞台保持加载，避免黑屏空等。
+- 舞台是叠层包含块：底层透明占位（壳 HWND 盖在物理矩形上）；空态/加载进 overlay，禁止与占位共 flex 流。空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 overlay 内的 `YoLoading`，不走空态。Live 不等于已出画：首帧 Present 前舞台保持加载，避免黑屏空等。
 - 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）、**通道**（只读即时关控制，开控制需重启会话；强制转发下次开始；无线调试常规走 forward）、**导航**（仅非只读时出现；控制关闭时键禁用）。禁止再把这些控件放进页眉 extra。
-- 实测 fps 在状态栏右下角（1s 窗口已绘帧），不是画面角标，也不是质量栏的编码器上限。
+- 实测 fps 在状态栏右下角（1s 窗口已 Present 帧），不是画面角标，也不是质量栏的编码器上限。
+- 面板贴合走 `yohu-recipe-mirror-frame`（宽高 `spatialPanel`）。原生 HWND 跟盒，禁止用 CSS 二次缩放画面。
 
 ### 4.5 设置
 

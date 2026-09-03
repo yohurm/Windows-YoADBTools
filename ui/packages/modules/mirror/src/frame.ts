@@ -8,8 +8,7 @@
  *    面板边缘贴合设备画面。
  *  - 其余 → ""。
  *
- * 面板元素上的 transition 常开（见 mirror.css），因此
- * 默认布局(100%) ↔ 贴合帧(px) 的双向切换（开始收拢、停止展开）都是平滑过渡。
+ * 铬层宽高可 spatialPanel 过渡；HWND 跟盒，不在 CSS 里缩放视频。
  */
 
 import { fitContain } from "./fit";

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
-import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStatus, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateDownloadRequest, type UpdateProgress } from "./types";
+import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStartRequest, type MirrorStatus, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateDownloadRequest, type UpdateProgress } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -99,6 +99,21 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
     ]) {
       expect(JSON.parse(JSON.stringify(msg))).toEqual(msg);
     }
+  });
+
+  it("MirrorStartRequest 字段为 snake_case", () => {
+    const req: MirrorStartRequest = {
+      serial: "S1",
+      control: false,
+      connection: "usb",
+      session_quality_touched: false,
+    };
+    expect(JSON.parse(JSON.stringify(req))).toEqual({
+      serial: "S1",
+      control: false,
+      connection: "usb",
+      session_quality_touched: false,
+    });
   });
 
   it("MirrorStatus 字段为 snake_case（与 mirror.rs serde 一致）", () => {
@@ -221,8 +236,8 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
         export_mode: "latest",
         log_write_mode: "overwrite",
         log_display_columns: { ts: true, uid: false, pid: true, tid: true, level: true, tag: true },
-        mirror_max_size: 1920,
-        mirror_video_bit_rate: 8_000_000,
+        mirror_max_size: 0,
+        mirror_video_bit_rate: 16_000_000,
         mirror_max_fps: 0,
         mirror_protocol: "usb",
         mirror_force_forward: false,
@@ -322,6 +337,7 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       expect(name).toMatch(/^[-A-Za-z0-9_/:]+$/);
     }
     expect(EVENT_NAMES.mirrorState).toBe("mirror/state");
+    expect(EVENT_NAMES.mirrorPainted).toBe("mirror/painted");
     expect(EVENT_NAMES.devicesChanged).toBe("devices/changed");
     expect(EVENT_NAMES.updateProgress).toBe("update/progress");
   });

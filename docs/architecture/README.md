@@ -15,7 +15,7 @@
 | [youi.md](youi.md) | `@yohu/ui`（对外名 YoUI） |
 | [workbench.md](workbench.md) | `@yohu/workbench` + `apps/shell` |
 | [modules/](modules/) | terminal / files / logs / mirror / update |
-| [adr/](adr/) | ADR-v6-001～023 |
+| [adr/](adr/) | ADR-v6-001～024 |
 | [UI设计系统-v6.md](UI设计系统-v6.md) | token / 密度 / 主题 |
 | [动画系统-v6.md](动画系统-v6.md) | 动效（ADR-v6-017） |
 | [右键菜单-v6.md](右键菜单-v6.md) | 右键引擎（ADR-v6-019） |

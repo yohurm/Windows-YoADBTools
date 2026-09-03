@@ -79,6 +79,11 @@ pub enum AppEvent {
         #[serde(skip_serializing_if = "Option::is_none")]
         error: Option<String>,
     },
+    MirrorPainted {
+        serial: String,
+        generation: u64,
+        painted_fps: u32,
+    },
     UpdateProgress(UpdateProgress),
 }
 
@@ -103,6 +108,7 @@ pub mod event_names {
     pub const TASK_SUMMARY: &str = "task/summary";
     pub const SETTINGS_CHANGED: &str = "settings/changed";
     pub const MIRROR_STATE: &str = "mirror/state";
+    pub const MIRROR_PAINTED: &str = "mirror/painted";
     pub const UPDATE_PROGRESS: &str = "update/progress";
 }
 
@@ -122,6 +128,7 @@ impl AppEvent {
             AppEvent::TaskSummary { .. } => TASK_SUMMARY,
             AppEvent::SettingsChanged { .. } => SETTINGS_CHANGED,
             AppEvent::MirrorState { .. } => MIRROR_STATE,
+            AppEvent::MirrorPainted { .. } => MIRROR_PAINTED,
             AppEvent::UpdateProgress(_) => UPDATE_PROGRESS,
         }
     }
@@ -196,6 +203,21 @@ mod tests {
     }
 
     #[test]
+    fn mirror_painted_event_name_and_kind() {
+        let event = AppEvent::MirrorPainted {
+            serial: "s1".into(),
+            generation: 4,
+            painted_fps: 60,
+        };
+        let v = serde_json::to_value(&event).expect("serialize");
+        assert_eq!(v["kind"], "mirrorPainted");
+        assert_eq!(v["serial"], "s1");
+        assert_eq!(v["generation"], 4);
+        assert_eq!(v["painted_fps"], 60);
+        assert_eq!(event.name(), event_names::MIRROR_PAINTED);
+    }
+
+    #[test]
     fn update_progress_event_flattens_fields() {
         let event = AppEvent::UpdateProgress(crate::UpdateProgress {
             version: "0.1.2".into(),
@@ -225,6 +247,7 @@ mod tests {
             event_names::TASK_SUMMARY,
             event_names::SETTINGS_CHANGED,
             event_names::MIRROR_STATE,
+            event_names::MIRROR_PAINTED,
             event_names::UPDATE_PROGRESS,
         ] {
             assert!(

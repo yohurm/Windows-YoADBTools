@@ -2,47 +2,37 @@
 
 use yohu_protocol::{AppSettings, MirrorProtocol};
 
-/// WebView2 硬解安全长边（约 High@L4.1 / DXVA 1920×1088 保证线）。
-pub const EMBED_LONG_EDGE_CAP: u32 = 1920;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MirrorEncodeParams {
     pub max_size: u32,
     pub video_bit_rate: u32,
     pub max_fps: u32,
+    pub video_codec: &'static str,
 }
 
 pub const USB_ENCODE: MirrorEncodeParams = MirrorEncodeParams {
-    max_size: 1920,
-    video_bit_rate: 8_000_000,
+    max_size: 0,
+    video_bit_rate: 16_000_000,
     max_fps: 0,
+    video_codec: "h265",
 };
 
 pub const WIFI_ENCODE: MirrorEncodeParams = MirrorEncodeParams {
-    max_size: 1024,
-    video_bit_rate: 2_000_000,
+    max_size: 1280,
+    video_bit_rate: 4_000_000,
     max_fps: 30,
+    video_codec: "h264",
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EncoderLimits {
     pub max_size: u32,
     pub max_fps: u32,
-    pub capped: bool,
 }
 
-/// UI 质量选项 → 编码器实际参数。「原始」封顶 [`EMBED_LONG_EDGE_CAP`]；不限帧保持 0。
+/// UI 质量选项 → 编码器实际参数。0 = 设备原始，不再封顶。
 pub fn encoder_limits(max_size: u32, max_fps: u32) -> EncoderLimits {
-    let size = if max_size == 0 {
-        EMBED_LONG_EDGE_CAP
-    } else {
-        max_size
-    };
-    EncoderLimits {
-        max_size: size,
-        max_fps,
-        capped: size != max_size,
-    }
+    EncoderLimits { max_size, max_fps }
 }
 
 pub fn params_of(protocol: MirrorProtocol) -> MirrorEncodeParams {
@@ -76,10 +66,16 @@ pub fn start_encode(
     {
         return WIFI_ENCODE;
     }
+    let codec = if settings.mirror_protocol == MirrorProtocol::Wifi {
+        WIFI_ENCODE.video_codec
+    } else {
+        USB_ENCODE.video_codec
+    };
     MirrorEncodeParams {
         max_size: settings.mirror_max_size,
         video_bit_rate: settings.mirror_video_bit_rate,
         max_fps: settings.mirror_max_fps,
+        video_codec: codec,
     }
 }
 
@@ -92,29 +88,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn original_size_caps_at_1920_unlimited_fps_stays_zero() {
+    fn original_size_stays_zero() {
         assert_eq!(
             encoder_limits(0, 0),
             EncoderLimits {
-                max_size: 1920,
-                max_fps: 0,
-                capped: true
+                max_size: 0,
+                max_fps: 0
             }
         );
         assert_eq!(
             encoder_limits(1920, 0),
             EncoderLimits {
                 max_size: 1920,
-                max_fps: 0,
-                capped: false
+                max_fps: 0
             }
         );
         assert_eq!(
-            encoder_limits(1024, 0),
+            encoder_limits(1024, 15),
             EncoderLimits {
                 max_size: 1024,
-                max_fps: 0,
-                capped: false
+                max_fps: 15
             }
         );
     }
@@ -123,6 +116,10 @@ mod tests {
     fn protocol_params_are_fixed() {
         assert_eq!(params_of(MirrorProtocol::Usb), USB_ENCODE);
         assert_eq!(params_of(MirrorProtocol::Wifi), WIFI_ENCODE);
+        assert_eq!(USB_ENCODE.max_size, 0);
+        assert_eq!(USB_ENCODE.video_codec, "h265");
+        assert_eq!(WIFI_ENCODE.max_size, 1280);
+        assert_eq!(WIFI_ENCODE.video_codec, "h264");
     }
 
     #[test]
@@ -130,8 +127,10 @@ mod tests {
         let s = AppSettings::default();
         assert_eq!(start_encode(&s, "usb", false), USB_ENCODE);
         assert_eq!(start_encode(&s, "tcp:192.168.1.8:5555", false), WIFI_ENCODE);
-        assert_eq!(start_encode(&s, "tcp:1.1.1.1:5555", true), USB_ENCODE);
+        assert_eq!(start_encode(&s, "tcp:1.1.1.1:5555", true).max_size, s.mirror_max_size);
         assert!(start_force_forward(&s, "tcp:1.1.1.1:5555"));
         assert!(!start_force_forward(&s, "usb"));
+        assert_eq!(start_encode(&s, "t:19", false), USB_ENCODE);
+        assert!(!start_force_forward(&s, "t:19"));
     }
 }

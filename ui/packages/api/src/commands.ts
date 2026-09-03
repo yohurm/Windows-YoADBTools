@@ -6,7 +6,7 @@
  * 裸 `cargo build --release` 仍注册函数名，不能用来验收桌面 IPC。
  */
 
-import { Channel, invoke } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 
 import type {
   AdbExecRequest,
@@ -44,7 +44,8 @@ import type {
   MirrorStartRequest,
   MirrorStatus,
   MirrorInjectRequest,
-  MirrorSavePngRequest,
+  MirrorLayout,
+  MirrorScreenshotRequest,
 } from "./types";
 
 // ===== device =====
@@ -132,27 +133,8 @@ export const logProcessSnapshot = (serial: string) =>
 
 // ===== mirror =====
 
-export function asUint8Array(message: unknown): Uint8Array | null {
-  if (message instanceof Uint8Array) return message;
-  if (message instanceof ArrayBuffer) return new Uint8Array(message);
-  if (Array.isArray(message) && message.every((n) => typeof n === "number")) {
-    return Uint8Array.from(message);
-  }
-  return null;
-}
-
-/** `mirror.start` 的二进制帧通道。 */
-export function createMirrorFrameChannel(onBytes: (bytes: Uint8Array) => void): Channel<unknown> {
-  const channel = new Channel<unknown>();
-  channel.onmessage = (message) => {
-    const bytes = asUint8Array(message);
-    if (bytes) onBytes(bytes);
-  };
-  return channel;
-}
-
-export const mirrorStart = (req: MirrorStartRequest, packets: Channel<unknown>) =>
-  invoke<MirrorStart>("mirror.start", { req, packets });
+export const mirrorStart = (req: MirrorStartRequest) =>
+  invoke<MirrorStart>("mirror.start", { req });
 
 export const mirrorStop = (serial: string) => invoke<void>("mirror.stop", { serial });
 
@@ -165,8 +147,10 @@ export const mirrorInject = (req: MirrorInjectRequest) =>
 export const mirrorCloseControl = (serial: string) =>
   invoke<void>("mirror.closeControl", { serial });
 
-export const mirrorSavePng = (req: MirrorSavePngRequest) =>
-  invoke<void>("mirror.savePng", { req });
+export const mirrorLayout = (req: MirrorLayout) => invoke<void>("mirror.layout", { req });
+
+export const mirrorScreenshot = (req: MirrorScreenshotRequest) =>
+  invoke<void>("mirror.screenshot", { req });
 
 // ===== settings =====
 

@@ -1,48 +1,34 @@
 /**
- * 投屏模块状态：控制面走 mirror/state，画面走 mirror.start 的二进制 Channel。
+ * 投屏模块状态：控制面走 mirror/state；出画以 mirror/painted 为准；画面在壳 HWND。
  */
 
 import { createStore } from "solid-js/store";
 import {
   APP_SETTINGS_DEFAULT,
-  createMirrorFrameChannel,
   dialogSaveFile,
   errorText,
   mirrorCloseControl,
   mirrorInject,
-  mirrorSavePng,
+  mirrorLayout,
+  mirrorScreenshot,
   mirrorStart,
-  mirrorStatus,
   mirrorStop,
   onDeviceOffline,
+  onMirrorPainted,
   onMirrorState,
   onSettingsChanged,
   settingsSet,
   type AppSettings,
   type MirrorControlMessage,
+  type MirrorLayout,
   type MirrorProtocol,
   type MirrorSessionState,
   type SettingKey,
   YoLog,
 } from "@yohu/api";
 
-import type { H264CanvasDecoder } from "./decoder";
-import { fpsWindow } from "./fps";
-import { parseMirrorFrame } from "./packet";
-import {
-  encoderLimits,
-  startEncode,
-  startForceForward,
-  type MirrorEncodeParams,
-} from "./quality";
-
-export { encoderLimits } from "./quality";
-
 /** 等待投屏进入 Live 的超时（ms）。 */
 const WAIT_LIVE_TIMEOUT_MS = 20_000;
-/** 等待 Live 的轮询间隔（ms）。 */
-const WAIT_LIVE_POLL_MS = 300;
-const FPS_WINDOW_MS = 1_000;
 
 export type MirrorPhase = "idle" | "starting" | "live" | "failed";
 
@@ -66,8 +52,6 @@ export interface MirrorUiState {
   protocol: MirrorProtocol;
   forceForward: boolean;
   paintedFps: number;
-  recvFps: number;
-  dropped: number;
 }
 
 function phaseOf(state: MirrorSessionState): MirrorPhase {
@@ -118,33 +102,12 @@ export function createMirrorStore() {
     protocol: APP_SETTINGS_DEFAULT.mirror_protocol,
     forceForward: APP_SETTINGS_DEFAULT.mirror_force_forward,
     paintedFps: 0,
-    recvFps: 0,
-    dropped: 0,
   });
 
-  let decoder: H264CanvasDecoder | null = null;
   let gate: Promise<void> = Promise.resolve();
-  let packetCount = 0;
   let sessionQualityTouched = false;
-  let paintedWindow = 0;
-  let recvWindow = 0;
-  let lastDropped = 0;
+  let startWatchId: number | undefined;
   const unlistens: Promise<() => void>[] = [];
-  const fpsTimer = window.setInterval(() => {
-    if (state.paused) return;
-    if (state.phase !== "live" || !state.hasFrame) {
-      paintedWindow = 0;
-      recvWindow = 0;
-      return;
-    }
-    setState({
-      paintedFps: fpsWindow(paintedWindow, FPS_WINDOW_MS),
-      recvFps: fpsWindow(recvWindow, FPS_WINDOW_MS),
-      dropped: lastDropped,
-    });
-    paintedWindow = 0;
-    recvWindow = 0;
-  }, FPS_WINDOW_MS);
 
   function runExclusive(fn: () => Promise<void>): Promise<void> {
     const run = gate.then(fn, fn);
@@ -155,15 +118,37 @@ export function createMirrorStore() {
     return run;
   }
 
-  function bindDecoder(next: H264CanvasDecoder | null): void {
-    if (decoder) decoder.onPainted = null;
-    decoder = next;
-    if (decoder) {
-      decoder.onPainted = () => {
-        paintedWindow += 1;
-        setState("hasFrame", true);
-      };
+  function clearStartWatch(): void {
+    if (startWatchId !== undefined) {
+      window.clearTimeout(startWatchId);
+      startWatchId = undefined;
     }
+  }
+
+  function armStartWatch(serial: string, generation: number): void {
+    clearStartWatch();
+    startWatchId = window.setTimeout(() => {
+      startWatchId = undefined;
+      void runExclusive(async () => {
+        if (state.phase !== "starting" || state.serial !== serial || state.generation !== generation) {
+          return;
+        }
+        YoLog.error("mirror", "等待 Live 超时，停止卡住会话");
+        try {
+          await hideSurface(serial);
+          await mirrorStop(serial);
+        } catch (e) {
+          YoLog.warn("mirror", "超时停止失败", String(e));
+        }
+        if (state.phase === "starting" && state.serial === serial && state.generation === generation) {
+          setState({
+            phase: "failed",
+            error: "投屏启动超时",
+            hasFrame: false,
+          });
+        }
+      });
+    }, WAIT_LIVE_TIMEOUT_MS);
   }
 
   function applySettings(
@@ -196,10 +181,11 @@ export function createMirrorStore() {
     }
     if (prev && (state.phase === "live" || state.phase === "starting")) {
       await runExclusive(async () => {
+        clearStartWatch();
+        await hideSurface(prev);
         await mirrorStop(prev);
       });
     }
-    decoder?.reset();
     sessionQualityTouched = false;
     setState({
       serial: next,
@@ -214,80 +200,44 @@ export function createMirrorStore() {
       paused: false,
       fullscreen: false,
       paintedFps: 0,
-      recvFps: 0,
-      dropped: 0,
     });
   }
 
-  function encodeForStart(): MirrorEncodeParams {
-    return startEncode(
-      {
-        mirror_max_size: state.maxSize,
-        mirror_video_bit_rate: state.videoBitRate,
-        mirror_max_fps: state.maxFps,
-        mirror_protocol: state.protocol,
-      },
-      state.connection,
-      sessionQualityTouched,
-    );
+  async function hideSurface(serial: string): Promise<void> {
+    await mirrorLayout({
+      serial,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      visible: false,
+      control: false,
+    });
   }
 
   async function start(): Promise<void> {
     const serial = state.serial;
     if (!serial) return;
     await runExclusive(async () => {
-      decoder?.reset();
-      setState({ phase: "starting", error: null, hasFrame: false, paintedFps: 0, recvFps: 0, dropped: 0 });
-      packetCount = 0;
-      paintedWindow = 0;
-      recvWindow = 0;
-      lastDropped = 0;
-      const encode = encodeForStart();
-      const limits = encoderLimits(encode.maxSize, encode.maxFps);
-      const forceForward = startForceForward(state.forceForward, state.connection);
+      setState({ phase: "starting", error: null, hasFrame: false, paintedFps: 0 });
       YoLog.info("mirror", "开始", {
         serial,
         connection: state.connection,
-        maxSize: encode.maxSize,
-        videoBitRate: encode.videoBitRate,
-        maxFps: encode.maxFps,
-        encoderMaxSize: limits.maxSize,
-        encoderMaxFps: limits.maxFps,
         control: !state.readOnly,
-        forceForward,
+        sessionQualityTouched,
       });
-      if (limits.capped) {
-        YoLog.info("mirror", "原始分辨率对内嵌硬解过重，编码器已封顶 1920", {
-          requested: { maxSize: encode.maxSize, maxFps: encode.maxFps },
-          encoder: { maxSize: limits.maxSize, maxFps: limits.maxFps },
-        });
-      }
       try {
-        const request = {
+        const result = await mirrorStart({
           serial,
-          max_size: limits.maxSize,
-          video_bit_rate: encode.videoBitRate,
-          max_fps: limits.maxFps,
           control: !state.readOnly,
-          force_forward: forceForward,
-          video_codec: "h264",
-        };
-        const channel = createMirrorFrameChannel((bytes) => onBytes(bytes));
-        let result = await mirrorStart(request, channel);
-        if (result.adopted) {
-          YoLog.info("mirror", "adopt 后解码器无配置，重启会话", {
-            serial,
-            generation: result.generation,
-          });
-          await mirrorStop(serial);
-          decoder?.reset();
-          const retry = createMirrorFrameChannel((bytes) => onBytes(bytes));
-          result = await mirrorStart(request, retry);
-        }
+          connection: state.connection,
+          session_quality_touched: sessionQualityTouched,
+        });
         setState({ generation: result.generation });
         YoLog.info("mirror", "start 返回", result);
-        void waitUntilLive(serial, result.generation);
+        armStartWatch(serial, result.generation);
       } catch (e) {
+        clearStartWatch();
         const error = errorText(e);
         YoLog.error("mirror", "start 失败", error);
         setState({
@@ -304,8 +254,9 @@ export function createMirrorStore() {
     if (!serial) return;
     await runExclusive(async () => {
       YoLog.info("mirror", "停止", serial);
+      clearStartWatch();
+      await hideSurface(serial);
       await mirrorStop(serial);
-      decoder?.reset();
       setState({
         phase: "idle",
         error: null,
@@ -313,8 +264,6 @@ export function createMirrorStore() {
         paused: false,
         fullscreen: false,
         paintedFps: 0,
-        recvFps: 0,
-        dropped: 0,
       });
     });
   }
@@ -366,82 +315,31 @@ export function createMirrorStore() {
     }
   }
 
-  async function saveScreenshot(pngBase64: string): Promise<void> {
+  async function saveScreenshot(): Promise<void> {
+    const serial = state.serial;
+    if (!serial) return;
     const path = await dialogSaveFile({
       title: "保存截图",
       defaultPath: "mirror.png",
       filters: [{ name: "PNG", extensions: ["png"] }],
     });
     if (!path) return;
-    await mirrorSavePng({ path, data_b64: pngBase64 });
+    await mirrorScreenshot({ serial, path });
   }
 
-  async function waitUntilLive(serial: string, generation: number): Promise<void> {
-    const deadline = Date.now() + WAIT_LIVE_TIMEOUT_MS;
-    while (Date.now() < deadline) {
-      if (state.serial !== serial) return;
-      if (state.phase === "live" || state.phase === "failed" || state.phase === "idle") return;
-      try {
-        const status = await mirrorStatus(serial);
-        if (status.generation === generation && status.width > 0) {
-          YoLog.info("mirror", "status 轮询到 Live", status);
-          setState({
-            phase: "live",
-            width: status.width,
-            height: status.height,
-            codec: status.codec,
-            control: status.control,
-            generation: status.generation,
-          });
-          return;
-        }
-        if (status.error) {
-          YoLog.error("mirror", "status 轮询到失败", status.error);
-          setState({ phase: "failed", error: status.error });
-          return;
-        }
-      } catch (e) {
-        YoLog.warn("mirror", "status 轮询失败", String(e));
-      }
-      await new Promise((resolve) => window.setTimeout(resolve, WAIT_LIVE_POLL_MS));
-    }
-    if (state.phase === "starting" && state.serial === serial) {
-      YoLog.error("mirror", "等待 Live 超时，停止卡住会话");
-      try {
-        await mirrorStop(serial);
-      } catch (e) {
-        YoLog.warn("mirror", "超时停止失败", String(e));
-      }
-      decoder?.reset();
-      setState({
-        phase: "failed",
-        error: "投屏启动超时",
-        hasFrame: false,
-      });
-    }
-  }
-
-  function onBytes(bytes: Uint8Array): void {
-    const packet = parseMirrorFrame(bytes);
-    if (!packet) return;
-    recvWindow += 1;
-    lastDropped = packet.dropped;
-    if (packet.width && packet.height) {
-      setState({ width: packet.width, height: packet.height, codec: "h264" });
-    }
-    packetCount += 1;
-    if (packetCount === 1 || packet.config || (packet.keyframe && packetCount <= 3)) {
-      YoLog.info("mirror", "收到编码包", {
-        n: packetCount,
-        config: packet.config,
-        keyframe: packet.keyframe,
-        width: packet.width,
-        height: packet.height,
-        dropped: packet.dropped,
-        bytes: packet.payload.byteLength,
-      });
-    }
-    decoder?.feed(packet);
+  async function syncLayout(rect: Omit<MirrorLayout, "serial" | "control" | "visible"> & { visible?: boolean }): Promise<void> {
+    const serial = state.serial;
+    if (!serial) return;
+    if (state.phase !== "live" && state.phase !== "starting") return;
+    await mirrorLayout({
+      serial,
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      visible: rect.visible ?? (!state.paused && state.phase === "live"),
+      control: !state.readOnly && state.control,
+    });
   }
 
   unlistens.push(
@@ -456,6 +354,9 @@ export function createMirrorStore() {
         codec: e.codec,
         error: e.error,
       });
+      if (e.state !== "starting") {
+        clearStartWatch();
+      }
       setState({
         generation: e.generation,
         phase: phaseOf(e.state),
@@ -465,16 +366,32 @@ export function createMirrorStore() {
         control: e.control,
         error: e.error ?? null,
       });
-      if (e.state === "stopped") {
-        decoder?.reset();
-        setState({ paused: false, fullscreen: false, hasFrame: false, paintedFps: 0, recvFps: 0, dropped: 0 });
+      if (e.state === "stopped" || e.state === "failed") {
+        setState({ paused: false, fullscreen: false, hasFrame: false, paintedFps: 0 });
       }
+    }),
+  );
+  unlistens.push(
+    onMirrorPainted((e) => {
+      if (e.serial !== state.serial) return;
+      if (e.generation && e.generation !== state.generation) return;
+      if (!state.hasFrame) {
+        YoLog.info("mirror", "首帧已绘制", {
+          serial: e.serial,
+          generation: e.generation,
+          painted_fps: e.painted_fps,
+        });
+      }
+      setState({
+        hasFrame: true,
+        paintedFps: e.painted_fps,
+      });
     }),
   );
   unlistens.push(
     onDeviceOffline((e) => {
       if (e.serial !== state.serial) return;
-      decoder?.reset();
+      clearStartWatch();
       setState({
         phase: "idle",
         error: "设备已掉线",
@@ -483,8 +400,6 @@ export function createMirrorStore() {
         fullscreen: false,
         control: false,
         paintedFps: 0,
-        recvFps: 0,
-        dropped: 0,
       });
     }),
   );
@@ -504,13 +419,12 @@ export function createMirrorStore() {
 
   const hot = (import.meta as { hot?: { dispose: (cb: () => void) => void } }).hot;
   hot?.dispose(() => {
-    window.clearInterval(fpsTimer);
+    clearStartWatch();
     for (const p of unlistens) void p.then((unlisten) => unlisten());
   });
 
   return {
     state,
-    bindDecoder,
     bindSerial,
     bindConnection,
     applySettings,
@@ -520,10 +434,8 @@ export function createMirrorStore() {
     setReadOnly,
     persistQuality,
     saveScreenshot,
-    setPaused: (paused: boolean) => {
-      setState("paused", paused);
-      if (decoder) decoder.paused = paused;
-    },
+    syncLayout,
+    setPaused: (paused: boolean) => setState("paused", paused),
     setFullscreen: (fullscreen: boolean) => setState("fullscreen", fullscreen),
   };
 }

@@ -1,5 +1,5 @@
 /**
- * 投屏主视图：设备画面嵌在 YoPanel；解码在 WebCodecs。
+ * 投屏主视图：YoPanel 透明占位；画面在壳 HWND 上。
  */
 
 import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
@@ -22,9 +22,9 @@ import {
   createToaster,
 } from "@yohu/ui";
 
-import { H264CanvasDecoder } from "./decoder";
 import { frameStyle } from "./frame";
-import { AndroidKey, TOUCH_DOWN, TOUCH_MOVE, TOUCH_UP } from "./keys";
+import { AndroidKey } from "./keys";
+import { physicalPanelRect } from "./layout";
 import { mirrorStore } from "./store";
 import "./mirror.css";
 
@@ -43,6 +43,7 @@ const RATE_OPTIONS = [
   { value: "2000000", label: "2 Mbps" },
   { value: "4000000", label: "4 Mbps" },
   { value: "8000000", label: "8 Mbps" },
+  { value: "16000000", label: "16 Mbps" },
 ];
 
 const FPS_OPTIONS = [
@@ -93,16 +94,39 @@ function waitingCopy(phase: string): { title: string; description: string } {
 }
 
 export function MirrorView(props: DeviceSession) {
-  const decoder = new H264CanvasDecoder();
-  let canvas: HTMLCanvasElement | undefined;
+  let stage: HTMLDivElement | undefined;
   let panelZone: HTMLDivElement | undefined;
   let zoneObserver: ResizeObserver | undefined;
-  const [pressing, setPressing] = createSignal(false);
+  let stageObserver: ResizeObserver | undefined;
+  let layoutRaf = 0;
+  let layoutVisible: boolean | undefined;
+  let originTimer = 0;
+  let lastOriginX = Number.NaN;
+  let lastOriginY = Number.NaN;
   const [zoneSize, setZoneSize] = createSignal<{ w: number; h: number }>({ w: 0, h: 0 });
 
+  function pushLayout(visible?: boolean): void {
+    if (visible !== undefined) layoutVisible = visible;
+    if (layoutRaf !== 0) return;
+    layoutRaf = window.requestAnimationFrame(() => {
+      layoutRaf = 0;
+      if (!stage) return;
+      const css = stage.getBoundingClientRect();
+      const vv = window.visualViewport;
+      lastOriginX = window.screenX;
+      lastOriginY = window.screenY;
+      const rect = physicalPanelRect(
+        css,
+        window.screenX,
+        window.screenY,
+        window.devicePixelRatio || 1,
+        { left: vv?.offsetLeft ?? 0, top: vv?.offsetTop ?? 0 },
+      );
+      void mirrorStore.syncLayout({ ...rect, visible: layoutVisible });
+    });
+  }
+
   onMount(() => {
-    mirrorStore.bindDecoder(decoder);
-    if (canvas) decoder.attach(canvas);
     mirrorStore.applySettings(props.settings);
     if (panelZone) {
       zoneObserver = new ResizeObserver((entries) => {
@@ -111,12 +135,41 @@ export function MirrorView(props: DeviceSession) {
       });
       zoneObserver.observe(panelZone);
     }
+    if (stage) {
+      stageObserver = new ResizeObserver(() => {
+        pushLayout();
+      });
+      stageObserver.observe(stage);
+    }
+    window.addEventListener("resize", onWin);
+    window.addEventListener("scroll", onWin, true);
+    document.addEventListener("visibilitychange", onVis);
+    originTimer = window.setInterval(() => {
+      if (window.screenX !== lastOriginX || window.screenY !== lastOriginY) {
+        pushLayout();
+      }
+    }, 50);
   });
   onCleanup(() => {
+    if (layoutRaf !== 0) window.cancelAnimationFrame(layoutRaf);
+    if (originTimer !== 0) window.clearInterval(originTimer);
     zoneObserver?.disconnect();
-    mirrorStore.bindDecoder(null);
-    decoder.dispose();
+    stageObserver?.disconnect();
+    window.removeEventListener("resize", onWin);
+    window.removeEventListener("scroll", onWin, true);
+    document.removeEventListener("visibilitychange", onVis);
+    const serial = mirrorStore.state.serial;
+    if (serial) {
+      void mirrorStore.syncLayout({ x: 0, y: 0, width: 1, height: 1, visible: false });
+    }
   });
+
+  function onWin(): void {
+    pushLayout();
+  }
+  function onVis(): void {
+    pushLayout(document.visibilityState === "visible" && !mirrorStore.state.paused);
+  }
 
   createEffect(() => {
     const serial = props.selectedSerials[0] ?? null;
@@ -128,38 +181,28 @@ export function MirrorView(props: DeviceSession) {
     mirrorStore.applySettings(props.settings);
   });
 
+  createEffect(() => {
+    const _phase = mirrorStore.state.phase;
+    const _paused = mirrorStore.state.paused;
+    const _full = mirrorStore.state.fullscreen;
+    const _has = mirrorStore.state.hasFrame;
+    const _w = mirrorStore.state.width;
+    const _h = mirrorStore.state.height;
+    void _phase;
+    void _paused;
+    void _full;
+    void _has;
+    void _w;
+    void _h;
+    pushLayout(!_paused && (_phase === "live" || _phase === "starting"));
+  });
+
   const live = () => mirrorStore.state.phase === "live";
   const waiting = () => {
     const phase = mirrorStore.state.phase;
     return phase === "starting" || (phase === "live" && !mirrorStore.state.hasFrame);
   };
   const canControl = () => live() && mirrorStore.state.hasFrame && !mirrorStore.state.readOnly && mirrorStore.state.control;
-
-  function videoPoint(event: PointerEvent): { x: number; y: number; width: number; height: number } | null {
-    if (!canvas) return null;
-    const width = mirrorStore.state.width || canvas.width;
-    const height = mirrorStore.state.height || canvas.height;
-    if (!width || !height) return null;
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) return null;
-    const x = Math.max(0, Math.min(width, Math.round(((event.clientX - rect.left) / rect.width) * width)));
-    const y = Math.max(0, Math.min(height, Math.round(((event.clientY - rect.top) / rect.height) * height)));
-    return { x, y, width, height };
-  }
-
-  function sendTouch(action: number, event: PointerEvent): void {
-    if (!canControl()) return;
-    const point = videoPoint(event);
-    if (!point) return;
-    void mirrorStore.inject({
-      kind: "touch",
-      action,
-      x: point.x,
-      y: point.y,
-      width: point.width,
-      height: point.height,
-    });
-  }
 
   async function tapKey(keycode: number): Promise<void> {
     await mirrorStore.inject({ kind: "key", keycode, down: true });
@@ -171,20 +214,15 @@ export function MirrorView(props: DeviceSession) {
   }
 
   async function screenshot(): Promise<void> {
-    const data = decoder.snapshotPng();
-    if (!data) {
-      toaster.show("当前没有可保存的画面", "error");
-      return;
-    }
     try {
-      await mirrorStore.saveScreenshot(data);
+      await mirrorStore.saveScreenshot();
       toaster.show("截图已保存", "success");
     } catch (e) {
       toaster.show(`保存失败: ${ipcMessage(e)}`, "error");
     }
   }
 
-  const painted = () => live() && mirrorStore.state.hasFrame;
+  const painted = () => live() && mirrorStore.state.hasFrame && !mirrorStore.state.paused;
 
   return (
     <YoPage class={`yohu-mirror${mirrorStore.state.fullscreen ? " yohu-mirror--full" : ""}`}>
@@ -229,47 +267,31 @@ export function MirrorView(props: DeviceSession) {
           class="yohu-mirror__panel-zone"
           style={frameStyle(zoneSize().w, zoneSize().h, mirrorStore.state.width, mirrorStore.state.height, mirrorStore.state.phase)}
         >
-          <YoPanel
-            variant="pane"
-            class="yohu-mirror__panel"
-            aria-label="投屏画面"
-          >
-            <div class="yohu-mirror__stage">
-              <canvas
-                ref={(el) => {
-                  canvas = el;
-                  decoder.attach(el);
-                }}
-                class="yohu-mirror__canvas"
-                classList={{ "yohu-mirror__canvas--hidden": !painted() }}
-                onPointerDown={(event) => {
-                  if (!canControl()) return;
-                  (event.currentTarget as HTMLCanvasElement).setPointerCapture(event.pointerId);
-                  setPressing(true);
-                  sendTouch(TOUCH_DOWN, event);
-                }}
-                onPointerMove={(event) => {
-                  if (!pressing()) return;
-                  sendTouch(TOUCH_MOVE, event);
-                }}
-                onPointerUp={(event) => {
-                  if (!pressing()) return;
-                  setPressing(false);
-                  sendTouch(TOUCH_UP, event);
-                }}
-                onContextMenu={(event) => event.preventDefault()}
-              />
+          <YoPanel variant="pane" class="yohu-mirror__panel yohu-recipe-mirror-frame" aria-label="投屏画面">
+            <div
+              ref={(el) => {
+                stage = el;
+              }}
+              class="yohu-mirror__stage"
+            >
+              <div class="yohu-mirror__hole" aria-hidden="true" />
               <Show when={!painted()}>
                 <div class="yohu-mirror__overlay">
                   <Show
-                    when={waiting()}
+                    when={waiting() && !mirrorStore.state.paused}
                     fallback={
                       <YoEmptyState
                         icon="mirror"
-                        title={emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title}
+                        title={
+                          mirrorStore.state.paused
+                            ? "已暂停"
+                            : emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title
+                        }
                         description={
-                          emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
-                            .description
+                          mirrorStore.state.paused
+                            ? "画面已隐藏，点击继续"
+                            : emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
+                                .description
                         }
                       />
                     }

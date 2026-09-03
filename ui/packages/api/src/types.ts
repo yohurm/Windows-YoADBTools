@@ -432,12 +432,9 @@ export interface MirrorStatus {
 
 export interface MirrorStartRequest {
   serial: string;
-  max_size: number;
-  video_bit_rate: number;
-  max_fps: number;
   control: boolean;
-  force_forward: boolean;
-  video_codec: string;
+  connection: string;
+  session_quality_touched: boolean;
 }
 
 export type MirrorControlMessage =
@@ -455,9 +452,21 @@ export interface MirrorInjectRequest {
   message: MirrorControlMessage;
 }
 
-export interface MirrorSavePngRequest {
+/** 面板在屏幕上的物理像素矩形（`mirror.layout`）。 */
+export interface MirrorLayout {
+  serial: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  visible: boolean;
+  control: boolean;
+}
+
+/** 壳内截图落盘（`mirror.screenshot`）。 */
+export interface MirrorScreenshotRequest {
+  serial: string;
   path: string;
-  data_b64: string;
 }
 
 // ===== events =====
@@ -503,6 +512,7 @@ export type AppEvent =
       control: boolean;
       error?: string;
     }
+  | { kind: "mirrorPainted"; serial: string; generation: number; painted_fps: number }
   | { kind: "updateProgress" } & UpdateProgress;
 
 /** 事件名常量（与 yohu-protocol::event_names 一致）。 */
@@ -518,6 +528,7 @@ export const EVENT_NAMES = {
   taskSummary: "task/summary",
   settingsChanged: "settings/changed",
   mirrorState: "mirror/state",
+  mirrorPainted: "mirror/painted",
   updateProgress: "update/progress",
 } as const;
 

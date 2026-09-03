@@ -11,7 +11,4 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: () => Promise.resolve(undefined),
-  Channel: class Channel {
-    onmessage: ((message: unknown) => void) | null = null;
-  },
 }));

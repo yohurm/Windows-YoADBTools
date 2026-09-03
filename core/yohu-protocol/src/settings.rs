@@ -111,7 +111,7 @@ pub struct AppSettings {
     /// 日志清单显示列（立即生效；消息列始终在）
     #[serde(default)]
     pub log_display_columns: LogDisplayColumns,
-    /// 投屏长边上限（像素）；0 = 原始（编码器仍封顶 1920）。下次启动生效。
+    /// 投屏长边上限（像素）；0 = 设备原始。下次启动生效。
     #[serde(default = "default_mirror_max_size")]
     pub mirror_max_size: u32,
     /// 投屏视频码率（bps）。下次启动生效。
@@ -147,14 +147,14 @@ fn default_export_ask() -> bool {
     true
 }
 
-/// 投屏默认长边（USB 协议；0 = 原始，编码器封顶 1920）。
+/// 投屏默认长边（USB 协议；0 = 设备原始）。
 pub fn default_mirror_max_size() -> u32 {
-    1920
+    0
 }
 
-/// 投屏默认码率 8 Mbps（对齐官方 scrcpy）。
+/// 投屏默认码率 16 Mbps（USB 原分辨率）。
 pub fn default_mirror_video_bit_rate() -> u32 {
-    8_000_000
+    16_000_000
 }
 
 /// 投屏默认帧率上限；0 = 不限制。
@@ -250,8 +250,8 @@ mod tests {
         assert_eq!(s.log_write_mode, LogWriteMode::Overwrite);
         assert!(s.export_default_path.is_empty());
         assert_eq!(s.log_display_columns, LogDisplayColumns::default());
-        assert_eq!(s.mirror_max_size, 1920);
-        assert_eq!(s.mirror_video_bit_rate, 8_000_000);
+        assert_eq!(s.mirror_max_size, 0);
+        assert_eq!(s.mirror_video_bit_rate, 16_000_000);
         assert_eq!(s.mirror_max_fps, 0);
         assert_eq!(s.mirror_protocol, MirrorProtocol::Usb);
         assert!(!s.mirror_force_forward);

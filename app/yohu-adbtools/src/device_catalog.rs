@@ -4,8 +4,8 @@
 use tokio_util::sync::CancellationToken;
 
 use crate::state::AppState;
-use yohu_domain::catalog_after_scan;
-use yohu_protocol::{AppEvent, DeviceInfo};
+use yohu_domain::{catalog_after_scan, start_force_forward};
+use yohu_protocol::{AppEvent, DeviceInfo, DeviceState};
 
 /// 读目录快照，不触发扫描。
 pub fn snapshot(state: &AppState) -> Vec<DeviceInfo> {
@@ -43,6 +43,8 @@ pub async fn refresh(state: &AppState) -> Result<Vec<DeviceInfo>, String> {
         tracing::info!("设备掉线: {}", serial);
         state.capture.detach_device(serial).await;
         state.mirror.stop(serial).await;
+        state.mirror.drop_warm(serial).await;
+        state.present.detach(serial);
         state.finish_capture_task(serial);
         state.finish_mirror_task(serial);
         let _ = state
@@ -51,6 +53,18 @@ pub async fn refresh(state: &AppState) -> Result<Vec<DeviceInfo>, String> {
                 serial: serial.clone(),
             })
             .await;
+    }
+
+    let settings = state.settings.snapshot();
+    for device in &devices {
+        if device.state == DeviceState::Online {
+            let serial = device.serial.clone();
+            let force = start_force_forward(&settings, &device.connection);
+            let mirror = std::sync::Arc::clone(&state.mirror);
+            tokio::spawn(async move {
+                mirror.warmup(&serial, force).await;
+            });
+        }
     }
 
     let _ = state.event_tx.try_send(AppEvent::DevicesChanged {

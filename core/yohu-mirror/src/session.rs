@@ -1,26 +1,23 @@
 //! 单设备投屏会话：push → 隧道 → app_process → 解复用 → 事件。
 
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use yohu_adb::AdbClient;
-use yohu_protocol::{
-    scrcpy, AppEvent, MirrorControlMessage, MirrorSessionState, MirrorStartRequest,
-};
+use yohu_protocol::{scrcpy, AppEvent, MirrorControlMessage, MirrorSessionState};
 use yohu_runtime::ChildHandle;
 
-use crate::b64;
 use crate::control;
 use crate::demux::{codec_name, parse_header, HeaderKind};
 use crate::error::MirrorError;
-use crate::frame::{EncodedFrame, FramePipe, CODEC_H264};
-use crate::tunnel;
+use crate::frame::{EncodedFrame, FramePipe};
+use crate::tunnel::{self, WarmTunnel};
 
 const ACCEPT_TIMEOUT: Duration = Duration::from_secs(15);
 const KILL_WAIT: Duration = Duration::from_secs(3);
@@ -31,10 +28,23 @@ pub enum ControlCmd {
     Close,
 }
 
+/// 壳展开后的会话参数（不进 UI IPC）。
+#[derive(Debug, Clone)]
+pub struct MirrorSessionRequest {
+    pub serial: String,
+    pub control: bool,
+    pub force_forward: bool,
+    pub max_size: u32,
+    pub video_bit_rate: u32,
+    pub max_fps: u32,
+    pub video_codec: String,
+}
+
 pub struct SessionOpts {
-    pub req: MirrorStartRequest,
+    pub req: MirrorSessionRequest,
     pub server_path: PathBuf,
     pub frames: Arc<FramePipe>,
+    pub warm: Option<WarmTunnel>,
 }
 
 struct CloseFrames(Arc<FramePipe>);
@@ -69,25 +79,22 @@ enum ListenerHolder {
 }
 
 fn random_scid() -> u32 {
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u32)
-        .unwrap_or(1);
-    (nanos ^ std::process::id()).max(1) & 0x7FFF_FFFF
+    tunnel::random_scid()
 }
 
-fn server_argv(req: &MirrorStartRequest, scid: u32, forward: bool) -> Vec<String> {
+fn server_argv(req: &MirrorSessionRequest, scid: u32, forward: bool) -> Vec<String> {
     let limits = yohu_domain::encoder_limits(req.max_size, req.max_fps);
     let mut kv = vec![
         format!("scid={scid:08x}"),
         "log_level=info".into(),
         "audio=false".into(),
         "video=true".into(),
-        "video_codec=h264".into(),
+        format!("video_codec={}", req.video_codec),
         format!("control={}", req.control),
         format!("max_size={}", limits.max_size),
         format!("video_bit_rate={}", req.video_bit_rate),
-        "cleanup=true".into(),
+        "cleanup=false".into(),
+        "video_codec_options=i-frame-interval=1".into(),
     ];
     if limits.max_fps > 0 {
         kv.push(format!("max_fps={}", limits.max_fps));
@@ -162,12 +169,13 @@ pub async fn run_session(
     sink: mpsc::Sender<AppEvent>,
     cancel: CancellationToken,
     generation: u64,
-    opts: SessionOpts,
+    mut opts: SessionOpts,
     control_rx: mpsc::Receiver<ControlCmd>,
     on_live: impl FnOnce(u32, u32, String),
 ) -> Result<(), MirrorError> {
     let serial = opts.req.serial.clone();
     let _close = CloseFrames(Arc::clone(&opts.frames));
+    let started = Instant::now();
     tracing::info!(
         serial = %serial,
         generation,
@@ -190,31 +198,63 @@ pub async fn run_session(
         ));
     }
 
-    let scid = random_scid();
-    let (listener, port) = tunnel::bind_local().await?;
+    let mut scid = random_scid();
+    let mut used_forward = opts.req.force_forward;
+    let mut listener: Option<TcpListener> = None;
+    let mut port: u16 = 0;
+    let mut reused = false;
 
-    tracing::info!(serial = %serial, port, "本机监听已绑定");
-    tunnel::push_server(&adb, &serial, &opts.server_path, cancel.clone()).await?;
-    tracing::info!(serial = %serial, "scrcpy-server 已 push");
+    if let Some(warm) = opts.warm.take() {
+        if warm.used_forward == used_forward {
+            scid = warm.scid;
+            port = warm.port;
+            listener = warm.listener;
+            reused = true;
+            tracing::info!(
+                serial = %serial,
+                scid,
+                port,
+                used_forward,
+                elapsed_ms = started.elapsed().as_millis() as u64,
+                "复用预热隧道"
+            );
+        } else {
+            warm.drop_async(&adb, &serial, cancel.clone()).await;
+        }
+    }
+
+    if !reused {
+        let (l, p) = tunnel::bind_local().await?;
+        port = p;
+        listener = Some(l);
+        tracing::info!(serial = %serial, port, "本机监听已绑定");
+    }
+
+    tunnel::push_server_if_needed(&adb, &serial, &opts.server_path, cancel.clone()).await?;
+    tracing::info!(
+        serial = %serial,
+        elapsed_ms = started.elapsed().as_millis() as u64,
+        "server jar 已就绪"
+    );
     if cancel.is_cancelled() {
         return Err(MirrorError::Cancelled);
     }
 
-    let mut used_forward = opts.req.force_forward;
-    let mut listener = Some(listener);
-    if !used_forward {
-        match tunnel::setup_reverse(&adb, &serial, scid, port, cancel.clone()).await {
-            Ok(()) => tracing::info!(serial = %serial, scid, port, "adb reverse 已建立"),
-            Err(e) => {
-                tracing::warn!(serial = %serial, "adb reverse 失败，回退 forward: {e}");
-                used_forward = true;
+    if !reused {
+        if !used_forward {
+            match tunnel::setup_reverse(&adb, &serial, scid, port, cancel.clone()).await {
+                Ok(()) => tracing::info!(serial = %serial, scid, port, "adb reverse 已建立"),
+                Err(e) => {
+                    tracing::warn!(serial = %serial, "adb reverse 失败，回退 forward: {e}");
+                    used_forward = true;
+                }
             }
         }
-    }
-    if used_forward {
-        listener.take();
-        tunnel::setup_forward(&adb, &serial, scid, port, cancel.clone()).await?;
-        tracing::info!(serial = %serial, scid, port, "adb forward 已建立");
+        if used_forward {
+            listener.take();
+            tunnel::setup_forward(&adb, &serial, scid, port, cancel.clone()).await?;
+            tracing::info!(serial = %serial, scid, port, "adb forward 已建立");
+        }
     }
 
     let holder = match listener {
@@ -231,7 +271,12 @@ pub async fn run_session(
     };
 
     let argv = server_argv(&opts.req, scid, used_forward);
-    tracing::info!(serial = %serial, forward = used_forward, "启动 app_process");
+    tracing::info!(
+        serial = %serial,
+        forward = used_forward,
+        elapsed_ms = started.elapsed().as_millis() as u64,
+        "启动 app_process"
+    );
     let mut child = match adb.spawn_long_lived(&serial, &argv) {
         Ok(c) => c,
         Err(e) => {
@@ -260,6 +305,7 @@ pub async fn run_session(
     });
 
     let result = run_connected(
+        adb.clone(),
         &holder,
         used_forward,
         port,
@@ -267,6 +313,7 @@ pub async fn run_session(
         Arc::clone(&alive),
         &opts,
         generation,
+        started,
         sink,
         control_rx,
         on_live,
@@ -299,6 +346,7 @@ pub async fn run_session(
 
 #[allow(clippy::too_many_arguments)]
 async fn run_connected(
+    adb: Arc<AdbClient>,
     listener: &ListenerHolder,
     used_forward: bool,
     port: u16,
@@ -306,6 +354,7 @@ async fn run_connected(
     alive: Arc<AtomicBool>,
     opts: &SessionOpts,
     generation: u64,
+    started: Instant,
     sink: mpsc::Sender<AppEvent>,
     mut control_rx: mpsc::Receiver<ControlCmd>,
     on_live: impl FnOnce(u32, u32, String),
@@ -325,7 +374,11 @@ async fn run_connected(
         };
         tunnel::accept_one(l, cancel, ACCEPT_TIMEOUT).await?
     };
-    tracing::info!(serial = %serial, "视频通道已接通");
+    tracing::info!(
+        serial = %serial,
+        elapsed_ms = started.elapsed().as_millis() as u64,
+        "视频通道已接通"
+    );
 
     let control_stream = if control_wanted {
         tracing::info!(serial = %serial, "连接控制通道");
@@ -348,8 +401,8 @@ async fn run_connected(
 
     let mut codec_buf = [0u8; 4];
     read_exact_timeout(&mut video, &mut codec_buf, cancel, ACCEPT_TIMEOUT).await?;
-    let codec_id = u32::from_be_bytes(codec_buf);
-    let codec = codec_name(codec_id)
+    let stream_codec_id = u32::from_be_bytes(codec_buf);
+    let codec = codec_name(stream_codec_id)
         .map_err(MirrorError::Protocol)?
         .to_string();
 
@@ -368,6 +421,7 @@ async fn run_connected(
         width,
         height,
         control = control_wanted,
+        elapsed_ms = started.elapsed().as_millis() as u64,
         "投屏 Live"
     );
     on_live(width, height, codec.clone());
@@ -383,6 +437,38 @@ async fn run_connected(
         None,
     )
     .await;
+
+    let media_packets = Arc::new(AtomicU64::new(0));
+    {
+        let wake_adb = Arc::clone(&adb);
+        let wake_serial = serial.clone();
+        let wake_pkts = Arc::clone(&media_packets);
+        let wake_cancel = cancel.clone();
+        tokio::spawn(async move {
+            tokio::select! {
+                biased;
+                _ = wake_cancel.cancelled() => {}
+                _ = tokio::time::sleep(Duration::from_millis(400)) => {
+                    if wake_pkts.load(Ordering::Relaxed) == 0 {
+                        tracing::info!(serial = %wake_serial, "Live 后无帧，注入 KEYCODE_WAKEUP");
+                        let _ = wake_adb
+                            .run(
+                                &wake_serial,
+                                &[
+                                    "shell".into(),
+                                    "input".into(),
+                                    "keyevent".into(),
+                                    "224".into(),
+                                ],
+                                Some(3_000),
+                                wake_cancel,
+                            )
+                            .await;
+                    }
+                }
+            }
+        });
+    }
 
     let mut control_write = None;
     if let Some(stream) = control_stream {
@@ -476,15 +562,25 @@ async fn run_connected(
                         read_exact_cancel(&mut video, &mut payload, cancel).await?;
                         if config && !saw_config {
                             saw_config = true;
-                            tracing::info!(serial = %serial, size, "收到 codec config");
+                            tracing::info!(
+                                serial = %serial,
+                                size,
+                                elapsed_ms = started.elapsed().as_millis() as u64,
+                                "收到 codec config"
+                            );
                         }
                         if keyframe && !saw_key {
                             saw_key = true;
-                            tracing::info!(serial = %serial, size, "收到关键帧");
+                            tracing::info!(
+                                serial = %serial,
+                                size,
+                                elapsed_ms = started.elapsed().as_millis() as u64,
+                                "收到关键帧"
+                            );
                         }
                         opts.frames.push(EncodedFrame {
                             generation,
-                            codec: CODEC_H264,
+                            codec: crate::frame::codec_id(&codec),
                             width,
                             height,
                             config,
@@ -494,6 +590,7 @@ async fn run_connected(
                             dropped: 0,
                         });
                         packets += 1;
+                        media_packets.store(packets, Ordering::Relaxed);
                         let dropped = opts.frames.dropped();
                         if dropped > 0 && (dropped == 1 || dropped.is_multiple_of(50)) {
                             tracing::warn!(
@@ -594,11 +691,4 @@ pub async fn emit_terminal_state(
 
 pub fn encode_control(message: &MirrorControlMessage) -> Vec<u8> {
     control::encode(message)
-}
-
-/// 把 PNG Base64 写入本地路径。
-pub fn save_png(path: &str, data_b64: &str) -> Result<(), MirrorError> {
-    let bytes = b64::decode(data_b64).map_err(MirrorError::Protocol)?;
-    std::fs::write(path, bytes)?;
-    Ok(())
 }

@@ -9,13 +9,13 @@ use tokio::sync::{mpsc, Notify};
 use tokio_util::sync::CancellationToken;
 use yohu_adb::AdbClient;
 use yohu_protocol::{
-    AppEvent, MirrorControlMessage, MirrorSessionState, MirrorStart, MirrorStartRequest,
-    MirrorStatus,
+    AppEvent, MirrorControlMessage, MirrorSessionState, MirrorStart, MirrorStatus,
 };
 
 use crate::error::MirrorError;
 use crate::frame::FramePipe;
-use crate::session::{self, ControlCmd, SessionOpts};
+use crate::session::{self, ControlCmd, MirrorSessionRequest, SessionOpts};
+use crate::tunnel::{self, WarmTunnel};
 
 const START_WAIT: Duration = Duration::from_secs(20);
 
@@ -40,10 +40,16 @@ struct MirrorSlot {
     frames: Arc<FramePipe>,
 }
 
+enum WarmEntry {
+    Busy,
+    Ready(WarmTunnel),
+}
+
 struct Inner {
     slots: HashMap<String, MirrorSlot>,
     last_generation: HashMap<String, u64>,
     next_generation: u64,
+    warm: HashMap<String, WarmEntry>,
 }
 
 enum StartDecision {
@@ -88,6 +94,7 @@ impl MirrorService {
                 slots: HashMap::new(),
                 last_generation: HashMap::new(),
                 next_generation: 0,
+                warm: HashMap::new(),
             }),
             changed: Notify::new(),
         })
@@ -179,7 +186,7 @@ impl MirrorService {
 
     pub async fn start(
         self: &Arc<Self>,
-        req: MirrorStartRequest,
+        req: MirrorSessionRequest,
     ) -> Result<MirrorStart, MirrorError> {
         let serial = req.serial.clone();
         let (my_generation, cancel, control_rx, frames) = loop {
@@ -245,31 +252,68 @@ impl MirrorService {
             return Err(MirrorError::Cancelled);
         }
 
+        let warm = self.take_warm(&serial, req.force_forward).await;
         let adb = Arc::clone(&self.adb);
         let sink = self.sink.clone();
         let service = Arc::clone(self);
         let serial_owned = serial.clone();
         let follow_cancel = cancel.clone();
+        let requested_hevc = req.video_codec.eq_ignore_ascii_case("h265");
         let opts = SessionOpts {
             req,
             server_path: self.server_path.clone(),
             frames,
+            warm,
         };
         let handle = tokio::spawn(async move {
-            let live_service = Arc::clone(&service);
-            let live_serial = serial_owned.clone();
-            let result = session::run_session(
-                adb,
-                sink,
-                follow_cancel,
-                my_generation,
-                opts,
-                control_rx,
-                move |width, height, codec| {
-                    live_service.mark_live(&live_serial, my_generation, width, height, codec);
-                },
-            )
-            .await;
+            let mut req = opts.req;
+            let server_path = opts.server_path;
+            let frames = opts.frames;
+            let mut warm = opts.warm;
+            let mut control_rx = Some(control_rx);
+            let mut tried_h264 = false;
+            let result = loop {
+                let rx = match control_rx.take() {
+                    Some(rx) => rx,
+                    None => service.new_control_rx(&serial_owned, my_generation),
+                };
+                let live_service = Arc::clone(&service);
+                let live_serial = serial_owned.clone();
+                let result = session::run_session(
+                    adb.clone(),
+                    sink.clone(),
+                    follow_cancel.clone(),
+                    my_generation,
+                    SessionOpts {
+                        req: req.clone(),
+                        server_path: server_path.clone(),
+                        frames: Arc::clone(&frames),
+                        warm: warm.take(),
+                    },
+                    rx,
+                    move |width, height, codec| {
+                        live_service.mark_live(&live_serial, my_generation, width, height, codec);
+                    },
+                )
+                .await;
+                if !follow_cancel.is_cancelled()
+                    && service.slot_still_starting(&serial_owned, my_generation)
+                    && result
+                        .as_ref()
+                        .err()
+                        .is_some_and(|e| hevc_should_fallback(requested_hevc, tried_h264, e))
+                {
+                    tracing::warn!(
+                        serial = %serial_owned,
+                        generation = my_generation,
+                        "HEVC 失败，同会话回退 H.264"
+                    );
+                    req.video_codec = "h264".into();
+                    tried_h264 = true;
+                    continue;
+                }
+                break result;
+            };
             service
                 .release_if_current(&serial_owned, my_generation, result)
                 .await;
@@ -481,5 +525,162 @@ impl MirrorService {
             tracing::info!(serial, generation, "投屏流结束");
             self.changed.notify_waiters();
         }
+    }
+
+    fn slot_still_starting(&self, serial: &str, generation: u64) -> bool {
+        let inner = self.inner.lock().expect("mirror lock poisoned");
+        inner.slots.get(serial).is_some_and(|slot| {
+            slot.generation == generation && slot.phase == Phase::Starting
+        })
+    }
+
+    fn new_control_rx(&self, serial: &str, generation: u64) -> mpsc::Receiver<ControlCmd> {
+        let (tx, rx) = mpsc::channel(32);
+        let mut inner = self.inner.lock().expect("mirror lock poisoned");
+        if let Some(slot) = inner.slots.get_mut(serial) {
+            if slot.generation == generation && slot.control {
+                slot.control_tx = Some(tx);
+            }
+        }
+        rx
+    }
+
+    /// 设备扫描成功后对在线设备后台预热（跳过 push + 预挂隧道）。
+    pub async fn warmup(self: &Arc<Self>, serial: &str, force_forward: bool) {
+        {
+            let mut inner = self.inner.lock().expect("mirror lock poisoned");
+            if inner.slots.contains_key(serial) {
+                return;
+            }
+            match inner.warm.get(serial) {
+                Some(WarmEntry::Busy | WarmEntry::Ready(_)) => return,
+                None => {
+                    inner.warm.insert(serial.to_string(), WarmEntry::Busy);
+                }
+            }
+        }
+        let result = tunnel::warmup(
+            &self.adb,
+            serial,
+            &self.server_path,
+            force_forward,
+            CancellationToken::new(),
+        )
+        .await;
+        let stale = {
+            let mut inner = self.inner.lock().expect("mirror lock poisoned");
+            match result {
+                Ok(tunnel) => {
+                    if inner.slots.contains_key(serial) {
+                        Some(tunnel)
+                    } else {
+                        tracing::info!(serial, "投屏预热完成");
+                        inner
+                            .warm
+                            .insert(serial.to_string(), WarmEntry::Ready(tunnel));
+                        None
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(serial, error = %e, "投屏预热失败");
+                    inner.warm.remove(serial);
+                    None
+                }
+            }
+        };
+        if let Some(tunnel) = stale {
+            tunnel
+                .drop_async(&self.adb, serial, CancellationToken::new())
+                .await;
+        }
+    }
+
+    pub async fn drop_warm(&self, serial: &str) {
+        let taken = {
+            let mut inner = self.inner.lock().expect("mirror lock poisoned");
+            inner.warm.remove(serial)
+        };
+        if let Some(WarmEntry::Ready(tunnel)) = taken {
+            tunnel
+                .drop_async(&self.adb, serial, CancellationToken::new())
+                .await;
+        }
+    }
+
+    async fn take_warm(&self, serial: &str, force_forward: bool) -> Option<WarmTunnel> {
+        for _ in 0..25 {
+            enum Step {
+                Ready(WarmTunnel),
+                Mismatch(WarmTunnel),
+                Wait,
+                Miss,
+            }
+            let step = {
+                let mut inner = self.inner.lock().expect("mirror lock poisoned");
+                match inner.warm.remove(serial) {
+                    Some(WarmEntry::Ready(tunnel)) => {
+                        if tunnel.used_forward == force_forward {
+                            Step::Ready(tunnel)
+                        } else {
+                            Step::Mismatch(tunnel)
+                        }
+                    }
+                    Some(WarmEntry::Busy) => {
+                        inner
+                            .warm
+                            .insert(serial.to_string(), WarmEntry::Busy);
+                        Step::Wait
+                    }
+                    None => Step::Miss,
+                }
+            };
+            match step {
+                Step::Ready(t) => return Some(t),
+                Step::Mismatch(t) => {
+                    t.drop_async(&self.adb, serial, CancellationToken::new())
+                        .await;
+                    return None;
+                }
+                Step::Miss => return None,
+                Step::Wait => tokio::time::sleep(Duration::from_millis(80)).await,
+            }
+        }
+        None
+    }
+}
+
+fn hevc_should_fallback(requested_hevc: bool, tried_h264: bool, err: &MirrorError) -> bool {
+    requested_hevc
+        && !tried_h264
+        && matches!(err, MirrorError::ServerFailed(_) | MirrorError::Protocol(_))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hevc_falls_back_once_on_server_error() {
+        assert!(hevc_should_fallback(
+            true,
+            false,
+            &MirrorError::ServerFailed("codec".into())
+        ));
+        assert!(hevc_should_fallback(
+            true,
+            false,
+            &MirrorError::Protocol("config".into())
+        ));
+        assert!(!hevc_should_fallback(
+            true,
+            true,
+            &MirrorError::ServerFailed("codec".into())
+        ));
+        assert!(!hevc_should_fallback(
+            false,
+            false,
+            &MirrorError::ServerFailed("codec".into())
+        ));
+        assert!(!hevc_should_fallback(true, false, &MirrorError::Cancelled));
     }
 }

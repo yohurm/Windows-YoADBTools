@@ -21,6 +21,7 @@ use yohu_protocol::{AppEvent, DeviceInfo, IpcError, IpcErrorCode};
 use crate::paths::AppPaths;
 use crate::settings_store::SettingsStore;
 use crate::tasks::TaskCenter;
+use crate::mirror_present::PresentHost;
 
 /// 应用状态（Tauri managed state）。
 pub struct AppState {
@@ -29,6 +30,7 @@ pub struct AppState {
     pub tool: Arc<ToolResolver>,
     pub capture: Arc<CaptureService>,
     pub mirror: Arc<MirrorService>,
+    pub present: Arc<PresentHost>,
     pub browser: FileBrowser,
     pub mutator: FileMutator,
     pub transfers: TransferRunner,

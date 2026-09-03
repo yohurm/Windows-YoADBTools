@@ -19,6 +19,112 @@ pub fn abstract_spec(scid: u32) -> String {
     format!("localabstract:{}", socket_name(scid))
 }
 
+pub fn random_scid() -> u32 {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u32)
+        .unwrap_or(1);
+    (nanos ^ std::process::id()).max(1) & 0x7FFF_FFFF
+}
+
+/// 预热隧道：jar 已按大小跳过 push，reverse/forward 已挂上。
+pub struct WarmTunnel {
+    pub scid: u32,
+    pub port: u16,
+    pub listener: Option<TcpListener>,
+    pub used_forward: bool,
+}
+
+impl WarmTunnel {
+    pub async fn drop_async(&self, adb: &AdbClient, serial: &str, _cancel: CancellationToken) {
+        if self.used_forward {
+            remove_forward(adb, serial, self.port).await;
+        } else {
+            remove_reverse(adb, serial, self.scid).await;
+        }
+    }
+}
+
+/// 按本地 jar 大小跳过重复 push。
+pub async fn push_server_if_needed(
+    adb: &AdbClient,
+    serial: &str,
+    local: &Path,
+    cancel: CancellationToken,
+) -> Result<(), MirrorError> {
+    let local_len = match std::fs::metadata(local) {
+        Ok(meta) => meta.len(),
+        Err(_) => return push_server(adb, serial, local, cancel).await,
+    };
+    if jar_already_on_device(local_len, remote_jar_size(adb, serial, cancel.clone()).await) {
+        tracing::info!(serial, size = local_len, "scrcpy-server 已在设备上，跳过 push");
+        return Ok(());
+    }
+    push_server(adb, serial, local, cancel).await?;
+    tracing::info!(serial, size = local_len, "scrcpy-server 已 push");
+    Ok(())
+}
+
+async fn remote_jar_size(adb: &AdbClient, serial: &str, cancel: CancellationToken) -> Option<u64> {
+    let out = adb
+        .run(
+            serial,
+            &[
+                "shell".into(),
+                format!("stat -c %s {}", scrcpy::DEVICE_SERVER_PATH),
+            ],
+            Some(8_000),
+            cancel,
+        )
+        .await
+        .ok()?;
+    if out.exit_code != 0 {
+        return None;
+    }
+    out.stdout
+        .split_whitespace()
+        .next()
+        .and_then(|s| s.parse().ok())
+}
+
+/// 预热：跳过重复 push，预绑 reverse（失败则 forward）。
+pub async fn warmup(
+    adb: &AdbClient,
+    serial: &str,
+    local: &Path,
+    force_forward: bool,
+    cancel: CancellationToken,
+) -> Result<WarmTunnel, MirrorError> {
+    push_server_if_needed(adb, serial, local, cancel.clone()).await?;
+    if cancel.is_cancelled() {
+        return Err(MirrorError::Cancelled);
+    }
+    let scid = random_scid();
+    let (listener, port) = bind_local().await?;
+    let mut used_forward = force_forward;
+    let mut listener = Some(listener);
+    if !used_forward {
+        match setup_reverse(adb, serial, scid, port, cancel.clone()).await {
+            Ok(()) => tracing::info!(serial, scid, port, "预热 reverse 已建立"),
+            Err(e) => {
+                tracing::warn!(serial, "预热 reverse 失败，改 forward: {e}");
+                used_forward = true;
+            }
+        }
+    }
+    if used_forward {
+        listener.take();
+        setup_forward(adb, serial, scid, port, cancel).await?;
+        tracing::info!(serial, scid, port, "预热 forward 已建立");
+    }
+    Ok(WarmTunnel {
+        scid,
+        port,
+        listener,
+        used_forward,
+    })
+}
+
 /// 绑定本机环回任意端口。
 pub async fn bind_local() -> Result<(TcpListener, u16), MirrorError> {
     let listener = TcpListener::bind("127.0.0.1:0").await?;
@@ -199,5 +305,23 @@ pub async fn connect_tcp(port: u16, cancel: &CancellationToken) -> Result<TcpStr
             _ = cancel.cancelled() => return Err(MirrorError::Cancelled),
             _ = tokio::time::sleep(Duration::from_millis(50)) => {}
         }
+    }
+}
+
+/// 本地 jar 与设备上文件大小一致则跳过 push。
+pub fn jar_already_on_device(local_len: u64, remote_len: Option<u64>) -> bool {
+    local_len > 0 && remote_len == Some(local_len)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn skip_push_when_sizes_match() {
+        assert!(jar_already_on_device(1234, Some(1234)));
+        assert!(!jar_already_on_device(1234, Some(1)));
+        assert!(!jar_already_on_device(1234, None));
+        assert!(!jar_already_on_device(0, Some(0)));
     }
 }

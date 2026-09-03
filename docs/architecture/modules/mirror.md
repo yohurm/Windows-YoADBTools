@@ -1,46 +1,42 @@
 # 模块：投屏
 
-- 能力：`yohu-mirror`；官方未改 `scrcpy-server` 4.1 sidecar；客户端自写（reverse 优先 / `tcp:` 默认 forward / 12B 解复用）
-- 禁止拉起 `scrcpy.exe`（ADR-v6-015）
-- 槽位与采集同构：仅 Live adopt；`mirror/state` 必达
+- 能力：`yohu-mirror` 解复用 + 槽位；壳 `mirror_present` 解码呈现（ADR-v6-024）
+- 官方未改 `scrcpy-server` 4.1 sidecar；禁止拉起 `scrcpy.exe`（ADR-v6-015）
+- 槽位与采集同构：仅 Live adopt；`mirror/state` 必达；首帧 `mirror/painted`
 - 长驻 `app_process` 的杀树走 `yohu_runtime::kill_tree`
-- 画质与包通道见 [ADR-v6-023](../adr/ADR-v6-023.md)
 
-## 四段管道
+## 管道
 
 ```text
-设备 MediaCodec（协议：usb / wifi）
-  → ADB reverse 或 forward
-  → yohu-mirror 解复用 + FramePipe（8 帧，先丢 delta）
-  → 壳 Tauri Channel（二进制帧）
-  → WebCodecs → WebGL/2D display×DPR → YoPanel
+设备 MediaCodec（协议：usb / wifi；USB 优先 HEVC）
+  → ADB reverse 或 forward（可 warmup 预挂）
+  → yohu-mirror 解复用 + FramePipe（sticky last config；8 帧，先丢 delta）
+  → 壳 MF 硬件 MFT（DXGI 设备管理器）→ D3D11 Video Processor
+  → 对齐 YoPanel 的 WS_POPUP HWND
 ```
 
-core 零 Tauri：`FramePipe` 在 `yohu-mirror`；`ipc::Channel` 只在 `yohu-adbtools` 泵。
+core 零 Tauri：`FramePipe` 在 `yohu-mirror`；HWND / MF / D3D 只在 `yohu-adbtools`。
+
+`mirror.start` 只传 `serial/control/connection/session_quality_touched`；编码参数由壳从 `yohu-domain` 解析。
 
 ## 投屏协议
 
-| 协议 | 长边 | 码率 | max_fps | 何时 |
-|------|------|------|---------|------|
-| usb | 1920 | 8 Mbps | 0（不限） | USB 默认 |
-| wifi | 1024 | 2 Mbps | 30 | `connection` 以 `tcp:` 开头且本会话未改质量 |
+| 协议 | 长边 | 码率 | max_fps | 编码 | 何时 |
+|------|------|------|---------|------|------|
+| usb | 0（原始） | 16 Mbps | 0（不限） | h265（失败 h264） | USB 默认 |
+| wifi | 1280 | 4 Mbps | 30 | h264 | `connection` 以 `tcp:` 开头且本会话未改质量 |
 
-选协议写入上表参数。改长边 / 码率 / 帧率不另立协议。`max_size=0`（UI「原始」）编码器封顶 1920。`max_fps=0` 表示不向 server 传帧率上限。
+选协议写入上表。改长边 / 码率 / 帧率不另立协议。`max_size=0` 表示设备原始，**不再封顶 1920**。`max_fps=0` 不向 server 传帧率上限。
 
-## 二进制帧
+## 呈现
 
-32 字节小端头 + payload（Annex-B / avcC 原样）：
-
-`version u8` `flags u8`（bit0=config，bit1=keyframe）`codec u8`（0=h264）`reserved u8` `width u32` `height u32` `dropped u32`（累计丢帧）`generation u64` `pts u64`
-
-## 绘制
-
-- 面板 contain 贴合（`--mirror-w/--mirror-h`）
-- 舞台是叠层包含块：底层 canvas 铺满（display×DPR 的 CSS 盒）；空态/加载进 overlay，禁止与 canvas 共 flex 流
-- 位图 = CSS 尺寸 × `devicePixelRatio`；禁止再把 `canvas.width` 设成视频分辨率
-- Live 未出画：canvas `opacity:0` 仍铺满舞台（backing store 可测），禁止收成 1×1
-- 截图：`lastFrame` 按视频分辨率离屏导出
-- 实测 fps：1s 窗口已绘帧，进状态栏右槽（模块 `Status`），不盖画面
+- 面板 contain 贴合（`--mirror-w/--mirror-h`）；舞台透明占位，原生 HWND 盖在物理矩形上
+- `mirror.layout`：屏幕物理像素 `{x,y,w,h,visible}`；禁止 CSS 二次缩放画面
+- 整数倍（误差 &lt; 1%）吸附后最近邻；否则由 D3D11 Video Processor 缩放（厂商投屏同款，不是 CPU 双线性）
+- 面板铬 `yohu-recipe-mirror-frame`（spatialPanel）过渡；HWND 经舞台 ResizeObserver 跟盒；禁止 CSS 缩放视频
+- Live 未出画：HWND 隐藏，overlay 盖舞台
+- 截图：`mirror.screenshot` 按视频分辨率从 last 纹理导出
+- 实测 fps：1s 窗口已 Present 帧，进状态栏右槽，不盖画面
 
 ## UI
 

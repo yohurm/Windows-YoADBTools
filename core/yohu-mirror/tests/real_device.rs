@@ -24,9 +24,8 @@ fn lock_device() -> std::sync::MutexGuard<'static, ()> {
 
 use yohu_adb::{AdbClient, ToolResolver};
 use yohu_mirror::{FramePipe, MirrorService};
-use yohu_protocol::{
-    scrcpy, AppEvent, MirrorControlMessage, MirrorSessionState, MirrorStartRequest,
-};
+use yohu_mirror::MirrorSessionRequest;
+use yohu_protocol::{scrcpy, AppEvent, MirrorControlMessage, MirrorSessionState};
 
 fn real_adb() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tools/adb.exe")
@@ -67,8 +66,8 @@ async fn online_phone(client: &AdbClient) -> Option<String> {
         .map(|d| d.serial.clone())
 }
 
-fn start_req(serial: &str, control: bool, force_forward: bool) -> MirrorStartRequest {
-    MirrorStartRequest {
+fn start_req(serial: &str, control: bool, force_forward: bool) -> MirrorSessionRequest {
+    MirrorSessionRequest {
         serial: serial.to_string(),
         max_size: 640,
         video_bit_rate: 1_000_000,

@@ -1,4 +1,4 @@
-//! 会话专用有界帧队列：先丢 delta，不丢 config。零 Tauri。
+//! 会话专用有界帧队列：sticky 最后一份 config；IDR 优先于 delta。零 Tauri。
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -6,11 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Notify;
 
-pub const HEADER_SIZE: usize = 32;
-pub const HEADER_VERSION: u8 = 1;
 pub const CODEC_H264: u8 = 0;
-pub const FLAG_CONFIG: u8 = 0b0000_0001;
-pub const FLAG_KEYFRAME: u8 = 0b0000_0010;
+pub const CODEC_H265: u8 = 1;
 const QUEUE_CAP: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,8 +29,10 @@ impl EncodedFrame {
     }
 }
 
-/// 会话帧泵。满时先丢非关键帧；config 不丢；IDR 仅在队列已无 delta 时丢最旧 IDR。
+/// 会话帧泵。config 不进容量队列；满时先丢 delta，不为 delta 丢掉最后的 IDR。
 pub struct FramePipe {
+    last_config: Mutex<Option<EncodedFrame>>,
+    pending_config: AtomicBool,
     queue: Mutex<VecDeque<EncodedFrame>>,
     notify: Notify,
     closed: AtomicBool,
@@ -43,6 +42,8 @@ pub struct FramePipe {
 impl FramePipe {
     pub fn new() -> Arc<Self> {
         Arc::new(Self {
+            last_config: Mutex::new(None),
+            pending_config: AtomicBool::new(false),
             queue: Mutex::new(VecDeque::with_capacity(QUEUE_CAP)),
             notify: Notify::new(),
             closed: AtomicBool::new(false),
@@ -63,6 +64,13 @@ impl FramePipe {
         if self.closed.load(Ordering::SeqCst) {
             return;
         }
+        frame.dropped = self.dropped.load(Ordering::SeqCst);
+        if frame.config {
+            *self.last_config.lock().expect("frame pipe lock poisoned") = Some(frame);
+            self.pending_config.store(true, Ordering::SeqCst);
+            self.notify.notify_one();
+            return;
+        }
         let mut queue = self.queue.lock().expect("frame pipe lock poisoned");
         if queue.len() >= QUEUE_CAP && !evict_for(&mut queue, &frame, &self.dropped) {
             return;
@@ -74,6 +82,16 @@ impl FramePipe {
     }
 
     fn pop(&self) -> Option<EncodedFrame> {
+        if self.pending_config.swap(false, Ordering::SeqCst) {
+            if let Some(config) = self
+                .last_config
+                .lock()
+                .expect("frame pipe lock poisoned")
+                .clone()
+            {
+                return Some(config);
+            }
+        }
         self.queue
             .lock()
             .expect("frame pipe lock poisoned")
@@ -98,19 +116,6 @@ fn evict_for(
     incoming: &EncodedFrame,
     dropped: &AtomicU32,
 ) -> bool {
-    if incoming.config {
-        if let Some(i) = queue.iter().position(EncodedFrame::is_delta) {
-            queue.remove(i);
-            dropped.fetch_add(1, Ordering::SeqCst);
-            return true;
-        }
-        if let Some(i) = queue.iter().position(|f| !f.config && f.keyframe) {
-            queue.remove(i);
-            dropped.fetch_add(1, Ordering::SeqCst);
-            return true;
-        }
-        return false;
-    }
     if incoming.keyframe {
         let before = queue.len();
         queue.retain(|f| !f.is_delta());
@@ -121,55 +126,28 @@ fn evict_for(
         if queue.len() < QUEUE_CAP {
             return true;
         }
-        if let Some(i) = queue.iter().position(|f| !f.config && f.keyframe) {
+        if let Some(i) = queue.iter().position(|f| f.keyframe) {
             queue.remove(i);
             dropped.fetch_add(1, Ordering::SeqCst);
             return true;
         }
         return false;
     }
+    if let Some(i) = queue.iter().position(EncodedFrame::is_delta) {
+        queue.remove(i);
+        dropped.fetch_add(1, Ordering::SeqCst);
+        return true;
+    }
     dropped.fetch_add(1, Ordering::SeqCst);
     false
 }
 
-pub fn encode_frame(frame: &EncodedFrame) -> Vec<u8> {
-    let mut flags = 0u8;
-    if frame.config {
-        flags |= FLAG_CONFIG;
+pub fn codec_id(name: &str) -> u8 {
+    if name.eq_ignore_ascii_case("h265") || name.eq_ignore_ascii_case("hevc") {
+        CODEC_H265
+    } else {
+        CODEC_H264
     }
-    if frame.keyframe {
-        flags |= FLAG_KEYFRAME;
-    }
-    let mut out = Vec::with_capacity(HEADER_SIZE + frame.payload.len());
-    out.push(HEADER_VERSION);
-    out.push(flags);
-    out.push(frame.codec);
-    out.push(0);
-    out.extend_from_slice(&frame.width.to_le_bytes());
-    out.extend_from_slice(&frame.height.to_le_bytes());
-    out.extend_from_slice(&frame.dropped.to_le_bytes());
-    out.extend_from_slice(&frame.generation.to_le_bytes());
-    out.extend_from_slice(&frame.pts.to_le_bytes());
-    out.extend_from_slice(&frame.payload);
-    out
-}
-
-pub fn decode_frame(bytes: &[u8]) -> Option<EncodedFrame> {
-    if bytes.len() < HEADER_SIZE || bytes[0] != HEADER_VERSION {
-        return None;
-    }
-    let flags = bytes[1];
-    Some(EncodedFrame {
-        codec: bytes[2],
-        width: u32::from_le_bytes(bytes[4..8].try_into().ok()?),
-        height: u32::from_le_bytes(bytes[8..12].try_into().ok()?),
-        dropped: u32::from_le_bytes(bytes[12..16].try_into().ok()?),
-        generation: u64::from_le_bytes(bytes[16..24].try_into().ok()?),
-        pts: u64::from_le_bytes(bytes[24..32].try_into().ok()?),
-        config: flags & FLAG_CONFIG != 0,
-        keyframe: flags & FLAG_KEYFRAME != 0,
-        payload: bytes[HEADER_SIZE..].to_vec(),
-    })
 }
 
 #[cfg(test)]
@@ -191,23 +169,6 @@ mod tests {
     }
 
     #[test]
-    fn header_roundtrip() {
-        let src = EncodedFrame {
-            generation: 9,
-            width: 1080,
-            height: 1920,
-            config: true,
-            keyframe: true,
-            pts: 12_345,
-            codec: CODEC_H264,
-            payload: vec![1, 2, 3, 4],
-            dropped: 7,
-        };
-        let decoded = decode_frame(&encode_frame(&src)).expect("header");
-        assert_eq!(decoded, src);
-    }
-
-    #[test]
     fn drop_delta_keep_config_and_idr() {
         let pipe = FramePipe::new();
         pipe.push(frame(true, false, 0));
@@ -219,8 +180,9 @@ mod tests {
         assert!(first.config);
         let second = pipe.pop().expect("idr");
         assert!(second.keyframe);
+        assert_eq!(second.pts, 99);
         assert!(pipe.dropped() >= 1);
-        assert!(pipe.pop().is_none() || pipe.pop().is_none());
+        assert!(pipe.pop().is_none());
     }
 
     #[test]
@@ -231,9 +193,43 @@ mod tests {
             pipe.push(frame(false, true, i));
         }
         pipe.push(frame(false, true, 100));
-        let pts: Vec<u64> = (0..9).filter_map(|_| pipe.pop().map(|f| f.pts)).collect();
-        assert!(pts.contains(&0), "config kept: {pts:?}");
+        let first = pipe.pop().expect("config");
+        assert_eq!(first.pts, 0);
+        let pts: Vec<u64> = (0..8).filter_map(|_| pipe.pop().map(|f| f.pts)).collect();
         assert!(pts.contains(&100), "newest idr kept: {pts:?}");
         assert!(!pts.contains(&1), "oldest idr dropped: {pts:?}");
+    }
+
+    #[test]
+    fn delta_does_not_evict_last_idr() {
+        let pipe = FramePipe::new();
+        pipe.push(frame(true, false, 0));
+        pipe.push(frame(false, true, 1));
+        for i in 2..=9 {
+            pipe.push(frame(false, false, i));
+        }
+        pipe.push(frame(false, false, 10));
+        let _ = pipe.pop();
+        let second = pipe.pop().expect("idr");
+        assert!(second.keyframe);
+        assert_eq!(second.pts, 1);
+        assert!(pipe.dropped() >= 1);
+    }
+
+    #[test]
+    fn new_config_replaces_sticky_slot() {
+        let pipe = FramePipe::new();
+        pipe.push(frame(true, false, 0));
+        pipe.push(frame(true, false, 7));
+        let first = pipe.pop().expect("latest config");
+        assert_eq!(first.pts, 7);
+        assert!(pipe.pop().is_none());
+    }
+
+    #[test]
+    fn codec_id_maps_hevc() {
+        assert_eq!(codec_id("h265"), CODEC_H265);
+        assert_eq!(codec_id("HEVC"), CODEC_H265);
+        assert_eq!(codec_id("h264"), CODEC_H264);
     }
 }

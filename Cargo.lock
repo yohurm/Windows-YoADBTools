@@ -5042,6 +5042,7 @@ dependencies = [
 name = "yohu-adbtools"
 version = "0.1.3"
 dependencies = [
+ "png 0.17.16",
  "serde",
  "serde_json",
  "tauri",

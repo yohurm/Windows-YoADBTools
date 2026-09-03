@@ -1,7 +1,7 @@
 /* ============================================================================
  * 投屏显示（UI设计系统-v6.md §4.4）。
- * 画面嵌在 YoPanel；等比适应容器（不是编码器 max_size）。
- * 页眉：开始/停止、暂停、截图、全屏。质量 / 通道 / 导航在右侧功能栏。
+ * 画面在壳 HWND 上对齐面板；WebView 只留铬层。
+ * 铬层宽高走 yohu-recipe-mirror-frame；HWND 经舞台 ResizeObserver 跟盒。
  * ========================================================================== */
 
 .yohu-mirror__body {
@@ -29,12 +29,6 @@
   max-width: 100%;
   max-height: 100%;
   min-height: 0;
-  /* 面板边界变化常开平滑过渡：默认布局(100%) ↔ 贴合帧(px) 双向切换
-   * （开始收拢、停止展开）都动画，不生硬跳变。
-   * 空闲态 frameStyle 返回 ""（宽度/高度为 100%），窗口 resize 即时跟随，不触发转场。 */
-  transition:
-    width var(--yohu-motion-spatial-panel),
-    height var(--yohu-motion-spatial-panel);
 }
 
 .yohu-mirror__func.yohu-panel--pane {
@@ -50,13 +44,11 @@
   overflow-y: auto;
 }
 
-/* 画面面板是视口，不是可滚动文档。 */
 .yohu-mirror__panel .yohu-panel__body {
   overflow: hidden;
   height: 100%;
 }
 
-/* 舞台 = 叠层包含块。尺寸由面板 flex 链给出，不靠子项撑开。 */
 .yohu-mirror__stage {
   position: relative;
   flex: 1 1 auto;
@@ -66,22 +58,11 @@
   overflow: hidden;
 }
 
-/* 绘制面：始终铺满舞台（display×DPR 的 CSS 盒）。未出画只藏像素，不改盒。 */
-.yohu-mirror__canvas {
+.yohu-mirror__hole {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  touch-action: none;
 }
 
-.yohu-mirror__canvas--hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* 空态 / 加载的宿主。YoEmptyState / YoLoading 按 flex:1 居中，不与绘制面争流。 */
 .yohu-mirror__overlay {
   position: absolute;
   inset: 0;
@@ -143,12 +124,4 @@
   border-radius: var(--yohu-radius-none);
   width: 100%;
   height: 100%;
-  transition: none;
-}
-
-/* reduced-motion：面板边界过渡降级为即时（与 tokens/motion.css 一致）。 */
-@media (prefers-reduced-motion: reduce) {
-  .yohu-mirror__panel {
-    transition-duration: 0.01ms !important;
-  }
 }

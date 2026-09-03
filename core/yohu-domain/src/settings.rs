@@ -132,8 +132,8 @@ mod tests {
     fn mirror_protocol_fills_encode_params_without_inventing_custom() {
         let mut s = AppSettings::default();
         apply_setting(&mut s, SettingKey::MirrorProtocol, &json!("wifi")).unwrap();
-        assert_eq!(s.mirror_max_size, 1024);
-        assert_eq!(s.mirror_video_bit_rate, 2_000_000);
+        assert_eq!(s.mirror_max_size, 1280);
+        assert_eq!(s.mirror_video_bit_rate, 4_000_000);
         assert_eq!(s.mirror_max_fps, 30);
         assert_eq!(s.mirror_protocol, yohu_protocol::MirrorProtocol::Wifi);
         apply_setting(&mut s, SettingKey::MirrorMaxFps, &json!(15)).unwrap();

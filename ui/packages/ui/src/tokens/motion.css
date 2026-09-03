@@ -266,6 +266,13 @@
   transition: grid-template-columns var(--yohu-motion-spatial-panel);
 }
 
+/* 投屏面板铬：宽高贴合画面。HWND 跟盒，禁止用 CSS 缩放视频。 */
+.yohu-recipe-mirror-frame {
+  transition:
+    width var(--yohu-motion-spatial-panel),
+    height var(--yohu-motion-spatial-panel);
+}
+
 .yohu-recipe-tree-chevron {
   display: inline-flex;
   transition: transform var(--yohu-motion-spatial-small);
@@ -400,6 +407,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .yohu-recipe-rail,
+  .yohu-recipe-mirror-frame,
   .yohu-collapse,
   .yohu-collapse[data-recipe="panel"] .yohu-collapse__inner,
   .yohu-switch,

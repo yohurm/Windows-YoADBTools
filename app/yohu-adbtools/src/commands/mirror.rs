@@ -1,13 +1,12 @@
-//! 投屏模块命令：薄转发 MirrorService。壳泵 FramePipe → Tauri Channel。
+//! 投屏模块命令：薄转发 MirrorService + 壳内 Present（ADR-v6-024）。
 
-use tauri::ipc::Channel;
 use tauri::State;
 
 use crate::commands::{ipc, ipc_code};
 use crate::state::AppState;
-use yohu_mirror::{encode_frame, MirrorError};
+use yohu_mirror::{MirrorError, MirrorSessionRequest};
 use yohu_protocol::{
-    IpcError, IpcErrorCode, MirrorInjectRequest, MirrorSavePngRequest, MirrorStart,
+    IpcError, IpcErrorCode, MirrorInjectRequest, MirrorLayout, MirrorScreenshotRequest, MirrorStart,
     MirrorStartRequest, MirrorStatus,
 };
 
@@ -25,21 +24,45 @@ fn ipc_mirror(e: MirrorError) -> IpcError {
     }
 }
 
+fn expand_start(state: &AppState, req: MirrorStartRequest) -> MirrorSessionRequest {
+    let snap = state.settings.snapshot();
+    let enc = yohu_domain::start_encode(&snap, &req.connection, req.session_quality_touched);
+    let mut codec = enc.video_codec.to_string();
+    if codec.eq_ignore_ascii_case("h265") && !state.present.hevc_ok() {
+        tracing::warn!(serial = %req.serial, "本机无 HEVC MFT，改用 H.264");
+        codec = "h264".into();
+    }
+    MirrorSessionRequest {
+        serial: req.serial,
+        control: req.control,
+        force_forward: yohu_domain::start_force_forward(&snap, &req.connection),
+        max_size: enc.max_size,
+        video_bit_rate: enc.video_bit_rate,
+        max_fps: enc.max_fps,
+        video_codec: codec,
+    }
+}
+
 #[tauri::command(rename = "mirror.start")]
 pub async fn mirror_start(
     state: State<'_, AppState>,
     req: MirrorStartRequest,
-    packets: Channel<Vec<u8>>,
 ) -> Result<MirrorStart, IpcError> {
+    state.require_online(&req.serial)?;
+    let plan = expand_start(&state, req);
     tracing::info!(
-        serial = %req.serial,
-        control = req.control,
-        force_forward = req.force_forward,
+        serial = %plan.serial,
+        control = plan.control,
+        force_forward = plan.force_forward,
+        codec = %plan.video_codec,
+        max_size = plan.max_size,
+        bit_rate = plan.video_bit_rate,
+        max_fps = plan.max_fps,
         "mirror.start"
     );
-    state.require_online(&req.serial)?;
-    let result = state.mirror.start(req.clone()).await.map_err(|e| {
-        tracing::error!(serial = %req.serial, error = %e, "mirror.start 失败");
+    let serial = plan.serial.clone();
+    let result = state.mirror.start(plan).await.map_err(|e| {
+        tracing::error!(serial = %serial, error = %e, "mirror.start 失败");
         ipc_mirror(e)
     })?;
     tracing::info!(
@@ -50,23 +73,17 @@ pub async fn mirror_start(
     );
     if !result.adopted {
         let task_id = state.tasks.register(
-            format!("投屏: {}", req.serial),
-            format!("设备 {}", req.serial),
+            format!("投屏: {}", serial),
+            format!("设备 {}", serial),
         );
         state
             .mirror_tasks
             .lock()
             .expect("mirror task lock poisoned")
-            .insert(req.serial.clone(), task_id);
-        if let Some(pipe) = state.mirror.frame_pipe(&req.serial) {
-            tauri::async_runtime::spawn(async move {
-                while let Some(frame) = pipe.recv().await {
-                    if packets.send(encode_frame(&frame)).is_err() {
-                        break;
-                    }
-                }
-            });
-        }
+            .insert(serial.clone(), task_id);
+    }
+    if let Some(pipe) = state.mirror.frame_pipe(&serial) {
+        state.present.attach(&serial, result.generation, pipe);
     }
     Ok(result)
 }
@@ -74,6 +91,7 @@ pub async fn mirror_start(
 #[tauri::command(rename = "mirror.stop")]
 pub async fn mirror_stop(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
     tracing::info!(serial = %serial, "mirror.stop");
+    state.present.detach(&serial);
     state.mirror.stop(&serial).await;
     state.finish_mirror_task(&serial);
     Ok(())
@@ -102,12 +120,21 @@ pub fn mirror_close_control(state: State<'_, AppState>, serial: String) -> Resul
     state.mirror.close_control(&serial).map_err(ipc_mirror)
 }
 
-#[tauri::command(rename = "mirror.savePng")]
-pub fn mirror_save_png(
+#[tauri::command(rename = "mirror.layout")]
+pub fn mirror_layout(state: State<'_, AppState>, req: MirrorLayout) -> Result<(), IpcError> {
+    state.present.layout(req);
+    Ok(())
+}
+
+#[tauri::command(rename = "mirror.screenshot")]
+pub fn mirror_screenshot(
     state: State<'_, AppState>,
-    req: MirrorSavePngRequest,
+    req: MirrorScreenshotRequest,
 ) -> Result<(), IpcError> {
-    yohu_mirror::save_png(&req.path, &req.data_b64).map_err(ipc_mirror)?;
+    state
+        .present
+        .screenshot(&req.serial, &req.path)
+        .map_err(|e| ipc_code(IpcErrorCode::Internal, e))?;
     state.app_log.info(format!("投屏截图已保存: {}", req.path));
     Ok(())
 }

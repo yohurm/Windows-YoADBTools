@@ -11,11 +11,7 @@ export function MirrorStatus() {
   return (
     <Show when={live()}>
       <span
-        title={
-          mirrorStore.state.dropped > 0
-            ? `${mirrorStore.state.width}×${mirrorStore.state.height} · 丢 ${mirrorStore.state.dropped}`
-            : `${mirrorStore.state.width}×${mirrorStore.state.height}`
-        }
+        title={`${mirrorStore.state.width}×${mirrorStore.state.height}`}
       >
         {mirrorStore.state.paintedFps} fps
       </span>

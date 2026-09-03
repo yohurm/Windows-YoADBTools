@@ -18,8 +18,8 @@
     "level": true,
     "tag": true
   },
-  "mirror_max_size": 1920,
-  "mirror_video_bit_rate": 8000000,
+  "mirror_max_size": 0,
+  "mirror_video_bit_rate": 16000000,
   "mirror_max_fps": 0,
   "mirror_protocol": "usb",
   "mirror_force_forward": false

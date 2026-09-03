@@ -1,4 +1,4 @@
-//! 投屏模块 wire 类型（官方 scrcpy-server 4.1 协议；客户端自写）。
+//! 投屏模块 wire 类型（官方 scrcpy-server 4.1 协议；客户端自写；呈现见 ADR-v6-024）。
 
 use serde::{Deserialize, Serialize};
 
@@ -34,20 +34,13 @@ pub enum MirrorSessionState {
     Failed,
 }
 
-/// `mirror.start` 请求。质量字段来自设置快照或页眉覆盖。
+/// `mirror.start` 请求。编码参数由壳用 `yohu-domain::start_encode` 展开，UI 不传质量数字。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MirrorStartRequest {
     pub serial: String,
-    /// 0 = 原始（编码器仍封顶 1920）
-    pub max_size: u32,
-    pub video_bit_rate: u32,
-    /// 0 = 不限制（不向 scrcpy-server 传 max_fps）
-    pub max_fps: u32,
     pub control: bool,
-    pub force_forward: bool,
-    /// 本期仅 h264；协议留位。
-    #[serde(default = "default_video_codec")]
-    pub video_codec: String,
+    pub connection: String,
+    pub session_quality_touched: bool,
 }
 
 /// 控制注入（UI 只发语义，序列化在 core）。
@@ -75,36 +68,41 @@ pub enum MirrorControlMessage {
     RotateDevice,
 }
 
-/// `mirror.inject` / `mirror.savePng` 的设备目标。
+/// `mirror.inject` 的设备目标。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MirrorInjectRequest {
     pub serial: String,
     pub message: MirrorControlMessage,
 }
 
-/// 画布截图落盘（bytes 已是 PNG）。
+/// 面板在屏幕上的物理像素矩形（`mirror.layout`）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MirrorLayout {
+    pub serial: String,
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+    pub visible: bool,
+    pub control: bool,
+}
+
+/// 壳内截图落盘。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MirrorSavePngRequest {
+pub struct MirrorScreenshotRequest {
+    pub serial: String,
     pub path: String,
-    pub data_b64: String,
 }
 
 impl Default for MirrorStartRequest {
     fn default() -> Self {
         Self {
             serial: String::new(),
-            max_size: crate::default_mirror_max_size(),
-            video_bit_rate: crate::default_mirror_video_bit_rate(),
-            max_fps: crate::default_mirror_max_fps(),
             control: false,
-            force_forward: false,
-            video_codec: default_video_codec(),
+            connection: "usb".into(),
+            session_quality_touched: false,
         }
     }
-}
-
-fn default_video_codec() -> String {
-    "h264".into()
 }
 
 #[cfg(test)]
@@ -124,6 +122,25 @@ mod tests {
         assert_eq!(
             serde_json::to_value(MirrorSessionState::Live).unwrap(),
             serde_json::json!("live")
+        );
+    }
+
+    #[test]
+    fn start_request_is_slim() {
+        let req = MirrorStartRequest {
+            serial: "S1".into(),
+            control: true,
+            connection: "tcp:192.168.1.8:5555".into(),
+            session_quality_touched: false,
+        };
+        assert_eq!(
+            serde_json::to_value(&req).unwrap(),
+            serde_json::json!({
+                "serial": "S1",
+                "control": true,
+                "connection": "tcp:192.168.1.8:5555",
+                "session_quality_touched": false
+            })
         );
     }
 }
