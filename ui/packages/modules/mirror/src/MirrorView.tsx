@@ -9,6 +9,9 @@ import {
   type MirrorControlMessage,
 } from "@yohu/api";
 import {
+  Layout,
+  Radius,
+  Stroke,
   YoButton,
   YoChrome,
   YoEmptyState,
@@ -20,11 +23,12 @@ import {
   YoSwitch,
   YoToaster,
   createToaster,
+  type IconName,
 } from "@yohu/ui";
 
 import { frameStyle } from "./frame";
 import { AndroidKey } from "./keys";
-import { physicalPanelRect } from "./layout";
+import { clientZoneRect, layoutIsPresentable, physicalCornerRadius, zoneInsetKey } from "./layout";
 import { mirrorStore } from "./store";
 import "./mirror.css";
 
@@ -59,13 +63,19 @@ const PROTOCOL_OPTIONS = [
   { value: "wifi", label: "无线" },
 ];
 
-const NAV_KEYS: { label: string; keycode: number }[] = [
-  { label: "Home", keycode: AndroidKey.Home },
-  { label: "返回", keycode: AndroidKey.Back },
-  { label: "多任务", keycode: AndroidKey.AppSwitch },
-  { label: "电源", keycode: AndroidKey.Power },
-  { label: "音量+", keycode: AndroidKey.VolumeUp },
-  { label: "音量-", keycode: AndroidKey.VolumeDown },
+type DeviceOp =
+  | { icon: IconName; title: string; keycode: number }
+  | { icon: IconName; title: string; display: boolean };
+
+const DEVICE_OPS: DeviceOp[] = [
+  { icon: "nav-back", title: "返回", keycode: AndroidKey.Back },
+  { icon: "nav-home", title: "Home", keycode: AndroidKey.Home },
+  { icon: "nav-recent", title: "多任务", keycode: AndroidKey.AppSwitch },
+  { icon: "volume-down", title: "音量-", keycode: AndroidKey.VolumeDown },
+  { icon: "volume-up", title: "音量+", keycode: AndroidKey.VolumeUp },
+  { icon: "nav-power", title: "电源", keycode: AndroidKey.Power },
+  { icon: "display-off", title: "息屏", display: false },
+  { icon: "display-on", title: "亮屏", display: true },
 ];
 
 function withCurrentOption(
@@ -95,14 +105,11 @@ function waitingCopy(phase: string): { title: string; description: string } {
 
 export function MirrorView(props: DeviceSession) {
   let stage: HTMLDivElement | undefined;
-  let panelZone: HTMLDivElement | undefined;
+  let avail: HTMLDivElement | undefined;
   let zoneObserver: ResizeObserver | undefined;
-  let stageObserver: ResizeObserver | undefined;
   let layoutRaf = 0;
   let layoutVisible: boolean | undefined;
-  let originTimer = 0;
-  let lastOriginX = Number.NaN;
-  let lastOriginY = Number.NaN;
+  let lastInsetKey = "";
   const [zoneSize, setZoneSize] = createSignal<{ w: number; h: number }>({ w: 0, h: 0 });
 
   function pushLayout(visible?: boolean): void {
@@ -110,57 +117,52 @@ export function MirrorView(props: DeviceSession) {
     if (layoutRaf !== 0) return;
     layoutRaf = window.requestAnimationFrame(() => {
       layoutRaf = 0;
-      if (!stage) return;
-      const css = stage.getBoundingClientRect();
+      if (!avail) return;
+      const zone = avail.getBoundingClientRect();
       const vv = window.visualViewport;
-      lastOriginX = window.screenX;
-      lastOriginY = window.screenY;
-      const rect = physicalPanelRect(
-        css,
-        window.screenX,
-        window.screenY,
-        window.devicePixelRatio || 1,
-        { left: vv?.offsetLeft ?? 0, top: vv?.offsetTop ?? 0 },
-      );
-      void mirrorStore.syncLayout({ ...rect, visible: layoutVisible });
+      const dpr = window.devicePixelRatio || 1;
+      const rect = clientZoneRect(zone, dpr, { left: vv?.offsetLeft ?? 0, top: vv?.offsetTop ?? 0 });
+      const hiding = layoutVisible === false;
+      if (!hiding && !layoutIsPresentable(rect.width, rect.height)) {
+        return;
+      }
+      const cssRadius = mirrorStore.state.fullscreen ? Radius.None : Math.max(0, Radius.Md - Stroke.Hairline);
+      const radius = physicalCornerRadius(cssRadius, dpr);
+      const clientW = Math.round((document.documentElement.clientWidth || window.innerWidth) * dpr);
+      const clientH = Math.round((document.documentElement.clientHeight || window.innerHeight) * dpr);
+      const insetKey = zoneInsetKey(rect, clientW, clientH, layoutVisible !== false, radius);
+      if (insetKey === lastInsetKey) return;
+      lastInsetKey = insetKey;
+      void mirrorStore.syncLayout({
+        ...rect,
+        visible: layoutVisible,
+        corner_radius: radius,
+      });
     });
   }
 
   onMount(() => {
     mirrorStore.applySettings(props.settings);
-    if (panelZone) {
+    if (avail) {
       zoneObserver = new ResizeObserver((entries) => {
         const rect = entries[0]?.contentRect;
         if (rect) setZoneSize({ w: rect.width, h: rect.height });
-      });
-      zoneObserver.observe(panelZone);
-    }
-    if (stage) {
-      stageObserver = new ResizeObserver(() => {
         pushLayout();
       });
-      stageObserver.observe(stage);
+      zoneObserver.observe(avail);
     }
-    window.addEventListener("resize", onWin);
     window.addEventListener("scroll", onWin, true);
     document.addEventListener("visibilitychange", onVis);
-    originTimer = window.setInterval(() => {
-      if (window.screenX !== lastOriginX || window.screenY !== lastOriginY) {
-        pushLayout();
-      }
-    }, 50);
   });
   onCleanup(() => {
     if (layoutRaf !== 0) window.cancelAnimationFrame(layoutRaf);
-    if (originTimer !== 0) window.clearInterval(originTimer);
     zoneObserver?.disconnect();
-    stageObserver?.disconnect();
-    window.removeEventListener("resize", onWin);
     window.removeEventListener("scroll", onWin, true);
     document.removeEventListener("visibilitychange", onVis);
+    lastInsetKey = "";
     const serial = mirrorStore.state.serial;
     if (serial) {
-      void mirrorStore.syncLayout({ x: 0, y: 0, width: 1, height: 1, visible: false });
+      void mirrorStore.syncLayout({ x: 0, y: 0, width: 0, height: 0, visible: false, corner_radius: 0 });
     }
   });
 
@@ -207,6 +209,9 @@ export function MirrorView(props: DeviceSession) {
     return phase === "starting" || (phase === "live" && !mirrorStore.state.hasFrame);
   };
   const canControl = () => live() && mirrorStore.state.hasFrame && !mirrorStore.state.readOnly && mirrorStore.state.control;
+  const panelVars = () =>
+    frameStyle(zoneSize().w, zoneSize().h, mirrorStore.state.width, mirrorStore.state.height, mirrorStore.state.phase);
+  const hugFrame = () => panelVars().length > 0;
 
   async function tapKey(keycode: number): Promise<void> {
     await mirrorStore.inject({ kind: "key", keycode, down: true });
@@ -215,6 +220,14 @@ export function MirrorView(props: DeviceSession) {
 
   async function send(message: MirrorControlMessage): Promise<void> {
     await mirrorStore.inject(message);
+  }
+
+  async function runOp(op: DeviceOp): Promise<void> {
+    if ("display" in op) {
+      await send({ kind: "display_power", on: op.display });
+      return;
+    }
+    await tapKey(op.keycode);
   }
 
   async function screenshot(): Promise<void> {
@@ -261,17 +274,31 @@ export function MirrorView(props: DeviceSession) {
           disabled={!live()}
           onClick={() => mirrorStore.setFullscreen(!mirrorStore.state.fullscreen)}
         />
+        <YoButton
+          size="sm"
+          variant={mirrorStore.state.readOnly ? "primary" : "secondary"}
+          aria-pressed={mirrorStore.state.readOnly}
+          disabled={!props.selectedSerials[0] || mirrorStore.state.phase === "starting"}
+          onClick={() => void mirrorStore.setReadOnly(!mirrorStore.state.readOnly)}
+        >
+          仅显示
+        </YoButton>
       </YoChrome>
 
       <div class="yohu-mirror__body">
-        <div
-          ref={(el) => {
-            panelZone = el;
-          }}
-          class="yohu-mirror__panel-zone"
-          style={frameStyle(zoneSize().w, zoneSize().h, mirrorStore.state.width, mirrorStore.state.height, mirrorStore.state.phase)}
-        >
-          <YoPanel variant="pane" class="yohu-mirror__panel yohu-recipe-mirror-frame" aria-label="投屏画面">
+        <div class="yohu-mirror__panel-zone">
+          <div
+            ref={(el) => {
+              avail = el;
+            }}
+            class="yohu-mirror__avail"
+            style={panelVars()}
+          >
+          <YoPanel
+            variant="pane"
+            class={`yohu-mirror__panel${hugFrame() ? " yohu-mirror__panel--hug" : ""}`}
+            aria-label="投屏画面"
+          >
             <div
               ref={(el) => {
                 stage = el;
@@ -309,7 +336,22 @@ export function MirrorView(props: DeviceSession) {
               </Show>
             </div>
           </YoPanel>
+          </div>
         </div>
+
+        <YoPanel class="yohu-mirror__ops" variant="pane" padding="none" aria-label="设备操作">
+          <For each={DEVICE_OPS}>
+            {(op) => (
+              <YoIconButton
+                icon={op.icon}
+                title={op.title}
+                size={Layout.IconMd}
+                disabled={!canControl()}
+                onClick={() => void runOp(op)}
+              />
+            )}
+          </For>
+        </YoPanel>
 
         <YoPanel class="yohu-mirror__func" variant="pane" padding="md" aria-label="投屏功能栏">
           <div class="yohu-mirror__group" title="下次开始生效">
@@ -364,14 +406,6 @@ export function MirrorView(props: DeviceSession) {
 
           <div class="yohu-mirror__group">
             <div class="yohu-mirror__group-label">通道</div>
-            <label class="yohu-mirror__toggle">
-              <span class="yohu-mirror__field-name">只读</span>
-              <YoSwitch
-                ariaLabel="只读（关闭控制通道）"
-                checked={mirrorStore.state.readOnly}
-                onChange={(v) => void mirrorStore.setReadOnly(v)}
-              />
-            </label>
             <label class="yohu-mirror__toggle" title="无线调试（tcp:）开始时默认转发，不必手开">
               <span class="yohu-mirror__field-name">强制转发</span>
               <YoSwitch
@@ -382,42 +416,6 @@ export function MirrorView(props: DeviceSession) {
               />
             </label>
           </div>
-
-          <Show when={!mirrorStore.state.readOnly}>
-            <div class="yohu-mirror__group">
-              <div class="yohu-mirror__group-label">导航</div>
-              <div class="yohu-mirror__keys">
-                <For each={NAV_KEYS}>
-                  {(item) => (
-                    <YoButton
-                      size="sm"
-                      variant="secondary"
-                      disabled={!canControl()}
-                      onClick={() => void tapKey(item.keycode)}
-                    >
-                      {item.label}
-                    </YoButton>
-                  )}
-                </For>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void send({ kind: "display_power", on: false })}
-                >
-                  息屏
-                </YoButton>
-                <YoButton
-                  size="sm"
-                  variant="secondary"
-                  disabled={!canControl()}
-                  onClick={() => void send({ kind: "display_power", on: true })}
-                >
-                  亮屏
-                </YoButton>
-              </div>
-            </div>
-          </Show>
         </YoPanel>
       </div>
       <YoToaster toaster={toaster} />

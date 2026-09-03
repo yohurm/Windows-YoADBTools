@@ -105,7 +105,7 @@ describe("mirror store", () => {
     await store.start();
     expect(mocks.mirrorStart.mock.calls[0]?.[0]).toEqual({
       serial: "S1",
-      control: false,
+      control: true,
       connection: "usb",
       session_quality_touched: false,
     });
@@ -180,7 +180,7 @@ describe("mirror store", () => {
     await store.start();
     expect(mocks.mirrorStart.mock.calls[0]?.[0]).toEqual({
       serial: "S1",
-      control: false,
+      control: true,
       connection: "usb",
       session_quality_touched: false,
     });
@@ -188,7 +188,7 @@ describe("mirror store", () => {
     await store.start();
     expect(mocks.mirrorStart.mock.calls[1]?.[0]).toEqual({
       serial: "S1",
-      control: false,
+      control: true,
       connection: "usb",
       session_quality_touched: true,
     });
@@ -203,7 +203,7 @@ describe("mirror store", () => {
     await store.start();
     expect(mocks.mirrorStart.mock.calls[0]?.[0]).toEqual({
       serial: "S1",
-      control: false,
+      control: true,
       connection: "tcp:192.168.1.8:5555",
       session_quality_touched: false,
     });
@@ -263,6 +263,21 @@ describe("mirror store", () => {
     mocks.dialogSaveFile.mockResolvedValue(null);
     await store.saveScreenshot();
     expect(mocks.mirrorScreenshot).not.toHaveBeenCalled();
+  });
+
+  it("仅显示启动不打开控制通道", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    await store.setReadOnly(true);
+    mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
+    await store.start();
+    expect(mocks.mirrorStart.mock.calls[0]?.[0]).toEqual({
+      serial: "S1",
+      control: false,
+      connection: "usb",
+      session_quality_touched: false,
+    });
   });
 
   it("Live 只读只 closeControl，失败不上重启", async () => {

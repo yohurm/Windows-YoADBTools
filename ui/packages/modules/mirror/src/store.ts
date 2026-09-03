@@ -92,7 +92,7 @@ export function createMirrorStore() {
     hasFrame: false,
     paused: false,
     fullscreen: false,
-    readOnly: true,
+    readOnly: false,
     maxSize: APP_SETTINGS_DEFAULT.mirror_max_size,
     videoBitRate: APP_SETTINGS_DEFAULT.mirror_video_bit_rate,
     maxFps: APP_SETTINGS_DEFAULT.mirror_max_fps,
@@ -103,6 +103,7 @@ export function createMirrorStore() {
 
   let gate: Promise<void> = Promise.resolve();
   let sessionQualityTouched = false;
+  let lastLayoutLog = { key: "" };
   const unlistens: Promise<() => void>[] = [];
 
   function runExclusive(fn: () => Promise<void>): Promise<void> {
@@ -174,6 +175,7 @@ export function createMirrorStore() {
       height: 0,
       visible: false,
       control: false,
+      corner_radius: 0,
     });
   }
 
@@ -282,19 +284,27 @@ export function createMirrorStore() {
     await mirrorScreenshot({ serial, path });
   }
 
-  async function syncLayout(rect: Omit<MirrorLayout, "serial" | "control" | "visible"> & { visible?: boolean }): Promise<void> {
+  function syncLayout(rect: Omit<MirrorLayout, "serial" | "control" | "visible"> & { visible?: boolean }): void {
     const serial = state.serial;
     if (!serial) return;
     if (state.phase !== "live" && state.phase !== "starting") return;
-    await mirrorLayout({
+    const visible = rect.visible ?? (!state.paused && (state.phase === "live" || state.phase === "starting"));
+    const payload = {
       serial,
       x: rect.x,
       y: rect.y,
       width: rect.width,
       height: rect.height,
-      visible: rect.visible ?? (!state.paused && state.phase === "live"),
-      control: !state.readOnly && state.control,
-    });
+      visible,
+      control: !state.readOnly,
+      corner_radius: rect.corner_radius,
+    };
+    const key = `${payload.x},${payload.y},${payload.width}x${payload.height},v=${payload.visible},c=${payload.control},r=${payload.corner_radius}`;
+    if (key !== lastLayoutLog.key) {
+      lastLayoutLog.key = key;
+      YoLog.info("mirror", "layout", payload);
+    }
+    void mirrorLayout(payload);
   }
 
   unlistens.push(
