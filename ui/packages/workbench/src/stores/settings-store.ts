@@ -1,6 +1,7 @@
 /**
  * 设置 store：启动加载全量快照；set 后回写并应用立即生效语义（由 core 负责）。
- * 本 store 是设置的唯一 UI 投影；壳经 DeviceSession.settings 注入模块，模块禁止再 settings.get。
+ * 本 store 是设置的唯一 UI 投影；壳经 DeviceSession.settings 注入模块。
+ * 启动读 `system.info`；变更跟 `settings/changed`。无单键 get。
  * `system.info` 同时回填身份与路径目录（关于页 / 标题栏 / 状态栏 / 路径展示）。
  * 外观项（theme/density）在加载与变更后同步到 documentElement（data-theme/data-density）。
  */
@@ -72,7 +73,7 @@ export function createSettingsStore() {
     }
   }
 
-  // 模块也可 settings.set（IPC）；壳投影必须跟 settings.changed，禁止出现双份真相。
+  // 模块也可 settings.set（IPC）；壳投影必须跟 settings/changed，禁止出现双份真相。
   void onSettingsChanged((e) => {
     setState(e.settings);
     applyAppearance(e.settings);

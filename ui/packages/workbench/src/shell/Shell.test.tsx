@@ -14,6 +14,7 @@ import type { Component } from "solid-js";
 const mocks = vi.hoisted(() => ({
   deviceList: vi.fn(),
   deviceRefresh: vi.fn(),
+  deviceStatus: vi.fn(),
   systemInfo: vi.fn(),
   settingsSet: vi.fn(),
   systemOpenPath: vi.fn(),
@@ -39,6 +40,7 @@ vi.mock("@yohu/api", async (importOriginal) => {
     ...actual,
     deviceList: (...a: unknown[]) => mocks.deviceList(...a),
     deviceRefresh: (...a: unknown[]) => mocks.deviceRefresh(...a),
+    deviceStatus: (...a: unknown[]) => mocks.deviceStatus(...a),
     systemInfo: (...a: unknown[]) => mocks.systemInfo(...a),
     settingsSet: (...a: unknown[]) => mocks.settingsSet(...a),
     systemReportError: noop,
@@ -53,7 +55,6 @@ vi.mock("@yohu/api", async (importOriginal) => {
     updateInstall: (...a: unknown[]) => mocks.updateInstall(...a),
     updateCancel: (...a: unknown[]) => mocks.updateCancel(...a),
     onUpdateProgress: noop,
-    settingsGet: notConfigured,
     adbExec: notConfigured,
     terminalEval: notConfigured,
     groupRun: notConfigured,
@@ -83,6 +84,7 @@ vi.mock("@yohu/api", async (importOriginal) => {
     logProcessSnapshot: notConfigured,
     onDevicesChanged: noop,
     onDeviceOffline: noop,
+    onDeviceStatus: noop,
     onLogBatch: noop,
     onLogOverflow: noop,
     onProcessIndex: noop,
@@ -191,6 +193,7 @@ beforeEach(() => {
   });
   mocks.deviceList.mockResolvedValue([]);
   mocks.deviceRefresh.mockResolvedValue([]);
+  mocks.deviceStatus.mockResolvedValue([]);
   mocks.dialogOpenFile.mockResolvedValue(null);
   mocks.dialogOpenDirectory.mockResolvedValue(null);
   mocks.dialogSaveFile.mockResolvedValue(null);

@@ -1,6 +1,6 @@
 /**
  * 设备栏（UI设计系统-v6.md §3）：卡片式设备列表。
- * 设备卡片：在线点 + 型号一行 + serial 等宽一行 + 未授权徽章；
+ * 设备卡片：在线点 + 型号一行 + serial 等宽一行 + 可选运行时次行（Android/电量）+ 未授权徽章；
  * 选中 = `.yohu-interactive--selected`（全表面同一配方）；空态引导 + 错误明细 + 重试。
  * 滑块在 list 宿主内裁切；项滚动走内层 scroller，避免弹簧过冲撑出 Windows 双滚动条。
  * 键盘：roving tabindex（焦点行 0）+ Enter/Space 选择，role=listbox/option。
@@ -10,7 +10,12 @@
 import { Component, For, Show, createSignal } from "solid-js";
 
 import { YoBadge, YoButton, YoCollapse, YoIconButton, YoIndicator } from "@yohu/ui";
-import { deviceDisplayName, type DeviceInfo } from "@yohu/api";
+import {
+  deviceDisplayName,
+  formatDeviceStatusHint,
+  formatDeviceStatusMeta,
+  type DeviceInfo,
+} from "@yohu/api";
 
 import type { SelectionMode } from "../registry";
 import { deviceStore } from "../stores";
@@ -96,6 +101,15 @@ export const DeviceRail: Component<{
             <For each={deviceStore.state.devices}>
               {(device, index) => {
                 const focused = () => deviceStore.state.focusSerial === device.serial;
+                const runtime = () => deviceStore.state.statuses[device.serial];
+                const hint = () => formatDeviceStatusHint(runtime());
+                const meta = () => formatDeviceStatusMeta(runtime());
+                const title = () => {
+                  const extra = hint();
+                  return extra
+                    ? `${deviceDisplayName(device)} · ${device.serial} · ${stateText(device.state)} · ${extra}`
+                    : `${deviceDisplayName(device)} · ${device.serial} · ${stateText(device.state)}`;
+                };
                 return (
                   <div
                     class="yohu-device-rail__item yohu-interactive yohu-focus-ring"
@@ -105,7 +119,7 @@ export const DeviceRail: Component<{
                     role="option"
                     aria-selected={isSelected(device.serial)}
                     tabIndex={focused() || (deviceStore.state.focusSerial === null && index() === 0) ? 0 : -1}
-                    title={`${deviceDisplayName(device)} · ${device.serial} · ${stateText(device.state)}`}
+                    title={title()}
                     onClick={(event) => select(device.serial, event)}
                     onKeyDown={(event) => onItemKeyDown(device.serial, event)}
                   >
@@ -120,6 +134,9 @@ export const DeviceRail: Component<{
                     <span class="yohu-device-rail__info">
                       <span class="yohu-device-rail__model">{deviceDisplayName(device)}</span>
                       <span class="yohu-device-rail__serial">{device.serial}</span>
+                      <Show when={meta()}>
+                        <span class="yohu-device-rail__meta">{meta()}</span>
+                      </Show>
                     </span>
                     <Show when={device.state === "unauthorized"}>
                       <YoBadge text="未授权" tone="warn" />

@@ -1,6 +1,7 @@
 /**
- * 设备 store：UI 投影最近一次目录快照（焦点/每模块勾选是选择会话，不是第二份目录）。
- * 写目录只经 `device.refresh`（adb 扫描）；读目录经 `device.list` 与 `devices/changed`。
+ * 设备 store：UI 投影最近一次目录快照 + 运行时状态（焦点/每模块勾选是选择会话，不是第二份目录）。
+ * 写目录只经 `device.refresh`；读目录经 `device.list` 与 `devices/changed`。
+ * 运行时状态只经 `device.status` 与 `device/status`（模块禁止自己轮询 adb）。
  */
 
 import { createStore } from "solid-js/store";
@@ -8,19 +9,24 @@ import { createStore } from "solid-js/store";
 import {
   deviceList,
   deviceRefresh,
+  deviceStatus,
   errorText,
   lookupSelectedDevices,
+  onDeviceOffline,
+  onDeviceStatus,
   onDevicesChanged,
   systemInfo,
   YoLog,
 } from "@yohu/api";
-import type { DeviceInfo } from "@yohu/api";
+import type { DeviceInfo, DeviceStatus } from "@yohu/api";
 
 import type { SelectionMode } from "../registry";
 import { reconcileFocus, resolveTargetSerials } from "./selection";
 
 export interface DeviceStore {
   devices: DeviceInfo[];
+  /** 在线设备运行时快照（serial → DeviceStatus） */
+  statuses: Record<string, DeviceStatus>;
   refreshing: boolean;
   /** 全局焦点 serial（SingleRequired 模块跟随） */
   focusSerial: string | null;
@@ -41,6 +47,7 @@ export interface SelectDeviceOpts {
 export function createDeviceStore() {
   const [state, setState] = createStore<DeviceStore>({
     devices: [],
+    statuses: {},
     refreshing: false,
     focusSerial: null,
     selectedByModule: {},
@@ -52,11 +59,24 @@ export function createDeviceStore() {
     return devices.filter((d) => d.state === "online").map((d) => d.serial);
   }
 
+  function applyStatus(status: DeviceStatus): void {
+    setState("statuses", status.serial, status);
+  }
+
+  function pruneStatuses(online: Set<string>): void {
+    for (const serial of Object.keys(state.statuses)) {
+      if (!online.has(serial)) {
+        setState("statuses", serial, undefined!);
+      }
+    }
+  }
+
   function applyDevices(devices: DeviceInfo[]): void {
     setState("devices", devices);
     const online = onlineSerials(devices);
     setState("statusText", online.length > 0 ? `在线 ${online.length} 台` : "无在线设备");
     pruneSelections(new Set(devices.map((d) => d.serial)));
+    pruneStatuses(new Set(online));
     setState("focusSerial", reconcileFocus(state.focusSerial, online));
   }
 
@@ -71,6 +91,12 @@ export function createDeviceStore() {
       setState("lastError", detail);
       YoLog.error("device", `读取目录失败 ${detail}`);
       console.error("device.list 失败", e);
+    }
+    try {
+      const statuses = await deviceStatus();
+      for (const status of statuses) applyStatus(status);
+    } catch (e) {
+      YoLog.warn("device", `读取运行时状态失败 ${errorText(e)}`);
     }
   }
 
@@ -150,6 +176,14 @@ export function createDeviceStore() {
   void onDevicesChanged((e) => {
     setState("lastError", "");
     applyDevices(e.devices);
+  });
+
+  void onDeviceOffline((e) => {
+    setState("statuses", e.serial, undefined!);
+  });
+
+  void onDeviceStatus((e) => {
+    applyStatus(e.status);
   });
 
   return { state, load, refresh, setFocus, selectDevice, selectedSerials, selectedDevices };

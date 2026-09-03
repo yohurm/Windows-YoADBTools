@@ -30,6 +30,7 @@ const ModuleView: Component<{ mod: ModuleDescriptor }> = (props) => {
       selectedDevices={selected()}
       selectedLabel={selectedDeviceLabel(selected())}
       devices={deviceStore.state.devices}
+      deviceStatuses={deviceStore.state.statuses}
       settings={settingsStore.state}
     />
   );

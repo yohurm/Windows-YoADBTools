@@ -207,6 +207,16 @@
   text-overflow: ellipsis;
 }
 
+.yohu-device-rail__meta {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--yohu-font-caption);
+  line-height: var(--yohu-font-leading-data);
+  color: var(--yohu-fg-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* 空态引导卡片 */
 .yohu-device-rail__empty {
   display: flex;
