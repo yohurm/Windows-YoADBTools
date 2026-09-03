@@ -2,6 +2,8 @@
 
 mod scale;
 #[cfg(windows)]
+mod follow;
+#[cfg(windows)]
 mod gpu;
 #[cfg(windows)]
 mod mf;
@@ -20,6 +22,8 @@ use yohu_mirror::{FramePipe, MirrorService};
 use yohu_protocol::{AppEvent, MirrorLayout};
 
 #[cfg(windows)]
+use follow::GeomHost;
+#[cfg(windows)]
 use surface::Cmd;
 
 pub struct PresentHost {
@@ -27,11 +31,14 @@ pub struct PresentHost {
     event_tx: tokio_mpsc::Sender<AppEvent>,
     mirror: Arc<MirrorService>,
     inner: Mutex<Inner>,
+    #[cfg(windows)]
+    geom: Arc<GeomHost>,
 }
 
 struct Inner {
     owner: isize,
     sessions: HashMap<String, Sender<Cmd>>,
+    pending_layout: HashMap<String, MirrorLayout>,
 }
 
 impl PresentHost {
@@ -40,6 +47,8 @@ impl PresentHost {
         let hevc_ok = mf::hevc_available();
         #[cfg(not(windows))]
         let hevc_ok = false;
+        #[cfg(windows)]
+        let geom = GeomHost::new();
         tracing::info!(hevc_ok, "投屏 Media Foundation 探测");
         Arc::new(Self {
             hevc_ok: AtomicBool::new(hevc_ok),
@@ -48,7 +57,10 @@ impl PresentHost {
             inner: Mutex::new(Inner {
                 owner: 0,
                 sessions: HashMap::new(),
+                pending_layout: HashMap::new(),
             }),
+            #[cfg(windows)]
+            geom,
         })
     }
 
@@ -58,6 +70,8 @@ impl PresentHost {
 
     pub fn set_owner(&self, hwnd: isize) {
         self.inner.lock().expect("present lock poisoned").owner = hwnd;
+        #[cfg(windows)]
+        self.geom.set_owner(hwnd);
     }
 
     pub fn attach(&self, serial: &str, generation: u64, pipe: Arc<FramePipe>) {
@@ -76,12 +90,24 @@ impl PresentHost {
                 pipe,
                 Arc::clone(&self.mirror),
                 self.event_tx.clone(),
+                Arc::clone(&self.geom),
             );
-            self.inner
-                .lock()
-                .expect("present lock poisoned")
-                .sessions
-                .insert(serial.to_string(), tx);
+            let pending = {
+                let mut inner = self.inner.lock().expect("present lock poisoned");
+                let pending = inner.pending_layout.remove(serial);
+                inner.sessions.insert(serial.to_string(), tx.clone());
+                pending
+            };
+            if let Some(layout) = pending {
+                tracing::info!(
+                    serial,
+                    w = layout.width,
+                    h = layout.height,
+                    visible = layout.visible,
+                    "投屏 attach 回放暂存 layout"
+                );
+                let _ = tx.send(Cmd::Layout(layout));
+            }
         }
         #[cfg(not(windows))]
         {
@@ -93,9 +119,25 @@ impl PresentHost {
     pub fn layout(&self, layout: MirrorLayout) {
         #[cfg(windows)]
         {
-            let inner = self.inner.lock().expect("present lock poisoned");
+            let mut inner = self.inner.lock().expect("present lock poisoned");
             if let Some(tx) = inner.sessions.get(&layout.serial) {
                 let _ = tx.send(Cmd::Layout(layout));
+            } else if layout.visible && layout.width >= 64 && layout.height >= 64 {
+                tracing::info!(
+                    serial = %layout.serial,
+                    w = layout.width,
+                    h = layout.height,
+                    "投屏 layout 暂存（呈现尚未 attach）"
+                );
+                inner.pending_layout.insert(layout.serial.clone(), layout);
+            } else {
+                tracing::debug!(
+                    serial = %layout.serial,
+                    w = layout.width,
+                    h = layout.height,
+                    visible = layout.visible,
+                    "投屏 layout 丢弃（无会话）"
+                );
             }
         }
         #[cfg(not(windows))]

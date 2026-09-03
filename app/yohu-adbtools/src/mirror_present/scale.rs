@@ -1,4 +1,25 @@
-//! 面板内缩放：整数倍吸附 + 否则等比 contain（letterbox）。
+//! 面板内缩放：可用区 contain + HWND 内整数倍吸附。
+
+/// 在可用区内按画面宽高比 contain，返回贴合盒相对区原点的偏移与尺寸。
+/// 公式与 UI `fitContain` 相同（先 min 再 round），无画面尺寸时铺满。
+pub fn contain_in_zone(zone_w: u32, zone_h: u32, video_w: u32, video_h: u32) -> (i32, i32, u32, u32) {
+    if zone_w == 0 || zone_h == 0 {
+        return (0, 0, zone_w, zone_h);
+    }
+    if video_w == 0 || video_h == 0 {
+        return (0, 0, zone_w, zone_h);
+    }
+    let aspect = video_w as f64 / video_h as f64;
+    let width = (zone_w as f64).min(zone_h as f64 * aspect);
+    let height = width / aspect;
+    let w = width.round().max(1.0) as u32;
+    let h = height.round().max(1.0) as u32;
+    let w = w.min(zone_w);
+    let h = h.min(zone_h);
+    let x = (zone_w as i32 - w as i32) / 2;
+    let y = (zone_h as i32 - h as i32) / 2;
+    (x, y, w, h)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Letterbox {
@@ -140,6 +161,17 @@ mod tests {
                 nearest: false
             }
         );
+    }
+
+    #[test]
+    fn contain_matches_js_portrait() {
+        let (x, y, w, h) = contain_in_zone(900, 950, 1088, 2400);
+        assert_eq!((x, y, w, h), (234, 0, 431, 950));
+    }
+
+    #[test]
+    fn contain_fills_when_no_video() {
+        assert_eq!(contain_in_zone(800, 600, 0, 0), (0, 0, 800, 600));
     }
 
     #[test]

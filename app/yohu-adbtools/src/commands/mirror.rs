@@ -48,8 +48,15 @@ pub async fn mirror_start(
     state: State<'_, AppState>,
     req: MirrorStartRequest,
 ) -> Result<MirrorStart, IpcError> {
+    start_session(&state, req).await
+}
+
+async fn start_session(
+    state: &AppState,
+    req: MirrorStartRequest,
+) -> Result<MirrorStart, IpcError> {
     state.require_online(&req.serial)?;
-    let plan = expand_start(&state, req);
+    let plan = expand_start(state, req);
     tracing::info!(
         serial = %plan.serial,
         control = plan.control,
@@ -116,7 +123,7 @@ pub fn mirror_close_control(state: State<'_, AppState>, serial: String) -> Resul
 }
 
 #[tauri::command(rename = "mirror.layout")]
-pub fn mirror_layout(state: State<'_, AppState>, req: MirrorLayout) -> Result<(), IpcError> {
+pub async fn mirror_layout(state: State<'_, AppState>, req: MirrorLayout) -> Result<(), IpcError> {
     state.present.layout(req);
     Ok(())
 }

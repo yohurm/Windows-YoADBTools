@@ -1,4 +1,4 @@
-//! owned WS_POPUP + 消息循环：layout / 输入 / Present。
+//! 主窗 WS_CHILD + 消息循环：解码 / 输入 / Present。几何由 `follow` 持有。
 
 #![cfg(windows)]
 
@@ -14,23 +14,26 @@ use windows::Win32::Foundation::{
 use windows::Win32::Graphics::Gdi::{UpdateWindow, ValidateRect};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetClientRect,
-    GetWindowLongPtrW, LoadCursorW, PeekMessageW, RegisterClassExW, SetCursor, SetWindowLongPtrW,
-    SetWindowPos, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW, GWLP_USERDATA, HWND_TOP,
-    IDC_ARROW, MSG, PM_REMOVE, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
-    SWP_SHOWWINDOW, SW_HIDE, SW_SHOWNOACTIVATE, WM_DESTROY, WM_LBUTTONDOWN, WM_LBUTTONUP,
-    WM_MOUSEMOVE, WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR, WNDCLASSEXW,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetWindowLongW,
+    GetWindowLongPtrW, LoadCursorW, PeekMessageW, RegisterClassExW, SetCursor, SetWindowLongW,
+    SetWindowLongPtrW, SetWindowPos, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW,
+    GWL_EXSTYLE, GWLP_USERDATA, HWND_TOP, IDC_ARROW, MSG, PM_REMOVE, SWP_NOACTIVATE, SWP_NOMOVE,
+    SWP_NOSIZE, SW_HIDE, SW_SHOWNOACTIVATE, WM_DESTROY, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE,
+    WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR, WNDCLASSEXW, WS_CHILD, WS_CLIPSIBLINGS,
+    WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, WS_EX_TRANSPARENT,
+    GetClientRect,
 };
 use yohu_mirror::{EncodedFrame, FramePipe, MirrorService};
 use yohu_protocol::{AppEvent, MirrorControlMessage, MirrorLayout};
 
+use super::follow::GeomHost;
 use super::gpu::Gpu;
 use super::mf::{DecodedPicture, MfDecoder};
 use super::scale::{fit_letterbox, map_client_to_video, Letterbox};
 
 const CLASS: PCWSTR = w!("YohuMirrorPresent");
 const PRESENT_IDLE: Duration = Duration::from_millis(4);
+const BUFFER_SETTLE: Duration = Duration::from_millis(64);
 const MIN_LAYOUT_PX: u32 = 64;
 const TOUCH_DOWN: u8 = 0;
 const TOUCH_UP: u8 = 1;
@@ -61,10 +64,13 @@ struct SurfaceState {
     has_frame: bool,
     mirror: Arc<MirrorService>,
     event_tx: tokio_mpsc::Sender<AppEvent>,
-    layout_x: i32,
-    layout_y: i32,
+    geom: Arc<GeomHost>,
     layout_w: u32,
     layout_h: u32,
+    layout_r: u32,
+    skip_logged: Option<(bool, u32, u32)>,
+    present_err_logged: bool,
+    buf_due: Option<Instant>,
 }
 
 pub fn spawn_session(
@@ -74,12 +80,22 @@ pub fn spawn_session(
     pipe: Arc<FramePipe>,
     mirror: Arc<MirrorService>,
     event_tx: tokio_mpsc::Sender<AppEvent>,
+    geom: Arc<GeomHost>,
 ) -> Sender<Cmd> {
     let (tx, rx) = mpsc::channel::<Cmd>();
     std::thread::Builder::new()
         .name(format!("mirror-present-{serial}"))
         .spawn(move || {
-            if let Err(e) = run_loop(serial, generation, owner, rx, pipe, mirror, event_tx) {
+            let ctx = PresentCtx {
+                serial,
+                generation,
+                owner,
+                pipe,
+                mirror,
+                event_tx,
+                geom,
+            };
+            if let Err(e) = run_loop(ctx, rx) {
                 tracing::error!("投屏呈现退出: {e}");
             }
         })
@@ -87,18 +103,30 @@ pub fn spawn_session(
     tx
 }
 
-fn run_loop(
+struct PresentCtx {
     serial: String,
     generation: u64,
     owner: isize,
-    rx: Receiver<Cmd>,
     pipe: Arc<FramePipe>,
     mirror: Arc<MirrorService>,
     event_tx: tokio_mpsc::Sender<AppEvent>,
-) -> Result<(), String> {
+    geom: Arc<GeomHost>,
+}
+
+fn run_loop(ctx: PresentCtx, rx: Receiver<Cmd>) -> Result<(), String> {
+    let PresentCtx {
+        serial,
+        generation,
+        owner,
+        pipe,
+        mirror,
+        event_tx,
+        geom,
+    } = ctx;
     super::mf::ensure_startup()?;
     register_class()?;
-    let hwnd = create_popup(HWND(owner as *mut _))?;
+    let hwnd = create_child(HWND(owner as *mut _))?;
+    geom.register(&serial, hwnd.0 as isize);
     let gpu = Gpu::new(hwnd, 16, 16).map_err(|e| e.to_string())?;
     let state = Box::new(Mutex::new(SurfaceState {
         serial: serial.clone(),
@@ -122,10 +150,13 @@ fn run_loop(
         has_frame: false,
         mirror,
         event_tx,
-        layout_x: i32::MIN,
-        layout_y: i32::MIN,
+        geom: Arc::clone(&geom),
         layout_w: 0,
         layout_h: 0,
+        layout_r: 0,
+        skip_logged: None,
+        present_err_logged: false,
+        buf_due: None,
     }));
     unsafe {
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(state) as isize);
@@ -147,20 +178,21 @@ fn run_loop(
         if !drain_cmds(&rx, hwnd) {
             break;
         }
-        let ingest = with_state(hwnd, |s| s.visible).unwrap_or(false);
-        if ingest {
-            let frames = drain_pipe(&pipe);
-            if !frames.is_empty() {
-                tick.ingest(hwnd, frames);
-            }
+        // 解码不跟 layout：visible=false 时仍要吃帧，否则队列撑满、首帧永远进不了 Present。
+        let frames = drain_pipe(&pipe);
+        if !frames.is_empty() {
+            tick.ingest(hwnd, frames);
         }
         tick.drain(hwnd);
+        sync_host_size(hwnd);
+        realize_buffers_if_due(hwnd);
         if beat.elapsed() >= Duration::from_secs(1) {
             tick.log_beat();
             beat = Instant::now();
         }
     }
 
+    geom.unregister(&serial);
     drop(tick);
     unsafe {
         let ptr = SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
@@ -368,17 +400,24 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
     let prepared = with_state(hwnd, |s| {
         s.video_w = width;
         s.video_h = height;
+        s.geom.set_video(&s.serial, width, height);
         if !s.visible || s.layout_w < MIN_LAYOUT_PX || s.layout_h < MIN_LAYOUT_PX {
+            let key = (s.visible, s.layout_w, s.layout_h);
+            if s.skip_logged != Some(key) {
+                s.skip_logged = Some(key);
+                tracing::warn!(
+                    serial = %s.serial,
+                    visible = s.visible,
+                    layout_w = s.layout_w,
+                    layout_h = s.layout_h,
+                    "投屏 Present 跳过：等待有效 layout"
+                );
+            }
             return None;
         }
+        s.skip_logged = None;
         let gpu = s.gpu.take()?;
-        let mut client = RECT::default();
-        unsafe {
-            let _ = GetClientRect(hwnd, &mut client);
-        }
-        let dst_w = (client.right - client.left).max(1) as u32;
-        let dst_h = (client.bottom - client.top).max(1) as u32;
-        s.dest = fit_letterbox(width, height, dst_w, dst_h);
+        s.dest = fit_letterbox(width, height, s.layout_w, s.layout_h);
         Some((gpu, s.dest))
     })
     .flatten();
@@ -386,20 +425,27 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
         return;
     };
     let drawn = match &picture {
-        DecodedPicture::Nv12(nv12) => gpu.present_cpu_nv12(width, height, nv12, dest).is_ok(),
+        DecodedPicture::Nv12(nv12) => gpu.present_cpu_nv12(width, height, nv12, dest),
         DecodedPicture::Gpu {
             texture,
             subresource,
             ..
-        } => gpu.present_gpu_nv12(texture, *subresource, dest).is_ok(),
+        } => gpu.present_gpu_nv12(texture, *subresource, dest),
     };
-    let presented = drawn;
+    let presented = drawn.is_ok();
     let mut show = false;
     with_state(hwnd, |s| {
         s.gpu = Some(gpu);
         if !presented {
+            if !s.present_err_logged {
+                s.present_err_logged = true;
+                if let Err(e) = &drawn {
+                    tracing::warn!(error = %e, width, height, "投屏 Present 失败");
+                }
+            }
             return;
         }
+        s.present_err_logged = false;
         s.painted += 1;
         let now = Instant::now();
         if !s.has_frame {
@@ -438,61 +484,98 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
 }
 
 fn apply_layout(hwnd: HWND, layout: &MirrorLayout) {
-    with_state(hwnd, |s| {
-        if s.layout_x == layout.x
-            && s.layout_y == layout.y
-            && s.layout_w == layout.width
-            && s.layout_h == layout.height
-            && s.visible == layout.visible
-            && s.control == layout.control
-        {
-            return;
-        }
+    let applied = with_state(hwnd, |s| {
         s.control = layout.control;
-        s.visible = layout.visible;
-        s.layout_x = layout.x;
-        s.layout_y = layout.y;
-        s.layout_w = layout.width;
-        s.layout_h = layout.height;
-        let ex = if layout.control {
-            WS_EX_TOOLWINDOW.0 | WS_EX_NOACTIVATE.0
-        } else {
-            WS_EX_TOOLWINDOW.0 | WS_EX_NOACTIVATE.0 | WS_EX_TRANSPARENT.0
-        };
-        unsafe {
-            let _ = windows::Win32::UI::WindowsAndMessaging::SetWindowLongW(
-                hwnd,
-                windows::Win32::UI::WindowsAndMessaging::GWL_EXSTYLE,
-                ex as i32,
-            );
+        let mut bits = WS_EX_NOACTIVATE.0 | WS_EX_NOREDIRECTIONBITMAP.0;
+        if !layout.control {
+            bits |= WS_EX_TRANSPARENT.0;
         }
-        if !layout.visible || layout.width == 0 || layout.height == 0 {
-            unsafe {
-                let _ = SetWindowPos(
-                    hwnd,
-                    Some(HWND_TOP),
-                    0,
-                    0,
-                    0,
-                    0,
-                    SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
-                );
+        let ex = bits as i32;
+        unsafe {
+            let cur = GetWindowLongW(hwnd, GWL_EXSTYLE);
+            if cur != ex {
+                let _ = SetWindowLongW(hwnd, GWL_EXSTYLE, ex);
             }
+        }
+        s.visible = layout.visible;
+        s.layout_r = layout.corner_radius;
+        s.geom.set_zone(
+            &s.serial,
+            layout.x,
+            layout.y,
+            layout.width,
+            layout.height,
+            layout.visible,
+        );
+        tracing::info!(
+            serial = %s.serial,
+            x = layout.x,
+            y = layout.y,
+            w = layout.width,
+            h = layout.height,
+            visible = layout.visible,
+            r = layout.corner_radius,
+            control = layout.control,
+            "投屏可用区已交给几何宿主"
+        );
+    });
+    if applied.is_none() {
+        tracing::warn!(
+            w = layout.width,
+            h = layout.height,
+            visible = layout.visible,
+            "投屏 layout 丢弃：HWND 尚未就绪"
+        );
+    }
+}
+
+fn sync_host_size(hwnd: HWND) {
+    let mut rc = RECT::default();
+    unsafe {
+        if GetClientRect(hwnd, &mut rc).is_err() {
             return;
         }
-        if let Some(gpu) = s.gpu.as_mut() {
-            let _ = gpu.resize(layout.width, layout.height);
+    }
+    let w = (rc.right - rc.left).max(0) as u32;
+    let h = (rc.bottom - rc.top).max(0) as u32;
+    with_state(hwnd, |s| {
+        if w == s.layout_w && h == s.layout_h {
+            return;
         }
-        unsafe {
-            let _ = SetWindowPos(
-                hwnd,
-                Some(HWND_TOP),
-                layout.x,
-                layout.y,
-                layout.width as i32,
-                layout.height as i32,
-                SWP_NOACTIVATE | if layout.visible { SWP_SHOWWINDOW } else { SWP_HIDEWINDOW },
-            );
+        s.layout_w = w;
+        s.layout_h = h;
+        let Some(gpu) = s.gpu.as_mut() else {
+            return;
+        };
+        if let Err(e) = gpu.clip_host(w.max(1), h.max(1), s.layout_r) {
+            tracing::warn!(error = %e, "投屏圆角 clip 失败");
+        }
+        if w < MIN_LAYOUT_PX || h < MIN_LAYOUT_PX {
+            return;
+        }
+        if s.has_frame {
+            s.buf_due = Some(Instant::now() + BUFFER_SETTLE);
+        } else if let Err(e) = gpu.resize(w, h) {
+            tracing::error!(error = %e, w, h, "投屏 swapchain resize 失败");
+        }
+    });
+}
+
+fn realize_buffers_if_due(hwnd: HWND) {
+    with_state(hwnd, |s| {
+        let Some(due) = s.buf_due else {
+            return;
+        };
+        if Instant::now() < due {
+            return;
+        }
+        s.buf_due = None;
+        let w = s.layout_w;
+        let h = s.layout_h;
+        if let Some(gpu) = s.gpu.as_mut() {
+            if let Err(e) = gpu.resize(w, h) {
+                tracing::error!(error = %e, w, h, "投屏 swapchain resize 失败");
+            }
         }
     });
 }
@@ -588,14 +671,14 @@ fn register_class_inner() -> Result<(), String> {
     }
 }
 
-fn create_popup(owner: HWND) -> Result<HWND, String> {
+fn create_child(owner: HWND) -> Result<HWND, String> {
     unsafe {
         let hinstance = GetModuleHandleW(None).map_err(|e| e.to_string())?;
         let hwnd = CreateWindowExW(
-            WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
+            WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP,
             CLASS,
             w!("Yohu Mirror"),
-            WS_POPUP,
+            WS_CHILD | WS_CLIPSIBLINGS,
             0,
             0,
             16,
@@ -606,6 +689,15 @@ fn create_popup(owner: HWND) -> Result<HWND, String> {
             None,
         )
         .map_err(|e| e.to_string())?;
+        let _ = SetWindowPos(
+            hwnd,
+            Some(HWND_TOP),
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+        );
         let _ = ShowWindow(hwnd, SW_HIDE);
         let _ = UpdateWindow(hwnd);
         Ok(hwnd)

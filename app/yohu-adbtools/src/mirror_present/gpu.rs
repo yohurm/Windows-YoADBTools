@@ -1,4 +1,4 @@
-﻿//! D3D11：硬解共用设备 + Video Processor（BT.709 full 缩放）+ shader 兜底。
+﻿//! D3D11：硬解共用设备 + Video Processor（BT.709 full 缩放）；无 VP 时 YUV shader。
 
 #![cfg(windows)]
 
@@ -29,15 +29,19 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_VPOV_DIMENSION_TEXTURE2D,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
-    DXGI_ALPHA_MODE_IGNORE, DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
+    DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
     DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P709, DXGI_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM,
     DXGI_FORMAT_NV12, DXGI_FORMAT_R8G8_UNORM, DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_UNKNOWN,
     DXGI_RATIONAL, DXGI_SAMPLE_DESC,
 };
+use windows::Win32::Graphics::DirectComposition::{
+    DCompositionCreateDevice, IDCompositionDevice, IDCompositionRectangleClip, IDCompositionTarget,
+    IDCompositionVisual,
+};
 use windows::Win32::Graphics::Dxgi::{
     IDXGIAdapter, IDXGIDevice, IDXGIDevice1, IDXGIFactory2, IDXGISwapChain1, DXGI_PRESENT,
-    DXGI_SCALING_STRETCH, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_CHAIN_FLAG, DXGI_SWAP_EFFECT_FLIP_DISCARD,
-    DXGI_USAGE_RENDER_TARGET_OUTPUT,
+    DXGI_SCALING_STRETCH, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_CHAIN_FLAG,
+    DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL, DXGI_USAGE_RENDER_TARGET_OUTPUT,
 };
 use windows::Win32::Media::MediaFoundation::{MFCreateDXGIDeviceManager, IMFDXGIDeviceManager};
 
@@ -98,12 +102,21 @@ pub struct Gpu {
     vp_ok: bool,
     last_cpu: Option<Vec<u8>>,
     last_video: Option<(ID3D11Texture2D, u32)>,
+    dcomp: DcompTree,
+}
+
+/// Flip 交换链不能走 GDI `SetWindowRgn`（DWM 会出黑窗）。圆角裁在 DComp visual 上。
+struct DcompTree {
+    device: IDCompositionDevice,
+    _target: IDCompositionTarget,
+    _visual: IDCompositionVisual,
+    clip: IDCompositionRectangleClip,
 }
 
 impl Gpu {
     pub fn new(hwnd: HWND, width: u32, height: u32) -> WinResult<Self> {
-        let width = width.max(1);
-        let height = height.max(1);
+        let width = even_px(width);
+        let height = even_px(height);
         let (device, context) = create_device()?;
         if let Ok(mt) = device.cast::<ID3D11Multithread>() {
             unsafe {
@@ -120,7 +133,7 @@ impl Gpu {
         if video_device.is_some() && video_ctx.is_some() {
             tracing::info!("投屏 D3D11 Video Processor 可用");
         } else {
-            tracing::warn!("本机没有 D3D11 Video Processor，YUV 走 shader 兜底");
+            tracing::warn!("本机没有 D3D11 Video Processor，YUV 走 shader");
         }
         let dxgi: IDXGIDevice = device.cast()?;
         let adapter: IDXGIAdapter = unsafe { dxgi.GetAdapter()? };
@@ -137,12 +150,13 @@ impl Gpu {
             BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
             BufferCount: 2,
             Scaling: DXGI_SCALING_STRETCH,
-            SwapEffect: DXGI_SWAP_EFFECT_FLIP_DISCARD,
-            AlphaMode: DXGI_ALPHA_MODE_IGNORE,
+            SwapEffect: DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+            AlphaMode: DXGI_ALPHA_MODE_PREMULTIPLIED,
             Flags: 0,
         };
-        let swapchain =
-            unsafe { factory.CreateSwapChainForHwnd(&device, hwnd, &desc, None, None)? };
+        let swapchain = unsafe { factory.CreateSwapChainForComposition(&device, &desc, None)? };
+        let dcomp = attach_dcomp(&dxgi, hwnd, &swapchain, width, height, 0)?;
+        tracing::info!("投屏 HWND DirectComposition flip + 圆角 clip");
         let vs = compile_vs(&device)?;
         let ps = compile_ps(&device)?;
         let samp_linear = sampler(&device, false)?;
@@ -175,6 +189,7 @@ impl Gpu {
             vp_ok: true,
             last_cpu: None,
             last_video: None,
+            dcomp,
         };
         gpu.bind_backbuffer()?;
         Ok(gpu)
@@ -196,10 +211,13 @@ impl Gpu {
     }
 
     pub fn resize(&mut self, width: u32, height: u32) -> WinResult<()> {
-        let width = width.max(1);
-        let height = height.max(1);
+        let width = even_px(width);
+        let height = even_px(height);
         if width == self.buf_w && height == self.buf_h {
             return Ok(());
+        }
+        unsafe {
+            self.context.OMSetRenderTargets(None, None);
         }
         self.rtv = None;
         self.compose = None;
@@ -216,7 +234,12 @@ impl Gpu {
         }
         self.buf_w = width;
         self.buf_h = height;
-        self.bind_backbuffer()
+        self.bind_backbuffer()?;
+        Ok(())
+    }
+
+    pub fn clip_host(&mut self, width: u32, height: u32, radius: u32) -> WinResult<()> {
+        apply_rounded_clip(&self.dcomp, even_px(width), even_px(height), radius)
     }
 
     pub fn present_cpu_nv12(
@@ -253,14 +276,36 @@ impl Gpu {
             texture.GetDesc(&mut desc);
         }
         if desc.Width != self.video_w || desc.Height != self.video_h {
-            self.video_w = desc.Width.max(2) & !1;
-            self.video_h = desc.Height.max(2) & !1;
+            self.video_w = even_px(desc.Width);
+            self.video_h = even_px(desc.Height);
             self.vp_enum = None;
             self.processor = None;
         }
-        self.blit_texture_vp(texture, subresource, dest)?;
-        self.last_cpu = None;
-        self.last_video = Some((texture.clone(), subresource));
+        if self.vp_ok {
+            match self.blit_texture_vp(texture, subresource, dest) {
+                Ok(()) => {
+                    self.last_cpu = None;
+                    self.last_video = Some((texture.clone(), subresource));
+                    return self.present();
+                }
+                Err(e) => {
+                    self.vp_ok = false;
+                    tracing::warn!(error = %e, "Video Processor 出画失败，改 staging+shader");
+                }
+            }
+        }
+        let nv12 = destage_nv12(
+            &self.device,
+            &self.context,
+            texture,
+            subresource,
+            self.video_w,
+            self.video_h,
+        )?;
+        self.upload_planes(self.video_w, self.video_h, &nv12)?;
+        self.draw_shader(dest)?;
+        self.last_cpu = Some(nv12);
+        self.last_video = None;
         self.present()
     }
 
@@ -360,12 +405,7 @@ impl Gpu {
             right: self.video_w as i32,
             bottom: self.video_h as i32,
         };
-        let dst = RECT {
-            left: dest.x,
-            top: dest.y,
-            right: dest.x + dest.width.max(1) as i32,
-            bottom: dest.y + dest.height.max(1) as i32,
-        };
+        let dst = dest_rect(dest, self.buf_w, self.buf_h);
         let target = RECT {
             left: 0,
             top: 0,
@@ -570,7 +610,7 @@ impl Gpu {
 
     fn draw_shader(&self, dest: Letterbox) -> WinResult<()> {
         let Some(rtv) = self.rtv.as_ref() else {
-            return Ok(());
+            return Err(windows::core::Error::from_win32());
         };
         let Some(srv_y) = self.srv_y.as_ref() else {
             return Ok(());
@@ -609,6 +649,7 @@ impl Gpu {
     }
 
     fn present(&self) -> WinResult<()> {
+        // 树未改时只 Present；clip/resize 已在 apply_clip / rebind 里 Commit。
         unsafe { self.swapchain.Present(0, DXGI_PRESENT(0)).ok() }
     }
 
@@ -628,6 +669,78 @@ impl Gpu {
         };
         Ok((width, height, nv12_to_bgra(width, height, &nv12)))
     }
+}
+
+fn even_px(n: u32) -> u32 {
+    n.max(2) & !1
+}
+
+fn dest_rect(dest: Letterbox, buf_w: u32, buf_h: u32) -> RECT {
+    let x = dest.x.max(0) as u32 & !1;
+    let y = dest.y.max(0) as u32 & !1;
+    let mut w = even_px(dest.width);
+    let mut h = even_px(dest.height);
+    if x + w > buf_w {
+        w = even_px(buf_w.saturating_sub(x));
+    }
+    if y + h > buf_h {
+        h = even_px(buf_h.saturating_sub(y));
+    }
+    RECT {
+        left: x as i32,
+        top: y as i32,
+        right: (x + w) as i32,
+        bottom: (y + h) as i32,
+    }
+}
+
+fn attach_dcomp(
+    dxgi: &IDXGIDevice,
+    hwnd: HWND,
+    swapchain: &IDXGISwapChain1,
+    width: u32,
+    height: u32,
+    radius: u32,
+) -> WinResult<DcompTree> {
+    let device: IDCompositionDevice = unsafe { DCompositionCreateDevice(dxgi)? };
+    let target = unsafe { device.CreateTargetForHwnd(hwnd, true)? };
+    let visual = unsafe { device.CreateVisual()? };
+    let clip = unsafe { device.CreateRectangleClip()? };
+    unsafe {
+        visual.SetContent(swapchain)?;
+        visual.SetClip(&clip)?;
+        target.SetRoot(&visual)?;
+    }
+    let tree = DcompTree {
+        device,
+        _target: target,
+        _visual: visual,
+        clip,
+    };
+    apply_rounded_clip(&tree, width, height, radius)?;
+    Ok(tree)
+}
+
+fn apply_rounded_clip(tree: &DcompTree, width: u32, height: u32, radius: u32) -> WinResult<()> {
+    let w = width.max(1) as f32;
+    let h = height.max(1) as f32;
+    let r = radius as f32;
+    unsafe {
+        tree.clip.SetLeft2(0.0)?;
+        tree.clip.SetTop2(0.0)?;
+        tree.clip.SetRight2(w)?;
+        tree.clip.SetBottom2(h)?;
+        tree.clip.SetTopLeftRadiusX2(r)?;
+        tree.clip.SetTopLeftRadiusY2(r)?;
+        tree.clip.SetTopRightRadiusX2(r)?;
+        tree.clip.SetTopRightRadiusY2(r)?;
+        tree.clip.SetBottomLeftRadiusX2(r)?;
+        tree.clip.SetBottomLeftRadiusY2(r)?;
+        tree.clip.SetBottomRightRadiusX2(r)?;
+        tree.clip.SetBottomRightRadiusY2(r)?;
+        tree.device.Commit()?;
+    }
+    Ok(())
 }
 
 fn destage_nv12(
