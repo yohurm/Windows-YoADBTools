@@ -6,8 +6,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AppSettings, CaptureState, DeviceInfo, LogBatch, MirrorSessionState, ProcessIndexSnapshot,
-    TransferProgress, UpdateProgress,
+    AppSettings, CaptureState, DeviceInfo, DeviceStatus, LogBatch, MirrorSessionState,
+    ProcessIndexSnapshot, TransferProgress, UpdateProgress,
 };
 
 /// 后台任务登记信息（状态栏）。
@@ -47,6 +47,9 @@ pub enum AppEvent {
     DeviceOffline {
         serial: String,
     },
+    DeviceStatus {
+        status: DeviceStatus,
+    },
     LogBatch(LogBatchPayload),
     LogOverflow {
         serial: String,
@@ -65,7 +68,7 @@ pub enum AppEvent {
     },
     SettingsChanged {
         key: String,
-        /// 变更后的全量快照（模块投影用，禁止再 `settings.get`）。
+        /// 变更后的全量快照（模块投影用；读注入 / `system.info`，无单键 get）。
         settings: AppSettings,
     },
     MirrorState {
@@ -99,6 +102,7 @@ pub struct LogBatchPayload {
 pub mod event_names {
     pub const DEVICES_CHANGED: &str = "devices/changed";
     pub const DEVICE_OFFLINE: &str = "device/offline";
+    pub const DEVICE_STATUS: &str = "device/status";
     pub const LOG_LINES: &str = "log/lines";
     pub const LOG_OVERFLOW: &str = "log/overflow";
     pub const PROCESS_INDEX: &str = "log/processIndex";
@@ -119,6 +123,7 @@ impl AppEvent {
         match self {
             AppEvent::DevicesChanged { .. } => DEVICES_CHANGED,
             AppEvent::DeviceOffline { .. } => DEVICE_OFFLINE,
+            AppEvent::DeviceStatus { .. } => DEVICE_STATUS,
             AppEvent::LogBatch(_) => LOG_LINES,
             AppEvent::LogOverflow { .. } => LOG_OVERFLOW,
             AppEvent::ProcessIndex(_) => PROCESS_INDEX,
@@ -138,6 +143,30 @@ impl AppEvent {
 mod tests {
     use super::*;
     use crate::{AppSettings, CaptureState, LogBatch};
+
+    #[test]
+    fn device_status_event_nests_snapshot() {
+        let event = AppEvent::DeviceStatus {
+            status: crate::DeviceStatus {
+                serial: "s1".into(),
+                generation: 3,
+                night: Some(true),
+                battery_pct: Some(80),
+                charging: None,
+                sdk: None,
+                release: None,
+                screen_on: None,
+                brand: None,
+            },
+        };
+        let v = serde_json::to_value(&event).expect("serialize");
+        assert_eq!(v["kind"], "deviceStatus");
+        assert_eq!(v["status"]["serial"], "s1");
+        assert_eq!(v["status"]["generation"], 3);
+        assert_eq!(v["status"]["night"], true);
+        assert_eq!(v["status"]["battery_pct"], 80);
+        assert_eq!(event.name(), event_names::DEVICE_STATUS);
+    }
 
     #[test]
     fn log_batch_event_json_has_kind_and_batch() {
@@ -238,6 +267,7 @@ mod tests {
         for name in [
             event_names::DEVICES_CHANGED,
             event_names::DEVICE_OFFLINE,
+            event_names::DEVICE_STATUS,
             event_names::LOG_LINES,
             event_names::LOG_OVERFLOW,
             event_names::PROCESS_INDEX,

@@ -186,7 +186,7 @@ impl Default for AppSettings {
     }
 }
 
-/// 设置键（`settings.get/set` 与 `settings.changed` 事件使用）。
+/// 设置键（`settings.set` 与 `settings/changed` 事件使用）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SettingKey {
@@ -210,7 +210,7 @@ pub enum SettingKey {
 }
 
 impl SettingKey {
-    /// 与 serde `snake_case` 相同的键名（`settings.get/set` 与 `settings.changed` 共用）。
+    /// 与 serde `snake_case` 相同的键名（`settings.set` 与 `settings/changed` 共用）。
     pub fn as_str(&self) -> &'static str {
         match self {
             SettingKey::AdbPath => "adb_path",
