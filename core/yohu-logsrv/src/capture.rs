@@ -22,6 +22,52 @@ use yohu_protocol::{AppEvent, CaptureStart, CaptureState, CaptureStatus, Process
 const LOGCAT_FORMAT: &str = "threadtime,uid";
 const INDEX_INTERVAL: Duration = Duration::from_millis(2500);
 const EXEC_OUT_PROBE: Duration = Duration::from_secs(2);
+/// 取消后等跟流任务收敛的上限。超时则 abort，禁止握着 logcat 管道死等。
+const STOP_JOIN: Duration = Duration::from_secs(3);
+
+async fn join_or_abort<T>(mut handle: tokio::task::JoinHandle<T>) {
+    tokio::select! {
+        _ = &mut handle => {}
+        _ = tokio::time::sleep(STOP_JOIN) => {
+            handle.abort();
+            let _ = handle.await;
+        }
+    }
+}
+
+/// 外层任务被 abort 时连带取消内部 spawn，避免 logcat 读任务脱离后死等管道。
+struct AbortOnDrop<T>(Option<tokio::task::JoinHandle<T>>);
+
+impl<T> AbortOnDrop<T> {
+    fn new(handle: tokio::task::JoinHandle<T>) -> Self {
+        Self(Some(handle))
+    }
+
+    fn is_finished(&self) -> bool {
+        self.0.as_ref().is_some_and(|h| h.is_finished())
+    }
+
+    async fn wait(&mut self) {
+        if let Some(handle) = self.0.as_mut() {
+            let _ = handle.await;
+        }
+        self.0.take();
+    }
+
+    async fn join(mut self) {
+        if let Some(handle) = self.0.take() {
+            join_or_abort(handle).await;
+        }
+    }
+}
+
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        if let Some(handle) = self.0.take() {
+            handle.abort();
+        }
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum LogError {
@@ -122,7 +168,7 @@ async fn run_follow(
     let (line_tx, mut line_rx) = mpsc::channel::<String>(1024);
     let seen = Arc::new(AtomicU64::new(0));
     let pump_seen = Arc::clone(&seen);
-    let pump = tokio::spawn(async move {
+    let pump = AbortOnDrop::new(tokio::spawn(async move {
         while let Some(raw) = line_rx.recv().await {
             if raw.trim_start().starts_with("---------") {
                 continue;
@@ -136,10 +182,10 @@ async fn run_follow(
                 break;
             }
         }
-    });
+    }));
 
     let probe_cancel = cancel.child_token();
-    let probe = {
+    let mut probe = AbortOnDrop::new({
         let adb = Arc::clone(&adb);
         let serial = serial.clone();
         let tx = line_tx.clone();
@@ -148,21 +194,24 @@ async fn run_follow(
             adb.stream_lines(&serial, &follow_argv(true), token, tx)
                 .await
         })
-    };
+    });
 
     let deadline = tokio::time::Instant::now() + EXEC_OUT_PROBE;
     loop {
         if cancel.is_cancelled() {
             probe_cancel.cancel();
-            let _ = probe.await;
             break;
         }
         if seen.load(Ordering::Relaxed) > 0 {
-            let _ = probe.await;
+            tokio::select! {
+                biased;
+                _ = cancel.cancelled() => probe_cancel.cancel(),
+                _ = probe.wait() => {}
+            }
             break;
         }
         if probe.is_finished() {
-            let _ = probe.await;
+            probe.wait().await;
             if seen.load(Ordering::Relaxed) == 0 && !cancel.is_cancelled() {
                 tracing::warn!("exec-out logcat 未产出，回退 adb logcat");
                 let _ = adb
@@ -178,7 +227,7 @@ async fn run_follow(
         }
         if tokio::time::Instant::now() >= deadline {
             probe_cancel.cancel();
-            let _ = probe.await;
+            probe.wait().await;
             if seen.load(Ordering::Relaxed) == 0 && !cancel.is_cancelled() {
                 tracing::warn!("exec-out logcat 超时无行，回退 adb logcat");
                 let _ = adb
@@ -196,7 +245,6 @@ async fn run_follow(
             biased;
             _ = cancel.cancelled() => {
                 probe_cancel.cancel();
-                let _ = probe.await;
                 break;
             }
             _ = tokio::time::sleep(Duration::from_millis(40)) => {}
@@ -204,7 +252,7 @@ async fn run_follow(
     }
 
     drop(line_tx);
-    let _ = pump.await;
+    pump.join().await;
 }
 
 impl CaptureService {
@@ -388,10 +436,10 @@ impl CaptureService {
         if !published {
             cancel.cancel();
             if let Some(handle) = capture_handle {
-                let _ = handle.await;
+                join_or_abort(handle).await;
             }
             if let Some(handle) = index_handle {
-                let _ = handle.await;
+                join_or_abort(handle).await;
             }
             return Err(LogError::Cancelled);
         }
@@ -441,10 +489,10 @@ impl CaptureService {
         self.changed.notify_waiters();
 
         if let Some(handle) = cap_h {
-            let _ = handle.await;
+            join_or_abort(handle).await;
         }
         if let Some(handle) = idx_h {
-            let _ = handle.await;
+            join_or_abort(handle).await;
         }
 
         let emit = {
