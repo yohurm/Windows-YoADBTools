@@ -21,16 +21,6 @@ const mocks = vi.hoisted(() => ({
   }) => void)[],
   paintedHandlers: [] as ((e: { serial: string; generation: number; painted_fps: number }) => void)[],
   offlineHandlers: [] as ((e: { serial: string }) => void)[],
-  settingsHandlers: [] as ((e: {
-    key: string;
-    settings: {
-      mirror_max_size: number;
-      mirror_video_bit_rate: number;
-      mirror_max_fps: number;
-      mirror_protocol: "usb" | "wifi";
-      mirror_force_forward: boolean;
-    };
-  }) => void)[],
 }));
 
 vi.mock("@yohu/api", () => ({
@@ -59,9 +49,6 @@ vi.mock("@yohu/api", () => ({
   onDeviceOffline: (h: (typeof mocks.offlineHandlers)[0]) => {
     mocks.offlineHandlers.push(h);
   },
-  onSettingsChanged: (h: (typeof mocks.settingsHandlers)[0]) => {
-    mocks.settingsHandlers.push(h);
-  },
   YoLog: { info: () => undefined, warn: () => undefined, error: () => undefined },
 }));
 
@@ -87,7 +74,6 @@ describe("mirror store", () => {
     mocks.stateHandlers.length = 0;
     mocks.paintedHandlers.length = 0;
     mocks.offlineHandlers.length = 0;
-    mocks.settingsHandlers.length = 0;
   });
 
   afterEach(() => {

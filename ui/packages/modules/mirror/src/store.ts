@@ -16,7 +16,6 @@ import {
   onDeviceOffline,
   onMirrorPainted,
   onMirrorState,
-  onSettingsChanged,
   settingsSet,
   type AppSettings,
   type MirrorControlMessage,
@@ -115,6 +114,7 @@ export function createMirrorStore() {
     return run;
   }
 
+  /** 质量来自壳注入的 DeviceSession.settings，不另订 settings/changed。 */
   function applySettings(
     settings: Pick<
       AppSettings,
@@ -362,19 +362,6 @@ export function createMirrorStore() {
         control: false,
         paintedFps: 0,
       });
-    }),
-  );
-  unlistens.push(
-    onSettingsChanged((e) => {
-      if (
-        e.key === "mirror_max_size" ||
-        e.key === "mirror_video_bit_rate" ||
-        e.key === "mirror_max_fps" ||
-        e.key === "mirror_protocol" ||
-        e.key === "mirror_force_forward"
-      ) {
-        applySettings(e.settings);
-      }
     }),
   );
 

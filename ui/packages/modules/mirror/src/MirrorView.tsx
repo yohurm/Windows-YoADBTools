@@ -5,8 +5,8 @@
 import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import {
   errorText,
+  deviceSetNightMode,
   type DeviceSession,
-  type MirrorControlMessage,
 } from "@yohu/api";
 import {
   Layout,
@@ -63,19 +63,20 @@ const PROTOCOL_OPTIONS = [
   { value: "wifi", label: "无线" },
 ];
 
-type DeviceOp =
-  | { icon: IconName; title: string; keycode: number }
-  | { icon: IconName; title: string; display: boolean };
+type DeviceOp = { icon: IconName; title: string; keycode: number };
 
-const DEVICE_OPS: DeviceOp[] = [
+const NAV_OPS: DeviceOp[] = [
   { icon: "nav-back", title: "返回", keycode: AndroidKey.Back },
   { icon: "nav-home", title: "Home", keycode: AndroidKey.Home },
   { icon: "nav-recent", title: "多任务", keycode: AndroidKey.AppSwitch },
   { icon: "volume-down", title: "音量-", keycode: AndroidKey.VolumeDown },
   { icon: "volume-up", title: "音量+", keycode: AndroidKey.VolumeUp },
   { icon: "nav-power", title: "电源", keycode: AndroidKey.Power },
-  { icon: "display-off", title: "息屏", display: false },
-  { icon: "display-on", title: "亮屏", display: true },
+];
+
+const BRIGHTNESS_OPS: DeviceOp[] = [
+  { icon: "brightness-down", title: "亮度-", keycode: AndroidKey.BrightnessDown },
+  { icon: "brightness-up", title: "亮度+", keycode: AndroidKey.BrightnessUp },
 ];
 
 function withCurrentOption(
@@ -111,7 +112,13 @@ export function MirrorView(props: DeviceSession) {
   let layoutVisible: boolean | undefined;
   let lastInsetKey = "";
   const [zoneSize, setZoneSize] = createSignal<{ w: number; h: number }>({ w: 0, h: 0 });
-
+  const [pendingNight, setPendingNight] = createSignal<boolean | null>(null);
+  const sessionNight = (): boolean | null => {
+    const serial = props.selectedSerials[0];
+    if (!serial) return null;
+    return props.deviceStatuses[serial]?.night ?? null;
+  };
+  const deviceNight = (): boolean | null => pendingNight() ?? sessionNight();
   function pushLayout(visible?: boolean): void {
     if (visible !== undefined) layoutVisible = visible;
     if (layoutRaf !== 0) return;
@@ -180,6 +187,17 @@ export function MirrorView(props: DeviceSession) {
   });
 
   createEffect(() => {
+    void props.selectedSerials[0];
+    setPendingNight(null);
+  });
+
+  createEffect(() => {
+    const hub = sessionNight();
+    const pending = pendingNight();
+    if (pending !== null && hub === pending) setPendingNight(null);
+  });
+
+  createEffect(() => {
     mirrorStore.applySettings(props.settings);
   });
 
@@ -218,16 +236,22 @@ export function MirrorView(props: DeviceSession) {
     await mirrorStore.inject({ kind: "key", keycode, down: false });
   }
 
-  async function send(message: MirrorControlMessage): Promise<void> {
-    await mirrorStore.inject(message);
+  async function runOp(op: DeviceOp): Promise<void> {
+    await tapKey(op.keycode);
   }
 
-  async function runOp(op: DeviceOp): Promise<void> {
-    if ("display" in op) {
-      await send({ kind: "display_power", on: op.display });
-      return;
+  async function toggleDeviceNight(): Promise<void> {
+    const serial = props.selectedSerials[0];
+    const current = deviceNight();
+    if (!serial || current === null) return;
+    const next = !current;
+    setPendingNight(next);
+    try {
+      await deviceSetNightMode(serial, next);
+    } catch (e) {
+      setPendingNight(null);
+      toaster.show(`切换设备深浅色失败: ${ipcMessage(e)}`, "error");
     }
-    await tapKey(op.keycode);
   }
 
   async function screenshot(): Promise<void> {
@@ -340,7 +364,28 @@ export function MirrorView(props: DeviceSession) {
         </div>
 
         <YoPanel class="yohu-mirror__ops" variant="pane" padding="none" aria-label="设备操作">
-          <For each={DEVICE_OPS}>
+          <For each={NAV_OPS}>
+            {(op) => (
+              <YoIconButton
+                icon={op.icon}
+                title={op.title}
+                size={Layout.IconMd}
+                disabled={!canControl()}
+                onClick={() => void runOp(op)}
+              />
+            )}
+          </For>
+          <YoIconButton
+            icon={deviceNight() === true ? "display-off" : "display-on"}
+            title={
+              deviceNight() === null ? "设备深浅色" : deviceNight() === true ? "设备深色" : "设备浅色"
+            }
+            size={Layout.IconMd}
+            pressed={deviceNight() === true}
+            disabled={!props.selectedSerials[0] || deviceNight() === null}
+            onClick={() => void toggleDeviceNight()}
+          />
+          <For each={BRIGHTNESS_OPS}>
             {(op) => (
               <YoIconButton
                 icon={op.icon}
