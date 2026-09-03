@@ -26,6 +26,7 @@ export type ThemePreference = ThemeName | "system";
 
 let systemMedia: MediaQueryList | null = null;
 let systemListener: ((event: MediaQueryListEvent) => void) | null = null;
+const resolvedThemeListeners = new Set<(theme: ThemeName) => void>();
 
 function prefersDark(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -37,6 +38,9 @@ function prefersDark(): boolean {
 function applyResolved(theme: ThemeName): void {
   document.documentElement.setAttribute("data-theme", theme);
   document.documentElement.style.colorScheme = theme;
+  for (const listener of resolvedThemeListeners) {
+    listener(theme);
+  }
 }
 
 function detachSystemListener(): void {
@@ -72,6 +76,16 @@ export function setTheme(theme: ThemePreference): void {
   }
   detachSystemListener();
   applyResolved(theme);
+}
+
+/**
+ * 解析后外观变更（`setTheme` 与 system 跟随）。返回取消订阅。
+ */
+export function onResolvedThemeChange(listener: (theme: ThemeName) => void): () => void {
+  resolvedThemeListeners.add(listener);
+  return () => {
+    resolvedThemeListeners.delete(listener);
+  };
 }
 
 /**

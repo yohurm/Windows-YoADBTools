@@ -185,6 +185,7 @@ export function Icon(props: IconProps): JSX.Element {
       height={size()}
       viewBox={harmony() ? HARMONY_VIEWBOX : "0 0 24 24"}
       fill={filled() ? "currentColor" : "none"}
+      fill-rule={harmony() ? "evenodd" : undefined}
       stroke={filled() ? "none" : "currentColor"}
       stroke-width={filled() ? undefined : 2}
       stroke-linecap="round"

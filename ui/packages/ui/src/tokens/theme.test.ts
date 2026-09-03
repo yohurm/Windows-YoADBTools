@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { getTheme, getThemePreference, setTheme } from "./index";
+import { getTheme, getThemePreference, onResolvedThemeChange, setTheme } from "./index";
 
 function mockScheme(dark: boolean): void {
   Object.defineProperty(window, "matchMedia", {
@@ -62,5 +62,17 @@ describe("主题切换 setTheme / getTheme", () => {
     setTheme("system");
     expect(getThemePreference()).toBe("system");
     expect(getTheme()).toBe("light");
+  });
+
+  it("onResolvedThemeChange 随 setTheme 推送解析后外观", () => {
+    const seen: string[] = [];
+    const stop = onResolvedThemeChange((theme) => {
+      seen.push(theme);
+    });
+    setTheme("dark");
+    setTheme("light");
+    stop();
+    setTheme("dark");
+    expect(seen).toEqual(["dark", "light"]);
   });
 });

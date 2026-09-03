@@ -46,12 +46,41 @@ describe("Icon", () => {
     expect(back?.getAttribute("fill")).toBe("currentColor");
     expect(back?.getAttribute("stroke")).toBe("none");
     expect(back?.getAttribute("viewBox")).toBe("0 0 1024 1024");
+    expect(back?.getAttribute("fill-rule")).toBe("evenodd");
+  });
+
+  it("设备操作栏用三键导航与控制中心语义，不用眼睛/房屋/回车箭头", () => {
+    const { container } = render(() => (
+      <>
+        <Icon name="nav-back" />
+        <Icon name="nav-home" />
+        <Icon name="nav-recent" />
+        <Icon name="display-off" />
+        <Icon name="volume-down" />
+      </>
+    ));
+    const d = (name: string) => container.querySelector(`svg[data-icon="${name}"] path`)?.getAttribute("d") ?? "";
+    expect(d("nav-back")).toContain("M605.098");
+    expect(d("nav-home")).toContain("M512 896");
+    expect(d("nav-recent")).toContain("M192 192");
+    expect(d("display-off")).toContain("M456.176");
+    expect(d("volume-down")).toContain("M647.497");
+    expect(d("display-off")).not.toContain("463.384");
   });
 
   it("含窗口三键图标", () => {
     expect(ICON_NAMES).toEqual(expect.arrayContaining(["window-max", "window-min", "window-restore"]));
     expect(ICON_NAMES).toEqual(
-      expect.arrayContaining(["nav-back", "nav-home", "nav-recent", "nav-power", "volume-up", "display-on"]),
+      expect.arrayContaining([
+        "nav-back",
+        "nav-home",
+        "nav-recent",
+        "nav-power",
+        "volume-up",
+        "display-on",
+        "brightness-down",
+        "brightness-up",
+      ]),
     );
   });
 });

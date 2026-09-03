@@ -34,6 +34,7 @@ export {
   setTheme,
   getTheme,
   getThemePreference,
+  onResolvedThemeChange,
   setDensity,
   getDensity,
 } from "./tokens";
