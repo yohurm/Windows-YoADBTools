@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
-import { EVENT_NAMES, type AppEvent, type Density, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStartRequest, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateDownloadRequest, type UpdateProgress } from "./types";
+import { EVENT_NAMES, type AppEvent, type Density, type DeviceStatus, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStartRequest, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateDownloadRequest, type UpdateProgress } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -31,6 +31,31 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       level: "I",
       tag: "T",
       msg: "m",
+    });
+  });
+
+  it("DeviceStatus 字段为 snake_case", () => {
+    const status: DeviceStatus = {
+      serial: "ABC",
+      generation: 2,
+      night: true,
+      battery_pct: 87,
+      charging: true,
+      sdk: 34,
+      release: "15",
+      screen_on: true,
+      brand: "motorola",
+    };
+    expect(JSON.parse(JSON.stringify(status))).toEqual({
+      serial: "ABC",
+      generation: 2,
+      night: true,
+      battery_pct: 87,
+      charging: true,
+      sdk: 34,
+      release: "15",
+      screen_on: true,
+      brand: "motorola",
     });
   });
 
@@ -318,6 +343,7 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
     expect(EVENT_NAMES.mirrorState).toBe("mirror/state");
     expect(EVENT_NAMES.mirrorPainted).toBe("mirror/painted");
     expect(EVENT_NAMES.devicesChanged).toBe("devices/changed");
+    expect(EVENT_NAMES.deviceStatus).toBe("device/status");
     expect(EVENT_NAMES.updateProgress).toBe("update/progress");
   });
 });

@@ -16,6 +16,18 @@ export interface DeviceInfo {
   connection: string;
 }
 
+export interface DeviceStatus {
+  serial: string;
+  generation: number;
+  night?: boolean;
+  battery_pct?: number;
+  charging?: boolean;
+  sdk?: number;
+  release?: string;
+  screen_on?: boolean;
+  brand?: string;
+}
+
 // ===== log =====
 
 export interface LogLine {
@@ -144,7 +156,7 @@ export type SettingKey =
   | "mirror_protocol"
   | "mirror_force_forward";
 
-/** `settings.get` 单键值类型：按键映射到 `AppSettings` 对应字段类型。
+/** `settings.set` 单键值类型：按键映射到 `AppSettings` 对应字段类型。
  * `SettingKey` 成员与 `AppSettings` 字段一一同名，故索引映射即精确值类型。
  * 例：`SettingValue<"theme"> = Theme`、`SettingValue<"buffer_capacity"> = number`。
  */
@@ -197,6 +209,8 @@ export interface DeviceSession {
   selectedLabel: string | null;
   /** 设备目录快照（与壳设备栏同一源） */
   devices: DeviceInfo[];
+  /** 在线设备运行时状态（与壳设备栏同一 `device/status` 源；按 serial） */
+  deviceStatuses: Record<string, DeviceStatus>;
   /** 应用设置快照（与设置页同一 settingsStore 投影） */
   settings: AppSettings;
 }
@@ -484,6 +498,7 @@ export interface GroupProgress {
 export type AppEvent =
   | { kind: "devicesChanged"; devices: DeviceInfo[] }
   | { kind: "deviceOffline"; serial: string }
+  | { kind: "deviceStatus"; status: DeviceStatus }
   | { kind: "logBatch"; batch: LogBatch }
   | { kind: "logOverflow"; serial: string; dropped_batches: number }
   | ({ kind: "processIndex" } & ProcessIndexSnapshot)
@@ -510,6 +525,7 @@ export type AppEvent =
 export const EVENT_NAMES = {
   devicesChanged: "devices/changed",
   deviceOffline: "device/offline",
+  deviceStatus: "device/status",
   logLines: "log/lines",
   logOverflow: "log/overflow",
   processIndex: "log/processIndex",

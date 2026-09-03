@@ -99,6 +99,9 @@ export const onDevicesChanged = (h: (e: Extract<AppEvent, { kind: "devicesChange
 export const onDeviceOffline = (h: (e: Extract<AppEvent, { kind: "deviceOffline" }>) => void) =>
   on(EVENT_NAMES.deviceOffline, "deviceOffline", h);
 
+export const onDeviceStatus = (h: (e: Extract<AppEvent, { kind: "deviceStatus" }>) => void) =>
+  on(EVENT_NAMES.deviceStatus, "deviceStatus", h);
+
 export const onLogBatch = (h: (e: Extract<AppEvent, { kind: "logBatch" }>) => void) =>
   on(EVENT_NAMES.logLines, "logBatch", h);
 

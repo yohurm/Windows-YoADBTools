@@ -15,6 +15,7 @@ import type {
   CaptureStatus,
   CommandLibraryDto,
   DeviceInfo,
+  DeviceStatus,
   ExecOutcome,
   ExportRequest,
   ExportResult,
@@ -52,6 +53,12 @@ import type {
 export const deviceList = () => invoke<DeviceInfo[]>("device.list");
 
 export const deviceRefresh = () => invoke<DeviceInfo[]>("device.refresh");
+
+export const deviceStatus = (serial?: string) =>
+  invoke<DeviceStatus[]>("device.status", serial ? { serial } : {});
+
+export const deviceSetNightMode = (serial: string, night: boolean) =>
+  invoke<DeviceStatus>("device.setNightMode", { serial, night });
 
 // ===== adb =====
 
@@ -149,10 +156,6 @@ export const mirrorScreenshot = (req: MirrorScreenshotRequest) =>
   invoke<void>("mirror.screenshot", { req });
 
 // ===== settings =====
-
-/** 单键值：按 `SettingKey` 精确推断返回类型（`SettingValue<K>`），不再是 `unknown`。 */
-export const settingsGet = <K extends SettingKey>(key: K) =>
-  invoke<SettingValue<K>>("settings.get", { key });
 
 /** 返回全量快照。壳 settingsStore.set 回写后经 DeviceSession.settings 注入模块。 */
 export const settingsSet = <K extends SettingKey>(key: K, value: SettingValue<K>) =>
