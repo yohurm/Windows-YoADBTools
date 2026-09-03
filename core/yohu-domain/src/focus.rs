@@ -128,16 +128,20 @@ pub fn lookup_selected_devices<'a>(
 
 /// 一次成功的 `adb devices -l` 就是设备目录。
 /// 空列表 = 当前没有设备；禁止用上次快照顶替（那会让已拔线的设备继续显示在线）。
-/// 返回 (新目录, 先前在线且本次名单里没有的 serial)。
+/// 返回 (新目录, 先前 Online 且本次不再 Online 的 serial)。
+/// 含名单消失，以及 Online → unauthorized/offline（条目还在，采集/投屏/状态采样同样收敛）。
 pub fn catalog_after_scan(
     previous: &[DeviceInfo],
     scanned: Vec<DeviceInfo>,
 ) -> (Vec<DeviceInfo>, Vec<String>) {
-    let present: std::collections::HashSet<&str> =
-        scanned.iter().map(|d| d.serial.as_str()).collect();
+    let online_now: std::collections::HashSet<&str> = scanned
+        .iter()
+        .filter(|d| d.state == DeviceState::Online)
+        .map(|d| d.serial.as_str())
+        .collect();
     let went_offline = previous
         .iter()
-        .filter(|d| d.state == DeviceState::Online && !present.contains(d.serial.as_str()))
+        .filter(|d| d.state == DeviceState::Online && !online_now.contains(d.serial.as_str()))
         .map(|d| d.serial.clone())
         .collect();
     (scanned, went_offline)
@@ -383,6 +387,15 @@ mod tests {
         let scanned = vec![device("B2", DeviceState::Unauthorized)];
         let (next, went_offline) = catalog_after_scan(&previous, scanned);
         assert_eq!(next[0].serial, "B2");
+        assert_eq!(went_offline, vec!["A1".to_string()]);
+    }
+
+    #[test]
+    fn catalog_after_scan_offline_when_online_becomes_unauthorized() {
+        let previous = vec![device("A1", DeviceState::Online)];
+        let scanned = vec![device("A1", DeviceState::Unauthorized)];
+        let (next, went_offline) = catalog_after_scan(&previous, scanned);
+        assert_eq!(next[0].state, DeviceState::Unauthorized);
         assert_eq!(went_offline, vec!["A1".to_string()]);
     }
 }
