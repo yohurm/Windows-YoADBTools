@@ -437,6 +437,7 @@ export function createCapture(
     stopWindowsOn(device);
   }
 
+  // 采集活过视图：buffer_capacity 不能只靠 DeviceSession 注入。
   void onSettingsChanged((e) => {
     if (e.key === "buffer_capacity") {
       setBufferCapacity(e.settings.buffer_capacity);

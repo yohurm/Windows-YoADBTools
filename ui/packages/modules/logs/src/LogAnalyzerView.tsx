@@ -1,6 +1,6 @@
 /**
  * 日志分析主视图：绑定壳注入的 DeviceSession（设备 + 设置）；对话框与本机选路留在视图层。
- * 显示列 / 导出走注入的 settings；禁止本页 settings.get。
+ * 显示列 / 导出走注入的 DeviceSession.settings。
  */
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, untrack } from "solid-js";

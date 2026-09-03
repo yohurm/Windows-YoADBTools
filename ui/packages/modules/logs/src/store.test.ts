@@ -20,7 +20,6 @@ const mocks = vi.hoisted(() => ({
   logSessionFileClose: vi.fn(async (..._a: unknown[]) => "x.log"),
   logSessionFileLatest: vi.fn(async (..._a: unknown[]) => "x.log"),
   logSessionFileList: vi.fn(async (..._a: unknown[]) => []),
-  settingsGet: vi.fn(async (..._a: unknown[]) => "overwrite"),
   logProcessSnapshot: vi.fn(),
   logBatchHandlers: [] as ((e: { batch: LogBatch }) => void)[],
   logOverflowHandlers: [] as ((e: { serial: string }) => void)[],
@@ -70,7 +69,6 @@ vi.mock("@yohu/api", () => {
     logSessionFileClose: (...a: unknown[]) => mocks.logSessionFileClose(...a),
     logSessionFileLatest: (...a: unknown[]) => mocks.logSessionFileLatest(...a),
     logSessionFileList: (...a: unknown[]) => mocks.logSessionFileList(...a),
-    settingsGet: (...a: unknown[]) => mocks.settingsGet(...a),
     logProcessSnapshot: (...a: unknown[]) => mocks.logProcessSnapshot(...a),
     onDevicesChanged: (h: (e: { devices: unknown[] }) => void): void => {
       mocks.devicesChangedHandlers.push(h);
@@ -891,7 +889,7 @@ describe("logStore 多窗口 × 多设备", () => {
 });
 
 describe("logStore 设置联动", () => {
-  it("settings.changed buffer_capacity 立即裁剪镜像容量", async () => {
+  it("settings/changed buffer_capacity 立即裁剪镜像容量", async () => {
     const store = wiredStore();
     expect(store.state.bufferCapacity).toBe(10_000);
     mocks.settingsChangedHandlers.at(-1)?.({
@@ -903,7 +901,7 @@ describe("logStore 设置联动", () => {
     });
   });
 
-  it("settings.changed 展示列键不打 buffer_capacity", async () => {
+  it("settings/changed 展示列键不打 buffer_capacity", async () => {
     const store = wiredStore();
     mocks.settingsChangedHandlers.at(-1)?.({
       key: "log_display_columns",
