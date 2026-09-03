@@ -46,7 +46,6 @@ export interface MirrorUiState {
   videoBitRate: number;
   maxFps: number;
   protocol: MirrorProtocol;
-  forceForward: boolean;
   paintedFps: number;
 }
 
@@ -63,17 +62,12 @@ function settingsSlice(settings: Pick<
   | "mirror_video_bit_rate"
   | "mirror_max_fps"
   | "mirror_protocol"
-  | "mirror_force_forward"
->): Pick<
-  MirrorUiState,
-  "maxSize" | "videoBitRate" | "maxFps" | "protocol" | "forceForward"
-> {
+>): Pick<MirrorUiState, "maxSize" | "videoBitRate" | "maxFps" | "protocol"> {
   return {
     maxSize: settings.mirror_max_size,
     videoBitRate: settings.mirror_video_bit_rate,
     maxFps: settings.mirror_max_fps,
     protocol: settings.mirror_protocol,
-    forceForward: settings.mirror_force_forward,
   };
 }
 
@@ -96,7 +90,6 @@ export function createMirrorStore() {
     videoBitRate: APP_SETTINGS_DEFAULT.mirror_video_bit_rate,
     maxFps: APP_SETTINGS_DEFAULT.mirror_max_fps,
     protocol: APP_SETTINGS_DEFAULT.mirror_protocol,
-    forceForward: APP_SETTINGS_DEFAULT.mirror_force_forward,
     paintedFps: 0,
   });
 
@@ -122,7 +115,6 @@ export function createMirrorStore() {
       | "mirror_video_bit_rate"
       | "mirror_max_fps"
       | "mirror_protocol"
-      | "mirror_force_forward"
     >,
   ): void {
     setState(settingsSlice(settings));
@@ -259,9 +251,8 @@ export function createMirrorStore() {
       | "mirror_video_bit_rate"
       | "mirror_max_fps"
       | "mirror_protocol"
-      | "mirror_force_forward"
     >,
-    value: number | boolean | MirrorProtocol,
+    value: number | MirrorProtocol,
   ): Promise<void> {
     sessionQualityTouched = true;
     try {

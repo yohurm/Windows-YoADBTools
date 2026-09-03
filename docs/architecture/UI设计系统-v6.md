@@ -354,7 +354,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 - 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。画面在 `YoPanel variant=pane` 内等比适应（`max-width/height: 100%`），不是编码器 `max_size`。
 - 舞台是叠层包含块：底层透明占位（壳 HWND 盖在物理矩形上）；空态/加载进 overlay，禁止与占位共 flex 流。空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 overlay 内的 `YoLoading`，不走空态。Live 不等于已出画：首帧 Present 前舞台保持加载，避免黑屏空等。
-- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏、**仅显示**（按下=只看；默认未按=可操作）。**设备操作栏**（宽 `--yohu-layout-mirror-ops`，在画面与设置栏之间，常驻）：返回 / Home / 多任务 / 音量± / 电源 / **设备深浅色（月亮=设备当前深色、太阳=浅色，同一钮，读 `deviceStatuses.night`）** / 亮度±，鸿蒙符号 `YoIconButton`。导航/音量/电源/亮度在不可操作时禁用，不把栏藏起来以免布局跳动；深浅色钮跟连接设备，不跟工作台 theme，禁止本页轮询 dumpsys。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）、**通道**（强制转发下次开始；无线调试常规走 forward）。禁止再把这些控件放进页眉 extra，禁止把导航键放回设置栏。
+- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏、**仅显示**（按下=只看；默认未按=可操作）。**设备操作栏**（宽 `--yohu-layout-mirror-ops`，在画面与设置栏之间，常驻）：返回 / Home / 多任务 / 音量± / 电源 / **设备深浅色（月亮=设备当前深色、太阳=浅色，同一钮，读 `deviceStatuses.night`）** / 亮度±，鸿蒙符号 `YoIconButton`。导航/音量/电源/亮度在不可操作时禁用，不把栏藏起来以免布局跳动；深浅色钮跟连接设备，不跟工作台 theme，禁止本页轮询 dumpsys。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）。禁止再把这些控件放进页眉 extra、设置页或通道开关。禁止把导航键放回设置栏。
 - 实测 fps 在状态栏右下角（1s 窗口已 Present 帧），不是画面角标，也不是质量栏的编码器上限。
 - 面板贴合：JS `containInZone` 只驱动铬层 CSS。HWND 是主窗 `WS_CHILD`，壳按可用区 insets + 画面比 contain。禁止 `screenX` 跟窗、禁止 CSS 过渡宽高、禁止 HWND 内二次 letterbox。主窗不得小于 `Layout.WindowMin*`（1024×768），否则竖屏 contain 会塌成不可读的窄条。
 
@@ -364,6 +364,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - 页眉与卡片左缘共用 `--yohu-layout-page-margin`（PC 40vp）；页宽 `--yohu-layout-settings-max` 只约束滚动列，不把标题挤进 920 列。
 - 表单项走 `YoFormRow`：左侧标题行（标题 + 备注水平相邻，生效徽章进 `note` 槽）+ 其下副标题，右侧功能控件 hug；两列 `align-items: center`。开关 / 数字 / 下拉 / 多选复选进右侧槽。说明文字是副标题，禁止再独占下一行，禁止设置页自写一行 flex。
 - 文件位置项（ADB 路径 / 数据目录 / 默认导出路径）统一：只读展示框显示绝对路径 + 「浏览」；展示框宽 ≤ `--yohu-layout-settings-control-max`，超长折叠中间（目录头 ellipsis、末段完整）。空值显示 `system.info` 解析路径。数字/下拉仍走 `YoTextField`/`YoSelect`。
+- 投屏协议 / 长边 / 码率 / 帧率只在投屏显示页。设置页「投屏显示」仅保留强制 ADB forward。
 - **关于**：末张分组卡片。应用图标（与安装包同源）+ 展示名 + 定位；版本（右侧版本号后跟「检查更新」，无单独更新卡片）/ 标识 / 版权；数据根、设置目录、应用日志只读路径 + 「打开」（`system.openPath`）。禁止再写死版本号。发现新版本后先下载，完成后再确认覆盖安装。
 - 日志显示列：多选走 `YoCheckbox`（不是启用开关），进 `YoFormRow` 右侧槽、过窄时组内折行；消息列始终显示、不提供开关。立即生效。
 - `YoDialog`：中性 10% 遮罩 + `--yohu-shadow-dialog`（失焦 `-unfocused`）；最大宽 400、高 90%；标题 Title_S Bold；电脑小圆角 `radius-sm`。最小 360×240 仅适用于独立子窗口，不套浮层。

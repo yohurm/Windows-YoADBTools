@@ -359,62 +359,9 @@ export const SettingsView: Component = () => {
         </YoPanel>
 
         <YoPanel title="投屏显示">
-          <YoFormRow title="投屏协议" description="USB 或无线。选定后写入对应长边、码率和帧率上限。" note={<EffectBadge text="下次启动生效" />}>
-            <YoSelect
-              options={[
-                { value: "usb", label: "USB" },
-                { value: "wifi", label: "无线" },
-              ]}
-              value={settingsStore.state.mirror_protocol}
-              onChange={(v) => save("mirror_protocol", v, "已保存（下次启动生效）")}
-            />
-          </YoFormRow>
-
-          <YoFormRow title="长边上限" description="0 表示原始。" note={<EffectBadge text="下次启动生效" />}>
-            <YoTextField
-              type="number"
-              value={String(settingsStore.state.mirror_max_size)}
-              ariaLabel="投屏长边上限"
-              onInput={(v) => {
-                const n = Number.parseInt(v, 10);
-                if (!Number.isNaN(n) && n >= 0) {
-                  save("mirror_max_size", n, "已保存（下次启动生效）");
-                }
-              }}
-            />
-          </YoFormRow>
-
-          <YoFormRow title="视频码率（bps）" note={<EffectBadge text="下次启动生效" />}>
-            <YoTextField
-              type="number"
-              value={String(settingsStore.state.mirror_video_bit_rate)}
-              ariaLabel="投屏视频码率"
-              onInput={(v) => {
-                const n = Number.parseInt(v, 10);
-                if (n > 0) {
-                  save("mirror_video_bit_rate", n, "已保存（下次启动生效）");
-                }
-              }}
-            />
-          </YoFormRow>
-
-          <YoFormRow title="帧率上限（0 = 不限制）" note={<EffectBadge text="下次启动生效" />}>
-            <YoTextField
-              type="number"
-              value={String(settingsStore.state.mirror_max_fps)}
-              ariaLabel="投屏帧率上限"
-              onInput={(v) => {
-                const n = Number.parseInt(v, 10);
-                if (!Number.isNaN(n) && n >= 0) {
-                  save("mirror_max_fps", n, "已保存（下次启动生效）");
-                }
-              }}
-            />
-          </YoFormRow>
-
           <YoFormRow
             title="强制 ADB forward"
-            description="无线调试（connection 以 tcp: 开头）开始投屏时默认走 forward。USB 上 reverse 失败也会自动回退。需要跳过 reverse 时打开此开关。"
+            description="协议、长边、码率、帧率在投屏显示页调节。无线调试默认 forward；USB 上 reverse 失败也会回退。需要跳过 reverse 时打开此开关。"
             note={<EffectBadge text="下次启动生效" />}
           >
             <YoSwitch

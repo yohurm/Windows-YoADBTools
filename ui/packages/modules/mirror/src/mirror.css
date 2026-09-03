@@ -122,14 +122,6 @@
   min-width: 0;
 }
 
-.yohu-mirror__toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--yohu-space-sm);
-  min-height: var(--yohu-control-height);
-}
-
 .yohu-mirror__field-name {
   font-size: var(--yohu-font-caption);
   color: var(--yohu-fg-3);

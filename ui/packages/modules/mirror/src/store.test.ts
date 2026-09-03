@@ -160,7 +160,6 @@ describe("mirror store", () => {
       mirror_video_bit_rate: 16_000_000,
       mirror_max_fps: 0,
       mirror_protocol: "usb",
-      mirror_force_forward: true,
     });
     mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
     await store.start();

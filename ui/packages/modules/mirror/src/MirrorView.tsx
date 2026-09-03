@@ -20,7 +20,6 @@ import {
   YoPage,
   YoPanel,
   YoSelect,
-  YoSwitch,
   YoToaster,
   createToaster,
   type IconName,
@@ -445,19 +444,6 @@ export function MirrorView(props: DeviceSession) {
                 value={String(mirrorStore.state.maxFps)}
                 disabled={mirrorStore.state.phase === "starting"}
                 onChange={(v) => void mirrorStore.persistQuality("mirror_max_fps", Number.parseInt(v, 10))}
-              />
-            </label>
-          </div>
-
-          <div class="yohu-mirror__group">
-            <div class="yohu-mirror__group-label">通道</div>
-            <label class="yohu-mirror__toggle" title="无线调试（tcp:）开始时默认转发，不必手开">
-              <span class="yohu-mirror__field-name">强制转发</span>
-              <YoSwitch
-                ariaLabel="强制 ADB forward"
-                checked={mirrorStore.state.forceForward}
-                disabled={mirrorStore.state.phase === "starting"}
-                onChange={(v) => void mirrorStore.persistQuality("mirror_force_forward", v)}
               />
             </label>
           </div>
