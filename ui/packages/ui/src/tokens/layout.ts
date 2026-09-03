@@ -9,6 +9,8 @@ export const Layout = {
   ShellNav: 232,
   Sidebar: 280,
   Preview: 240,
+  /** 投屏设备操作栏（鸿蒙标题栏热区 48vp）。 */
+  MirrorOps: 48,
   SettingsMax: 920,
   /** YoFormRow 左侧信息最小宽，避免标题被控件挤没。 */
   SettingsLabelMin: 160,
@@ -37,9 +39,15 @@ export const Layout = {
   /** 电脑窗口默认 1200×800vp */
   WindowDefaultW: 1200,
   WindowDefaultH: 800,
-  /** 电脑窗口最小 360×240vp */
-  WindowMinW: 360,
-  WindowMinH: 240,
+  /**
+   * 工作台主窗最小（不是鸿蒙对话框 360×240）。
+   * 高：标题栏 40 + 页眉 41 + 页距/区垫 36 + 状态栏 ~28 + 竖屏 contain 短边≥280
+   *     （1088/2400 → 可用高 ≥618）≈ 763 → 768。
+   * 宽：导航 232 + 操作栏 48 + 预览 240 + 间隙/垫 ~36 + 画面≥320 ≈ 876 → 1024。
+   * 必须与 tauri.conf.json minWidth/minHeight 同值。
+   */
+  WindowMinW: 1024,
+  WindowMinH: 768,
   /** PC 屏幕左右边距 40vp（设置页） */
   PageMargin: 40,
   /** 效率型模块页壳内边距；数值单源 Spacing.Md，经 YoPage 消费 */

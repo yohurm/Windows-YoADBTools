@@ -22,8 +22,8 @@
         "title": "Yohu ADB Tools",
         "width": 1200,
         "height": 800,
-        "minWidth": 980,
-        "minHeight": 560,
+        "minWidth": 1024,
+        "minHeight": 768,
         "center": true,
         "decorations": false,
         "shadow": true

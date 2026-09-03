@@ -71,8 +71,14 @@ describe("圆角 / 间距 / 布局 token 契约", () => {
   it("布局常量与 theme.css 一致", () => {
     expect(cssVarValue("--yohu-layout-shell-nav")).toBe(`${Layout.ShellNav}px`);
     expect(cssVarValue("--yohu-layout-preview")).toBe(`${Layout.Preview}px`);
+    expect(cssVarValue("--yohu-layout-mirror-ops")).toBe(`${Layout.MirrorOps}px`);
     expect(cssVarValue("--yohu-layout-hit-splitter")).toBe(`${Layout.HitSplitter}px`);
     expect(cssVarValue("--yohu-layout-window-default-w")).toBe(`${Layout.WindowDefaultW}px`);
+    expect(cssVarValue("--yohu-layout-window-default-h")).toBe(`${Layout.WindowDefaultH}px`);
+    expect(cssVarValue("--yohu-layout-window-min-w")).toBe(`${Layout.WindowMinW}px`);
+    expect(cssVarValue("--yohu-layout-window-min-h")).toBe(`${Layout.WindowMinH}px`);
+    expect(Layout.WindowMinW).toBe(1024);
+    expect(Layout.WindowMinH).toBe(768);
     expect(cssVarValue("--yohu-layout-page-margin")).toBe(`${Layout.PageMargin}px`);
     expect(Layout.PageInset).toBe(Spacing.Md);
     expect(Layout.PageGap).toBe(Spacing.Md);

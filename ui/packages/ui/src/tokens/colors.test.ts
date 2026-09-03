@@ -225,6 +225,9 @@ describe("theme.css 变量", () => {
 
   it("PC 布局 token 已排出", () => {
     expect(themeCss).toContain("--yohu-layout-window-default-w: 1200px");
+    expect(themeCss).toContain("--yohu-layout-window-default-h: 800px");
+    expect(themeCss).toContain("--yohu-layout-window-min-w: 1024px");
+    expect(themeCss).toContain("--yohu-layout-window-min-h: 768px");
     expect(themeCss).toContain("--yohu-layout-page-margin: 40px");
     expect(themeCss).toContain("--yohu-layout-page-inset: 12px");
     expect(themeCss).toContain("--yohu-layout-page-gap: 12px");
