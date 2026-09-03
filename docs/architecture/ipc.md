@@ -18,7 +18,7 @@
 | `log.clear` / `log.clearDevice` / `log.replay` / `log.processSnapshot` | 环 / logcat -c / 回补 / ps |
 | `log.sessionFileOpen/Append/Close/Latest/List` | 逐窗口实时文件（见 ADR-v6-021） |
 | `log.export` | **现状：** 合并 session-logs 源文件（不是环快照） |
-| `mirror.start/stop/inject/closeControl/layout/screenshot` | 投屏槽位；画面在壳内 Present（ADR-v6-024）。`mirror.start` 只传 `serial/control/connection/session_quality_touched`。Live 状态只信 `mirror/state`，无 `mirror.status` |
+| `mirror.start/stop/inject/closeControl/layout/screenshot` | 投屏槽位；画面在壳内 Present（ADR-v6-024）。`mirror.start` 只传 `serial/control/connection/session_quality_touched`。`mirror.layout` 为可用区相对主窗客户区的物理矩形 + `corner_radius`。Live 状态只信 `mirror/state`，无 `mirror.status` |
 | `settings.get` / `settings.set` | 全量快照事件 |
 | `system.info` / `openPath` / `reportError` / `log` | 关于 / 打开路径 / 上报 |
 | `update.check` / `info` / `download` / `install` / `cancel` / `open` | ADR-v6-022 |

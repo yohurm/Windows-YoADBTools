@@ -1,10 +1,16 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.50（2026-09-02，投屏面板铬过渡）    
+> **状态：** v1.54（2026-09-03，投屏 HWND 改为主窗 WS_CHILD）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（YoUI；token 单源 + 组件）+ `@yohu/workbench`（壳）+ `@yohu/modules/*`。所有改动必须同步更新本文件。
 >
-> **v1.50 变更（投屏面板铬过渡）**：Live 后面板宽高贴合画面，铬层走 `yohu-recipe-mirror-frame`（`spatialPanel` 300ms）。壳 HWND 跟盒，不在 CSS 里缩放视频。
+> **v1.54 变更（投屏 HWND 子窗）**：画面 HWND 改为主窗 `WS_CHILD`。JS 只报可用区客户区矩形（铬层 insets）；壳 contain。禁止 `screenX` 跟窗。
+>
+> **v1.53 变更（工作台主窗最小）**：`--yohu-layout-window-min-w/h` 改为 **1024×768**（`Layout.WindowMin*` 与 `tauri.conf.json` `minWidth`/`minHeight` 同值）。竖屏 contain 短边保 ≥280 CSS，避免 980×560 把画面挤成邮票。鸿蒙 **360×240 只用于独立子窗/对话框**，禁止套到主窗。
+>
+> **v1.52 变更（投屏 layout）**：contain 即时贴合，删除 `yohu-recipe-mirror-frame`（CSS 过渡宽高会把舞台塌成 1px）。可用区改 grid 定高。
+
+> **v1.51 变更（投屏默认可操作）**：投屏默认打开控制通道。页眉最右「仅显示」切换只看/可操作。导航键从右侧设置栏挪到设置栏左侧设备操作栏（宽 `--yohu-layout-mirror-ops`，鸿蒙符号图标钮）。HWND 圆角走 DirectComposition（禁止 `SetWindowRgn` + flip）。切回投屏复用上次 contain，避免 100%→贴合挤压。
 >
 > **v1.49 变更（投屏协议与状态栏 fps）**：投屏「档位」改为「投屏协议」（USB / 无线），去掉自定义。实测 fps 进状态栏右槽（模块 `Status`），不盖画面。选项「原始」不加括号说明。
 >
@@ -201,7 +207,7 @@ Primitive 层 = 鸿蒙系统 Token 原值（ARGB → CSS `#RRGGBB` / `#RRGGBBAA`
 
 布局常量（不随密度变）：`--yohu-layout-shell-nav: 232px`、`--yohu-layout-sidebar: 280px`、`--yohu-layout-preview: 240px`、`--yohu-layout-settings-max: 920px`、`--yohu-layout-output-max: 260px`、`--yohu-layout-hit-splitter: 6px`、`--yohu-layout-gutter: 16px`、`--yohu-layout-grid-max: 2220px`、`--yohu-layout-page-inset` / `--yohu-layout-page-gap`（数值 = `Spacing.Md` 12vp，经 `YoPage` 消费）、`--yohu-layout-chrome-pad`（数值 = `Spacing.Sm` 8vp，经 `YoChrome` 消费）。
 
-HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、`--yohu-layout-window-min-w/h: 360×240`、`--yohu-layout-page-margin: 40px`（PC 左右边距，设置页用）、`--yohu-layout-breakpoint-split: 600`（分栏）、`--yohu-layout-breakpoint-side: 840`（侧边页签）、`--yohu-layout-button-max: 448`、`--yohu-layout-dialog-max: 400`。数量约束 `LayoutLimits`：标题栏右侧 ≤3 图标、C 栏工具栏 ≤6、侧栏 ≤窗口宽 40%。间距补 `space-2xl=32`、`space-3xl=40`（Padding_level16/20）。控件行高仍按 P1 产线密度收敛，不改用手机 48vp 列表行。
+HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、**工作台主窗** `--yohu-layout-window-min-w/h: 1024×768`（与 Tauri `minWidth`/`minHeight` 同值；保证投屏竖屏 contain 短边 ≥280 CSS。鸿蒙对话框/子窗最小 360×240 **不**套主窗）、`--yohu-layout-page-margin: 40px`（PC 左右边距，设置页用）、`--yohu-layout-breakpoint-split: 600`（分栏）、`--yohu-layout-breakpoint-side: 840`（侧边页签）、`--yohu-layout-button-max: 448`、`--yohu-layout-dialog-max: 400`。数量约束 `LayoutLimits`：标题栏右侧 ≤3 图标、C 栏工具栏 ≤6、侧栏 ≤窗口宽 40%。间距补 `space-2xl=32`、`space-3xl=40`（Padding_level16/20）。控件行高仍按 P1 产线密度收敛，不改用手机 48vp 列表行。
 
 效率型工作台：内容区从窗口标题栏下方**贴边**排布（`.yohu-layout__content` padding 0）；模块页眉与分区的内边距由 `YoPage` 承担（`page-inset` / `page-gap`）。设置页才用 `page-margin` 40vp。
 
@@ -342,9 +348,9 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 - 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。画面在 `YoPanel variant=pane` 内等比适应（`max-width/height: 100%`），不是编码器 `max_size`。
 - 舞台是叠层包含块：底层透明占位（壳 HWND 盖在物理矩形上）；空态/加载进 overlay，禁止与占位共 flex 流。空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 overlay 内的 `YoLoading`，不走空态。Live 不等于已出画：首帧 Present 前舞台保持加载，避免黑屏空等。
-- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）、**通道**（只读即时关控制，开控制需重启会话；强制转发下次开始；无线调试常规走 forward）、**导航**（仅非只读时出现；控制关闭时键禁用）。禁止再把这些控件放进页眉 extra。
+- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏、**仅显示**（按下=只看；默认未按=可操作）。**设备操作栏**（宽 `--yohu-layout-mirror-ops`，在画面与设置栏之间，常驻）：返回 / Home / 多任务 / 音量± / 电源 / 息屏 / 亮屏，鸿蒙符号 `YoIconButton`；不可操作时禁用，不把栏藏起来以免布局跳动。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）、**通道**（强制转发下次开始；无线调试常规走 forward）。禁止再把这些控件放进页眉 extra，禁止把导航键放回设置栏。
 - 实测 fps 在状态栏右下角（1s 窗口已 Present 帧），不是画面角标，也不是质量栏的编码器上限。
-- 面板贴合走 `yohu-recipe-mirror-frame`（宽高 `spatialPanel`）。原生 HWND 跟盒，禁止用 CSS 二次缩放画面。
+- 面板贴合：JS `containInZone` 只驱动铬层 CSS。HWND 是主窗 `WS_CHILD`，壳按可用区 insets + 画面比 contain。禁止 `screenX` 跟窗、禁止 CSS 过渡宽高、禁止 HWND 内二次 letterbox。主窗不得小于 `Layout.WindowMin*`（1024×768），否则竖屏 contain 会塌成不可读的窄条。
 
 ### 4.5 设置
 
