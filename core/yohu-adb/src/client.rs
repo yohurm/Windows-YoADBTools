@@ -10,7 +10,9 @@ use tokio::sync::{mpsc, Semaphore};
 use tokio_util::sync::CancellationToken;
 
 use crate::error::AdbError;
-use crate::parse::{devices as devices_parse, ls as ls_parse, ps as ps_parse};
+use crate::parse::{
+    devices as devices_parse, ls as ls_parse, ps as ps_parse, status as status_parse,
+};
 use crate::tool::ToolResolver;
 use yohu_protocol::{DeviceInfo, ExecOutcome, ProcessEntry, RemoteEntry};
 use yohu_runtime::{ChildHandle, ProcessError, ProcessOutput, ProcessRunner};
@@ -20,6 +22,8 @@ const CLEAR_LOG_TIMEOUT_MS: u64 = 10_000;
 const LIST_PS_TIMEOUT_MS: u64 = 15_000;
 const DUMP_LOG_TIMEOUT_MS: u64 = 30_000;
 const READLINK_TIMEOUT_MS: u64 = 10_000;
+const UI_MODE_TIMEOUT_MS: u64 = 8_000;
+const STATUS_SAMPLE_TIMEOUT_MS: u64 = 8_000;
 
 /// ADB 客户端。
 pub struct AdbClient {
@@ -316,6 +320,83 @@ impl AdbClient {
             });
         }
         Ok(ps_parse::parse_ps(&out.stdout))
+    }
+
+    /// 写设备深浅色（`cmd uimode night yes|no`）。读回应走 [`Self::sample_status`]。
+    pub async fn set_night_mode(
+        &self,
+        serial: &str,
+        night: bool,
+        cancel: CancellationToken,
+    ) -> Result<(), AdbError> {
+        let arg = if night { "yes" } else { "no" };
+        let out = self
+            .run(
+                serial,
+                &[
+                    "shell".into(),
+                    "cmd".into(),
+                    "uimode".into(),
+                    "night".into(),
+                    arg.into(),
+                ],
+                Some(UI_MODE_TIMEOUT_MS),
+                cancel.clone(),
+            )
+            .await?;
+        if out.exit_code != 0 {
+            let fallback = if night { "2" } else { "1" };
+            let put = self
+                .run(
+                    serial,
+                    &[
+                        "shell".into(),
+                        "settings".into(),
+                        "put".into(),
+                        "secure".into(),
+                        "ui_night_mode".into(),
+                        fallback.into(),
+                    ],
+                    Some(UI_MODE_TIMEOUT_MS),
+                    cancel.clone(),
+                )
+                .await?;
+            if put.exit_code != 0 {
+                return Err(AdbError::BadExit {
+                    exit_code: out.exit_code,
+                    stderr: format!("cmd uimode: {}; settings: {}", out.stderr, put.stderr),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    /// 一次 shell 采齐夜览/电量/SDK/亮屏等运行时字段。
+    pub async fn sample_status(
+        &self,
+        serial: &str,
+        cancel: CancellationToken,
+    ) -> Result<status_parse::DeviceStatusFields, AdbError> {
+        let out = self
+            .run(
+                serial,
+                &[
+                    "shell".into(),
+                    "sh".into(),
+                    "-c".into(),
+                    status_parse::SAMPLE_SCRIPT.into(),
+                ],
+                Some(STATUS_SAMPLE_TIMEOUT_MS),
+                cancel,
+            )
+            .await?;
+        if out.exit_code != 0 && out.stdout.trim().is_empty() {
+            return Err(AdbError::BadExit {
+                exit_code: out.exit_code,
+                stderr: out.stderr,
+            });
+        }
+        Ok(status_parse::parse_status_bundle(&out.stdout))
     }
 }
 

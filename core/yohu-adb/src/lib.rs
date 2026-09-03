@@ -7,10 +7,12 @@ pub mod client;
 pub mod error;
 pub mod parse;
 pub mod shell;
+pub mod status;
 pub mod tool;
 
 pub use client::AdbClient;
 pub use error::AdbError;
 pub use yohu_runtime::ChildHandle;
 pub use shell::shell_quote;
+pub use status::DeviceStatusHub;
 pub use tool::ToolResolver;
