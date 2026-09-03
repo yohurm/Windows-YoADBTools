@@ -19,7 +19,7 @@ interface ModuleDescriptor {
 }
 ```
 
-壳注入 `DeviceSession`（焦点、执行目标、设备目录、设置快照）。模块不读壳 store、不 `settings.get`、不自拼页眉设备名。模块 store 在模块内部创建（不经 descriptor `createStore`）。
+壳注入 `DeviceSession`（焦点、执行目标、设备目录、**运行时状态**、设置快照）。模块不读壳 store、不自拼页眉设备名、不轮询设备 dumpsys。设置只读注入快照（启动 `system.info`，变更 `settings/changed`）。模块 store 在模块内部创建（不经 descriptor `createStore`）。
 
 ## 数据链
 
@@ -27,7 +27,10 @@ interface ModuleDescriptor {
 adb devices -l → device_catalog.last_devices（唯一目录）
   写：device.refresh / 启动预热 / 自动刷新
   读：device.list、devices/changed、require_online
-DeviceRail → deviceStore（投影）→ resolve_targets → DeviceSession.selectedSerials
+Online serial → yohu-adb::DeviceStatusHub（唯一运行时状态）
+  写：2s 采样 / device.setNightMode
+  读：device.status、device/status
+DeviceRail → deviceStore（目录 + statuses 投影）→ resolve_targets → DeviceSession
 settings.json → settings.set / settings/changed → settingsStore → DeviceSession.settings
 ```
 
@@ -37,4 +40,4 @@ settings.json → settings.set / settings/changed → settingsStore → DeviceSe
 
 ## Tauri 壳（`app/yohu-adbtools`）
 
-薄命令层：反序列化 → core → 序列化。编排在 `device_catalog` / `library_store` / `group_runs`。`dnd/` 仅 Windows OLE 拖出（[文件拖拽-v6.md](文件拖拽-v6.md)）。退出：根 `CancellationToken` → 3s 强杀进程树 → flush 设置。
+薄命令层：反序列化 → core → 序列化。编排在 `device_catalog` / `library_store` / `group_runs`。设备运行时状态在 `yohu-adb::DeviceStatusHub`（[modules/device.md](modules/device.md)，ADR-v6-025）。`dnd/` 仅 Windows OLE 拖出（[文件拖拽-v6.md](文件拖拽-v6.md)）。退出：根 `CancellationToken` → 3s 强杀进程树 → flush 设置。

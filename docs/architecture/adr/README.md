@@ -28,3 +28,4 @@
 | [022](ADR-v6-022.md) | 更新通道 | GitHub Releases；非 plugin-updater |
 | [023](ADR-v6-023.md) | 投屏画质（旧） | **被 024 取代：** Channel + WebCodecs |
 | [024](ADR-v6-024.md) | 投屏原生呈现 | 进程内 MF + HWND，禁止 ffmpeg.exe |
+| [025](ADR-v6-025.md) | 设备状态 | 目录 ≠ 运行时；Hub 统一采样；禁模块轮询 |

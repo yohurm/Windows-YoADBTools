@@ -1,8 +1,14 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.54（2026-09-03，投屏 HWND 改为主窗 WS_CHILD）    
+> **状态：** v1.57（2026-09-03，设备运行时状态统一）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（YoUI；token 单源 + 组件）+ `@yohu/workbench`（壳）+ `@yohu/modules/*`。所有改动必须同步更新本文件。
+>
+> **v1.57 变更（设备状态统一）**：目录与运行时状态分流（ADR-v6-025）。设备栏次行展示 Android 版本/电量；投屏深浅色读 `DeviceSession.deviceStatuses`，禁止页面 2s 轮询。
+>
+> **v1.56 变更（设备深浅色）**：月亮/太阳同一操作位读 **连接设备** 当前界面；点击 `device.setNightMode`。不是工作台 `theme`。亮度±仍走设备亮度键。v1.57 起数据源改为 Hub，不再 `device.nightMode`。
+>
+> **v1.55 变更（设备操作栏主题/亮度）**：月亮/太阳曾误接到工作台 theme；v1.56 改为设备 uimode。亮度±用控制中心太阳符号，走设备 `KEYCODE_BRIGHTNESS_*`。
 >
 > **v1.54 变更（投屏 HWND 子窗）**：画面 HWND 改为主窗 `WS_CHILD`。JS 只报可用区客户区矩形（铬层 insets）；壳 contain。禁止 `screenX` 跟窗。
 >
@@ -40,7 +46,7 @@
 >
 > **v1.36 变更（设置项控件靠右）**：设置表单项统一「标签+生效徽章靠左、功能控件靠右 hug」。日志显示列的 `YoCheckbox` 组走同一控件槽，禁止整行左起铺开；说明文字仍独占下一行。
 >
-> **v1.35 变更（设置注入会话）**：应用设置与设备同一条链。`settingsStore` 是唯一 UI 投影；`AppLayout` 经 `DeviceSession.settings` 注入模块。日志显示列 / 导出走注入快照，禁止模块 `settings.get`。`buffer_capacity` 仍由日志 store 投影（采集活过视图）；`settings.changed` 控制面必达。
+> **v1.35 变更（设置注入会话）**：应用设置与设备同一条链。`settingsStore` 是唯一 UI 投影；`AppLayout` 经 `DeviceSession.settings` 注入模块。日志显示列 / 导出走注入快照。`buffer_capacity` 仍由日志 store 投影（采集活过视图）；`settings/changed` 控制面必达。
 >
 > **v1.34 变更（日志显示列）**：设置项 `log_display_columns`（立即生效）控制清单表头与行显示哪些元数据列（时间 / UID / PID / TID / 级别 / Tag）。消息列始终在。缺字段视为开启。轨道按可见列内联写入，禁止在 CSS 写死七列。
 >
@@ -301,7 +307,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **设备栏**：标题行 = 折叠钮 +「设备」+ 数量徽章（徽章紧跟标题，不推到最右）+ 刷新（`YoIconButton loading` 旋转）；设备行（型号一行 + serial 等宽一行，主次上下间隔 2vp + 在线点 + 未授权徽章，无白卡片）；空态给引导文案；选中只加 `.yohu-interactive--selected`（高亮 = 当前模块解析后的执行目标）。单选实底由 `YoIndicator` fill 在 list 宿主内滑动，宿主 `overflow: hidden` 裁切弹簧过冲；项滚动在 `__scroller`（横向 hidden、纵向 auto）。禁止把 `overflow: auto` 写在滑块宿主上。MultiOptional（终端）：单击替换勾选，Ctrl/Meta+click 加减选；未勾选回退全局焦点，不把全部在线设备当作已选。
+- **设备栏**：标题行 = 折叠钮 +「设备」+ 数量徽章（徽章紧跟标题，不推到最右）+ 刷新（`YoIconButton loading` 旋转）；设备行（型号一行 + serial 等宽一行 + 可选运行时次行 Android/电量，主次上下间隔 2vp + 在线点 + 未授权徽章，无白卡片）；空态给引导文案；选中只加 `.yohu-interactive--selected`（高亮 = 当前模块解析后的执行目标）。单选实底由 `YoIndicator` fill 在 list 宿主内滑动，宿主 `overflow: hidden` 裁切弹簧过冲；项滚动在 `__scroller`（横向 hidden、纵向 auto）。禁止把 `overflow: auto` 写在滑块宿主上。MultiOptional（终端）：单击替换勾选，Ctrl/Meta+click 加减选；未勾选回退全局焦点，不把全部在线设备当作已选。运行时字段只读壳 `deviceStore.statuses`，禁止栏内轮询。
 - **导航**：图标 16px（`<Icon>` 单源，currentColor）+ 标题；激活只加 `.yohu-interactive--selected`；Planned 项「开发中」胶囊徽章。图标节点每次渲染新建。设备栏与导航共用 `--yohu-layout-rail-inset`。侧栏可整栏收起（标题栏 `sidebar` 抽屉钮）。
 - **模块页眉**：在右侧内容区顶部（`YoChrome`）。左侧为功能标题区（Subtitle Bold）+ 选中设备名（`deviceLabel` 中性徽章，文案来自 `DeviceSession.selectedLabel`），右侧为功能栏；与窗口标题栏分离，不挤进中区。无操作的模块（设置）只显示标题，但标题行高度仍是 `--yohu-control-height`（与有按钮的页同一占位）。底垫 `--yohu-layout-chrome-pad`。页眉是页壳的第一子节点（`flex: 0 0 auto`），禁止与内容区作为 fragment 兄弟交给模块转场。
 - **模块页壳**：效率型与占位模块（终端/文件/日志/投屏）根节点一律 `YoPage`（`.yohu-page`：`padding: page-inset`、`gap: page-gap`）。`YoChrome` 是第一子节点。内容进 `YoPanel`（`variant=pane` 撑满）。禁止模块再写一套页垫。空态文案不得复写页眉模块名。设置页分组走 `YoPanel` 默认 card，边距仍是 `page-margin`。
@@ -318,7 +324,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 - 布局：内容区顶部模块页眉（标题 + 选中设备名 + 采集操作）→ 会话 Tab（canvas 上）→ `YoPanel` 会话分区（过滤 / **固定表头** + 虚拟列表 / 状态行）。
 - 行结构（列对齐，等宽，**定宽 grid 轨道**）：`[时间 18ch] [UID 10ch] [PID 6ch] [TID 6ch] [级别 4ch] [Tag 24ch] [消息 →]`。UID 来自 `logcat -v threadtime,uid`（数字或 `root`/`shell`/`wifi` 名）。禁止 `max-width` / 不定宽 flex 让消息列左右错位。解析失败（level=`?`）整行消息通栏，禁止画 `0 ?` 假列。级别色：`pipeline.levelKey` → 行 `data-level` → `--yohu-log-ink`（绑定 `--yohu-level-*`）；左条 / 级别字 / Tag 共用 ink。Error 消息同色（`--yohu-level-e`）。Fatal 级别字母反色块（`radius-2xs`，`--yohu-level-f` on `--yohu-level-f-bg`），Tag 与左条用 f-bg。级别、Tag、Error 消息、检索高亮挂 `.yohu-tone`。禁止 View 再写 `LEVEL_SUFFIX` / `--level` / `--bar` class，禁止 Tag 走 `--yohu-accent` 或 `--yohu-tag`。行选中由 `YoVirtualList` 的 `.yohu-interactive` 承担，模块禁止再写行 hover 底。行间 hairline 走 VirtualList 单源。
-- **固定表头**：列名钉在滚动区外，与行共用 `.yohu-logs__cols`；高度 `--yohu-row-height-header`；背板 `--yohu-canvas`。无排序、无列宽拖拽，禁止改走 `YoColHeader`。禁止把表头放进虚拟列表行。显示列读壳注入的 `DeviceSession.settings.log_display_columns`（消息始终在），`grid-template-columns` 按可见列内联写入。禁止模块再 `settings.get` 或把显示列拷进 logStore。
+- **固定表头**：列名钉在滚动区外，与行共用 `.yohu-logs__cols`；高度 `--yohu-row-height-header`；背板 `--yohu-canvas`。无排序、无列宽拖拽，禁止改走 `YoColHeader`。禁止把表头放进虚拟列表行。显示列读壳注入的 `DeviceSession.settings.log_display_columns`（消息始终在），`grid-template-columns` 按可见列内联写入。禁止模块再拉设置命令或把显示列拷进 logStore。
 - 信号行（崩溃/ANR）行底色 `--yohu-signal-bg` + 左侧 Error 条；选中时信号底让位给选中片，左条保留。
 - 过滤栏：级别含以上 / Tag / 关键字检索（放大镜图标 + 「清除」；过滤生效时检索框 accent 边框）+ 会话 scope 用 `YoBadge tone=accent`；控件走 `--yohu-control-height`。
 - 会话 Tab：标题 + 采集绿点/信号红点 + 关闭 × + 新建 +；Tab 溢出可横向滚动；右键菜单（关闭其他/重命名/复制会话）走 `logs.tab` 场景。
@@ -348,7 +354,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 - 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。画面在 `YoPanel variant=pane` 内等比适应（`max-width/height: 100%`），不是编码器 `max_size`。
 - 舞台是叠层包含块：底层透明占位（壳 HWND 盖在物理矩形上）；空态/加载进 overlay，禁止与占位共 flex 流。空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 overlay 内的 `YoLoading`，不走空态。Live 不等于已出画：首帧 Present 前舞台保持加载，避免黑屏空等。
-- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏、**仅显示**（按下=只看；默认未按=可操作）。**设备操作栏**（宽 `--yohu-layout-mirror-ops`，在画面与设置栏之间，常驻）：返回 / Home / 多任务 / 音量± / 电源 / 息屏 / 亮屏，鸿蒙符号 `YoIconButton`；不可操作时禁用，不把栏藏起来以免布局跳动。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）、**通道**（强制转发下次开始；无线调试常规走 forward）。禁止再把这些控件放进页眉 extra，禁止把导航键放回设置栏。
+- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏、**仅显示**（按下=只看；默认未按=可操作）。**设备操作栏**（宽 `--yohu-layout-mirror-ops`，在画面与设置栏之间，常驻）：返回 / Home / 多任务 / 音量± / 电源 / **设备深浅色（月亮=设备当前深色、太阳=浅色，同一钮，读 `deviceStatuses.night`）** / 亮度±，鸿蒙符号 `YoIconButton`。导航/音量/电源/亮度在不可操作时禁用，不把栏藏起来以免布局跳动；深浅色钮跟连接设备，不跟工作台 theme，禁止本页轮询 dumpsys。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）、**通道**（强制转发下次开始；无线调试常规走 forward）。禁止再把这些控件放进页眉 extra，禁止把导航键放回设置栏。
 - 实测 fps 在状态栏右下角（1s 窗口已 Present 帧），不是画面角标，也不是质量栏的编码器上限。
 - 面板贴合：JS `containInZone` 只驱动铬层 CSS。HWND 是主窗 `WS_CHILD`，壳按可用区 insets + 画面比 contain。禁止 `screenX` 跟窗、禁止 CSS 过渡宽高、禁止 HWND 内二次 letterbox。主窗不得小于 `Layout.WindowMin*`（1024×768），否则竖屏 contain 会塌成不可读的窄条。
 

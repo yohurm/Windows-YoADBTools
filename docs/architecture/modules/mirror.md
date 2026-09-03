@@ -40,4 +40,4 @@ core 零 Tauri：`FramePipe` 在 `yohu-mirror`；HWND / MF / D3D 只在 `yohu-ad
 
 ## UI
 
-`@yohu/module-mirror`；默认可操作；页眉「仅显示」关控制通道。质量参数下次 `mirror.start` 生效。页眉与画面都不放实测 fps。导航/音量/电源/息屏亮屏在画面与设置栏之间的设备操作栏（鸿蒙符号图标钮）。
+`@yohu/module-mirror`；默认可操作；页眉「仅显示」关控制通道。质量参数下次 `mirror.start` 生效。页眉与画面都不放实测 fps。导航/音量/电源/亮度在画面与设置栏之间的设备操作栏；月亮/太阳同一钮读 **`DeviceSession.deviceStatuses`** 的 `night` 并 `device.setNightMode`（不是工作台 theme，禁止本页轮询）。状态采样见 [device.md](device.md)。
