@@ -61,7 +61,7 @@ pub struct MirrorInjectRequest {
     pub message: MirrorControlMessage,
 }
 
-/// 面板在屏幕上的物理像素矩形（`mirror.layout`）。
+/// 可用区相对主窗客户区的物理像素矩形（`mirror.layout`）。HWND 是 WS_CHILD，壳按 insets contain。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MirrorLayout {
     pub serial: String,
@@ -71,6 +71,9 @@ pub struct MirrorLayout {
     pub height: u32,
     pub visible: bool,
     pub control: bool,
+    /// HWND 圆角直径用的物理像素半径；0 表示直角（全屏或隐藏）。
+    #[serde(default)]
+    pub corner_radius: u32,
 }
 
 /// 壳内截图落盘。
@@ -126,6 +129,33 @@ mod tests {
                 "control": true,
                 "connection": "tcp:192.168.1.8:5555",
                 "session_quality_touched": false
+            })
+        );
+    }
+
+    #[test]
+    fn layout_includes_corner_radius() {
+        let layout = MirrorLayout {
+            serial: "S1".into(),
+            x: 10,
+            y: 20,
+            width: 300,
+            height: 600,
+            visible: true,
+            control: true,
+            corner_radius: 24,
+        };
+        assert_eq!(
+            serde_json::to_value(&layout).unwrap(),
+            serde_json::json!({
+                "serial": "S1",
+                "x": 10,
+                "y": 20,
+                "width": 300,
+                "height": 600,
+                "visible": true,
+                "control": true,
+                "corner_radius": 24
             })
         );
     }

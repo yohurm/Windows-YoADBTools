@@ -441,7 +441,7 @@ export interface MirrorInjectRequest {
   message: MirrorControlMessage;
 }
 
-/** 面板在屏幕上的物理像素矩形（`mirror.layout`）。 */
+/** 可用区相对主窗客户区的物理像素矩形（`mirror.layout`）。HWND 是 WS_CHILD。 */
 export interface MirrorLayout {
   serial: string;
   x: number;
@@ -450,6 +450,8 @@ export interface MirrorLayout {
   height: number;
   visible: boolean;
   control: boolean;
+  /** HWND 圆角物理像素半径；0 为直角。 */
+  corner_radius: number;
 }
 
 /** 壳内截图落盘（`mirror.screenshot`）。 */
