@@ -73,8 +73,15 @@ pub async fn refresh(state: &AppState) -> Result<Vec<DeviceInfo>, String> {
         }
     }
 
-    let _ = state.event_tx.try_send(AppEvent::DevicesChanged {
-        devices: devices.clone(),
-    });
+    // 目录变更是控制面（无环可重放），与 settings/changed 一样 send().await，禁止 try_send。
+    if let Err(e) = state
+        .event_tx
+        .send(AppEvent::DevicesChanged {
+            devices: devices.clone(),
+        })
+        .await
+    {
+        tracing::warn!("devices/changed 发送失败: {e}");
+    }
     Ok(devices)
 }

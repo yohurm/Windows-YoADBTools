@@ -80,7 +80,7 @@ export function createDeviceStore() {
     setState("focusSerial", reconcileFocus(state.focusSerial, online));
   }
 
-  /** 读 core 目录快照，不跑 adb。启动预热可能已经扫过。 */
+  /** 读 core 目录快照，不跑 adb。启动扫描走 `refresh()`。 */
   async function load(): Promise<void> {
     try {
       const devices = await deviceList();
