@@ -61,7 +61,20 @@ pub struct MirrorInjectRequest {
     pub message: MirrorControlMessage,
 }
 
-/// 可用区相对主窗客户区的物理像素矩形（`mirror.layout`）。HWND 是 WS_CHILD，壳按 insets contain。
+/// 舞台内容模式（壳 chrome 仍用）。文案与色值在壳 chrome，不进 layout。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MirrorStageMode {
+    #[default]
+    Empty,
+    Loading,
+    Paused,
+    Video,
+}
+
+/// 可用区相对主窗客户区的物理像素矩形（`mirror.layout`）。
+/// HWND 是 WS_CHILD；可见则独占该矩形的像素，不与 WebView XOR。
+/// 占用（contain vs fill）与 chrome 绘制不在本 DTO。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MirrorLayout {
     pub serial: String,
@@ -70,10 +83,22 @@ pub struct MirrorLayout {
     pub width: u32,
     pub height: u32,
     pub visible: bool,
+    /// `window.devicePixelRatio`
+    #[serde(default = "default_dpr")]
+    pub dpr: f32,
+    pub fullscreen: bool,
+    pub paused: bool,
     pub control: bool,
-    /// HWND 圆角直径用的物理像素半径；0 表示直角（全屏或隐藏）。
+    pub has_device: bool,
+    pub failed: bool,
     #[serde(default)]
-    pub corner_radius: u32,
+    pub error: String,
+    /// `documentElement` `data-theme=dark`
+    pub dark: bool,
+}
+
+fn default_dpr() -> f32 {
+    1.0
 }
 
 /// 壳内截图落盘。
@@ -134,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    fn layout_includes_corner_radius() {
+    fn layout_serde_roundtrip() {
         let layout = MirrorLayout {
             serial: "S1".into(),
             x: 10,
@@ -142,11 +167,18 @@ mod tests {
             width: 300,
             height: 600,
             visible: true,
+            dpr: 1.5,
+            fullscreen: false,
+            paused: true,
             control: true,
-            corner_radius: 24,
+            has_device: true,
+            failed: false,
+            error: String::new(),
+            dark: true,
         };
+        let v = serde_json::to_value(&layout).unwrap();
         assert_eq!(
-            serde_json::to_value(&layout).unwrap(),
+            v,
             serde_json::json!({
                 "serial": "S1",
                 "x": 10,
@@ -154,9 +186,38 @@ mod tests {
                 "width": 300,
                 "height": 600,
                 "visible": true,
+                "dpr": 1.5,
+                "fullscreen": false,
+                "paused": true,
                 "control": true,
-                "corner_radius": 24
+                "has_device": true,
+                "failed": false,
+                "error": "",
+                "dark": true
             })
         );
+        let back: MirrorLayout = serde_json::from_value(v).expect("layout");
+        assert_eq!(back, layout);
+    }
+
+    #[test]
+    fn layout_defaults_dpr_to_one() {
+        let v = serde_json::json!({
+            "serial": "S1",
+            "x": 0,
+            "y": 0,
+            "width": 64,
+            "height": 64,
+            "visible": true,
+            "fullscreen": false,
+            "paused": false,
+            "control": false,
+            "has_device": false,
+            "failed": false,
+            "dark": false
+        });
+        let layout: MirrorLayout = serde_json::from_value(v).expect("layout");
+        assert_eq!(layout.dpr, 1.0);
+        assert!(layout.error.is_empty());
     }
 }
