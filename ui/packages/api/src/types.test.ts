@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
-import { EVENT_NAMES, type AppEvent, type Density, type DeviceStatus, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorStartRequest, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateDownloadRequest, type UpdateProgress } from "./types";
+import { EVENT_NAMES, type AppEvent, type Density, type DeviceStatus, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorLayout, type MirrorStartRequest, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateDownloadRequest, type UpdateProgress } from "./types";
 
 describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
   it("LogLine 字段为 snake_case", () => {
@@ -138,6 +138,41 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
       control: false,
       connection: "usb",
       session_quality_touched: false,
+    });
+  });
+
+  it("MirrorLayout 为 avail-zone + 会话标志（snake_case，无 chrome/占用字段）", () => {
+    const layout: MirrorLayout = {
+      serial: "S1",
+      x: 10,
+      y: 20,
+      width: 300,
+      height: 600,
+      visible: true,
+      dpr: 1.5,
+      fullscreen: false,
+      paused: true,
+      control: true,
+      has_device: true,
+      failed: false,
+      error: "",
+      dark: true,
+    };
+    expect(JSON.parse(JSON.stringify(layout))).toEqual({
+      serial: "S1",
+      x: 10,
+      y: 20,
+      width: 300,
+      height: 600,
+      visible: true,
+      dpr: 1.5,
+      fullscreen: false,
+      paused: true,
+      control: true,
+      has_device: true,
+      failed: false,
+      error: "",
+      dark: true,
     });
   });
 

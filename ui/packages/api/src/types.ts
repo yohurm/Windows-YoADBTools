@@ -455,7 +455,10 @@ export interface MirrorInjectRequest {
   message: MirrorControlMessage;
 }
 
-/** 可用区相对主窗客户区的物理像素矩形（`mirror.layout`）。HWND 是 WS_CHILD。 */
+/** 舞台内容模式（壳 chrome 仍用）。文案与色值在壳 chrome，不进 layout。 */
+export type MirrorStageMode = "empty" | "loading" | "paused" | "video";
+
+/** 可用区相对主窗客户区的物理像素矩形（`mirror.layout`）。占用与 chrome 不在本 DTO。 */
 export interface MirrorLayout {
   serial: string;
   x: number;
@@ -463,9 +466,16 @@ export interface MirrorLayout {
   width: number;
   height: number;
   visible: boolean;
+  /** `window.devicePixelRatio` */
+  dpr: number;
+  fullscreen: boolean;
+  paused: boolean;
   control: boolean;
-  /** HWND 圆角物理像素半径；0 为直角。 */
-  corner_radius: number;
+  has_device: boolean;
+  failed: boolean;
+  error: string;
+  /** `documentElement` `data-theme=dark` */
+  dark: boolean;
 }
 
 /** 壳内截图落盘（`mirror.screenshot`）。 */
