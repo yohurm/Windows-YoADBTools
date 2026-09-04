@@ -50,7 +50,11 @@ fn main() {
     assert_identity_sync(&conf_path);
 
     // scrcpy 版本单源校验（M5）：协议钉死 SERVER_VERSION 与 setup 脚本下载版本必须一致。
-    let setup = manifest.join("..").join("..").join("scripts").join("setup-scrcpy-server.ps1");
+    let setup = manifest
+        .join("..")
+        .join("..")
+        .join("scripts")
+        .join("setup-scrcpy-server.ps1");
     if setup.is_file() {
         assert_scrcpy_version(&setup);
     }
@@ -62,7 +66,8 @@ fn assert_scrcpy_version(setup: &Path) {
         .unwrap_or_else(|e| panic!("读取 {} 失败: {e}", setup.display()));
     let Some(ver) = text.lines().find_map(|l| {
         let l = l.trim();
-        l.strip_prefix("$version = ").map(|v| v.trim().trim_matches(['"', '\'']))
+        l.strip_prefix("$version = ")
+            .map(|v| v.trim().trim_matches(['"', '\'']))
     }) else {
         panic!("setup-scrcpy-server.ps1 未找到 $version 定义");
     };

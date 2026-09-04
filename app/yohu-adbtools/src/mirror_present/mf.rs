@@ -13,20 +13,21 @@ use windows::core::{Interface, GUID};
 use windows::Win32::Foundation::E_FAIL;
 use windows::Win32::Graphics::Direct3D11::ID3D11Texture2D;
 use windows::Win32::Media::MediaFoundation::{
-    MFCreateMediaType, MFCreateMemoryBuffer, MFCreateSample, MFTEnumEx, MFStartup, IMF2DBuffer,
-    IMFActivate, IMFDXGIBuffer, IMFDXGIDeviceManager, IMFMediaBuffer, IMFMediaEventGenerator,
-    IMFMediaType, IMFSample, IMFTransform, MFMediaType_Video, MFNominalRange_0_255,
-    MFSampleExtension_CleanPoint, MFSTARTUP_LITE, MFT_CATEGORY_VIDEO_DECODER, MFT_ENUM_FLAG,
-    MFT_ENUM_FLAG_ASYNCMFT, MFT_ENUM_FLAG_HARDWARE, MFT_ENUM_FLAG_LOCALMFT, MFT_ENUM_FLAG_SORTANDFILTER,
-    MFT_ENUM_FLAG_SYNCMFT, MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, MFT_MESSAGE_NOTIFY_START_OF_STREAM,
+    IMF2DBuffer, IMFActivate, IMFDXGIBuffer, IMFDXGIDeviceManager, IMFMediaBuffer,
+    IMFMediaEventGenerator, IMFMediaType, IMFSample, IMFTransform, METransformHaveOutput,
+    METransformNeedInput, MFCreateMediaType, MFCreateMemoryBuffer, MFCreateSample,
+    MFMediaType_Video, MFNominalRange_0_255, MFSampleExtension_CleanPoint, MFStartup, MFTEnumEx,
+    MFVideoFormat_H264, MFVideoFormat_H264_ES, MFVideoFormat_HEVC, MFVideoFormat_HEVC_ES,
+    MFVideoFormat_NV12, MFVideoInterlace_Progressive, MFVideoTransferMatrix_BT709, MFSTARTUP_LITE,
+    MFT_CATEGORY_VIDEO_DECODER, MFT_ENUM_FLAG, MFT_ENUM_FLAG_ASYNCMFT, MFT_ENUM_FLAG_HARDWARE,
+    MFT_ENUM_FLAG_LOCALMFT, MFT_ENUM_FLAG_SORTANDFILTER, MFT_ENUM_FLAG_SYNCMFT,
+    MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, MFT_MESSAGE_NOTIFY_START_OF_STREAM,
     MFT_MESSAGE_SET_D3D_MANAGER, MFT_OUTPUT_DATA_BUFFER, MFT_OUTPUT_STREAM_CAN_PROVIDE_SAMPLES,
-    MFT_OUTPUT_STREAM_PROVIDES_SAMPLES, MFT_REGISTER_TYPE_INFO, MFVideoFormat_H264,
-    MFVideoFormat_H264_ES, MFVideoFormat_HEVC, MFVideoFormat_HEVC_ES, MFVideoFormat_NV12,
-    MFVideoInterlace_Progressive, MFVideoTransferMatrix_BT709, METransformHaveOutput,
-    METransformNeedInput, MF_E_NOTACCEPTING, MF_E_TRANSFORM_NEED_MORE_INPUT,
-    MF_E_TRANSFORM_STREAM_CHANGE, MF_EVENT_FLAG_NO_WAIT, MF_MT_FRAME_SIZE, MF_MT_INTERLACE_MODE,
-    MF_MT_MAJOR_TYPE, MF_MT_SUBTYPE, MF_MT_VIDEO_NOMINAL_RANGE, MF_MT_YUV_MATRIX, MF_SA_D3D11_AWARE,
-    MF_SA_D3D_AWARE, MF_TRANSFORM_ASYNC, MF_TRANSFORM_ASYNC_UNLOCK, MF_VERSION,
+    MFT_OUTPUT_STREAM_PROVIDES_SAMPLES, MFT_REGISTER_TYPE_INFO, MF_EVENT_FLAG_NO_WAIT,
+    MF_E_NOTACCEPTING, MF_E_TRANSFORM_NEED_MORE_INPUT, MF_E_TRANSFORM_STREAM_CHANGE,
+    MF_MT_FRAME_SIZE, MF_MT_INTERLACE_MODE, MF_MT_MAJOR_TYPE, MF_MT_SUBTYPE,
+    MF_MT_VIDEO_NOMINAL_RANGE, MF_MT_YUV_MATRIX, MF_SA_D3D11_AWARE, MF_SA_D3D_AWARE,
+    MF_TRANSFORM_ASYNC, MF_TRANSFORM_ASYNC_UNLOCK, MF_VERSION,
 };
 use windows::Win32::System::Com::{CoInitializeEx, CoTaskMemFree, COINIT_MULTITHREADED};
 
@@ -125,7 +126,11 @@ impl MfDecoder {
         self.d3d
     }
 
-    pub fn feed(&mut self, annexb: &[u8], keyframe: bool) -> Result<Option<DecodedPicture>, String> {
+    pub fn feed(
+        &mut self,
+        annexb: &[u8],
+        keyframe: bool,
+    ) -> Result<Option<DecodedPicture>, String> {
         if annexb.is_empty() {
             return self.drain();
         }
@@ -231,7 +236,10 @@ impl MfDecoder {
             let sample = if self.provides_samples {
                 None
             } else {
-                Some(alloc_sample(self.output_size.max(packed_nv12_len(self.width, self.height) as u32))?)
+                Some(alloc_sample(
+                    self.output_size
+                        .max(packed_nv12_len(self.width, self.height) as u32),
+                )?)
             };
             let mut buffers = [MFT_OUTPUT_DATA_BUFFER {
                 dwStreamID: 0,
@@ -253,7 +261,11 @@ impl MfDecoder {
                 Err(e) if e.code() == MF_E_TRANSFORM_NEED_MORE_INPUT => return Ok(None),
                 Err(e) if e.code() == MF_E_TRANSFORM_STREAM_CHANGE => {
                     renegotiate_nv12(&self.mft, self.width, self.height)?;
-                    refresh_output_info(&self.mft, &mut self.provides_samples, &mut self.output_size)?;
+                    refresh_output_info(
+                        &self.mft,
+                        &mut self.provides_samples,
+                        &mut self.output_size,
+                    )?;
                     if let Ok((w, h)) = current_output_size(&self.mft) {
                         self.width = w.max(2) & !1;
                         self.height = h.max(2) & !1;
@@ -268,9 +280,7 @@ impl MfDecoder {
 
 fn enum_flags() -> [MFT_ENUM_FLAG; 2] {
     let hw = MFT_ENUM_FLAG(
-        MFT_ENUM_FLAG_ASYNCMFT.0
-            | MFT_ENUM_FLAG_HARDWARE.0
-            | MFT_ENUM_FLAG_SORTANDFILTER.0,
+        MFT_ENUM_FLAG_ASYNCMFT.0 | MFT_ENUM_FLAG_HARDWARE.0 | MFT_ENUM_FLAG_SORTANDFILTER.0,
     );
     let sync = MFT_ENUM_FLAG(
         MFT_ENUM_FLAG_SYNCMFT.0 | MFT_ENUM_FLAG_LOCALMFT.0 | MFT_ENUM_FLAG_SORTANDFILTER.0,
@@ -368,11 +378,7 @@ fn configure(
         need_input: false,
         pending: VecDeque::with_capacity(PENDING_CAP),
         d3d: d3d_ok,
-        _d3d_manager: if d3d_ok {
-            d3d.cloned()
-        } else {
-            None
-        },
+        _d3d_manager: if d3d_ok { d3d.cloned() } else { None },
     };
     if decoder.events.is_some() {
         let _ = decoder.pump_async()?;

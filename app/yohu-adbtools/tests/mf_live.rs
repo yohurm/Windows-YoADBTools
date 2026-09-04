@@ -104,14 +104,14 @@ async fn real_hevc_mf_keeps_emitting_nv12() {
         if decoder.is_none() && frame.width > 0 && frame.height > 0 {
             match MfDecoder::open(frame.codec == 1, frame.width, frame.height) {
                 Ok(dec) => {
-        eprintln!(
-            "[真机 MF] 解码器 hevc={} async={} d3d={} {}x{}",
-            frame.codec == 1,
-            dec.is_async(),
-            dec.uses_d3d(),
-            frame.width,
-            frame.height
-        );
+                    eprintln!(
+                        "[真机 MF] 解码器 hevc={} async={} d3d={} {}x{}",
+                        frame.codec == 1,
+                        dec.is_async(),
+                        dec.uses_d3d(),
+                        frame.width,
+                        frame.height
+                    );
                     decoder = Some(dec);
                 }
                 Err(e) => {

@@ -18,10 +18,10 @@ use yohu_logsrv::{CaptureService, SessionLogService};
 use yohu_mirror::MirrorService;
 use yohu_protocol::{AppEvent, DeviceInfo, IpcError, IpcErrorCode};
 
+use crate::mirror_present::PresentHost;
 use crate::paths::AppPaths;
 use crate::settings_store::SettingsStore;
 use crate::tasks::TaskCenter;
-use crate::mirror_present::PresentHost;
 
 /// 应用状态（Tauri managed state）。
 pub struct AppState {

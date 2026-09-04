@@ -37,11 +37,11 @@ use yohu_logsrv::{CaptureService, SessionLogService};
 use yohu_mirror::MirrorService;
 use yohu_protocol::AppEvent;
 
+use crate::mirror_present::PresentHost;
 use crate::paths::AppPaths;
 use crate::settings_store::SettingsStore;
 use crate::state::AppState;
 use crate::tasks::TaskCenter;
-use crate::mirror_present::PresentHost;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // WebView2 默认不挂无障碍树；UIA 联调与读屏都需要强制打开。

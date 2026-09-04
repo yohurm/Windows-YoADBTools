@@ -1,4 +1,7 @@
 //! 主窗 WS_CHILD + 消息循环：解码 / 输入 / Present。几何由 `follow` 持有。
+//!
+//! UI 报稳定可用区；壳 `place_occupancy` 按 session + 编码尺寸 contain HWND。
+//! 无 HWND lerp，无 CSS 锁步。宿主尺寸变化立刻 `ResizeBuffers`。
 
 #![cfg(windows)]
 
@@ -9,23 +12,23 @@ use std::time::{Duration, Instant};
 use tokio::sync::mpsc as tokio_mpsc;
 use windows::core::{w, PCWSTR};
 use windows::Win32::Foundation::{
-    ERROR_CLASS_ALREADY_EXISTS, GetLastError, HWND, LPARAM, LRESULT, RECT, WPARAM,
+    GetLastError, ERROR_CLASS_ALREADY_EXISTS, HWND, LPARAM, LRESULT, RECT, WPARAM,
 };
-use windows::Win32::Graphics::Gdi::{UpdateWindow, ValidateRect};
+use windows::Win32::Graphics::Gdi::{InvalidateRect, UpdateWindow, ValidateRect};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetWindowLongW,
-    GetWindowLongPtrW, LoadCursorW, PeekMessageW, RegisterClassExW, SetCursor, SetWindowLongW,
-    SetWindowLongPtrW, SetWindowPos, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW,
-    GWL_EXSTYLE, GWLP_USERDATA, HWND_TOP, IDC_ARROW, MSG, PM_REMOVE, SWP_NOACTIVATE, SWP_NOMOVE,
-    SWP_NOSIZE, SW_HIDE, SW_SHOWNOACTIVATE, WM_DESTROY, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE,
-    WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR, WNDCLASSEXW, WS_CHILD, WS_CLIPSIBLINGS,
-    WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, WS_EX_TRANSPARENT,
-    GetClientRect,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetClientRect,
+    GetWindowLongPtrW, LoadCursorW, PeekMessageW, RegisterClassExW, SetCursor, SetWindowLongPtrW,
+    SetWindowPos, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW, GWLP_USERDATA, HWND_TOP,
+    IDC_ARROW, MSG, PM_REMOVE, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE, SW_SHOWNOACTIVATE,
+    WM_DESTROY, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP,
+    WM_SETCURSOR, WM_SIZE, WNDCLASSEXW, WS_CHILD, WS_CLIPSIBLINGS, WS_EX_NOACTIVATE,
+    WS_EX_NOREDIRECTIONBITMAP,
 };
 use yohu_mirror::{EncodedFrame, FramePipe, MirrorService};
-use yohu_protocol::{AppEvent, MirrorControlMessage, MirrorLayout};
+use yohu_protocol::{AppEvent, MirrorControlMessage, MirrorLayout, MirrorStageMode};
 
+use super::chrome::{self, ChromeSpec};
 use super::follow::GeomHost;
 use super::gpu::Gpu;
 use super::mf::{DecodedPicture, MfDecoder};
@@ -33,7 +36,6 @@ use super::scale::{fit_letterbox, map_client_to_video, Letterbox};
 
 const CLASS: PCWSTR = w!("YohuMirrorPresent");
 const PRESENT_IDLE: Duration = Duration::from_millis(4);
-const BUFFER_SETTLE: Duration = Duration::from_millis(64);
 const MIN_LAYOUT_PX: u32 = 64;
 const TOUCH_DOWN: u8 = 0;
 const TOUCH_UP: u8 = 1;
@@ -41,11 +43,19 @@ const TOUCH_MOVE: u8 = 2;
 
 pub enum Cmd {
     Layout(MirrorLayout),
+    BindPipe {
+        serial: String,
+        generation: u64,
+        pipe: Arc<FramePipe>,
+    },
+    UnbindPipe {
+        serial: String,
+    },
     Screenshot {
         path: String,
         reply: Sender<Result<(), String>>,
     },
-    Stop,
+    Shutdown,
 }
 
 struct SurfaceState {
@@ -70,14 +80,26 @@ struct SurfaceState {
     layout_r: u32,
     skip_logged: Option<(bool, u32, u32)>,
     present_err_logged: bool,
-    buf_due: Option<Instant>,
+    session: bool,
+    want_control: bool,
+    avail_x: i32,
+    avail_y: i32,
+    avail_w: u32,
+    avail_h: u32,
+    dpr: f32,
+    fullscreen: bool,
+    paused: bool,
+    has_device: bool,
+    failed: bool,
+    error: String,
+    dark: bool,
+    mode: MirrorStageMode,
+    chrome_dirty: bool,
 }
 
-pub fn spawn_session(
+pub fn spawn_surface(
     serial: String,
-    generation: u64,
     owner: isize,
-    pipe: Arc<FramePipe>,
     mirror: Arc<MirrorService>,
     event_tx: tokio_mpsc::Sender<AppEvent>,
     geom: Arc<GeomHost>,
@@ -88,9 +110,7 @@ pub fn spawn_session(
         .spawn(move || {
             let ctx = PresentCtx {
                 serial,
-                generation,
                 owner,
-                pipe,
                 mirror,
                 event_tx,
                 geom,
@@ -105,9 +125,7 @@ pub fn spawn_session(
 
 struct PresentCtx {
     serial: String,
-    generation: u64,
     owner: isize,
-    pipe: Arc<FramePipe>,
     mirror: Arc<MirrorService>,
     event_tx: tokio_mpsc::Sender<AppEvent>,
     geom: Arc<GeomHost>,
@@ -115,10 +133,8 @@ struct PresentCtx {
 
 fn run_loop(ctx: PresentCtx, rx: Receiver<Cmd>) -> Result<(), String> {
     let PresentCtx {
-        serial,
-        generation,
+        mut serial,
         owner,
-        pipe,
         mirror,
         event_tx,
         geom,
@@ -130,7 +146,7 @@ fn run_loop(ctx: PresentCtx, rx: Receiver<Cmd>) -> Result<(), String> {
     let gpu = Gpu::new(hwnd, 16, 16).map_err(|e| e.to_string())?;
     let state = Box::new(Mutex::new(SurfaceState {
         serial: serial.clone(),
-        generation,
+        generation: 0,
         gpu: Some(gpu),
         video_w: 0,
         video_h: 0,
@@ -156,36 +172,79 @@ fn run_loop(ctx: PresentCtx, rx: Receiver<Cmd>) -> Result<(), String> {
         layout_r: 0,
         skip_logged: None,
         present_err_logged: false,
-        buf_due: None,
+        session: false,
+        want_control: false,
+        avail_x: 0,
+        avail_y: 0,
+        avail_w: 0,
+        avail_h: 0,
+        dpr: 1.0,
+        fullscreen: false,
+        paused: false,
+        has_device: false,
+        failed: false,
+        error: String::new(),
+        dark: false,
+        mode: MirrorStageMode::Empty,
+        chrome_dirty: true,
     }));
     unsafe {
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(state) as isize);
     }
 
     let mut tick = DecodeTick::new();
+    let mut pipe: Option<Arc<FramePipe>> = None;
     let mut beat = Instant::now();
+    let mut spin_at = Instant::now();
+    let mut spin = 0.0_f32;
     loop {
         pump_messages(hwnd);
         match rx.recv_timeout(PRESENT_IDLE) {
-            Ok(Cmd::Stop) | Err(RecvTimeoutError::Disconnected) => break,
+            Ok(Cmd::Shutdown) | Err(RecvTimeoutError::Disconnected) => break,
             Ok(Cmd::Layout(layout)) => apply_layout(hwnd, &layout),
+            Ok(Cmd::BindPipe {
+                serial: next,
+                generation,
+                pipe: next_pipe,
+            }) => {
+                bind_pipe(
+                    hwnd,
+                    &mut serial,
+                    next,
+                    generation,
+                    &mut pipe,
+                    next_pipe,
+                    &mut tick,
+                );
+            }
+            Ok(Cmd::UnbindPipe { serial: target }) => {
+                unbind_pipe(hwnd, &mut pipe, &mut tick, &target);
+            }
             Ok(Cmd::Screenshot { path, reply }) => {
                 let result = screenshot(hwnd, &path);
                 let _ = reply.send(result);
             }
             Err(RecvTimeoutError::Timeout) => {}
         }
-        if !drain_cmds(&rx, hwnd) {
+        if !drain_cmds(&rx, hwnd, &mut serial, &mut pipe, &mut tick) {
             break;
         }
-        // 解码不跟 layout：visible=false 时仍要吃帧，否则队列撑满、首帧永远进不了 Present。
-        let frames = drain_pipe(&pipe);
-        if !frames.is_empty() {
-            tick.ingest(hwnd, frames);
+        if let Some(pipe) = pipe.as_ref() {
+            let frames = drain_pipe(pipe);
+            if !frames.is_empty() {
+                adopt_encoded_size(hwnd, &frames);
+                tick.ingest(hwnd, frames);
+            }
+            tick.drain(hwnd);
         }
-        tick.drain(hwnd);
         sync_host_size(hwnd);
-        realize_buffers_if_due(hwnd);
+        let loading = with_state(hwnd, |s| s.mode == MirrorStageMode::Loading).unwrap_or(false);
+        if loading && spin_at.elapsed() >= Duration::from_millis(50) {
+            spin_at = Instant::now();
+            spin = (spin + 0.28) % (std::f32::consts::PI * 2.0);
+            with_state(hwnd, |s| s.chrome_dirty = true);
+        }
+        present_chrome_if_due(hwnd, spin);
         if beat.elapsed() >= Duration::from_secs(1) {
             tick.log_beat();
             beat = Instant::now();
@@ -200,8 +259,148 @@ fn run_loop(ctx: PresentCtx, rx: Receiver<Cmd>) -> Result<(), String> {
             drop(Box::from_raw(ptr as *mut Mutex<SurfaceState>));
         }
         let _ = DestroyWindow(hwnd);
+        let _ = InvalidateRect(Some(HWND(owner as *mut _)), None, true);
     }
     Ok(())
+}
+
+fn bind_pipe(
+    hwnd: HWND,
+    serial: &mut String,
+    next: String,
+    generation: u64,
+    pipe: &mut Option<Arc<FramePipe>>,
+    next_pipe: Arc<FramePipe>,
+    tick: &mut DecodeTick,
+) {
+    with_state(hwnd, |s| {
+        if s.serial != next {
+            s.geom.unregister(&s.serial);
+            s.geom.register(&next, hwnd.0 as isize);
+        }
+        s.serial = next.clone();
+        s.generation = generation;
+        s.session = true;
+        s.has_frame = false;
+        s.painted = 0;
+        s.present_err_logged = false;
+        s.chrome_dirty = true;
+    });
+    *serial = next;
+    *tick = DecodeTick::new();
+    *pipe = Some(next_pipe);
+    tracing::info!(serial = %serial, generation, "投屏解码管道已绑定");
+    place_occupancy(hwnd);
+}
+
+fn unbind_pipe(hwnd: HWND, pipe: &mut Option<Arc<FramePipe>>, tick: &mut DecodeTick, target: &str) {
+    let current = with_state(hwnd, |s| s.serial.clone()).unwrap_or_default();
+    if !target.is_empty() && current != target {
+        return;
+    }
+    *pipe = None;
+    *tick = DecodeTick::new();
+    with_state(hwnd, |s| {
+        s.session = false;
+        s.has_frame = false;
+        s.generation = 0;
+        s.chrome_dirty = true;
+    });
+    tracing::info!(serial = %current, "投屏解码管道已解开，舞台改画 chrome");
+    place_occupancy(hwnd);
+}
+
+fn present_chrome_if_due(hwnd: HWND, spin: f32) {
+    let packed = with_state(hwnd, |s| {
+        if !s.visible {
+            return None;
+        }
+        let chrome = match s.mode {
+            MirrorStageMode::Video => false,
+            MirrorStageMode::Loading => !s.has_frame,
+            MirrorStageMode::Empty | MirrorStageMode::Paused => true,
+        };
+        if !chrome {
+            return None;
+        }
+        if s.layout_w < MIN_LAYOUT_PX || s.layout_h < MIN_LAYOUT_PX {
+            return None;
+        }
+        if s.gpu
+            .as_ref()
+            .is_some_and(|g| !g.matches_host(s.layout_w, s.layout_h))
+        {
+            return None;
+        }
+        if !s.chrome_dirty && s.mode != MirrorStageMode::Loading {
+            return None;
+        }
+        s.chrome_dirty = false;
+        let (title, description) = chrome::stage_copy(
+            s.mode,
+            s.has_device,
+            s.failed,
+            &s.error,
+            s.video_w > 0 && s.video_h > 0,
+        );
+        let (canvas_argb, title_argb, body_argb) = chrome::stage_palette(s.dark);
+        let (icon_px, title_px, body_px) = chrome::stage_type_px(s.dpr);
+        Some((
+            s.mode,
+            title,
+            description,
+            canvas_argb,
+            title_argb,
+            body_argb,
+            icon_px,
+            title_px,
+            body_px,
+        ))
+    })
+    .flatten();
+    let Some((
+        mode,
+        title,
+        description,
+        canvas_argb,
+        title_argb,
+        body_argb,
+        icon_px,
+        title_px,
+        body_px,
+    )) = packed
+    else {
+        return;
+    };
+    let spec = ChromeSpec {
+        mode,
+        title: &title,
+        description: &description,
+        canvas_argb,
+        title_argb,
+        body_argb,
+        icon_px,
+        title_px,
+        body_px,
+        spin,
+    };
+    let ok = with_state(hwnd, |s| match s.gpu.as_mut() {
+        Some(gpu) => {
+            if let Err(e) = gpu.present_chrome(&spec) {
+                tracing::warn!(error = %e, "投屏 chrome Present 失败");
+                false
+            } else {
+                true
+            }
+        }
+        None => false,
+    })
+    .unwrap_or(false);
+    if ok {
+        unsafe {
+            let _ = ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+        }
+    }
 }
 
 struct DecodeTick {
@@ -267,11 +466,7 @@ impl DecodeTick {
 
     fn log_beat(&mut self) {
         if self.fed > 0 || self.decoded > 0 {
-            tracing::info!(
-                fed = self.fed,
-                decoded = self.decoded,
-                "MF 解码节拍"
-            );
+            tracing::info!(fed = self.fed, decoded = self.decoded, "MF 解码节拍");
         }
         self.fed = 0;
         self.decoded = 0;
@@ -284,7 +479,8 @@ impl DecodeTick {
         }
         if self.decoder.is_none() && !self.failed && frame.width > 0 && frame.height > 0 {
             let hevc = frame.codec == 1;
-            let manager = with_state(hwnd, |s| s.gpu.as_ref().and_then(|g| g.dxgi_manager())).flatten();
+            let manager =
+                with_state(hwnd, |s| s.gpu.as_ref().and_then(|g| g.dxgi_manager())).flatten();
             match MfDecoder::open_with(hevc, frame.width, frame.height, manager.as_ref()) {
                 Ok(dec) => {
                     tracing::info!(
@@ -330,14 +526,30 @@ impl DecodeTick {
     }
 }
 
-fn drain_cmds(rx: &Receiver<Cmd>, hwnd: HWND) -> bool {
+fn drain_cmds(
+    rx: &Receiver<Cmd>,
+    hwnd: HWND,
+    serial: &mut String,
+    pipe: &mut Option<Arc<FramePipe>>,
+    tick: &mut DecodeTick,
+) -> bool {
     loop {
         match rx.try_recv() {
             Ok(Cmd::Layout(layout)) => apply_layout(hwnd, &layout),
+            Ok(Cmd::BindPipe {
+                serial: next,
+                generation,
+                pipe: next_pipe,
+            }) => {
+                bind_pipe(hwnd, serial, next, generation, pipe, next_pipe, tick);
+            }
+            Ok(Cmd::UnbindPipe { serial: target }) => {
+                unbind_pipe(hwnd, pipe, tick, &target);
+            }
             Ok(Cmd::Screenshot { path, reply }) => {
                 let _ = reply.send(screenshot(hwnd, &path));
             }
-            Ok(Cmd::Stop) | Err(TryRecvError::Disconnected) => return false,
+            Ok(Cmd::Shutdown) | Err(TryRecvError::Disconnected) => return false,
             Err(TryRecvError::Empty) => return true,
         }
     }
@@ -396,11 +608,38 @@ fn on_picture(
     present_picture(hwnd, width, height, picture);
 }
 
+fn adopt_encoded_size(hwnd: HWND, frames: &[EncodedFrame]) {
+    let Some(frame) = frames.iter().find(|f| f.width > 0 && f.height > 0) else {
+        return;
+    };
+    let placed = with_state(hwnd, |s| {
+        if !s.session {
+            return false;
+        }
+        if s.video_w == frame.width && s.video_h == frame.height {
+            return false;
+        }
+        s.video_w = frame.width;
+        s.video_h = frame.height;
+        s.chrome_dirty = true;
+        tracing::info!(
+            serial = %s.serial,
+            width = frame.width,
+            height = frame.height,
+            "投屏在解码前记下编码尺寸"
+        );
+        true
+    })
+    .unwrap_or(false);
+    if placed {
+        place_occupancy(hwnd);
+    }
+}
+
 fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture) {
     let prepared = with_state(hwnd, |s| {
         s.video_w = width;
         s.video_h = height;
-        s.geom.set_video(&s.serial, width, height);
         if !s.visible || s.layout_w < MIN_LAYOUT_PX || s.layout_h < MIN_LAYOUT_PX {
             let key = (s.visible, s.layout_w, s.layout_h);
             if s.skip_logged != Some(key) {
@@ -415,15 +654,26 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
             }
             return None;
         }
+        if s.mode == MirrorStageMode::Empty || s.mode == MirrorStageMode::Paused {
+            return None;
+        }
+        if s.gpu
+            .as_ref()
+            .is_some_and(|g| !g.matches_host(s.layout_w, s.layout_h))
+        {
+            return None;
+        }
         s.skip_logged = None;
         let gpu = s.gpu.take()?;
         s.dest = fit_letterbox(width, height, s.layout_w, s.layout_h);
-        Some((gpu, s.dest))
+        let letterbox = chrome::stage_palette(s.dark).0;
+        Some((gpu, s.dest, letterbox))
     })
     .flatten();
-    let Some((mut gpu, dest)) = prepared else {
+    let Some((mut gpu, dest, letterbox)) = prepared else {
         return;
     };
+    gpu.set_letterbox_argb(letterbox);
     let drawn = match &picture {
         DecodedPicture::Nv12(nv12) => gpu.present_cpu_nv12(width, height, nv12, dest),
         DecodedPicture::Gpu {
@@ -450,6 +700,7 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
         let now = Instant::now();
         if !s.has_frame {
             s.has_frame = true;
+            s.mode = chrome::stage_mode(s.paused, s.session, true);
             s.fps_at = now;
             s.painted = 0;
             tracing::info!(
@@ -474,7 +725,10 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
                 painted_fps: s.last_fps,
             });
         }
-        show = s.visible && s.has_frame;
+        show = s.visible
+            && s.has_frame
+            && s.mode != MirrorStageMode::Empty
+            && s.mode != MirrorStageMode::Paused;
     });
     if show {
         unsafe {
@@ -485,28 +739,25 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
 
 fn apply_layout(hwnd: HWND, layout: &MirrorLayout) {
     let applied = with_state(hwnd, |s| {
-        s.control = layout.control;
-        let mut bits = WS_EX_NOACTIVATE.0 | WS_EX_NOREDIRECTIONBITMAP.0;
-        if !layout.control {
-            bits |= WS_EX_TRANSPARENT.0;
+        if !layout.serial.is_empty() && s.serial != layout.serial {
+            s.geom.unregister(&s.serial);
+            s.serial = layout.serial.clone();
+            s.geom.register(&s.serial, hwnd.0 as isize);
         }
-        let ex = bits as i32;
-        unsafe {
-            let cur = GetWindowLongW(hwnd, GWL_EXSTYLE);
-            if cur != ex {
-                let _ = SetWindowLongW(hwnd, GWL_EXSTYLE, ex);
-            }
-        }
+        s.want_control = layout.control;
         s.visible = layout.visible;
-        s.layout_r = layout.corner_radius;
-        s.geom.set_zone(
-            &s.serial,
-            layout.x,
-            layout.y,
-            layout.width,
-            layout.height,
-            layout.visible,
-        );
+        s.avail_x = layout.x;
+        s.avail_y = layout.y;
+        s.avail_w = layout.width;
+        s.avail_h = layout.height;
+        s.dpr = layout.dpr;
+        s.fullscreen = layout.fullscreen;
+        s.paused = layout.paused;
+        s.has_device = layout.has_device;
+        s.failed = layout.failed;
+        s.error = layout.error.clone();
+        s.dark = layout.dark;
+        s.chrome_dirty = true;
         tracing::info!(
             serial = %s.serial,
             x = layout.x,
@@ -514,8 +765,12 @@ fn apply_layout(hwnd: HWND, layout: &MirrorLayout) {
             w = layout.width,
             h = layout.height,
             visible = layout.visible,
-            r = layout.corner_radius,
-            control = layout.control,
+            dpr = layout.dpr,
+            fullscreen = layout.fullscreen,
+            paused = layout.paused,
+            session = s.session,
+            video_w = s.video_w,
+            video_h = s.video_h,
             "投屏可用区已交给几何宿主"
         );
     });
@@ -526,7 +781,58 @@ fn apply_layout(hwnd: HWND, layout: &MirrorLayout) {
             visible = layout.visible,
             "投屏 layout 丢弃：HWND 尚未就绪"
         );
+        return;
     }
+    place_occupancy(hwnd);
+}
+
+fn place_occupancy(hwnd: HWND) {
+    with_state(hwnd, |s| {
+        s.mode = chrome::stage_mode(s.paused, s.session, s.has_frame);
+        s.control = s.want_control && s.mode == MirrorStageMode::Video;
+        let radius = chrome::host_corner_radius(s.fullscreen, s.dpr);
+        let clip = s.layout_r != radius;
+        s.layout_r = radius;
+        s.geom.set_occupancy(
+            &s.serial,
+            s.avail_x,
+            s.avail_y,
+            s.avail_w,
+            s.avail_h,
+            s.visible,
+            s.video_w,
+            s.video_h,
+            s.session,
+        );
+        let (stroke_px, border) = if s.fullscreen {
+            (0.0, 0)
+        } else {
+            (
+                chrome::stage_stroke_px(s.dpr),
+                chrome::stage_border_argb(s.dark),
+            )
+        };
+        if let Some(gpu) = s.gpu.as_mut() {
+            gpu.set_panel_chrome(radius, stroke_px, border);
+            if clip {
+                if let Err(e) = gpu.clip_host(s.layout_w.max(1), s.layout_h.max(1), s.layout_r) {
+                    tracing::warn!(error = %e, "投屏圆角 clip 失败");
+                }
+            }
+        }
+        s.chrome_dirty = true;
+        tracing::info!(
+            serial = %s.serial,
+            session = s.session,
+            mode = ?s.mode,
+            video_w = s.video_w,
+            video_h = s.video_h,
+            avail_w = s.avail_w,
+            avail_h = s.avail_h,
+            r = s.layout_r,
+            "投屏占用盒已按画面 contain"
+        );
+    });
 }
 
 fn sync_host_size(hwnd: HWND) {
@@ -553,30 +859,13 @@ fn sync_host_size(hwnd: HWND) {
         if w < MIN_LAYOUT_PX || h < MIN_LAYOUT_PX {
             return;
         }
-        if s.has_frame {
-            s.buf_due = Some(Instant::now() + BUFFER_SETTLE);
-        } else if let Err(e) = gpu.resize(w, h) {
+        if gpu.matches_host(w, h) {
+            return;
+        }
+        if let Err(e) = gpu.resize(w, h) {
             tracing::error!(error = %e, w, h, "投屏 swapchain resize 失败");
         }
-    });
-}
-
-fn realize_buffers_if_due(hwnd: HWND) {
-    with_state(hwnd, |s| {
-        let Some(due) = s.buf_due else {
-            return;
-        };
-        if Instant::now() < due {
-            return;
-        }
-        s.buf_due = None;
-        let w = s.layout_w;
-        let h = s.layout_h;
-        if let Some(gpu) = s.gpu.as_mut() {
-            if let Err(e) = gpu.resize(w, h) {
-                tracing::error!(error = %e, w, h, "投屏 swapchain resize 失败");
-            }
-        }
+        s.chrome_dirty = true;
     });
 }
 
@@ -704,7 +993,12 @@ fn create_child(owner: HWND) -> Result<HWND, String> {
     }
 }
 
-unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+unsafe extern "system" fn wnd_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
     match msg {
         WM_SETCURSOR => {
             unsafe {
@@ -718,6 +1012,10 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
             unsafe {
                 let _ = ValidateRect(Some(hwnd), None);
             }
+            LRESULT(0)
+        }
+        WM_SIZE => {
+            sync_host_size(hwnd);
             LRESULT(0)
         }
         WM_DESTROY => LRESULT(0),

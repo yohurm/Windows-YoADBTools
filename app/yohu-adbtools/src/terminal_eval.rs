@@ -23,7 +23,8 @@ pub async fn eval_parallel(
         let client = client.clone();
         let command = definition.clone();
         handles.push(tokio::spawn(async move {
-            match run_and_evaluate(client.as_ref(), &serial, &command, CancellationToken::new()).await
+            match run_and_evaluate(client.as_ref(), &serial, &command, CancellationToken::new())
+                .await
             {
                 Ok(evaluated) => from_eval(&serial, evaluated.into_eval_result()),
                 Err(error) => {
@@ -43,7 +44,11 @@ pub async fn eval_parallel(
     }
     let mut results = Vec::with_capacity(handles.len());
     for handle in handles {
-        results.push(handle.await.map_err(|e| ipc_code(IpcErrorCode::Internal, e.to_string()))?);
+        results.push(
+            handle
+                .await
+                .map_err(|e| ipc_code(IpcErrorCode::Internal, e.to_string()))?,
+        );
     }
     Ok(results)
 }

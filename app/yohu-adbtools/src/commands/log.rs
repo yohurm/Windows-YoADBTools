@@ -147,7 +147,10 @@ pub fn log_session_file_list(state: State<'_, AppState>) -> Result<Vec<SessionLo
 
 /// `log.export`：把选定实时日志文件合并导出为一份 txt。
 #[tauri::command(rename = "log.export")]
-pub fn log_export(state: State<'_, AppState>, req: ExportRequest) -> Result<ExportResult, IpcError> {
+pub fn log_export(
+    state: State<'_, AppState>,
+    req: ExportRequest,
+) -> Result<ExportResult, IpcError> {
     let settings = state.settings.snapshot();
     let default_dir = (!settings.export_default_path.is_empty())
         .then(|| PathBuf::from(&settings.export_default_path));

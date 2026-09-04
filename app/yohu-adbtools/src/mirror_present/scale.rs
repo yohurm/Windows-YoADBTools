@@ -1,8 +1,15 @@
-//! 面板内缩放：可用区 contain + HWND 内整数倍吸附。
+//! 占用缩放：UI 报稳定可用区；HWND 按画面 contain，左右边框贴合。
+//!
+//! 无 HWND lerp，无 CSS 占用过渡。
 
 /// 在可用区内按画面宽高比 contain，返回贴合盒相对区原点的偏移与尺寸。
 /// 公式与 UI `fitContain` 相同（先 min 再 round），无画面尺寸时铺满。
-pub fn contain_in_zone(zone_w: u32, zone_h: u32, video_w: u32, video_h: u32) -> (i32, i32, u32, u32) {
+pub fn contain_in_zone(
+    zone_w: u32,
+    zone_h: u32,
+    video_w: u32,
+    video_h: u32,
+) -> (i32, i32, u32, u32) {
     if zone_w == 0 || zone_h == 0 {
         return (0, 0, zone_w, zone_h);
     }
@@ -19,6 +26,21 @@ pub fn contain_in_zone(zone_w: u32, zone_h: u32, video_w: u32, video_h: u32) -> 
     let x = (zone_w as i32 - w as i32) / 2;
     let y = (zone_h as i32 - h as i32) / 2;
     (x, y, w, h)
+}
+
+/// 会话且已有编码尺寸则 contain（左右边框贴合画面）；否则铺满可用区。
+pub fn hwnd_in_avail(
+    zone_w: u32,
+    zone_h: u32,
+    video_w: u32,
+    video_h: u32,
+    session: bool,
+) -> (i32, i32, u32, u32) {
+    if session && video_w > 0 && video_h > 0 {
+        contain_in_zone(zone_w, zone_h, video_w, video_h)
+    } else {
+        (0, 0, zone_w, zone_h)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,7 +76,7 @@ fn integer_fit(src_w: u32, src_h: u32, dst_w: u32, dst_h: u32, scale: f64) -> Op
 
 /// `src` 画进 `dst`。
 ///
-/// UI 已按设备宽高比 contain 时 HWND 与画面同比例：填满，禁止二次 letterbox。
+/// 壳已按设备宽高比 contain 时 HWND 与画面同比例：填满。
 /// 接近整数倍且结果不超出 dest 时吸附并走最近邻。
 pub fn fit_letterbox(src_w: u32, src_h: u32, dst_w: u32, dst_h: u32) -> Letterbox {
     if src_w == 0 || src_h == 0 || dst_w == 0 || dst_h == 0 {
@@ -82,13 +104,12 @@ pub fn fit_letterbox(src_w: u32, src_h: u32, dst_w: u32, dst_h: u32) -> Letterbo
             nearest: false,
         };
     }
-    let width = ((src_w as f64) * scale).round().max(1.0) as u32;
-    let height = ((src_h as f64) * scale).round().max(1.0) as u32;
+    let (x, y, width, height) = contain_in_zone(dst_w, dst_h, src_w, src_h);
     Letterbox {
-        x: ((dst_w as i32) - width as i32) / 2,
-        y: ((dst_h as i32) - height as i32) / 2,
-        width: width.min(dst_w),
-        height: height.min(dst_h),
+        x,
+        y,
+        width,
+        height,
         nearest: false,
     }
 }
@@ -110,7 +131,10 @@ pub fn map_client_to_video(
     }
     let vx = (x as u64 * video_w as u64 / box_.width as u64) as u32;
     let vy = (y as u64 * video_h as u64 / box_.height as u64) as u32;
-    Some((vx.min(video_w.saturating_sub(1)), vy.min(video_h.saturating_sub(1))))
+    Some((
+        vx.min(video_w.saturating_sub(1)),
+        vy.min(video_h.saturating_sub(1)),
+    ))
 }
 
 #[cfg(test)]
@@ -172,6 +196,31 @@ mod tests {
     #[test]
     fn contain_fills_when_no_video() {
         assert_eq!(contain_in_zone(800, 600, 0, 0), (0, 0, 800, 600));
+    }
+
+    #[test]
+    fn hwnd_hugs_portrait_when_session_has_size() {
+        let (x, y, w, h) = hwnd_in_avail(912, 955, 1088, 2400, true);
+        assert_eq!((x, y, w, h), contain_in_zone(912, 955, 1088, 2400));
+        assert!(w < 912);
+        assert_eq!(y, 0);
+        assert!(x > 0);
+    }
+
+    #[test]
+    fn hwnd_hugs_cet_avail_946x989() {
+        let (x, y, w, h) = hwnd_in_avail(946, 989, 1088, 2400, true);
+        assert_eq!((x, y, w, h), contain_in_zone(946, 989, 1088, 2400));
+        assert_eq!(w, 448);
+        assert!(w < 946);
+        assert_eq!(h, 989);
+        assert!(x > 0);
+        assert_eq!(y, 0);
+    }
+
+    #[test]
+    fn hwnd_fills_zone_when_idle_even_with_last_size() {
+        assert_eq!(hwnd_in_avail(912, 955, 1088, 2400, false), (0, 0, 912, 955));
     }
 
     #[test]

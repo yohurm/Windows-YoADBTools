@@ -6,27 +6,32 @@ use std::mem::ManuallyDrop;
 
 use windows::core::{s, Interface, Result as WinResult};
 use windows::Win32::Foundation::{HWND, RECT};
+use windows::Win32::Graphics::Direct3D::Fxc::D3DCompile;
 use windows::Win32::Graphics::Direct3D::{
     D3D_DRIVER_TYPE_HARDWARE, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_11_1,
     D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST, D3D_SRV_DIMENSION_TEXTURE2D,
 };
-use windows::Win32::Graphics::Direct3D::Fxc::D3DCompile;
 use windows::Win32::Graphics::Direct3D11::{
     D3D11CreateDevice, ID3D11Device, ID3D11DeviceContext, ID3D11Multithread, ID3D11PixelShader,
     ID3D11RenderTargetView, ID3D11SamplerState, ID3D11ShaderResourceView, ID3D11Texture2D,
     ID3D11VertexShader, ID3D11VideoContext, ID3D11VideoContext1, ID3D11VideoDevice,
-    ID3D11VideoProcessor, ID3D11VideoProcessorEnumerator, D3D11_BIND_DECODER, D3D11_BIND_RENDER_TARGET,
-    D3D11_BIND_SHADER_RESOURCE, D3D11_CPU_ACCESS_READ, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-    D3D11_CREATE_DEVICE_FLAG, D3D11_CREATE_DEVICE_VIDEO_SUPPORT, D3D11_FILTER_MIN_MAG_MIP_LINEAR,
-    D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_SAMPLER_DESC,
-    D3D11_SDK_VERSION, D3D11_SHADER_RESOURCE_VIEW_DESC, D3D11_SHADER_RESOURCE_VIEW_DESC_0,
-    D3D11_TEX2D_SRV, D3D11_TEX2D_VPOV, D3D11_TEX2D_VPIV, D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT,
-    D3D11_USAGE_STAGING, D3D11_VIDEO_COLOR, D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE,
-    D3D11_VIDEO_PROCESSOR_CONTENT_DESC, D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC,
-    D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC_0, D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC,
-    D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC_0, D3D11_VIDEO_PROCESSOR_STREAM,
-    D3D11_VIDEO_USAGE_PLAYBACK_NORMAL, D3D11_VIEWPORT, D3D11_VPIV_DIMENSION_TEXTURE2D,
-    D3D11_VPOV_DIMENSION_TEXTURE2D,
+    ID3D11VideoProcessor, ID3D11VideoProcessorEnumerator, D3D11_BIND_DECODER,
+    D3D11_BIND_RENDER_TARGET, D3D11_BIND_SHADER_RESOURCE, D3D11_CPU_ACCESS_READ,
+    D3D11_CREATE_DEVICE_BGRA_SUPPORT, D3D11_CREATE_DEVICE_FLAG, D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
+    D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_MAPPED_SUBRESOURCE,
+    D3D11_MAP_READ, D3D11_SAMPLER_DESC, D3D11_SDK_VERSION, D3D11_SHADER_RESOURCE_VIEW_DESC,
+    D3D11_SHADER_RESOURCE_VIEW_DESC_0, D3D11_TEX2D_SRV, D3D11_TEX2D_VPIV, D3D11_TEX2D_VPOV,
+    D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING, D3D11_VIDEO_COLOR,
+    D3D11_VIDEO_COLOR_0, D3D11_VIDEO_COLOR_RGBA,
+    D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE, D3D11_VIDEO_PROCESSOR_CONTENT_DESC,
+    D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC, D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC_0,
+    D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC, D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC_0,
+    D3D11_VIDEO_PROCESSOR_STREAM, D3D11_VIDEO_USAGE_PLAYBACK_NORMAL, D3D11_VIEWPORT,
+    D3D11_VPIV_DIMENSION_TEXTURE2D, D3D11_VPOV_DIMENSION_TEXTURE2D,
+};
+use windows::Win32::Graphics::DirectComposition::{
+    DCompositionCreateDevice, IDCompositionDevice, IDCompositionRectangleClip, IDCompositionTarget,
+    IDCompositionVisual,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
@@ -34,17 +39,14 @@ use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT_NV12, DXGI_FORMAT_R8G8_UNORM, DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_UNKNOWN,
     DXGI_RATIONAL, DXGI_SAMPLE_DESC,
 };
-use windows::Win32::Graphics::DirectComposition::{
-    DCompositionCreateDevice, IDCompositionDevice, IDCompositionRectangleClip, IDCompositionTarget,
-    IDCompositionVisual,
-};
 use windows::Win32::Graphics::Dxgi::{
     IDXGIAdapter, IDXGIDevice, IDXGIDevice1, IDXGIFactory2, IDXGISwapChain1, DXGI_PRESENT,
     DXGI_SCALING_STRETCH, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_CHAIN_FLAG,
     DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL, DXGI_USAGE_RENDER_TARGET_OUTPUT,
 };
-use windows::Win32::Media::MediaFoundation::{MFCreateDXGIDeviceManager, IMFDXGIDeviceManager};
+use windows::Win32::Media::MediaFoundation::{IMFDXGIDeviceManager, MFCreateDXGIDeviceManager};
 
+use super::chrome::{argb_to_rgba, ChromePainter, ChromeSpec};
 use super::scale::Letterbox;
 
 const VS: &str = r#"
@@ -103,6 +105,11 @@ pub struct Gpu {
     last_cpu: Option<Vec<u8>>,
     last_video: Option<(ID3D11Texture2D, u32)>,
     dcomp: DcompTree,
+    chrome: Option<ChromePainter>,
+    letterbox_argb: u32,
+    panel_r: u32,
+    panel_stroke: f32,
+    panel_border: u32,
 }
 
 /// Flip 交换链不能走 GDI `SetWindowRgn`（DWM 会出黑窗）。圆角裁在 DComp visual 上。
@@ -190,9 +197,53 @@ impl Gpu {
             last_cpu: None,
             last_video: None,
             dcomp,
+            chrome: None,
+            letterbox_argb: 0xFFFFFFFF,
+            panel_r: 0,
+            panel_stroke: 0.0,
+            panel_border: 0,
         };
         gpu.bind_backbuffer()?;
         Ok(gpu)
+    }
+
+    pub fn set_letterbox_argb(&mut self, argb: u32) {
+        self.letterbox_argb = argb;
+    }
+
+    pub fn set_panel_chrome(&mut self, radius: u32, stroke_px: f32, border_argb: u32) {
+        self.panel_r = radius;
+        self.panel_stroke = stroke_px;
+        self.panel_border = border_argb;
+    }
+
+    fn letterbox_rgba(&self) -> [f32; 4] {
+        argb_to_rgba(self.letterbox_argb)
+    }
+
+    fn letterbox_video_color(&self) -> D3D11_VIDEO_COLOR {
+        let [r, g, b, a] = self.letterbox_rgba();
+        D3D11_VIDEO_COLOR {
+            Anonymous: D3D11_VIDEO_COLOR_0 {
+                RGBA: D3D11_VIDEO_COLOR_RGBA {
+                    R: r,
+                    G: g,
+                    B: b,
+                    A: a,
+                },
+            },
+        }
+    }
+
+    pub fn present_chrome(&mut self, spec: &ChromeSpec<'_>) -> WinResult<()> {
+        if self.chrome.is_none() {
+            self.chrome = Some(ChromePainter::new()?);
+        }
+        let Some(painter) = self.chrome.as_ref() else {
+            return Err(windows::core::Error::from_win32());
+        };
+        painter.present(&self.context, &self.swapchain, spec)?;
+        self.present_with_hairline()
     }
 
     pub fn dxgi_manager(&self) -> Option<IMFDXGIDeviceManager> {
@@ -208,6 +259,15 @@ impl Gpu {
         }
         self.rtv = Some(rtv.ok_or_else(windows::core::Error::from_win32)?);
         Ok(())
+    }
+
+    pub fn even_host(width: u32, height: u32) -> (u32, u32) {
+        (even_px(width.max(1)), even_px(height.max(1)))
+    }
+
+    pub fn matches_host(&self, width: u32, height: u32) -> bool {
+        let (w, h) = Self::even_host(width, height);
+        w == self.buf_w && h == self.buf_h
     }
 
     pub fn resize(&mut self, width: u32, height: u32) -> WinResult<()> {
@@ -252,7 +312,7 @@ impl Gpu {
         if self.vp_ok && self.blit_cpu_vp(width, height, nv12, dest).is_ok() {
             self.last_cpu = Some(nv12.to_vec());
             self.last_video = None;
-            return self.present();
+            return self.present_with_hairline();
         }
         if self.vp_ok {
             self.vp_ok = false;
@@ -262,7 +322,7 @@ impl Gpu {
         self.draw_shader(dest)?;
         self.last_cpu = Some(nv12.to_vec());
         self.last_video = None;
-        self.present()
+        self.present_with_hairline()
     }
 
     pub fn present_gpu_nv12(
@@ -286,7 +346,7 @@ impl Gpu {
                 Ok(()) => {
                     self.last_cpu = None;
                     self.last_video = Some((texture.clone(), subresource));
-                    return self.present();
+                    return self.present_with_hairline();
                 }
                 Err(e) => {
                     self.vp_ok = false;
@@ -306,7 +366,7 @@ impl Gpu {
         self.draw_shader(dest)?;
         self.last_cpu = Some(nv12);
         self.last_video = None;
-        self.present()
+        self.present_with_hairline()
     }
 
     fn blit_cpu_vp(
@@ -412,10 +472,10 @@ impl Gpu {
             right: self.buf_w as i32,
             bottom: self.buf_h as i32,
         };
-        let black = D3D11_VIDEO_COLOR::default();
+        let letterbox = self.letterbox_video_color();
         unsafe {
             video_ctx.VideoProcessorSetOutputTargetRect(&processor, true, Some(&target));
-            video_ctx.VideoProcessorSetOutputBackgroundColor(&processor, false, &black);
+            video_ctx.VideoProcessorSetOutputBackgroundColor(&processor, false, &letterbox);
             video_ctx.VideoProcessorSetStreamFrameFormat(
                 &processor,
                 0,
@@ -618,10 +678,11 @@ impl Gpu {
         let Some(srv_uv) = self.srv_uv.as_ref() else {
             return Ok(());
         };
-        let black = [0.0f32, 0.0, 0.0, 1.0];
+        let letterbox = self.letterbox_rgba();
         unsafe {
-            self.context.ClearRenderTargetView(rtv, &black);
-            self.context.OMSetRenderTargets(Some(&[Some(rtv.clone())]), None);
+            self.context.ClearRenderTargetView(rtv, &letterbox);
+            self.context
+                .OMSetRenderTargets(Some(&[Some(rtv.clone())]), None);
             let vp = D3D11_VIEWPORT {
                 TopLeftX: dest.x as f32,
                 TopLeftY: dest.y as f32,
@@ -648,6 +709,24 @@ impl Gpu {
         Ok(())
     }
 
+    fn present_with_hairline(&mut self) -> WinResult<()> {
+        if self.panel_stroke > 0.0 && self.panel_border != 0 {
+            if self.chrome.is_none() {
+                self.chrome = Some(ChromePainter::new()?);
+            }
+            if let Some(painter) = self.chrome.as_ref() {
+                painter.stroke(
+                    &self.context,
+                    &self.swapchain,
+                    self.panel_r,
+                    self.panel_stroke,
+                    self.panel_border,
+                )?;
+            }
+        }
+        self.present()
+    }
+
     fn present(&self) -> WinResult<()> {
         // 树未改时只 Present；clip/resize 已在 apply_clip / rebind 里 Commit。
         unsafe { self.swapchain.Present(0, DXGI_PRESENT(0)).ok() }
@@ -665,7 +744,14 @@ impl Gpu {
             let Some((texture, subresource)) = self.last_video.clone() else {
                 return Err(windows::core::Error::from_win32());
             };
-            destage_nv12(&self.device, &self.context, &texture, subresource, width, height)?
+            destage_nv12(
+                &self.device,
+                &self.context,
+                &texture,
+                subresource,
+                width,
+                height,
+            )?
         };
         Ok((width, height, nv12_to_bgra(width, height, &nv12)))
     }
@@ -924,7 +1010,9 @@ fn compile(src: &str, target: &str) -> WinResult<windows::Win32::Graphics::Direc
 }
 
 fn blob_bytes(blob: &windows::Win32::Graphics::Direct3D::ID3DBlob) -> &[u8] {
-    unsafe { std::slice::from_raw_parts(blob.GetBufferPointer() as *const u8, blob.GetBufferSize()) }
+    unsafe {
+        std::slice::from_raw_parts(blob.GetBufferPointer() as *const u8, blob.GetBufferSize())
+    }
 }
 
 fn sampler(device: &ID3D11Device, point: bool) -> WinResult<ID3D11SamplerState> {
@@ -951,7 +1039,10 @@ fn sampler(device: &ID3D11Device, point: bool) -> WinResult<ID3D11SamplerState> 
     samp.ok_or_else(windows::core::Error::from_win32)
 }
 
-fn create_texture(device: &ID3D11Device, desc: &D3D11_TEXTURE2D_DESC) -> WinResult<ID3D11Texture2D> {
+fn create_texture(
+    device: &ID3D11Device,
+    desc: &D3D11_TEXTURE2D_DESC,
+) -> WinResult<ID3D11Texture2D> {
     let mut tex = None;
     unsafe {
         device.CreateTexture2D(desc, None, Some(&mut tex))?;
@@ -995,8 +1086,5 @@ fn create_plane(
     unsafe {
         device.CreateShaderResourceView(&tex, Some(&srv_desc), Some(&mut srv))?;
     }
-    Ok((
-        tex,
-        srv.ok_or_else(windows::core::Error::from_win32)?,
-    ))
+    Ok((tex, srv.ok_or_else(windows::core::Error::from_win32)?))
 }

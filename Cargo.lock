@@ -5057,6 +5057,7 @@ dependencies = [
  "tracing-subscriber",
  "windows",
  "windows-core 0.61.2",
+ "windows-numerics",
  "yohu-adb",
  "yohu-domain",
  "yohu-files",

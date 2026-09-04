@@ -6,8 +6,8 @@ use crate::commands::{ipc, ipc_code};
 use crate::state::AppState;
 use yohu_mirror::{MirrorError, MirrorSessionRequest};
 use yohu_protocol::{
-    IpcError, IpcErrorCode, MirrorInjectRequest, MirrorLayout, MirrorScreenshotRequest, MirrorStart,
-    MirrorStartRequest,
+    IpcError, IpcErrorCode, MirrorInjectRequest, MirrorLayout, MirrorScreenshotRequest,
+    MirrorStart, MirrorStartRequest,
 };
 
 fn ipc_mirror(e: MirrorError) -> IpcError {
@@ -51,10 +51,7 @@ pub async fn mirror_start(
     start_session(&state, req).await
 }
 
-async fn start_session(
-    state: &AppState,
-    req: MirrorStartRequest,
-) -> Result<MirrorStart, IpcError> {
+async fn start_session(state: &AppState, req: MirrorStartRequest) -> Result<MirrorStart, IpcError> {
     state.require_online(&req.serial)?;
     let plan = expand_start(state, req);
     tracing::info!(
@@ -79,10 +76,9 @@ async fn start_session(
         "mirror.start 返回"
     );
     if !result.adopted {
-        let task_id = state.tasks.register(
-            format!("投屏: {}", serial),
-            format!("设备 {}", serial),
-        );
+        let task_id = state
+            .tasks
+            .register(format!("投屏: {}", serial), format!("设备 {}", serial));
         state
             .mirror_tasks
             .lock()
