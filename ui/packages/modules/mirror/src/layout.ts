@@ -1,4 +1,4 @@
-/** 可用区几何：铬层 CSS 用 contain；HWND 由壳按客户区 insets contain。 */
+/** 可用区几何：View 量 `.yohu-mirror__avail` 后经 `clientZoneRect` 上报；contain 只作壳公式对照。 */
 
 import { fitContain } from "./fit";
 
@@ -44,7 +44,7 @@ export function clientZoneRect(
   };
 }
 
-/** 客户区 insets 键：窗口缩放时不变，只有铬层变才该重报 `mirror.layout`。 */
+/** 客户区 insets 键：窗口缩放时不变。 */
 export function zoneInsetKey(
   zone: PhysicalRect,
   clientW: number,
@@ -63,7 +63,7 @@ export function layoutIsPresentable(width: number, height: number): boolean {
 
 /**
  * 在可用区内按画面宽高比 contain，并居中。
- * 只驱动铬层 CSS。HWND contain 在壳内按同一公式算。
+ * 与壳 `contain_in_zone` 同公式，供单测对照。View 运行时不调用。
  */
 export function containInZone(zone: CssRect, videoW: number, videoH: number): CssRect {
   if (!(videoW > 0 && videoH > 0)) return zone;
@@ -83,4 +83,46 @@ export function physicalCornerRadius(cssRadiusPx: number, devicePixelRatio: numb
   const dpr = devicePixelRatio > 0 ? devicePixelRatio : 1;
   if (!(cssRadiusPx > 0)) return 0;
   return Math.max(0, Math.round(cssRadiusPx * dpr));
+}
+
+/** `getComputedStyle` 的 rgb()/rgba()/#rrggbb → 0xAARRGGBB。无法解析则 0。 */
+export function cssColorToArgb(css: string): number {
+  const value = css.trim();
+  const hex = /^#([0-9a-f]{6})$/i.exec(value);
+  const hexDigits = hex?.[1];
+  if (hexDigits) {
+    return (0xff000000 | Number.parseInt(hexDigits, 16)) >>> 0;
+  }
+  const comma = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/i.exec(
+    value,
+  );
+  const space = /^rgba?\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i.exec(value);
+  const m = comma ?? space;
+  if (!m) return 0;
+  const r = Math.round(Number(m[1])) & 255;
+  const g = Math.round(Number(m[2])) & 255;
+  const b = Math.round(Number(m[3])) & 255;
+  let a = 255;
+  if (m[4] !== undefined) {
+    const raw = m[4];
+    const n = raw.endsWith("%") ? Number.parseFloat(raw) / 100 : Number(raw);
+    a = Math.round((n <= 1 ? n : n / 255) * 255) & 255;
+  }
+  return ((a << 24) | (r << 16) | (g << 8) | b) >>> 0;
+}
+
+export function tokenArgb(el: HTMLElement, token: string): number {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${token})`;
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  el.appendChild(probe);
+  const argb = cssColorToArgb(getComputedStyle(probe).color);
+  probe.remove();
+  return argb;
+}
+
+export function physicalFontPx(cssPx: number, devicePixelRatio: number): number {
+  const dpr = devicePixelRatio > 0 ? devicePixelRatio : 1;
+  return Math.max(1, Math.round(cssPx * dpr));
 }

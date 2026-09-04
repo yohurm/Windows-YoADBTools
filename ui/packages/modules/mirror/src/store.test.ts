@@ -133,7 +133,7 @@ describe("mirror store", () => {
     expect(store.state.paintedFps).toBe(42);
   });
 
-  it("掉线清空当前设备画面状态", async () => {
+  it("掉线清空当前设备画面状态，保留编码尺寸", async () => {
     const { createMirrorStore } = await import("./store");
     const store = createMirrorStore();
     await store.bindSerial("S1");
@@ -141,14 +141,16 @@ describe("mirror store", () => {
       serial: "S1",
       generation: 2,
       state: "live",
-      width: 1,
-      height: 1,
+      width: 1080,
+      height: 1920,
       codec: "h264",
       control: true,
     });
     mocks.offlineHandlers.at(-1)!({ serial: "S1" });
     expect(store.state.phase).toBe("idle");
     expect(store.state.error).toBe("设备已掉线");
+    expect(store.state.width).toBe(1080);
+    expect(store.state.height).toBe(1920);
   });
 
   it("applySettings 不进入 start 负载；persistQuality 后 session_quality_touched 为 true", async () => {
@@ -285,5 +287,129 @@ describe("mirror store", () => {
     await expect(store.setReadOnly(true)).rejects.toThrow("NotLive");
     expect(mocks.mirrorStop).not.toHaveBeenCalled();
     expect(store.state.readOnly).toBe(false);
+  });
+
+  it("idle 仍上报 layout", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    store.syncLayout({
+      x: 10,
+      y: 20,
+      width: 300,
+      height: 600,
+      visible: true,
+      dpr: 1,
+      fullscreen: false,
+      paused: false,
+      control: false,
+      has_device: true,
+      failed: false,
+      error: "",
+      dark: false,
+    });
+    expect(mocks.mirrorLayout.mock.calls[0]?.[0]).toMatchObject({
+      serial: "S1",
+      visible: true,
+      dpr: 1,
+      fullscreen: false,
+      paused: false,
+      control: false,
+      has_device: true,
+      failed: false,
+      error: "",
+      dark: false,
+    });
+    expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("video_width");
+    expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("mode");
+  });
+
+  it("layout 只抄占用字段，不含编码尺寸", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    store.syncLayout({
+      x: 10,
+      y: 20,
+      width: 300,
+      height: 600,
+      visible: true,
+      dpr: 1.5,
+      fullscreen: true,
+      paused: true,
+      control: false,
+      has_device: true,
+      failed: false,
+      error: "",
+      dark: true,
+    });
+    expect(mocks.mirrorLayout.mock.calls[0]?.[0]).toMatchObject({
+      serial: "S1",
+      dpr: 1.5,
+      fullscreen: true,
+      paused: true,
+      control: false,
+      has_device: true,
+      failed: false,
+      dark: true,
+    });
+    expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("video_width");
+    expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("video_height");
+    expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("stroke_px");
+    expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("corner_radius");
+  });
+
+  it("停止保留编码尺寸", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    mocks.mirrorStart.mockResolvedValue({ serial: "S1", generation: 1, adopted: false });
+    mocks.mirrorStop.mockResolvedValue(undefined);
+    await store.start();
+    mocks.stateHandlers.at(-1)!({
+      serial: "S1",
+      generation: 1,
+      state: "live",
+      width: 1080,
+      height: 1920,
+      codec: "h265",
+      control: true,
+    });
+    await store.stop();
+    expect(store.state.phase).toBe("idle");
+    expect(store.state.hasFrame).toBe(false);
+    expect(store.state.width).toBe(1080);
+    expect(store.state.height).toBe(1920);
+  });
+
+  it("bindSerial 与 stopped 事件不得把宽高清零", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    await store.bindSerial("S1");
+    mocks.stateHandlers.at(-1)!({
+      serial: "S1",
+      generation: 1,
+      state: "live",
+      width: 1088,
+      height: 2400,
+      codec: "h265",
+      control: true,
+    });
+    mocks.stateHandlers.at(-1)!({
+      serial: "S1",
+      generation: 1,
+      state: "stopped",
+      width: 0,
+      height: 0,
+      codec: "",
+      control: false,
+    });
+    expect(store.state.width).toBe(1088);
+    expect(store.state.height).toBe(2400);
+    await store.bindSerial("S2");
+    expect(store.state.serial).toBe("S2");
+    expect(store.state.phase).toBe("idle");
+    expect(store.state.width).toBe(1088);
+    expect(store.state.height).toBe(2400);
   });
 });

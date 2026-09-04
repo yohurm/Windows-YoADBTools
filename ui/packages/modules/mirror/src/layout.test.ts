@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   clientZoneRect,
   containInZone,
+  cssColorToArgb,
   layoutIsPresentable,
   physicalCornerRadius,
   zoneInsetKey,
@@ -90,5 +91,15 @@ describe("physicalCornerRadius", () => {
   it("0 或非法 DPR 不裁圆角", () => {
     expect(physicalCornerRadius(0, 2)).toBe(0);
     expect(physicalCornerRadius(16, 0)).toBe(16);
+  });
+});
+
+describe("cssColorToArgb", () => {
+  it("解析逗号 rgb 与空格 rgb", () => {
+    expect(cssColorToArgb("rgb(247, 247, 247)")).toBe(0xfff7f7f7);
+    expect(cssColorToArgb("rgba(51, 51, 51, 1)")).toBe(0xff333333);
+    expect(cssColorToArgb("rgb(90 90 90)")).toBe(0xff5a5a5a);
+    expect(cssColorToArgb("#8a8a8a")).toBe(0xff8a8a8a);
+    expect(cssColorToArgb("nope")).toBe(0);
   });
 });

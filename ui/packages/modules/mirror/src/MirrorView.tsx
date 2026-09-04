@@ -1,22 +1,14 @@
 /**
- * 投屏主视图：YoPanel 透明占位；画面在壳 HWND 上。
+ * 投屏主视图：可用区只量盒；画面在壳 HWND 上。
  */
 
-import { For, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
-import {
-  errorText,
-  deviceSetNightMode,
-  type DeviceSession,
-} from "@yohu/api";
+import { For, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { errorText, deviceSetNightMode, type DeviceSession } from "@yohu/api";
 import {
   Layout,
-  Radius,
-  Stroke,
   YoButton,
   YoChrome,
-  YoEmptyState,
   YoIconButton,
-  YoLoading,
   YoPage,
   YoPanel,
   YoSelect,
@@ -25,9 +17,8 @@ import {
   type IconName,
 } from "@yohu/ui";
 
-import { frameStyle } from "./frame";
 import { AndroidKey } from "./keys";
-import { clientZoneRect, layoutIsPresentable, physicalCornerRadius, zoneInsetKey } from "./layout";
+import { clientZoneRect, layoutIsPresentable } from "./layout";
 import { mirrorStore } from "./store";
 import "./mirror.css";
 
@@ -92,25 +83,30 @@ function ipcMessage(error: unknown): string {
   return errorText(error);
 }
 
-function emptyCopy(phase: string, hasDevice: boolean, error: string | null): { title: string; description?: string } {
-  if (!hasDevice) return { title: "未选择设备", description: "在左侧设备栏选择一台在线设备" };
-  if (error) return { title: phase === "failed" ? "启动失败" : "已停止", description: error };
-  return { title: "未开始", description: "点击开始将画面嵌在此面板内" };
-}
-
-function waitingCopy(phase: string): { title: string; description: string } {
-  if (phase === "starting") return { title: "启动中", description: "正在推送 server 并建立隧道" };
-  return { title: "等待画面", description: "设备正在准备编码器，画面到达前请稍候" };
+function shutdownLayout(): Parameters<typeof mirrorStore.syncLayout>[0] {
+  return {
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    visible: false,
+    dpr: 1,
+    fullscreen: false,
+    paused: false,
+    control: false,
+    has_device: false,
+    failed: false,
+    error: "",
+    dark: false,
+  };
 }
 
 export function MirrorView(props: DeviceSession) {
-  let stage: HTMLDivElement | undefined;
   let avail: HTMLDivElement | undefined;
   let zoneObserver: ResizeObserver | undefined;
   let layoutRaf = 0;
   let layoutVisible: boolean | undefined;
   let lastInsetKey = "";
-  const [zoneSize, setZoneSize] = createSignal<{ w: number; h: number }>({ w: 0, h: 0 });
   const [pendingNight, setPendingNight] = createSignal<boolean | null>(null);
   const sessionNight = (): boolean | null => {
     const serial = props.selectedSerials[0];
@@ -132,17 +128,31 @@ export function MirrorView(props: DeviceSession) {
       if (!hiding && !layoutIsPresentable(rect.width, rect.height)) {
         return;
       }
-      const cssRadius = mirrorStore.state.fullscreen ? Radius.None : Math.max(0, Radius.Md - Stroke.Hairline);
-      const radius = physicalCornerRadius(cssRadius, dpr);
-      const clientW = Math.round((document.documentElement.clientWidth || window.innerWidth) * dpr);
-      const clientH = Math.round((document.documentElement.clientHeight || window.innerHeight) * dpr);
-      const insetKey = zoneInsetKey(rect, clientW, clientH, layoutVisible !== false, radius);
+      const phase = mirrorStore.state.phase;
+      const live = phase === "live";
+      const hasFrame = mirrorStore.state.hasFrame;
+      const visibleNow = layoutVisible !== false;
+      const control = live && hasFrame && !mirrorStore.state.readOnly && mirrorStore.state.control;
+      const hasDevice = props.selectedSerials.length > 0;
+      const failed = phase === "failed";
+      const error = mirrorStore.state.error ?? "";
+      const dark = document.documentElement.getAttribute("data-theme") === "dark";
+      const fullscreen = mirrorStore.state.fullscreen;
+      const paused = mirrorStore.state.paused;
+      const insetKey = `${props.selectedSerials[0] ?? ""},${rect.x},${rect.y},${rect.width}x${rect.height},v=${visibleNow},dpr=${dpr},f=${fullscreen},p=${paused},c=${control},dev=${hasDevice},fail=${failed},e=${error},dark=${dark}`;
       if (insetKey === lastInsetKey) return;
       lastInsetKey = insetKey;
       void mirrorStore.syncLayout({
         ...rect,
-        visible: layoutVisible,
-        corner_radius: radius,
+        visible: visibleNow,
+        dpr,
+        fullscreen,
+        paused,
+        control,
+        has_device: hasDevice,
+        failed,
+        error,
+        dark,
       });
     });
   }
@@ -150,33 +160,35 @@ export function MirrorView(props: DeviceSession) {
   onMount(() => {
     mirrorStore.applySettings(props.settings);
     if (avail) {
-      zoneObserver = new ResizeObserver((entries) => {
-        const rect = entries[0]?.contentRect;
-        if (rect) setZoneSize({ w: rect.width, h: rect.height });
+      zoneObserver = new ResizeObserver(() => {
         pushLayout();
       });
       zoneObserver.observe(avail);
     }
     window.addEventListener("scroll", onWin, true);
+    window.addEventListener("keydown", onEsc);
     document.addEventListener("visibilitychange", onVis);
   });
   onCleanup(() => {
     if (layoutRaf !== 0) window.cancelAnimationFrame(layoutRaf);
     zoneObserver?.disconnect();
     window.removeEventListener("scroll", onWin, true);
+    window.removeEventListener("keydown", onEsc);
     document.removeEventListener("visibilitychange", onVis);
     lastInsetKey = "";
-    const serial = mirrorStore.state.serial;
-    if (serial) {
-      void mirrorStore.syncLayout({ x: 0, y: 0, width: 0, height: 0, visible: false, corner_radius: 0 });
-    }
+    void mirrorStore.syncLayout(shutdownLayout());
   });
 
   function onWin(): void {
     pushLayout();
   }
   function onVis(): void {
-    pushLayout(document.visibilityState === "visible" && !mirrorStore.state.paused);
+    pushLayout(document.visibilityState === "visible");
+  }
+  function onEsc(e: KeyboardEvent): void {
+    if (e.key !== "Escape" || !mirrorStore.state.fullscreen) return;
+    e.preventDefault();
+    mirrorStore.setFullscreen(false);
   }
 
   createEffect(() => {
@@ -205,30 +217,23 @@ export function MirrorView(props: DeviceSession) {
     const _paused = mirrorStore.state.paused;
     const _full = mirrorStore.state.fullscreen;
     const _has = mirrorStore.state.hasFrame;
-    const _w = mirrorStore.state.width;
-    const _h = mirrorStore.state.height;
     const _ro = mirrorStore.state.readOnly;
     const _ctrl = mirrorStore.state.control;
+    const _err = mirrorStore.state.error;
+    const _serial = props.selectedSerials[0];
     void _phase;
     void _paused;
     void _full;
     void _has;
-    void _w;
-    void _h;
     void _ro;
     void _ctrl;
-    pushLayout(!_paused && (_phase === "live" || _phase === "starting"));
+    void _err;
+    void _serial;
+    pushLayout(document.visibilityState === "visible");
   });
 
   const live = () => mirrorStore.state.phase === "live";
-  const waiting = () => {
-    const phase = mirrorStore.state.phase;
-    return phase === "starting" || (phase === "live" && !mirrorStore.state.hasFrame);
-  };
   const canControl = () => live() && mirrorStore.state.hasFrame && !mirrorStore.state.readOnly && mirrorStore.state.control;
-  const panelVars = () =>
-    frameStyle(zoneSize().w, zoneSize().h, mirrorStore.state.width, mirrorStore.state.height, mirrorStore.state.phase);
-  const hugFrame = () => panelVars().length > 0;
 
   async function tapKey(keycode: number): Promise<void> {
     await mirrorStore.inject({ kind: "key", keycode, down: true });
@@ -261,8 +266,6 @@ export function MirrorView(props: DeviceSession) {
       toaster.show(`保存失败: ${ipcMessage(e)}`, "error");
     }
   }
-
-  const painted = () => live() && mirrorStore.state.hasFrame && !mirrorStore.state.paused;
 
   return (
     <YoPage class={`yohu-mirror${mirrorStore.state.fullscreen ? " yohu-mirror--full" : ""}`}>
@@ -309,56 +312,14 @@ export function MirrorView(props: DeviceSession) {
       </YoChrome>
 
       <div class="yohu-mirror__body">
-        <div class="yohu-mirror__panel-zone">
+        <div class="yohu-mirror__stage" aria-label="投屏画面">
           <div
             ref={(el) => {
               avail = el;
             }}
             class="yohu-mirror__avail"
-            style={panelVars()}
           >
-          <YoPanel
-            variant="pane"
-            class={`yohu-mirror__panel${hugFrame() ? " yohu-mirror__panel--hug" : ""}`}
-            aria-label="投屏画面"
-          >
-            <div
-              ref={(el) => {
-                stage = el;
-              }}
-              class="yohu-mirror__stage"
-            >
-              <div class="yohu-mirror__hole" aria-hidden="true" />
-              <Show when={!painted()}>
-                <div class="yohu-mirror__overlay">
-                  <Show
-                    when={waiting() && !mirrorStore.state.paused}
-                    fallback={
-                      <YoEmptyState
-                        icon="mirror"
-                        title={
-                          mirrorStore.state.paused
-                            ? "已暂停"
-                            : emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error).title
-                        }
-                        description={
-                          mirrorStore.state.paused
-                            ? "画面已隐藏，点击继续"
-                            : emptyCopy(mirrorStore.state.phase, props.selectedSerials.length > 0, mirrorStore.state.error)
-                                .description
-                        }
-                      />
-                    }
-                  >
-                    <YoLoading
-                      title={waitingCopy(mirrorStore.state.phase).title}
-                      description={waitingCopy(mirrorStore.state.phase).description}
-                    />
-                  </Show>
-                </div>
-              </Show>
-            </div>
-          </YoPanel>
+            <div class="yohu-mirror__hole" aria-hidden="true" />
           </div>
         </div>
 

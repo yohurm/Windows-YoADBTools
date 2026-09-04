@@ -137,7 +137,6 @@ export function createMirrorStore() {
     }
     if (prev && (state.phase === "live" || state.phase === "starting")) {
       await runExclusive(async () => {
-        await hideSurface(prev);
         await mirrorStop(prev);
       });
     }
@@ -146,8 +145,6 @@ export function createMirrorStore() {
       serial: next,
       phase: "idle",
       generation: 0,
-      width: 0,
-      height: 0,
       codec: "",
       control: false,
       error: null,
@@ -155,19 +152,6 @@ export function createMirrorStore() {
       paused: false,
       fullscreen: false,
       paintedFps: 0,
-    });
-  }
-
-  async function hideSurface(serial: string): Promise<void> {
-    await mirrorLayout({
-      serial,
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-      visible: false,
-      control: false,
-      corner_radius: 0,
     });
   }
 
@@ -208,7 +192,6 @@ export function createMirrorStore() {
     if (!serial) return;
     await runExclusive(async () => {
       YoLog.info("mirror", "停止", serial);
-      await hideSurface(serial);
       await mirrorStop(serial);
       setState({
         phase: "idle",
@@ -275,22 +258,25 @@ export function createMirrorStore() {
     await mirrorScreenshot({ serial, path });
   }
 
-  function syncLayout(rect: Omit<MirrorLayout, "serial" | "control" | "visible"> & { visible?: boolean }): void {
-    const serial = state.serial;
-    if (!serial) return;
-    if (state.phase !== "live" && state.phase !== "starting") return;
-    const visible = rect.visible ?? (!state.paused && (state.phase === "live" || state.phase === "starting"));
-    const payload = {
+  function syncLayout(rect: Omit<MirrorLayout, "serial"> & { serial?: string }): void {
+    const serial = rect.serial ?? state.serial ?? "";
+    const payload: MirrorLayout = {
       serial,
       x: rect.x,
       y: rect.y,
       width: rect.width,
       height: rect.height,
-      visible,
-      control: !state.readOnly,
-      corner_radius: rect.corner_radius,
+      visible: rect.visible,
+      dpr: rect.dpr,
+      fullscreen: rect.fullscreen,
+      paused: rect.paused,
+      control: rect.control,
+      has_device: rect.has_device,
+      failed: rect.failed,
+      error: rect.error,
+      dark: rect.dark,
     };
-    const key = `${payload.x},${payload.y},${payload.width}x${payload.height},v=${payload.visible},c=${payload.control},r=${payload.corner_radius}`;
+    const key = `${payload.serial},${payload.x},${payload.y},${payload.width}x${payload.height},v=${payload.visible},dpr=${payload.dpr},f=${payload.fullscreen},p=${payload.paused},c=${payload.control},dev=${payload.has_device},fail=${payload.failed},e=${payload.error},dark=${payload.dark}`;
     if (key !== lastLayoutLog.key) {
       lastLayoutLog.key = key;
       YoLog.info("mirror", "layout", payload);
@@ -313,8 +299,7 @@ export function createMirrorStore() {
       setState({
         generation: e.generation,
         phase: phaseOf(e.state),
-        width: e.width,
-        height: e.height,
+        ...(e.width > 0 && e.height > 0 ? { width: e.width, height: e.height } : {}),
         codec: e.codec,
         control: e.control,
         error: e.error ?? null,

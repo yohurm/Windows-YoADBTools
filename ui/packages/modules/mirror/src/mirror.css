@@ -1,8 +1,7 @@
 /* ============================================================================
- * 投屏显示（UI设计系统-v6.md §4.4）。
- * 画面在壳 HWND 上对齐面板；WebView 只留铬层。
- * 可用区 `.yohu-mirror__avail` 是定高格子；contain 由 JS 算出，铬层与 HWND 共用。
- * 禁止去量舞台、禁止 transition 宽高。
+ * 投屏显示。操作栏 / 质量是 YoPanel。舞台是透明洞：只报 avail。
+ * 占用卡片是 HWND（surface + hairline + radius）；会话中 contain，idle 铺满。
+ * 禁止 CSS 占用宽高过渡。面板内全屏只藏操作栏/功能栏。
  * ========================================================================== */
 
 .yohu-mirror__body {
@@ -13,35 +12,25 @@
   gap: var(--yohu-layout-page-gap);
 }
 
-.yohu-mirror__panel-zone {
+.yohu-mirror__stage {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   display: flex;
-  padding: var(--yohu-space-md);
+  overflow: hidden;
 }
 
 .yohu-mirror__avail {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  display: grid;
+  display: flex;
 }
 
-.yohu-mirror__panel.yohu-panel--pane {
+.yohu-mirror__hole {
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  width: auto;
-  height: auto;
-}
-
-.yohu-mirror__panel--hug {
-  justify-self: center;
-  align-self: center;
-  width: var(--mirror-w);
-  height: var(--mirror-h);
-  max-width: 100%;
-  max-height: 100%;
 }
 
 .yohu-mirror__ops.yohu-panel--pane {
@@ -73,34 +62,6 @@
   overflow-y: auto;
 }
 
-.yohu-mirror__panel .yohu-panel__body {
-  overflow: hidden;
-  height: 100%;
-}
-
-.yohu-mirror__stage {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  background-color: var(--yohu-canvas);
-  overflow: hidden;
-}
-
-.yohu-mirror__hole {
-  position: absolute;
-  inset: 0;
-}
-
-.yohu-mirror__overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--yohu-canvas);
-}
-
 .yohu-mirror__group {
   display: flex;
   flex-direction: column;
@@ -128,11 +89,7 @@
   line-height: var(--yohu-font-leading-tight);
 }
 
-.yohu-mirror--full .yohu-mirror__panel {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  border-radius: var(--yohu-radius-none);
-  width: 100%;
-  height: 100%;
+.yohu-mirror--full .yohu-mirror__ops,
+.yohu-mirror--full .yohu-mirror__func {
+  display: none;
 }
