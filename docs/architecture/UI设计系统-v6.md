@@ -1,8 +1,28 @@
 # Yohu ADB Tools v6 — UI 设计系统规范（UI 打磨单一事实源）
 
-> **状态：** v1.57（2026-09-03，设备运行时状态统一）    
+> **状态：** v1.67（2026-09-04，舞台透明洞 + HWND 占用卡片）    
 > **调研依据：** HarmonyOS 开发者文档设计规范（本地 `HarmonyOS-Developer-docs`：`设计/设计指南/针对多设备设计/电脑/{设计概述,应用设计,窗口框架}`、`通用设计基础/{布局,视觉风格/文本排版,间隔参数}`、`应用 UX 体验标准/电脑应用 UX 体验标准`，提炼见 `docs/architecture/harmonyos-design-notes.md`）、Evil Martians《Devs in mind 2025》、Fluent 2（密度/排版）、Mirafold（语义 token 体系）、Kobalte（无头可及性交互模型）、业界日志查看器实践。  
 > **执行载体：** `@yohu/ui`（YoUI；token 单源 + 组件）+ `@yohu/workbench`（壳）+ `@yohu/modules/*`。所有改动必须同步更新本文件。
+>
+> **v1.67 变更（HWND 占用卡片）**：舞台列不再套 YoPanel。WebView 只留透明洞报 avail；可见卡片是 HWND（surface + hairline + radius）。会话中 HWND contain，左右边框贴合画面；idle 铺满 avail。禁止 CSS 占用过渡、禁止 HWND lerp。
+>
+> **v1.66 变更（HWND contain，舞台面板稳定）**：曾用舞台 `YoPanel` 铺满列、HWND 在面板内 contain。实机：YoPanel 外框不跟画面走。v1.67 撤回舞台 YoPanel。
+>
+> **v1.65 变更（稳定舞台面板）**：内容区三栏都是 `YoPanel`。曾让 HWND 铺满面板、画面只在 HWND 内 contain；v1.66 撤回为 HWND contain，避免左右边框不再变化。
+>
+> **v1.64 变更（壳独占占用）**：UI 只报 `.yohu-mirror__avail` 客户区物理矩形 + 会话旗标。曾由壳把 HWND contain/fill；v1.65 改为 HWND 始终铺满面板。删除配方 `mirror-frame`。禁止 CSS 占用宽高过渡、禁止 HWND lerp、禁止运行时 UI `containInZone`。
+>
+> **v1.63 变更（占用盒 spatial-panel）**：avail↔hug 外框宽高曾走配方 `mirror-frame`（`var(--yohu-motion-spatial-panel)`，px↔px）。v1.64 撤回：占用瞬时由壳 contain/fill，禁止 CSS 占用过渡。
+>
+> **v1.62 变更（停止后外框回可用区）**：idle/failed 曾由 UI 把盒拉回可用区；starting/live 用上次编码尺寸 hug。v1.64 起 idle/failed/unbound 由壳铺满 avail，会话中壳 contain；UI 不再 hug。
+>
+> **v1.61 变更（投屏单 contain 盒）**：曾由 UI `containInZone` 写出 hug 盒、`mirror.layout` 报该盒、壳禁止再 contain。v1.64 撤回：avail 只从 UI 来，contain 在壳。面板内全屏只藏操作栏/功能栏，页眉可点，Esc 退出。禁止 `fixed inset 0`、禁止 HWND lerp。
+>
+> **v1.60 变更（投屏缩放 occupancy）**：曾禁止 hug、HWND 单独 contain；v1.61 撤回双头几何。
+>
+> **v1.59 变更（投屏外框与铬层）**：停/开保留上次编码尺寸，面板外框不拆。HWND 内缩 hairline，YoPanel 描边和 XS 阴影画在 WebView。禁止 transition 宽高。
+>
+> **v1.58 变更（投屏启动不闪）**：`mirror/state=live` 带上宽高后，加载态 HWND 与铬层 CSS 同时 contain；禁止 Loading 清零画面尺寸导致出画瞬间从铺满跳到贴合。
 >
 > **v1.57 变更（设备状态统一）**：目录与运行时状态分流（ADR-v6-025）。设备栏次行展示 Android 版本/电量；投屏深浅色读 `DeviceSession.deviceStatuses`，禁止页面 2s 轮询。
 >
@@ -32,7 +52,7 @@
 >
 > **v1.43 变更（投屏右侧功能栏）**：投屏页画面与控件分栏。质量 / 通道 / 导航从页眉 extra 挪到画面右侧功能栏（宽 `--yohu-layout-preview`）。页眉主行只留会话操作（开始/停止、暂停、截图、全屏）。禁止把应用模块导航做成右侧栏。
 >
-> **v1.42 变更（区域加载 YoLoading）**：新增 `YoLoading`（环 + 标题/描述，`role=status`）。控件内加载仍走 `YoButton` / `YoIconButton` 的 `loading`；区域/页面等待必须走 `YoLoading`，禁止模块自写 spinner。投屏 `starting` 与 Live 尚未出画时用 `cover` 盖住舞台。
+> **v1.42 变更（区域加载 YoLoading）**：新增 `YoLoading`（环 + 标题/描述，`role=status`）。控件内加载仍走 `YoButton` / `YoIconButton` 的 `loading`；区域/页面等待必须走 `YoLoading`，禁止模块自写 spinner。投屏启动与等待首帧由 HWND chrome 绘制（ADR-v6-026），不再用 `YoLoading` 盖舞台。
 >
 > **v1.41 变更（投屏页眉分组）**：投屏 `YoChrome` 主行只留开始/停止、暂停、截图、全屏。质量（长边/码率/帧率）、通道（只读/强制转发）、导航键进次行分组，禁止再把下拉和导航键平铺进 extra 一行。
 >
@@ -226,7 +246,7 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 - JS 消费侧经 `@yohu/ui` 导出 `MotionDuration` / `MotionEasing`（与 theme.css 契约测试强制一致）；动效时长硬编码由纪律 lint 拦截
 - 完整行为（Presence / Collapse / 侧栏 `rail` / 配方目录 / 虚拟列表禁动）以 `docs/architecture/动画系统-v6.md` 为准，本节只登记 token 数字
 - 用途克制：下拉展开/淡入淡出；**日志列表选中片无过渡**（性能优先，`.yohu-interactive` 默认无 transition）
-- **加载循环**：控件内加载走 `YoButton.loading` / `YoIconButton.loading`（`--yohu-dur-loop` 线性旋转，期间 `disabled` + `aria-busy`）。区域/页面等待走 `YoLoading`（环 + 标题/描述，`role=status`；覆盖下层时加 `cover`）。设备栏刷新、文件刷新按钮等仍走 IconButton；目录首载、日志启动/等待出流、投屏启动与等待首帧走 `YoLoading`。禁止模块自写 spinner。
+- **加载循环**：控件内加载走 `YoButton.loading` / `YoIconButton.loading`（`--yohu-dur-loop` 线性旋转，期间 `disabled` + `aria-busy`）。区域/页面等待走 `YoLoading`（环 + 标题/描述，`role=status`；覆盖下层时加 `cover`）。设备栏刷新、文件刷新按钮等仍走 IconButton；目录首载、日志启动/等待出流走 `YoLoading`。投屏启动与等待首帧走 HWND chrome。禁止模块自写 spinner。
 
 ### 2.5 图标
 
@@ -352,11 +372,11 @@ HarmonyOS 电脑/大屏补齐：`--yohu-layout-window-default-w/h: 1200×800`、
 
 ### 4.4 投屏显示
 
-- 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。画面在 `YoPanel variant=pane` 内等比适应（`max-width/height: 100%`），不是编码器 `max_size`。
-- 舞台是叠层包含块：底层透明占位（壳 HWND 盖在物理矩形上）；空态/加载进 overlay，禁止与占位共 flex 流。空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。加载态（启动中、Live 等待首帧）走 overlay 内的 `YoLoading`，不走空态。Live 不等于已出画：首帧 Present 前舞台保持加载，避免黑屏空等。
-- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏、**仅显示**（按下=只看；默认未按=可操作）。**设备操作栏**（宽 `--yohu-layout-mirror-ops`，在画面与设置栏之间，常驻）：返回 / Home / 多任务 / 音量± / 电源 / **设备深浅色（月亮=设备当前深色、太阳=浅色，同一钮，读 `deviceStatuses.night`）** / 亮度±，鸿蒙符号 `YoIconButton`。导航/音量/电源/亮度在不可操作时禁用，不把栏藏起来以免布局跳动；深浅色钮跟连接设备，不跟工作台 theme，禁止本页轮询 dumpsys。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）。禁止再把这些控件放进页眉 extra、设置页或通道开关。禁止把导航键放回设置栏。
+- 与效率型模块同一 `YoPage` + `YoChrome title="投屏显示"` + `deviceLabel`。内容区操作栏 / 质量是 `YoPanel`；舞台列是 `.yohu-mirror__avail` 透明洞（不是 YoPanel）。HWND 按 FramePipe 编码尺寸 contain 并画占用卡片（ADR-v6-027）；idle 铺满 avail。不是编码器 `max_size`，也不是 UI `containInZone`。
+- 舞台像素由 HWND 独占（空态/加载/暂停/视频都画在 HWND 上，ADR-v6-026/027）；WebView 只留透明占位上报 avail。禁止 WebView overlay 与 HWND XOR。空态/加载/暂停的文案与颜色在壳内绘制，填充色走 surface token。空态只写终态（未选择设备 / 未开始 / 启动失败），不把模块名再写一遍。Live 不等于已出画：首帧 Present 前舞台保持加载，避免黑屏空等。上次编码尺寸留在 present，`stop` 不清零。禁止 CSS 占用宽高过渡、禁止 HWND lerp、禁止 UI 运行时 contain。
+- 页眉主行 ≤6：开始/停止、暂停画面、截图、面板内全屏、**仅显示**（按下=只看；默认未按=可操作）。**面板内全屏**只藏操作栏与功能栏，舞台吃满页眉以下；页眉「退出全屏」与 Esc 始终可点。禁止 `position:fixed; inset:0` 盖住工作台。**设备操作栏**（宽 `--yohu-layout-mirror-ops`，在画面与设置栏之间，非常驻于全屏）：返回 / Home / 多任务 / 音量± / 电源 / **设备深浅色（月亮=设备当前深色、太阳=浅色，同一钮，读 `deviceStatuses.night`）** / 亮度±，鸿蒙符号 `YoIconButton`。非全屏时导航/音量/电源/亮度在不可操作时禁用，不把栏藏起来以免布局跳动；深浅色钮跟连接设备，不跟工作台 theme，禁止本页轮询 dumpsys。**右侧功能栏**（宽 `--yohu-layout-preview`，`YoPanel`）：**质量**（投屏协议 USB/无线 / 长边 / 码率 / 帧率上限，**下次开始生效**）。禁止再把这些控件放进页眉 extra、设置页或通道开关。禁止把导航键放回设置栏。
 - 实测 fps 在状态栏右下角（1s 窗口已 Present 帧），不是画面角标，也不是质量栏的编码器上限。
-- 面板贴合：JS `containInZone` 只驱动铬层 CSS。HWND 是主窗 `WS_CHILD`，壳按可用区 insets + 画面比 contain。禁止 `screenX` 跟窗、禁止 CSS 过渡宽高、禁止 HWND 内二次 letterbox。主窗不得小于 `Layout.WindowMin*`（1024×768），否则竖屏 contain 会塌成不可读的窄条。
+- 面板贴合：`mirror.layout` 报 `.yohu-mirror__avail` 客户区物理矩形 + 会话旗标。舞台透明洞稳定；HWND contain 并画占用卡片。禁止 `screenX` 跟窗、禁止 HWND lerp。主窗不得小于 `Layout.WindowMin*`（1024×768），否则竖屏画面会塌成不可读的窄条。
 
 ### 4.5 设置
 

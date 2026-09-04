@@ -27,5 +27,8 @@
 | [021](ADR-v6-021.md) | 日志导出真相 | **开放：** 环 vs session-logs |
 | [022](ADR-v6-022.md) | 更新通道 | GitHub Releases；非 plugin-updater |
 | [023](ADR-v6-023.md) | 投屏画质（旧） | **被 024 取代：** Channel + WebCodecs |
-| [024](ADR-v6-024.md) | 投屏原生呈现 | 进程内 MF + HWND，禁止 ffmpeg.exe |
+| [024](ADR-v6-024.md) | 投屏原生呈现 | 进程内系统硬解 + 嵌入表面；Windows = MF + HWND；禁止 ffmpeg.exe |
 | [025](ADR-v6-025.md) | 设备状态 | 目录 ≠ 运行时；Hub 统一采样；禁模块轮询 |
+| [026](ADR-v6-026.md) | 投屏舞台占用 | HWND 独占舞台像素；解码会话 ≠ 表面生命周期 |
+| [027](ADR-v6-027.md) | 投屏占用 | 舞台透明洞；HWND 是占用卡片并按画面 contain；禁止 CSS 占用过渡；全屏是布局不是 DXGI |
+| [028](ADR-v6-028.md) | 投屏多平台后端 | 编译期 OS 原生硬解；macOS/Linux 预留；禁止 FFmpeg |
