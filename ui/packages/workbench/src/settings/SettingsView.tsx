@@ -299,7 +299,6 @@ export const SettingsView: Component = () => {
 
           <YoFormRow
             title="日志写入方式"
-            description="覆盖 = 每窗口固定文件、下次采集截断；续写 = 每次任务新开文件保留旧文件"
             note={<EffectBadge text="立即生效" />}
           >
             <YoSelect
@@ -311,7 +310,6 @@ export const SettingsView: Component = () => {
 
           <YoFormRow
             title="导出方式"
-            description="最新 = 直接导出当前窗口日志文件；选择 = 弹窗多选窗口日志文件再导出"
             note={<EffectBadge text="立即生效" />}
           >
             <YoSelect
@@ -323,7 +321,6 @@ export const SettingsView: Component = () => {
 
           <YoFormRow
             title="每次导出询问保存位置"
-            description="开启则每次导出弹保存对话框；关闭则直接写入默认导出路径"
             note={<EffectBadge text="立即生效" />}
           >
             <YoSwitch
