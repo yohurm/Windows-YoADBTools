@@ -6,14 +6,31 @@ use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 
-use crate::commands::{ipc_code, ipc_run};
+use crate::commands::{ipc_code, ipc_library, ipc_run};
+use crate::state::AppState;
 use yohu_adb::AdbClient;
 use yohu_domain::{run_and_evaluate, CommandDefinition};
-use yohu_protocol::{EvalResult, IpcError, IpcErrorCode, SerialEvalResult};
+use yohu_protocol::{EvalResult, IpcError, IpcErrorCode, SerialEvalResult, TerminalEvalRequest};
 
-/// 对 `serials` 并行执行同一命令并判定，按序返回结果。
-/// 失败（离线/超时/执行错）映射为 `ok:false` 的 [`SerialEvalResult`]，不中断其它设备。
-pub async fn eval_parallel(
+/// 查库、填充占位符、对 `serials` 并行执行并判定。
+pub async fn eval(
+    state: &AppState,
+    req: TerminalEvalRequest,
+) -> Result<Vec<SerialEvalResult>, IpcError> {
+    let definition = {
+        let library = state.library.lock().expect("library lock poisoned");
+        library.command(&req.command_id).cloned().ok_or_else(|| {
+            ipc_code(
+                IpcErrorCode::NotFound,
+                format!("命令不存在: {}", req.command_id),
+            )
+        })?
+    };
+    let filled = definition.fill(&req.values).map_err(ipc_library)?;
+    eval_parallel(state.client.clone(), filled, req.serials).await
+}
+
+async fn eval_parallel(
     client: Arc<AdbClient>,
     definition: CommandDefinition,
     serials: Vec<String>,

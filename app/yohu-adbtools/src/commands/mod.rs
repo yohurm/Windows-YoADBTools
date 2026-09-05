@@ -15,7 +15,7 @@ pub mod terminal;
 pub mod update;
 
 use yohu_adb::AdbError;
-use yohu_domain::RunError;
+use yohu_domain::{LibraryError, RunError};
 use yohu_files::FileError;
 use yohu_protocol::{IpcError, IpcErrorCode};
 use yohu_update::UpdateError;
@@ -66,6 +66,10 @@ pub fn ipc_code(code: IpcErrorCode, message: impl Into<String>) -> IpcError {
         code,
         message: message.into(),
     }
+}
+
+pub fn ipc_library(error: LibraryError) -> IpcError {
+    ipc_code(IpcErrorCode::InvalidArgs, error.to_string())
 }
 
 /// 文件模块错误 → IPC（路径/安全根走 InvalidArgs，取消保留语义）。
