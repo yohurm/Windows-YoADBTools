@@ -73,18 +73,7 @@ pub async fn log_clear_device(state: State<'_, AppState>, serial: String) -> Res
 
 #[tauri::command(rename = "log.replay")]
 pub fn log_replay(state: State<'_, AppState>, req: ReplayRequest) -> Result<LogBatch, IpcError> {
-    let ring = state.capture.ring(&req.serial);
-    let (lines, truncated) = match &req.filter {
-        Some(filter) => ring.snapshot_filtered_from(req.from_seq, filter, req.limit as usize),
-        None => ring.snapshot_page(req.from_seq, req.limit as usize),
-    };
-    let from_seq = lines.first().map(|l| l.seq).unwrap_or(req.from_seq);
-    Ok(LogBatch {
-        serial: req.serial,
-        from_seq,
-        lines,
-        truncated,
-    })
+    Ok(state.capture.replay(req))
 }
 
 // ===== 实时逐窗口日志文件（日志写入方式） =====

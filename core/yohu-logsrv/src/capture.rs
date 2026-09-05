@@ -17,7 +17,9 @@ use crate::batch::Batcher;
 use crate::parse::parse_threadtime;
 use crate::ring::RingBuffer;
 use yohu_adb::{AdbClient, AdbError};
-use yohu_protocol::{AppEvent, CaptureStart, CaptureState, CaptureStatus, ProcessEntry};
+use yohu_protocol::{
+    AppEvent, CaptureStart, CaptureState, CaptureStatus, LogBatch, ProcessEntry, ReplayRequest,
+};
 
 const LOGCAT_FORMAT: &str = "threadtime,uid";
 const INDEX_INTERVAL: Duration = Duration::from_millis(2500);
@@ -289,6 +291,21 @@ impl CaptureService {
             .entry(serial.to_string())
             .or_insert_with(|| Arc::new(RingBuffer::new(cap)))
             .clone()
+    }
+
+    pub fn replay(self: &Arc<Self>, req: ReplayRequest) -> LogBatch {
+        let ring = self.ring(&req.serial);
+        let (lines, truncated) = match &req.filter {
+            Some(filter) => ring.snapshot_filtered_from(req.from_seq, filter, req.limit as usize),
+            None => ring.snapshot_page(req.from_seq, req.limit as usize),
+        };
+        let from_seq = lines.first().map(|l| l.seq).unwrap_or(req.from_seq);
+        LogBatch {
+            serial: req.serial,
+            from_seq,
+            lines,
+            truncated,
+        }
     }
 
     pub fn status(&self, serial: &str) -> CaptureStatus {
