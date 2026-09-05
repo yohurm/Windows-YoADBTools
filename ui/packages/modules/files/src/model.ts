@@ -1,5 +1,5 @@
 /**
- * 文件模块纯领域函数（ViewModel 之外，零 IPC / 零壳依赖）。
+ * 文件模块纯函数（View / store 之外，零 IPC / 零壳依赖）。
  */
 
 import type { RemoteEntry } from "@yohu/api";
@@ -51,7 +51,7 @@ export type SortKey = "name" | "type" | "size" | "mtime";
 export type SortDir = "asc" | "desc";
 export type FileColAlign = "start" | "end";
 
-/** 列规格（Files ColumnsViewModel / Explorer Details）：名称定宽截断，日期吃剩余。 */
+/** 列规格（资源管理器详情列）：名称定宽截断，日期吃剩余。 */
 export interface FileColumnSpec {
   key: SortKey;
   header: string;
