@@ -25,6 +25,9 @@ export const COMMAND_LIBRARY_SCHEMA_VERSION = 2;
 /** 官方 scrcpy-server 钉死版本（与 yohu-protocol::scrcpy 对齐）。 */
 export const SCRCPY_SERVER_VERSION = "4.1";
 
+/** 投屏可用区最小物理像素（与 yohu-protocol::MIRROR_MIN_LAYOUT_PX 对齐）。 */
+export const MIRROR_MIN_LAYOUT_PX = 64;
+
 /** 模块 id（与 ModuleDescriptor.id、data_root/modules/<id> 一致）。 */
 export const ModuleId = {
   Terminal: "adb-terminal",

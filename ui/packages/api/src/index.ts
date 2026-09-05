@@ -5,5 +5,6 @@ export * from "./device";
 export * from "./commands";
 export * from "./events";
 export * from "./dialog";
+export * from "./window";
 export * from "./yolog";
 export * from "./error";

@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, SAFETY_ROOTS } from "./identity";
+import { COMMAND_LIBRARY_SCHEMA_VERSION, DEFAULT_BROWSE_ROOT, MIRROR_MIN_LAYOUT_PX, SAFETY_ROOTS } from "./identity";
 import { APP_SETTINGS_DEFAULT } from "./settings-defaults";
 import { EVENT_NAMES, type AppEvent, type Density, type DeviceStatus, type EvalResult, type LogDisplayColumns, type LogFilter, type LogLine, type MirrorControlMessage, type MirrorLayout, type MirrorStartRequest, type RemoteEntry, type RemoteUpdate, type SettingValue, type Theme, type TransferRequest, type UpdateChannelInfo, type UpdateDownloadRequest, type UpdateProgress } from "./types";
 
@@ -287,6 +287,10 @@ describe("wire 契约：与 yohu-protocol serde 输出一致", () => {
 
   it("SAFETY_ROOTS 与 yohu-protocol::safety_root 对齐", () => {
     expect([...SAFETY_ROOTS]).toEqual(["/sdcard", "/storage"]);
+  });
+
+  it("MIRROR_MIN_LAYOUT_PX 与 yohu-protocol 对齐", () => {
+    expect(MIRROR_MIN_LAYOUT_PX).toBe(64);
   });
 
   it("AppIdentity / AppPathCatalog 字段为 snake_case", () => {

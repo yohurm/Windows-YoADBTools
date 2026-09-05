@@ -474,7 +474,7 @@ export interface MirrorLayout {
   has_device: boolean;
   failed: boolean;
   error: string;
-  /** `documentElement` `data-theme=dark` */
+  /** 设备夜览（DeviceStatusHub.night）。不是工作台 data-theme。 */
   dark: boolean;
 }
 
