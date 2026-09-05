@@ -5,19 +5,21 @@
 
 import { Component, createSignal, onCleanup, onMount } from "solid-js";
 
-import { ModuleId, systemReportError, YoLog } from "@yohu/api";
+import {
+  ModuleId,
+  listenWindowResize,
+  systemReportError,
+  windowClose,
+  windowIsMaximized,
+  windowMinimize,
+  windowToggleMaximize,
+  YoLog,
+} from "@yohu/api";
 import { setDensity, setTheme } from "@yohu/ui";
 
 import { registerModule } from "./registry";
 import { SettingsView } from "./settings/SettingsView";
 import { AppLayout } from "./shell/AppLayout";
-import {
-  listenWindowResize,
-  windowClose,
-  windowIsMaximized,
-  windowMinimize,
-  windowToggleMaximize,
-} from "./shell/window-chrome";
 import { deviceStore, settingsStore } from "./stores";
 
 // 工作区模块由 apps/shell 注册。设置页是壳内建，不走 modules 包。
