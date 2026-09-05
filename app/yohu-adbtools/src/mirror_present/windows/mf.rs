@@ -278,6 +278,36 @@ impl MfDecoder {
     }
 }
 
+impl crate::mirror_present::backend::AnnexBDecoder for MfDecoder {
+    type Picture = DecodedPicture;
+    type Bind = IMFDXGIDeviceManager;
+
+    fn open(
+        hevc: bool,
+        width: u32,
+        height: u32,
+        bind: Option<&Self::Bind>,
+    ) -> Result<Self, String> {
+        Self::open_with(hevc, width, height, bind)
+    }
+
+    fn width(&self) -> u32 {
+        self.width
+    }
+
+    fn height(&self) -> u32 {
+        self.height
+    }
+
+    fn feed(&mut self, annexb: &[u8], keyframe: bool) -> Result<Option<Self::Picture>, String> {
+        MfDecoder::feed(self, annexb, keyframe)
+    }
+
+    fn drain(&mut self) -> Result<Option<Self::Picture>, String> {
+        MfDecoder::drain(self)
+    }
+}
+
 fn enum_flags() -> [MFT_ENUM_FLAG; 2] {
     let hw = MFT_ENUM_FLAG(
         MFT_ENUM_FLAG_ASYNCMFT.0 | MFT_ENUM_FLAG_HARDWARE.0 | MFT_ENUM_FLAG_SORTANDFILTER.0,
@@ -714,6 +744,12 @@ mod tests {
             h264_available(),
             "Windows 应提供 H.264 Media Foundation 解码器"
         );
+    }
+
+    #[test]
+    fn mf_decoder_implements_annexb_contract() {
+        fn assert_decoder<D: crate::mirror_present::backend::AnnexBDecoder>() {}
+        assert_decoder::<MfDecoder>();
     }
 
     #[test]

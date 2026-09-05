@@ -1,4 +1,4 @@
-﻿//! D3D11：硬解共用设备 + Video Processor（BT.709 full 缩放）；无 VP 时 YUV shader。
+//! D3D11：硬解共用设备 + Video Processor（BT.709 full 缩放）；无 VP 时 YUV shader。
 
 #![cfg(windows)]
 
@@ -23,16 +23,16 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_MAP_READ, D3D11_SAMPLER_DESC, D3D11_SDK_VERSION, D3D11_SHADER_RESOURCE_VIEW_DESC,
     D3D11_SHADER_RESOURCE_VIEW_DESC_0, D3D11_TEX2D_SRV, D3D11_TEX2D_VPIV, D3D11_TEX2D_VPOV,
     D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING, D3D11_VIDEO_COLOR,
-    D3D11_VIDEO_COLOR_0, D3D11_VIDEO_COLOR_RGBA,
-    D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE, D3D11_VIDEO_PROCESSOR_CONTENT_DESC,
-    D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC, D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC_0,
-    D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC, D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC_0,
-    D3D11_VIDEO_PROCESSOR_STREAM, D3D11_VIDEO_USAGE_PLAYBACK_NORMAL, D3D11_VIEWPORT,
-    D3D11_VPIV_DIMENSION_TEXTURE2D, D3D11_VPOV_DIMENSION_TEXTURE2D,
+    D3D11_VIDEO_COLOR_0, D3D11_VIDEO_COLOR_RGBA, D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE,
+    D3D11_VIDEO_PROCESSOR_CONTENT_DESC, D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC,
+    D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC_0, D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC,
+    D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC_0, D3D11_VIDEO_PROCESSOR_STREAM,
+    D3D11_VIDEO_USAGE_PLAYBACK_NORMAL, D3D11_VIEWPORT, D3D11_VPIV_DIMENSION_TEXTURE2D,
+    D3D11_VPOV_DIMENSION_TEXTURE2D,
 };
 use windows::Win32::Graphics::DirectComposition::{
-    DCompositionCreateDevice, IDCompositionAnimation, IDCompositionDevice, IDCompositionRectangleClip,
-    IDCompositionTarget, IDCompositionVisual,
+    DCompositionCreateDevice, IDCompositionAnimation, IDCompositionDevice,
+    IDCompositionRectangleClip, IDCompositionTarget, IDCompositionVisual,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
@@ -47,8 +47,9 @@ use windows::Win32::Graphics::Dxgi::{
 };
 use windows::Win32::Media::MediaFoundation::{IMFDXGIDeviceManager, MFCreateDXGIDeviceManager};
 
-use super::chrome::{argb_to_rgba, ChromePainter, ChromeSpec};
-use super::scale::{Letterbox, SPATIAL_PANEL_MS};
+use super::chrome::{ChromePainter, ChromeSpec};
+use crate::mirror_present::scale::{Letterbox, SPATIAL_PANEL_MS};
+use crate::mirror_present::stage::argb_to_rgba;
 
 const VS: &str = r#"
 struct VSOut { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
@@ -333,15 +334,7 @@ impl Gpu {
         let top = y.max(0) as f32;
         let right = left + w.max(1) as f32;
         let bottom = top + h.max(1) as f32;
-        apply_occupancy_clip(
-            &mut self.dcomp,
-            left,
-            top,
-            right,
-            bottom,
-            radius,
-            animate,
-        )
+        apply_occupancy_clip(&mut self.dcomp, left, top, right, bottom, radius, animate)
     }
 
     pub fn present_cpu_nv12(

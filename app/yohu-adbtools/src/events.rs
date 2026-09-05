@@ -33,8 +33,9 @@ pub fn spawn_dispatcher(
                 ..
             } = &event
             {
+                // 会话结束是解绑解码的唯一入口（commands/掉线只 stop，不另调 unbind）。
                 if let Some(app_state) = app.try_state::<AppState>() {
-                    app_state.present.detach(serial);
+                    app_state.present.unbind(serial);
                     app_state.finish_mirror_task(serial);
                 }
             }

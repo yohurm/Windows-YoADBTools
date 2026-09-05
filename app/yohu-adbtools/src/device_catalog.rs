@@ -44,9 +44,7 @@ pub async fn refresh(state: &AppState) -> Result<Vec<DeviceInfo>, String> {
         state.capture.detach_device(serial).await;
         state.mirror.stop(serial).await;
         state.mirror.drop_warm(serial).await;
-        state.present.detach(serial);
         state.finish_capture_task(serial);
-        state.finish_mirror_task(serial);
         let _ = state
             .event_tx
             .send(AppEvent::DeviceOffline {

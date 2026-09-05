@@ -4,7 +4,7 @@ use tauri::State;
 
 use crate::commands::{ipc, ipc_code};
 use crate::state::AppState;
-use yohu_mirror::{MirrorError, MirrorSessionRequest};
+use yohu_mirror::MirrorError;
 use yohu_protocol::{
     IpcError, IpcErrorCode, MirrorInjectRequest, MirrorLayout, MirrorScreenshotRequest,
     MirrorStart, MirrorStartRequest,
@@ -24,25 +24,6 @@ fn ipc_mirror(e: MirrorError) -> IpcError {
     }
 }
 
-fn expand_start(state: &AppState, req: MirrorStartRequest) -> MirrorSessionRequest {
-    let snap = state.settings.snapshot();
-    let enc = yohu_domain::start_encode(&snap, &req.connection, req.session_quality_touched);
-    let mut codec = enc.video_codec.to_string();
-    if codec.eq_ignore_ascii_case("h265") && !state.present.hevc_ok() {
-        tracing::warn!(serial = %req.serial, "本机无 HEVC MFT，改用 H.264");
-        codec = "h264".into();
-    }
-    MirrorSessionRequest {
-        serial: req.serial,
-        control: req.control,
-        force_forward: yohu_domain::start_force_forward(&snap, &req.connection),
-        max_size: enc.max_size,
-        video_bit_rate: enc.video_bit_rate,
-        max_fps: enc.max_fps,
-        video_codec: codec,
-    }
-}
-
 #[tauri::command(rename = "mirror.start")]
 pub async fn mirror_start(
     state: State<'_, AppState>,
@@ -53,7 +34,8 @@ pub async fn mirror_start(
 
 async fn start_session(state: &AppState, req: MirrorStartRequest) -> Result<MirrorStart, IpcError> {
     state.require_online(&req.serial)?;
-    let plan = expand_start(state, req);
+    let plan =
+        crate::mirror_plan::plan_start(&state.settings.snapshot(), req, state.present.hevc_ok());
     tracing::info!(
         serial = %plan.serial,
         control = plan.control,
@@ -94,9 +76,7 @@ async fn start_session(state: &AppState, req: MirrorStartRequest) -> Result<Mirr
 #[tauri::command(rename = "mirror.stop")]
 pub async fn mirror_stop(state: State<'_, AppState>, serial: String) -> Result<(), IpcError> {
     tracing::info!(serial = %serial, "mirror.stop");
-    state.present.detach(&serial);
     state.mirror.stop(&serial).await;
-    state.finish_mirror_task(&serial);
     Ok(())
 }
 

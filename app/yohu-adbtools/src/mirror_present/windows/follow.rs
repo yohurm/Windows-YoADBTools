@@ -255,11 +255,8 @@ fn step_slot(slot: &mut Slot, client_w: u32, client_h: u32) -> Option<PlaceCmd> 
         slot.has_cur = false;
         return Some(PlaceCmd::Hide(hwnd));
     };
-    let same = slot.has_cur
-        && slot.cur_x == x
-        && slot.cur_y == y
-        && slot.cur_w == w
-        && slot.cur_h == h;
+    let same =
+        slot.has_cur && slot.cur_x == x && slot.cur_y == y && slot.cur_w == w && slot.cur_h == h;
     slot.has_cur = true;
     slot.cur_x = x;
     slot.cur_y = y;

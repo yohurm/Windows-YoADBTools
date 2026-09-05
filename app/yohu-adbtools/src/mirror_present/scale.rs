@@ -158,7 +158,6 @@ mod tests {
         3.0 * u * u * a + 6.0 * u * t * (b - a) + 3.0 * t * t * (1.0 - b)
     }
 
-
     #[test]
     fn integer_scale_snaps() {
         let fit = fit_letterbox(100, 200, 200, 400);

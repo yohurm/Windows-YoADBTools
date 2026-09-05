@@ -11,6 +11,7 @@ mod dnd;
 mod events;
 mod group_runs;
 mod library_store;
+mod mirror_plan;
 mod mirror_present;
 #[cfg(windows)]
 pub use mirror_present::MfDecoder;
@@ -164,7 +165,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             exit_cancel.cancelled().await;
             let state = exit_handle.state::<AppState>();
             state.mirror.stop_all().await;
-            state.present.detach_all();
+            state.present.shutdown();
         });
 
         // 5) 启动预热（异步，不阻塞窗口）：adb 解压 + 首扫设备

@@ -27,120 +27,8 @@ use windows::Win32::Graphics::Dxgi::{IDXGISurface, IDXGISwapChain1};
 use windows_numerics::Vector2;
 use yohu_protocol::MirrorStageMode;
 
-const FALLBACK_SURFACE: u32 = 0xFFFFFFFF;
-const FALLBACK_TITLE: u32 = 0xE5000000;
-const FALLBACK_BODY: u32 = 0x99000000;
-
-const LIGHT_SURFACE: u32 = 0xFFFFFFFF;
-const LIGHT_FG: u32 = 0xE5000000;
-const LIGHT_FG2: u32 = 0x99000000;
-const DARK_SURFACE: u32 = 0xFF202224;
-const DARK_FG: u32 = 0xE5FFFFFF;
-const DARK_FG2: u32 = 0x99FFFFFF;
-
-pub struct ChromeSpec<'a> {
-    pub mode: MirrorStageMode,
-    pub title: &'a str,
-    pub description: &'a str,
-    pub canvas_argb: u32,
-    pub title_argb: u32,
-    pub body_argb: u32,
-    pub icon_px: u32,
-    pub title_px: u32,
-    pub body_px: u32,
-    pub spin: f32,
-}
-
-pub fn stage_mode(paused: bool, session: bool, has_frame: bool) -> MirrorStageMode {
-    if paused && session && has_frame {
-        MirrorStageMode::Paused
-    } else if session && has_frame {
-        MirrorStageMode::Video
-    } else if session {
-        MirrorStageMode::Loading
-    } else {
-        MirrorStageMode::Empty
-    }
-}
-
-pub fn stage_copy(
-    mode: MirrorStageMode,
-    has_device: bool,
-    failed: bool,
-    error: &str,
-    has_video_size: bool,
-) -> (&'static str, String) {
-    match mode {
-        MirrorStageMode::Video => ("", String::new()),
-        MirrorStageMode::Paused => ("已暂停", "画面已隐藏，点击继续".into()),
-        MirrorStageMode::Loading => {
-            if has_video_size {
-                ("等待画面", "设备正在准备编码器，画面到达前请稍候".into())
-            } else {
-                ("启动中", "正在推送 server 并建立隧道".into())
-            }
-        }
-        MirrorStageMode::Empty => empty_copy(has_device, failed, error),
-    }
-}
-
-fn empty_copy(has_device: bool, failed: bool, error: &str) -> (&'static str, String) {
-    if !has_device {
-        ("未选择设备", "在左侧设备栏选择一台在线设备".into())
-    } else if !error.is_empty() {
-        let title = if failed { "启动失败" } else { "已停止" };
-        (title, error.to_string())
-    } else {
-        ("未开始", "点击开始将画面嵌在此面板内".into())
-    }
-}
-
-pub fn stage_palette(dark: bool) -> (u32, u32, u32) {
-    if dark {
-        (DARK_SURFACE, DARK_FG, DARK_FG2)
-    } else {
-        (LIGHT_SURFACE, LIGHT_FG, LIGHT_FG2)
-    }
-}
-
-/// YoPanel `--yohu-border`：浅 `#00000033` / 深 `#FFFFFF33`。
-pub fn stage_border_argb(dark: bool) -> u32 {
-    if dark {
-        0x33FFFFFF
-    } else {
-        0x33000000
-    }
-}
-
-pub fn stage_stroke_px(dpr: f32) -> f32 {
-    let d = if dpr > 0.0 { dpr } else { 1.0 };
-    d.max(1.0)
-}
-
-pub fn argb_to_rgba(c: u32) -> [f32; 4] {
-    let v = if c == 0 { FALLBACK_SURFACE } else { c };
-    [
-        ((v >> 16) & 0xFF) as f32 / 255.0,
-        ((v >> 8) & 0xFF) as f32 / 255.0,
-        (v & 0xFF) as f32 / 255.0,
-        ((v >> 24) & 0xFF) as f32 / 255.0,
-    ]
-}
-
-pub fn stage_type_px(dpr: f32) -> (u32, u32, u32) {
-    let d = if dpr > 0.0 { dpr } else { 1.0 };
-    let px = |n: f32| (n * d).round().max(1.0) as u32;
-    (px(40.0), px(16.0), px(14.0))
-}
-
-pub fn host_corner_radius(fullscreen: bool, dpr: f32) -> u32 {
-    if fullscreen {
-        0
-    } else {
-        let d = if dpr > 0.0 { dpr } else { 1.0 };
-        (16.0 * d).round().max(0.0) as u32
-    }
-}
+use crate::mirror_present::stage::argb_to_rgba;
+pub use crate::mirror_present::stage::ChromeSpec;
 
 pub struct ChromePainter {
     d2d: ID2D1Factory,
@@ -194,7 +82,7 @@ impl ChromePainter {
         &self,
         context: &ID3D11DeviceContext,
         swapchain: &IDXGISwapChain1,
-        dest: super::scale::Letterbox,
+        dest: crate::mirror_present::scale::Letterbox,
         radius: u32,
         stroke_px: f32,
         border_argb: u32,
@@ -230,14 +118,9 @@ impl ChromePainter {
     }
 }
 
-fn argb(c: u32, fallback: u32) -> D2D1_COLOR_F {
-    let v = if c == 0 { fallback } else { c };
-    D2D1_COLOR_F {
-        r: ((v >> 16) & 0xFF) as f32 / 255.0,
-        g: ((v >> 8) & 0xFF) as f32 / 255.0,
-        b: (v & 0xFF) as f32 / 255.0,
-        a: ((v >> 24) & 0xFF) as f32 / 255.0,
-    }
+fn color(c: u32) -> D2D1_COLOR_F {
+    let [r, g, b, a] = argb_to_rgba(c);
+    D2D1_COLOR_F { r, g, b, a }
 }
 
 fn draw(
@@ -246,17 +129,17 @@ fn draw(
     size: D2D_SIZE_F,
     spec: &ChromeSpec<'_>,
 ) -> WinResult<()> {
-    let canvas = argb(spec.canvas_argb, FALLBACK_SURFACE);
-    let title_c = argb(spec.title_argb, FALLBACK_TITLE);
-    let body_c = argb(spec.body_argb, FALLBACK_BODY);
+    let canvas = color(spec.canvas_argb);
+    let title_c = color(spec.title_argb);
+    let body_c = color(spec.body_argb);
     unsafe {
         rt.Clear(Some(&canvas));
     }
     let w = size.width.max(1.0);
     let h = size.height.max(1.0);
-    let icon = spec.icon_px.max(40) as f32;
-    let title_px = spec.title_px.max(16) as f32;
-    let body_px = spec.body_px.max(14) as f32;
+    let icon = spec.icon_px as f32;
+    let title_px = spec.title_px as f32;
+    let body_px = spec.body_px as f32;
     let gap = (title_px * 0.75).max(8.0);
     let block = icon + gap + title_px + gap * 0.5 + body_px;
     let mut y = ((h - block) * 0.5).max(0.0);
@@ -280,24 +163,8 @@ fn draw(
     let body_fmt = text_format(dwrite, body_px, false)?;
     let title_brush = unsafe { rt.CreateSolidColorBrush(&title_c, None)? };
     let body_brush = unsafe { rt.CreateSolidColorBrush(&body_c, None)? };
-    let title = if spec.title.is_empty() {
-        match spec.mode {
-            MirrorStageMode::Loading => "启动中",
-            MirrorStageMode::Paused => "已暂停",
-            _ => "未开始",
-        }
-    } else {
-        spec.title
-    };
-    let desc = if spec.description.is_empty() {
-        match spec.mode {
-            MirrorStageMode::Loading => "正在推送 server 并建立隧道",
-            MirrorStageMode::Paused => "画面已隐藏，点击继续",
-            _ => "点击开始将画面嵌在此面板内",
-        }
-    } else {
-        spec.description
-    };
+    let title = spec.title;
+    let desc = spec.description;
 
     let title_rect = D2D_RECT_F {
         left: 16.0,
@@ -319,7 +186,7 @@ fn draw(
 
 fn stroke_frame(
     rt: &ID2D1RenderTarget,
-    dest: super::scale::Letterbox,
+    dest: crate::mirror_present::scale::Letterbox,
     radius: u32,
     stroke_px: f32,
     border_argb: u32,
@@ -329,8 +196,8 @@ fn stroke_frame(
     let top = dest.y as f32 + inset;
     let right = dest.x as f32 + dest.width as f32 - inset;
     let bottom = dest.y as f32 + dest.height as f32 - inset;
-    let color = argb(border_argb, 0x33000000);
-    let brush = unsafe { rt.CreateSolidColorBrush(&color, None)? };
+    let stroke_color = color(border_argb);
+    let brush = unsafe { rt.CreateSolidColorBrush(&stroke_color, None)? };
     let style = stroke_style(rt)?;
     let rr = D2D1_ROUNDED_RECT {
         rect: D2D_RECT_F {
@@ -482,17 +349,4 @@ fn stroke_style(
         dashOffset: 0.0,
     };
     unsafe { factory.CreateStrokeStyle(&props, None) }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn chrome_fill_uses_panel_surface_not_canvas() {
-        let (light, _, _) = stage_palette(false);
-        let (dark, _, _) = stage_palette(true);
-        assert_eq!(light, 0xFFFFFFFF);
-        assert_eq!(dark, 0xFF202224);
-    }
 }
