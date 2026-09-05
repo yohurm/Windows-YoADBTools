@@ -5,7 +5,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { LogBatch, LogLine } from "@yohu/api";
+import type { LogBatch, LogLine, SessionLogFile } from "@yohu/api";
 
 const mocks = vi.hoisted(() => ({
   logCaptureStart: vi.fn(),
@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
   logSessionFileAppend: vi.fn(async (..._a: unknown[]) => 0),
   logSessionFileClose: vi.fn(async (..._a: unknown[]) => "x.log"),
   logSessionFileLatest: vi.fn(async (..._a: unknown[]) => "x.log"),
-  logSessionFileList: vi.fn(async (..._a: unknown[]) => []),
+  logSessionFileList: vi.fn(async (..._a: unknown[]) => [] as SessionLogFile[]),
   logProcessSnapshot: vi.fn(),
   logBatchHandlers: [] as ((e: { batch: LogBatch }) => void)[],
   logOverflowHandlers: [] as ((e: { serial: string }) => void)[],
@@ -443,6 +443,19 @@ describe("logStore 批量事件管线（消费端过滤，ADR-v6-006）", () => 
     const result = await store.exportSession([]);
     expect(result).toBeNull();
     expect(mocks.logExport).not.toHaveBeenCalled();
+  });
+
+  it("listSessionFiles / latestSessionFile 走 sessionFile IPC", async () => {
+    const store = wiredStore();
+    const listed: SessionLogFile[] = [
+      { path: "a.log", serial: "S1", window_id: 1, name: "System", lines: 1, modified: "" },
+    ];
+    mocks.logSessionFileList.mockResolvedValueOnce(listed);
+    mocks.logSessionFileLatest.mockResolvedValueOnce("b.log");
+    await expect(store.listSessionFiles()).resolves.toEqual(listed);
+    await expect(store.latestSessionFile("S1", 1)).resolves.toBe("b.log");
+    expect(mocks.logSessionFileList).toHaveBeenCalled();
+    expect(mocks.logSessionFileLatest).toHaveBeenCalledWith("S1", 1);
   });
 
   it("重叠 start 闸门串行：首次 IPC，第二次已 capturing 则跳过", async () => {

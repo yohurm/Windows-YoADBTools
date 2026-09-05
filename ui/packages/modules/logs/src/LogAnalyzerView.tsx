@@ -6,7 +6,7 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, untrack } from "solid-js";
 
 import type { DeviceSession, LogWriteMode, SessionLogFile } from "@yohu/api";
-import { dialogSaveFile, errorText, logSessionFileLatest, logSessionFileList, systemOpenPath } from "@yohu/api";
+import { dialogSaveFile, errorText, systemOpenPath } from "@yohu/api";
 import {
   Icon,
   YoBadge,
@@ -316,7 +316,7 @@ export function LogAnalyzerView(props: DeviceSession) {
     try {
       // 导出方式：选择窗口文件 | 最新（默认）
       if (props.settings.export_mode === "select") {
-        const files = await logSessionFileList();
+        const files = await logStore.listSessionFiles();
         if (files.length === 0) {
           toaster.show("没有可导出的窗口日志文件", "info");
           return;
@@ -325,7 +325,7 @@ export function LogAnalyzerView(props: DeviceSession) {
         setExportOpen(true);
         return;
       }
-      const latest = await logSessionFileLatest(serial, id);
+      const latest = await logStore.latestSessionFile(serial, id);
       if (!latest) {
         toaster.show("当前窗口尚无日志文件（请先采集）", "info");
         return;

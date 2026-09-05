@@ -19,6 +19,8 @@ import {
   logExport,
   logProcessSnapshot,
   logReplay,
+  logSessionFileLatest,
+  logSessionFileList,
   onCaptureState,
   onDeviceOffline,
   onLogBatch,
@@ -27,7 +29,7 @@ import {
   onSettingsChanged,
   YoLog,
 } from "@yohu/api";
-import type { CaptureStatus, LogWriteMode, ProcessEntry } from "@yohu/api";
+import type { CaptureStatus, LogWriteMode, ProcessEntry, SessionLogFile } from "@yohu/api";
 
 import type { IngestApi } from "./ingest";
 import type { MirrorBank } from "./pipeline";
@@ -55,6 +57,8 @@ export type CaptureApi = {
   clearShared: () => Promise<void>;
   refreshProcesses: (serial?: string | null) => Promise<void>;
   exportSession: (sources: string[], path?: string) => Promise<string | null>;
+  listSessionFiles: () => Promise<SessionLogFile[]>;
+  latestSessionFile: (serial: string, windowId: number) => Promise<string | null>;
   closeSession: (id: number) => void;
   closeOthers: (id: number) => void;
   resumeFollow: (id: number) => void;
@@ -404,6 +408,14 @@ export function createCapture(
     return result.path;
   }
 
+  function listSessionFiles(): Promise<SessionLogFile[]> {
+    return logSessionFileList();
+  }
+
+  function latestSessionFile(serial: string, windowId: number): Promise<string | null> {
+    return logSessionFileLatest(serial, windowId);
+  }
+
   async function onOverflow(device: string): Promise<void> {
     setOverflowed(device, true);
     try {
@@ -476,6 +488,8 @@ export function createCapture(
     clearShared,
     refreshProcesses,
     exportSession,
+    listSessionFiles,
+    latestSessionFile,
     closeSession,
     closeOthers,
     resumeFollow: (id: number): void => {
