@@ -12,7 +12,7 @@
   → ADB reverse 或 forward（可 warmup 预挂）
   → yohu-mirror 解复用 + FramePipe（sticky last config；8 帧，先丢 delta；呈现线程直取）
   → 壳 MF 硬件 MFT（DXGI 设备管理器）→ D3D11 Video Processor
-  → 舞台透明洞内 contain 的 WS_CHILD HWND（占用卡片）
+  → 舞台透明洞内铺满 avail 的 WS_CHILD HWND（占用卡片 = DComp clip）
 ```
 
 core 零 Tauri：`FramePipe` 在 `yohu-mirror`；HWND / MF / D3D 只在 `yohu-adbtools`。
@@ -30,7 +30,7 @@ core 零 Tauri：`FramePipe` 在 `yohu-mirror`；HWND / MF / D3D 只在 `yohu-ad
 
 ## 呈现
 
-- 占用：舞台是透明洞，HWND 是占用卡片并按画面 contain（ADR-v6-027）。HWND 是主窗 **WS_CHILD**。UI 只报 `.yohu-mirror__avail` 客户区物理矩形；会话中壳用 FramePipe 编码尺寸 `contain_in_zone`，idle 铺满 avail。拖动由 USER32 带着走。主窗最小 1024×768（`Layout.WindowMin*`），保证竖屏 contain 短边 ≥280 CSS。禁止运行时 UI `containInZone`、禁止 CSS 占用宽高过渡、禁止 HWND lerp
+- 占用：舞台是透明洞，HWND 铺满 avail；可见占用卡片是 DirectComposition clip，按画面 contain（ADR-v6-027）。HWND 是主窗 **WS_CHILD**。UI 只报 `.yohu-mirror__avail` 客户区物理矩形；会话中壳用 FramePipe 编码尺寸把 clip 收到 `contain_in_zone`，idle clip 铺满 HWND。fill↔contain 走 `IDCompositionAnimation`（300ms 标准曲线），主窗改尺寸瞬时跟 HWND。拖动由 USER32 带着走。主窗最小 1024×768（`Layout.WindowMin*`），保证竖屏 contain 短边 ≥280 CSS。禁止运行时 UI `containInZone`、禁止 CSS 占用宽高过渡、禁止用 `SetWindowPos` 改子窗尺寸做占用过渡
 - `mirror.layout`：客户区物理像素 `{x,y,w,h,visible,…}` + 会话旗标 `{dpr,fullscreen,paused,control,has_device,failed,error,dark}`。报稳定 avail 格子，不是 contain 目标，不是视觉插值盒。禁止 `video_width` / `stroke_px`。编码尺寸只来自 FramePipe；present 在 stop 后保留上次尺寸
 - 整数倍（误差 &lt; 1%）吸附后最近邻；否则由 D3D11 Video Processor 缩放
 - 拖拽主窗：子窗自动跟；改尺寸在 owner `WM_WINDOWPOSCHANGING` 瞬时跟盒。侧栏每帧跟住。面板内全屏只藏操作栏/功能栏，页眉可点，Esc 退出。呈现线程跟子窗尺寸 `ResizeBuffers`；禁止 `SetWindowPos`；`SetWindowPos` 禁止 `SWP_NOCOPYBITS`
