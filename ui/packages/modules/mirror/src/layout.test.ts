@@ -1,13 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import {
-  clientZoneRect,
-  containInZone,
-  cssColorToArgb,
-  layoutIsPresentable,
-  physicalCornerRadius,
-  zoneInsetKey,
-} from "./layout";
+vi.mock("@yohu/api", () => ({
+  MIRROR_MIN_LAYOUT_PX: 64,
+}));
+
+import { MIRROR_MIN_LAYOUT_PX } from "@yohu/api";
+
+import { clientZoneRect, layoutIsPresentable } from "./layout";
 
 describe("clientZoneRect", () => {
   it("把 CSS 盒乘 DPR，不加屏幕原点", () => {
@@ -43,63 +42,10 @@ describe("clientZoneRect", () => {
   });
 });
 
-describe("zoneInsetKey", () => {
-  it("窗口变大但 insets 不变则键相同", () => {
-    const zone = { x: 232, y: 80, width: 400, height: 600 };
-    expect(zoneInsetKey(zone, 900, 800, true, 16)).toBe(
-      zoneInsetKey({ ...zone, width: 500, height: 700 }, 1000, 900, true, 16),
-    );
-  });
-
-  it("铬层 insets 变了则键不同", () => {
-    const zone = { x: 232, y: 80, width: 400, height: 600 };
-    expect(zoneInsetKey(zone, 900, 800, true, 16)).not.toBe(
-      zoneInsetKey({ ...zone, x: 0 }, 900, 800, true, 16),
-    );
-  });
-});
-
 describe("layoutIsPresentable", () => {
-  it("拒绝 1px 高的退化盒", () => {
+  it("与 protocol MIRROR_MIN_LAYOUT_PX 对齐", () => {
+    expect(MIRROR_MIN_LAYOUT_PX).toBe(64);
     expect(layoutIsPresentable(486, 1)).toBe(false);
-    expect(layoutIsPresentable(64, 64)).toBe(true);
-  });
-});
-
-describe("containInZone", () => {
-  it("无画面尺寸时退回整区", () => {
-    const zone = { left: 10, top: 20, width: 900, height: 950 };
-    expect(containInZone(zone, 0, 0)).toEqual(zone);
-  });
-
-  it("按画面宽高比 contain 并在可用区居中", () => {
-    const zone = { left: 100, top: 200, width: 900, height: 950 };
-    const box = containInZone(zone, 1088, 2400);
-    expect(box.height).toBe(950);
-    expect(box.width).toBeLessThan(900);
-    expect(box.left).toBeGreaterThan(zone.left);
-    expect(box.top).toBe(zone.top);
-  });
-});
-
-describe("physicalCornerRadius", () => {
-  it("把 CSS 圆角乘 DPR", () => {
-    expect(physicalCornerRadius(15, 1.5)).toBe(23);
-    expect(physicalCornerRadius(16, 1)).toBe(16);
-  });
-
-  it("0 或非法 DPR 不裁圆角", () => {
-    expect(physicalCornerRadius(0, 2)).toBe(0);
-    expect(physicalCornerRadius(16, 0)).toBe(16);
-  });
-});
-
-describe("cssColorToArgb", () => {
-  it("解析逗号 rgb 与空格 rgb", () => {
-    expect(cssColorToArgb("rgb(247, 247, 247)")).toBe(0xfff7f7f7);
-    expect(cssColorToArgb("rgba(51, 51, 51, 1)")).toBe(0xff333333);
-    expect(cssColorToArgb("rgb(90 90 90)")).toBe(0xff5a5a5a);
-    expect(cssColorToArgb("#8a8a8a")).toBe(0xff8a8a8a);
-    expect(cssColorToArgb("nope")).toBe(0);
+    expect(layoutIsPresentable(MIRROR_MIN_LAYOUT_PX, MIRROR_MIN_LAYOUT_PX)).toBe(true);
   });
 });

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   mirrorCloseControl: vi.fn(),
   mirrorLayout: vi.fn(),
   mirrorScreenshot: vi.fn(),
+  deviceSetNightMode: vi.fn(),
   settingsSet: vi.fn(),
   dialogSaveFile: vi.fn(),
   stateHandlers: [] as ((e: {
@@ -38,6 +39,7 @@ vi.mock("@yohu/api", () => ({
   mirrorCloseControl: (...a: unknown[]) => mocks.mirrorCloseControl(...a),
   mirrorLayout: (...a: unknown[]) => mocks.mirrorLayout(...a),
   mirrorScreenshot: (...a: unknown[]) => mocks.mirrorScreenshot(...a),
+  deviceSetNightMode: (...a: unknown[]) => mocks.deviceSetNightMode(...a),
   settingsSet: (...a: unknown[]) => mocks.settingsSet(...a),
   dialogSaveFile: (...a: unknown[]) => mocks.dialogSaveFile(...a),
   onMirrorState: (h: (typeof mocks.stateHandlers)[0]) => {
@@ -62,6 +64,7 @@ describe("mirror store", () => {
     mocks.mirrorLayout.mockReset();
     mocks.mirrorLayout.mockResolvedValue(undefined);
     mocks.mirrorScreenshot.mockReset();
+    mocks.deviceSetNightMode.mockReset();
     mocks.settingsSet.mockReset();
     mocks.dialogSaveFile.mockReset();
     mocks.settingsSet.mockResolvedValue({
@@ -357,6 +360,14 @@ describe("mirror store", () => {
     expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("video_height");
     expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("stroke_px");
     expect(mocks.mirrorLayout.mock.calls[0]?.[0]).not.toHaveProperty("corner_radius");
+  });
+
+  it("setDeviceNight 走 device.setNightMode", async () => {
+    const { createMirrorStore } = await import("./store");
+    const store = createMirrorStore();
+    mocks.deviceSetNightMode.mockResolvedValue({ serial: "S1", night: true });
+    await store.setDeviceNight("S1", true);
+    expect(mocks.deviceSetNightMode).toHaveBeenCalledWith("S1", true);
   });
 
   it("停止保留编码尺寸", async () => {

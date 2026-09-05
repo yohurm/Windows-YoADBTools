@@ -3,7 +3,7 @@
  */
 
 import { For, createEffect, createSignal, onCleanup, onMount } from "solid-js";
-import { errorText, deviceSetNightMode, type DeviceSession } from "@yohu/api";
+import { errorText, type DeviceSession } from "@yohu/api";
 import {
   Layout,
   YoButton,
@@ -136,7 +136,7 @@ export function MirrorView(props: DeviceSession) {
       const hasDevice = props.selectedSerials.length > 0;
       const failed = phase === "failed";
       const error = mirrorStore.state.error ?? "";
-      const dark = document.documentElement.getAttribute("data-theme") === "dark";
+      const dark = deviceNight() === true;
       const fullscreen = mirrorStore.state.fullscreen;
       const paused = mirrorStore.state.paused;
       const insetKey = `${props.selectedSerials[0] ?? ""},${rect.x},${rect.y},${rect.width}x${rect.height},v=${visibleNow},dpr=${dpr},f=${fullscreen},p=${paused},c=${control},dev=${hasDevice},fail=${failed},e=${error},dark=${dark}`;
@@ -221,6 +221,7 @@ export function MirrorView(props: DeviceSession) {
     const _ctrl = mirrorStore.state.control;
     const _err = mirrorStore.state.error;
     const _serial = props.selectedSerials[0];
+    const _night = deviceNight();
     void _phase;
     void _paused;
     void _full;
@@ -229,6 +230,7 @@ export function MirrorView(props: DeviceSession) {
     void _ctrl;
     void _err;
     void _serial;
+    void _night;
     pushLayout(document.visibilityState === "visible");
   });
 
@@ -251,7 +253,7 @@ export function MirrorView(props: DeviceSession) {
     const next = !current;
     setPendingNight(next);
     try {
-      await deviceSetNightMode(serial, next);
+      await mirrorStore.setDeviceNight(serial, next);
     } catch (e) {
       setPendingNight(null);
       toaster.show(`切换设备深浅色失败: ${ipcMessage(e)}`, "error");

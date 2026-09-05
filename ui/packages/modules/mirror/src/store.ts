@@ -7,6 +7,7 @@ import {
   APP_SETTINGS_DEFAULT,
   dialogSaveFile,
   errorText,
+  deviceSetNightMode,
   mirrorCloseControl,
   mirrorInject,
   mirrorLayout,
@@ -227,6 +228,10 @@ export function createMirrorStore() {
     await start();
   }
 
+  async function setDeviceNight(serial: string, night: boolean): Promise<void> {
+    await deviceSetNightMode(serial, night);
+  }
+
   async function persistQuality(
     key: Extract<
       SettingKey,
@@ -357,6 +362,7 @@ export function createMirrorStore() {
     setReadOnly,
     persistQuality,
     saveScreenshot,
+    setDeviceNight,
     syncLayout,
     setPaused: (paused: boolean) => setState("paused", paused),
     setFullscreen: (fullscreen: boolean) => setState("fullscreen", fullscreen),
