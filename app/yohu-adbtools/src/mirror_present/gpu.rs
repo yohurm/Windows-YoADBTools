@@ -3,6 +3,7 @@
 #![cfg(windows)]
 
 use std::mem::ManuallyDrop;
+use std::time::Instant;
 
 use windows::core::{s, Interface, Result as WinResult};
 use windows::Win32::Foundation::{HWND, RECT};
@@ -30,8 +31,8 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_VPIV_DIMENSION_TEXTURE2D, D3D11_VPOV_DIMENSION_TEXTURE2D,
 };
 use windows::Win32::Graphics::DirectComposition::{
-    DCompositionCreateDevice, IDCompositionDevice, IDCompositionRectangleClip, IDCompositionTarget,
-    IDCompositionVisual,
+    DCompositionCreateDevice, IDCompositionAnimation, IDCompositionDevice, IDCompositionRectangleClip,
+    IDCompositionTarget, IDCompositionVisual,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
@@ -47,7 +48,7 @@ use windows::Win32::Graphics::Dxgi::{
 use windows::Win32::Media::MediaFoundation::{IMFDXGIDeviceManager, MFCreateDXGIDeviceManager};
 
 use super::chrome::{argb_to_rgba, ChromePainter, ChromeSpec};
-use super::scale::Letterbox;
+use super::scale::{Letterbox, SPATIAL_PANEL_MS};
 
 const VS: &str = r#"
 struct VSOut { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
@@ -110,14 +111,19 @@ pub struct Gpu {
     panel_r: u32,
     panel_stroke: f32,
     panel_border: u32,
+    occupancy_dest: Letterbox,
 }
 
-/// Flip 交换链不能走 GDI `SetWindowRgn`（DWM 会出黑窗）。圆角裁在 DComp visual 上。
+/// Flip 交换链不能走 GDI `SetWindowRgn`（DWM 会出黑窗）。圆角与占用盒裁在 DComp visual 上。
 struct DcompTree {
     device: IDCompositionDevice,
     _target: IDCompositionTarget,
     _visual: IDCompositionVisual,
     clip: IDCompositionRectangleClip,
+    clip_from: (f32, f32, f32, f32),
+    clip_to: (f32, f32, f32, f32),
+    clip_radius: f32,
+    clip_anim_at: Option<Instant>,
 }
 
 impl Gpu {
@@ -202,6 +208,13 @@ impl Gpu {
             panel_r: 0,
             panel_stroke: 0.0,
             panel_border: 0,
+            occupancy_dest: Letterbox {
+                x: 0,
+                y: 0,
+                width,
+                height,
+                nearest: false,
+            },
         };
         gpu.bind_backbuffer()?;
         Ok(gpu)
@@ -243,7 +256,7 @@ impl Gpu {
             return Err(windows::core::Error::from_win32());
         };
         painter.present(&self.context, &self.swapchain, spec)?;
-        self.present_with_hairline()
+        self.present_with_hairline(self.occupancy_dest)
     }
 
     pub fn dxgi_manager(&self) -> Option<IMFDXGIDeviceManager> {
@@ -281,8 +294,7 @@ impl Gpu {
         }
         self.rtv = None;
         self.compose = None;
-        self.vp_enum = None;
-        self.processor = None;
+        // Video Processor 跟输入尺寸走。avail 变化才会走到这里；不要拆 enumerator。
         unsafe {
             self.swapchain.ResizeBuffers(
                 0,
@@ -298,8 +310,38 @@ impl Gpu {
         Ok(())
     }
 
-    pub fn clip_host(&mut self, width: u32, height: u32, radius: u32) -> WinResult<()> {
-        apply_rounded_clip(&self.dcomp, even_px(width), even_px(height), radius)
+    /// 占用卡片 = DComp rectangle clip。HWND / 交换链保持 avail 尺寸。
+    /// `animate` 时由 composition 线程按 spatial-panel 时长跑；目标未变则不 `Commit` 新动画
+    ///（再次 SetLeft(animation) 会替换正在跑的 clip，见 IDCompositionRectangleClip）。
+    pub fn set_occupancy_clip(
+        &mut self,
+        x: i32,
+        y: i32,
+        w: u32,
+        h: u32,
+        radius: u32,
+        animate: bool,
+    ) -> WinResult<bool> {
+        self.occupancy_dest = Letterbox {
+            x,
+            y,
+            width: w.max(1),
+            height: h.max(1),
+            nearest: false,
+        };
+        let left = x.max(0) as f32;
+        let top = y.max(0) as f32;
+        let right = left + w.max(1) as f32;
+        let bottom = top + h.max(1) as f32;
+        apply_occupancy_clip(
+            &mut self.dcomp,
+            left,
+            top,
+            right,
+            bottom,
+            radius,
+            animate,
+        )
     }
 
     pub fn present_cpu_nv12(
@@ -312,7 +354,7 @@ impl Gpu {
         if self.vp_ok && self.blit_cpu_vp(width, height, nv12, dest).is_ok() {
             self.last_cpu = Some(nv12.to_vec());
             self.last_video = None;
-            return self.present_with_hairline();
+            return self.present_with_hairline(dest);
         }
         if self.vp_ok {
             self.vp_ok = false;
@@ -322,7 +364,7 @@ impl Gpu {
         self.draw_shader(dest)?;
         self.last_cpu = Some(nv12.to_vec());
         self.last_video = None;
-        self.present_with_hairline()
+        self.present_with_hairline(dest)
     }
 
     pub fn present_gpu_nv12(
@@ -346,11 +388,10 @@ impl Gpu {
                 Ok(()) => {
                     self.last_cpu = None;
                     self.last_video = Some((texture.clone(), subresource));
-                    return self.present_with_hairline();
+                    return self.present_with_hairline(dest);
                 }
                 Err(e) => {
-                    self.vp_ok = false;
-                    tracing::warn!(error = %e, "Video Processor 出画失败，改 staging+shader");
+                    tracing::debug!(error = %e, "Video Processor 本帧失败，改 staging+shader");
                 }
             }
         }
@@ -366,7 +407,26 @@ impl Gpu {
         self.draw_shader(dest)?;
         self.last_cpu = Some(nv12);
         self.last_video = None;
-        self.present_with_hairline()
+        self.present_with_hairline(dest)
+    }
+
+    /// ResizeBuffers 之后立刻把上一帧按新 letterbox 画回去。
+    /// 禁止让 DXGI_SCALING_STRETCH 把旧回缓冲拉扁冒充占用过渡。
+    pub fn replay_last(&mut self, dest: Letterbox) -> WinResult<bool> {
+        if let Some((texture, subresource)) = self.last_video.clone() {
+            self.present_gpu_nv12(&texture, subresource, dest)?;
+            return Ok(true);
+        }
+        let Some(nv12) = self.last_cpu.clone() else {
+            return Ok(false);
+        };
+        let width = self.video_w;
+        let height = self.video_h;
+        if width == 0 || height == 0 {
+            return Ok(false);
+        }
+        self.present_cpu_nv12(width, height, &nv12, dest)?;
+        Ok(true)
     }
 
     fn blit_cpu_vp(
@@ -538,8 +598,10 @@ impl Gpu {
                 Numerator: 60,
                 Denominator: 1,
             },
-            OutputWidth: self.buf_w.max(1),
-            OutputHeight: self.buf_h.max(1),
+            // 输出矩形每帧用 SetOutputTargetRect 收口到当前 HWND。枚举器给足上限，
+            // 避免占用过渡时跟 compose 一起重建。
+            OutputWidth: 4096,
+            OutputHeight: 4096,
             Usage: D3D11_VIDEO_USAGE_PLAYBACK_NORMAL,
         };
         let enumerator = unsafe { video_device.CreateVideoProcessorEnumerator(&desc)? };
@@ -709,8 +771,9 @@ impl Gpu {
         Ok(())
     }
 
-    fn present_with_hairline(&mut self) -> WinResult<()> {
-        if self.panel_stroke > 0.0 && self.panel_border != 0 {
+    fn present_with_hairline(&mut self, dest: Letterbox) -> WinResult<()> {
+        // clip 动画期间边由 DWM 裁；CPU 描边会和 composition 时钟抢边。
+        if self.panel_stroke > 0.0 && self.panel_border != 0 && !clip_animating(&self.dcomp) {
             if self.chrome.is_none() {
                 self.chrome = Some(ChromePainter::new()?);
             }
@@ -718,6 +781,7 @@ impl Gpu {
                 painter.stroke(
                     &self.context,
                     &self.swapchain,
+                    dest,
                     self.panel_r,
                     self.panel_stroke,
                     self.panel_border,
@@ -797,36 +861,170 @@ fn attach_dcomp(
         visual.SetClip(&clip)?;
         target.SetRoot(&visual)?;
     }
-    let tree = DcompTree {
+    let mut tree = DcompTree {
         device,
         _target: target,
         _visual: visual,
         clip,
+        clip_from: (-1.0, -1.0, -1.0, -1.0),
+        clip_to: (-1.0, -1.0, -1.0, -1.0),
+        clip_radius: -1.0,
+        clip_anim_at: None,
     };
-    apply_rounded_clip(&tree, width, height, radius)?;
+    apply_occupancy_clip(
+        &mut tree,
+        0.0,
+        0.0,
+        width.max(1) as f32,
+        height.max(1) as f32,
+        radius,
+        false,
+    )?;
     Ok(tree)
 }
 
-fn apply_rounded_clip(tree: &DcompTree, width: u32, height: u32, radius: u32) -> WinResult<()> {
-    let w = width.max(1) as f32;
-    let h = height.max(1) as f32;
-    let r = radius as f32;
+fn clip_close(a: (f32, f32, f32, f32), b: (f32, f32, f32, f32)) -> bool {
+    (a.0 - b.0).abs() < 0.5
+        && (a.1 - b.1).abs() < 0.5
+        && (a.2 - b.2).abs() < 0.5
+        && (a.3 - b.3).abs() < 0.5
+}
+
+/// 与 `AddCubic` 的 3t²−2t³ 同式，打断时才能采样到 composition 正在跑的值。
+fn clip_smoothstep(u: f32) -> f32 {
+    let s = u.clamp(0.0, 1.0);
+    s * s * (3.0 - 2.0 * s)
+}
+
+fn clip_progress(tree: &DcompTree) -> Option<f32> {
+    let at = tree.clip_anim_at?;
+    let u = (at.elapsed().as_secs_f32() / (SPATIAL_PANEL_MS as f32 / 1000.0)).clamp(0.0, 1.0);
+    Some(u)
+}
+
+fn clip_animating(tree: &DcompTree) -> bool {
+    clip_progress(tree).is_some_and(|u| u < 1.0)
+}
+
+fn clip_now(tree: &DcompTree) -> (f32, f32, f32, f32) {
+    let Some(u) = clip_progress(tree) else {
+        return tree.clip_to;
+    };
+    if u >= 1.0 {
+        return tree.clip_to;
+    }
+    let e = clip_smoothstep(u);
+    let (fl, ft, fr, fb) = tree.clip_from;
+    let (tl, tt, tr, tb) = tree.clip_to;
+    (
+        fl + (tl - fl) * e,
+        ft + (tt - ft) * e,
+        fr + (tr - fr) * e,
+        fb + (tb - fb) * e,
+    )
+}
+
+fn animate_scalar(
+    device: &IDCompositionDevice,
+    from: f32,
+    to: f32,
+) -> WinResult<IDCompositionAnimation> {
+    let dur = SPATIAL_PANEL_MS as f32 / 1000.0;
+    let delta = to - from;
+    let t2 = dur * dur;
+    let t3 = t2 * dur;
+    let anim = unsafe { device.CreateAnimation()? };
     unsafe {
-        tree.clip.SetLeft2(0.0)?;
-        tree.clip.SetTop2(0.0)?;
-        tree.clip.SetRight2(w)?;
-        tree.clip.SetBottom2(h)?;
-        tree.clip.SetTopLeftRadiusX2(r)?;
-        tree.clip.SetTopLeftRadiusY2(r)?;
-        tree.clip.SetTopRightRadiusX2(r)?;
-        tree.clip.SetTopRightRadiusY2(r)?;
-        tree.clip.SetBottomLeftRadiusX2(r)?;
-        tree.clip.SetBottomLeftRadiusY2(r)?;
-        tree.clip.SetBottomRightRadiusX2(r)?;
-        tree.clip.SetBottomRightRadiusY2(r)?;
-        tree.device.Commit()?;
+        // x(t) = a t³ + b t² + c t + d，t 为秒。零端点斜率 = smoothstep。
+        anim.AddCubic(0.0, from, 0.0, 3.0 * delta / t2, -2.0 * delta / t3)?;
+        anim.End(dur as f64, to)?;
+    }
+    Ok(anim)
+}
+
+fn apply_clip_radius(clip: &IDCompositionRectangleClip, r: f32) -> WinResult<()> {
+    unsafe {
+        clip.SetTopLeftRadiusX2(r)?;
+        clip.SetTopLeftRadiusY2(r)?;
+        clip.SetTopRightRadiusX2(r)?;
+        clip.SetTopRightRadiusY2(r)?;
+        clip.SetBottomLeftRadiusX2(r)?;
+        clip.SetBottomLeftRadiusY2(r)?;
+        clip.SetBottomRightRadiusX2(r)?;
+        clip.SetBottomRightRadiusY2(r)?;
     }
     Ok(())
+}
+
+fn apply_occupancy_clip(
+    tree: &mut DcompTree,
+    left: f32,
+    top: f32,
+    right: f32,
+    bottom: f32,
+    radius: u32,
+    animate: bool,
+) -> WinResult<bool> {
+    let to = (left, top, right, bottom);
+    let r = radius as f32;
+    let radius_changed = (tree.clip_radius - r).abs() >= 0.5;
+    if clip_close(to, tree.clip_to) {
+        if clip_animating(tree) {
+            if radius_changed {
+                apply_clip_radius(&tree.clip, r)?;
+                tree.clip_radius = r;
+                unsafe {
+                    tree.device.Commit()?;
+                }
+            }
+            return Ok(false);
+        }
+        if !radius_changed {
+            return Ok(false);
+        }
+        apply_clip_radius(&tree.clip, r)?;
+        tree.clip_radius = r;
+        unsafe {
+            tree.device.Commit()?;
+        }
+        return Ok(false);
+    }
+
+    let from = clip_now(tree);
+    apply_clip_radius(&tree.clip, r)?;
+    tree.clip_radius = r;
+    unsafe {
+        if animate && !clip_close(from, to) {
+            let left_a = animate_scalar(&tree.device, from.0, to.0)?;
+            let top_a = animate_scalar(&tree.device, from.1, to.1)?;
+            let right_a = animate_scalar(&tree.device, from.2, to.2)?;
+            let bottom_a = animate_scalar(&tree.device, from.3, to.3)?;
+            tree.clip.SetLeft(&left_a)?;
+            tree.clip.SetTop(&top_a)?;
+            tree.clip.SetRight(&right_a)?;
+            tree.clip.SetBottom(&bottom_a)?;
+            tree.clip_from = from;
+            tree.clip_to = to;
+            tree.clip_anim_at = Some(Instant::now());
+            tracing::info!(
+                left = to.0,
+                top = to.1,
+                right = to.2,
+                bottom = to.3,
+                "占用盒 DComp clip spatial-panel"
+            );
+        } else {
+            tree.clip.SetLeft2(left)?;
+            tree.clip.SetTop2(top)?;
+            tree.clip.SetRight2(right)?;
+            tree.clip.SetBottom2(bottom)?;
+            tree.clip_from = to;
+            tree.clip_to = to;
+            tree.clip_anim_at = None;
+        }
+        tree.device.Commit()?;
+    }
+    Ok(true)
 }
 
 fn destage_nv12(

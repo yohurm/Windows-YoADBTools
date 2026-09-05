@@ -194,6 +194,7 @@ impl ChromePainter {
         &self,
         context: &ID3D11DeviceContext,
         swapchain: &IDXGISwapChain1,
+        dest: super::scale::Letterbox,
         radius: u32,
         stroke_px: f32,
         border_argb: u32,
@@ -221,8 +222,7 @@ impl ChromePainter {
         unsafe {
             rt.BeginDraw();
         }
-        let size = unsafe { rt.GetSize() };
-        stroke_frame(&rt, size, radius, stroke_px, border_argb)?;
+        stroke_frame(&rt, dest, radius, stroke_px, border_argb)?;
         unsafe {
             rt.EndDraw(None, None)?;
         }
@@ -319,23 +319,25 @@ fn draw(
 
 fn stroke_frame(
     rt: &ID2D1RenderTarget,
-    size: D2D_SIZE_F,
+    dest: super::scale::Letterbox,
     radius: u32,
     stroke_px: f32,
     border_argb: u32,
 ) -> WinResult<()> {
-    let w = size.width.max(1.0);
-    let h = size.height.max(1.0);
     let inset = (stroke_px * 0.5).max(0.5);
+    let left = dest.x as f32 + inset;
+    let top = dest.y as f32 + inset;
+    let right = dest.x as f32 + dest.width as f32 - inset;
+    let bottom = dest.y as f32 + dest.height as f32 - inset;
     let color = argb(border_argb, 0x33000000);
     let brush = unsafe { rt.CreateSolidColorBrush(&color, None)? };
     let style = stroke_style(rt)?;
     let rr = D2D1_ROUNDED_RECT {
         rect: D2D_RECT_F {
-            left: inset,
-            top: inset,
-            right: (w - inset).max(inset + 1.0),
-            bottom: (h - inset).max(inset + 1.0),
+            left,
+            top,
+            right: right.max(left + 1.0),
+            bottom: bottom.max(top + 1.0),
         },
         radiusX: radius as f32,
         radiusY: radius as f32,

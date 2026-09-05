@@ -1,9 +1,10 @@
-//! 投屏 HWND 的几何：UI 报稳定可用区，壳按画面 contain 占用盒。
+//! 投屏 HWND 几何：铺满舞台 avail。占用卡片由 DComp clip 裁，不改 HWND 尺寸。
 //!
 //! HWND 是主窗的 **WS_CHILD**。拖动主窗由 USER32 带着走。
-//! WebView 舞台是透明洞；可见卡片是 HWND（contain 时左右边框贴合画面）。
-//! 无 HWND lerp / `SetTimer`，无 CSS 锁步。呈现线程跟子窗尺寸立刻 `ResizeBuffers`；
-//! 本模块只 `SetWindowPos`。禁止 `SWP_NOCOPYBITS`；跨线程用 `SWP_ASYNCWINDOWPOS`。
+//! WebView 舞台是透明洞。可见卡片是 composition clip（圆角 + 描边），不是窗口外框。
+//! `CreateSwapChainForComposition` 强制 `DXGI_SCALING_STRETCH`：禁止用 `SetWindowPos`
+//! 改子窗尺寸冒充占用过渡（DWM 会拉扁上一帧）。fill↔contain 走 `IDCompositionAnimation`。
+//! 本模块只在 avail / 主窗尺寸变化时 `SetWindowPos`。禁止 `SWP_NOCOPYBITS`；跨线程 `SWP_ASYNCWINDOWPOS`。
 
 #![cfg(windows)]
 
@@ -18,8 +19,6 @@ use windows::Win32::UI::WindowsAndMessaging::{
     WM_NCDESTROY, WM_WINDOWPOSCHANGING,
 };
 
-use super::scale::hwnd_in_avail;
-
 const SUBCLASS_ID: usize = 0x594F4855;
 const WM_LAYOUT: u32 = WM_APP + 0x4D;
 const MIN_LAYOUT_PX: u32 = 64;
@@ -31,9 +30,6 @@ struct Slot {
     inset_t: i32,
     inset_r: i32,
     inset_b: i32,
-    video_w: u32,
-    video_h: u32,
-    session: bool,
     visible: bool,
     has_cur: bool,
     cur_x: i32,
@@ -109,7 +105,7 @@ impl GeomHost {
             .remove(serial);
     }
 
-    /// 可用区相对主窗客户区的物理矩形；HWND 按会话编码尺寸 contain。
+    /// 可用区相对主窗客户区。HWND 始终铺满该区；占用 contain 不在这里改尺寸。
     pub fn set_occupancy(
         &self,
         serial: &str,
@@ -118,9 +114,6 @@ impl GeomHost {
         width: u32,
         height: u32,
         visible: bool,
-        video_w: u32,
-        video_h: u32,
-        session: bool,
     ) {
         let mut g = self.inner.lock().expect("geom lock poisoned");
         let owner = g.owner;
@@ -128,9 +121,6 @@ impl GeomHost {
             return;
         };
         slot.visible = visible;
-        slot.video_w = video_w;
-        slot.video_h = video_h;
-        slot.session = session;
         if let Some((cw, ch)) = client_size(owner) {
             slot.inset_l = x.max(0);
             slot.inset_t = y.max(0);
@@ -150,9 +140,6 @@ impl Slot {
             inset_t: 0,
             inset_r: 0,
             inset_b: 0,
-            video_w: 0,
-            video_h: 0,
-            session: false,
             visible: false,
             has_cur: false,
             cur_x: 0,
@@ -212,24 +199,26 @@ enum PlaceCmd {
 }
 
 fn place_all(host: &GeomHost, client_w: u32, client_h: u32) {
-    // HWND 在呈现线程。持锁跨 SetWindowPos（跨线程 SendMessage）会和
-    // present 里 with_state → geom.lock 互锁，主窗直接「未响应」。
     let mut g = host.inner.lock().expect("geom lock poisoned");
     let keys: Vec<String> = g.slots.keys().cloned().collect();
     let mut cmds = Vec::with_capacity(keys.len());
+    let mut logs = Vec::new();
     for k in keys {
         let Some(mut slot) = g.slots.get(&k).copied() else {
             continue;
         };
         if let Some(cmd) = step_slot(&mut slot, client_w, client_h) {
-            if let PlaceCmd::Pos { x, y, w, h, .. } = &cmd {
-                tracing::info!(serial = %k, x, y, w, h, "HWND 放置");
+            if let PlaceCmd::Pos { x, y, w, h, .. } = cmd {
+                logs.push((k.clone(), x, y, w, h));
             }
             cmds.push(cmd);
         }
         g.slots.insert(k, slot);
     }
     drop(g);
+    for (serial, x, y, w, h) in logs {
+        tracing::info!(serial = %serial, x, y, w, h, "HWND 铺满 avail");
+    }
     for cmd in cmds {
         match cmd {
             PlaceCmd::Hide(hwnd) => unsafe {
@@ -253,11 +242,7 @@ fn target_rect(slot: &Slot, client_w: u32, client_h: u32) -> Option<(i32, i32, u
     if zone_w < MIN_LAYOUT_PX || zone_h < MIN_LAYOUT_PX {
         return None;
     }
-    let (dx, dy, w, h) = hwnd_in_avail(zone_w, zone_h, slot.video_w, slot.video_h, slot.session);
-    if w < MIN_LAYOUT_PX || h < MIN_LAYOUT_PX {
-        return None;
-    }
-    Some((slot.inset_l + dx, slot.inset_t + dy, w, h))
+    Some((slot.inset_l, slot.inset_t, zone_w, zone_h))
 }
 
 fn step_slot(slot: &mut Slot, client_w: u32, client_h: u32) -> Option<PlaceCmd> {
@@ -266,37 +251,29 @@ fn step_slot(slot: &mut Slot, client_w: u32, client_h: u32) -> Option<PlaceCmd> 
         return None;
     }
     let hwnd = slot.hwnd;
-    let Some((tx, ty, tw, th)) = target_rect(slot, client_w, client_h) else {
+    let Some((x, y, w, h)) = target_rect(slot, client_w, client_h) else {
         slot.has_cur = false;
         return Some(PlaceCmd::Hide(hwnd));
     };
     let same = slot.has_cur
-        && slot.cur_x == tx
-        && slot.cur_y == ty
-        && slot.cur_w == tw
-        && slot.cur_h == th;
+        && slot.cur_x == x
+        && slot.cur_y == y
+        && slot.cur_w == w
+        && slot.cur_h == h;
     slot.has_cur = true;
-    slot.cur_x = tx;
-    slot.cur_y = ty;
-    slot.cur_w = tw;
-    slot.cur_h = th;
+    slot.cur_x = x;
+    slot.cur_y = y;
+    slot.cur_w = w;
+    slot.cur_h = h;
     if same {
         None
     } else {
-        Some(PlaceCmd::Pos {
-            hwnd,
-            x: tx,
-            y: ty,
-            w: tw,
-            h: th,
-        })
+        Some(PlaceCmd::Pos { hwnd, x, y, w, h })
     }
 }
 
 fn apply_pos(hwnd: HWND, x: i32, y: i32, w: u32, h: u32) {
     unsafe {
-        // 禁止 SWP_NOCOPYBITS：丢位会打断 DXGI_SCALING_STRETCH。
-        // SWP_ASYNCWINDOWPOS：子窗在呈现线程，禁止 UI 线程 SendMessage 等它泵消息。
         let _ = SetWindowPos(
             hwnd,
             Some(HWND_TOP),

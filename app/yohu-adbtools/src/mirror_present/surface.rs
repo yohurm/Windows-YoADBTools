@@ -1,7 +1,7 @@
 //! 主窗 WS_CHILD + 消息循环：解码 / 输入 / Present。几何由 `follow` 持有。
 //!
-//! UI 报稳定可用区；壳 `place_occupancy` 按 session + 编码尺寸 contain HWND。
-//! 无 HWND lerp，无 CSS 锁步。宿主尺寸变化立刻 `ResizeBuffers`。
+//! UI 报稳定可用区；HWND 铺满 avail。占用卡片是 DComp clip。
+//! 占用 fill↔contain 走 `IDCompositionAnimation`。禁止 CSS 锁步。avail 变化才 `ResizeBuffers`。
 
 #![cfg(windows)]
 
@@ -12,18 +12,18 @@ use std::time::{Duration, Instant};
 use tokio::sync::mpsc as tokio_mpsc;
 use windows::core::{w, PCWSTR};
 use windows::Win32::Foundation::{
-    GetLastError, ERROR_CLASS_ALREADY_EXISTS, HWND, LPARAM, LRESULT, RECT, WPARAM,
+    GetLastError, ERROR_CLASS_ALREADY_EXISTS, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM,
 };
-use windows::Win32::Graphics::Gdi::{InvalidateRect, UpdateWindow, ValidateRect};
+use windows::Win32::Graphics::Gdi::{InvalidateRect, ScreenToClient, UpdateWindow, ValidateRect};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetClientRect,
     GetWindowLongPtrW, LoadCursorW, PeekMessageW, RegisterClassExW, SetCursor, SetWindowLongPtrW,
-    SetWindowPos, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW, GWLP_USERDATA, HWND_TOP,
-    IDC_ARROW, MSG, PM_REMOVE, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE, SW_SHOWNOACTIVATE,
-    WM_DESTROY, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP,
-    WM_SETCURSOR, WM_SIZE, WNDCLASSEXW, WS_CHILD, WS_CLIPSIBLINGS, WS_EX_NOACTIVATE,
-    WS_EX_NOREDIRECTIONBITMAP,
+    SetWindowPos, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW, GWLP_USERDATA, HTTRANSPARENT,
+    HWND_TOP, IDC_ARROW, MSG, PM_REMOVE, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE,
+    SW_SHOWNOACTIVATE, WM_DESTROY, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCHITTEST,
+    WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR, WM_SIZE, WNDCLASSEXW, WS_CHILD,
+    WS_CLIPSIBLINGS, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP,
 };
 use yohu_mirror::{EncodedFrame, FramePipe, MirrorService};
 use yohu_protocol::{AppEvent, MirrorControlMessage, MirrorLayout, MirrorStageMode};
@@ -32,7 +32,7 @@ use super::chrome::{self, ChromeSpec};
 use super::follow::GeomHost;
 use super::gpu::Gpu;
 use super::mf::{DecodedPicture, MfDecoder};
-use super::scale::{fit_letterbox, map_client_to_video, Letterbox};
+use super::scale::{contain_in_zone, fit_letterbox, map_client_to_video, Letterbox};
 
 const CLASS: PCWSTR = w!("YohuMirrorPresent");
 const PRESENT_IDLE: Duration = Duration::from_millis(4);
@@ -199,6 +199,7 @@ fn run_loop(ctx: PresentCtx, rx: Receiver<Cmd>) -> Result<(), String> {
     let mut spin = 0.0_f32;
     loop {
         pump_messages(hwnd);
+        sync_host_size(hwnd);
         match rx.recv_timeout(PRESENT_IDLE) {
             Ok(Cmd::Shutdown) | Err(RecvTimeoutError::Disconnected) => break,
             Ok(Cmd::Layout(layout)) => apply_layout(hwnd, &layout),
@@ -374,7 +375,7 @@ fn present_chrome_if_due(hwnd: HWND, spin: f32) {
     };
     let spec = ChromeSpec {
         mode,
-        title: &title,
+        title,
         description: &description,
         canvas_argb,
         title_argb,
@@ -665,7 +666,7 @@ fn present_picture(hwnd: HWND, width: u32, height: u32, picture: DecodedPicture)
         }
         s.skip_logged = None;
         let gpu = s.gpu.take()?;
-        s.dest = fit_letterbox(width, height, s.layout_w, s.layout_h);
+        s.dest = stage_dest(s);
         let letterbox = chrome::stage_palette(s.dark).0;
         Some((gpu, s.dest, letterbox))
     })
@@ -791,7 +792,6 @@ fn place_occupancy(hwnd: HWND) {
         s.mode = chrome::stage_mode(s.paused, s.session, s.has_frame);
         s.control = s.want_control && s.mode == MirrorStageMode::Video;
         let radius = chrome::host_corner_radius(s.fullscreen, s.dpr);
-        let clip = s.layout_r != radius;
         s.layout_r = radius;
         s.geom.set_occupancy(
             &s.serial,
@@ -800,10 +800,9 @@ fn place_occupancy(hwnd: HWND) {
             s.avail_w,
             s.avail_h,
             s.visible,
-            s.video_w,
-            s.video_h,
-            s.session,
         );
+        s.dest = stage_dest(s);
+        let (cx, cy, cw, ch) = occupancy_box(s);
         let (stroke_px, border) = if s.fullscreen {
             (0.0, 0)
         } else {
@@ -814,25 +813,51 @@ fn place_occupancy(hwnd: HWND) {
         };
         if let Some(gpu) = s.gpu.as_mut() {
             gpu.set_panel_chrome(radius, stroke_px, border);
-            if clip {
-                if let Err(e) = gpu.clip_host(s.layout_w.max(1), s.layout_h.max(1), s.layout_r) {
-                    tracing::warn!(error = %e, "投屏圆角 clip 失败");
+            if s.layout_w >= MIN_LAYOUT_PX && s.layout_h >= MIN_LAYOUT_PX {
+                match gpu.set_occupancy_clip(cx, cy, cw, ch, s.layout_r, true) {
+                    Ok(true) => tracing::info!(
+                        serial = %s.serial,
+                        session = s.session,
+                        mode = ?s.mode,
+                        video_w = s.video_w,
+                        video_h = s.video_h,
+                        clip_x = cx,
+                        clip_y = cy,
+                        clip_w = cw,
+                        clip_h = ch,
+                        "投屏占用盒 DComp clip"
+                    ),
+                    Ok(false) => {}
+                    Err(e) => tracing::warn!(error = %e, "投屏占用 clip 失败"),
                 }
             }
         }
         s.chrome_dirty = true;
-        tracing::info!(
-            serial = %s.serial,
-            session = s.session,
-            mode = ?s.mode,
-            video_w = s.video_w,
-            video_h = s.video_h,
-            avail_w = s.avail_w,
-            avail_h = s.avail_h,
-            r = s.layout_r,
-            "投屏占用盒已按画面 contain"
-        );
     });
+}
+
+fn occupancy_box(s: &SurfaceState) -> (i32, i32, u32, u32) {
+    if s.session && s.video_w > 0 && s.video_h > 0 {
+        contain_in_zone(s.layout_w, s.layout_h, s.video_w, s.video_h)
+    } else {
+        (0, 0, s.layout_w.max(1), s.layout_h.max(1))
+    }
+}
+
+fn stage_dest(s: &SurfaceState) -> Letterbox {
+    if s.session && s.video_w > 0 && s.video_h > 0 {
+        let (x, y, w, h) = occupancy_box(s);
+        let inner = fit_letterbox(s.video_w, s.video_h, w, h);
+        Letterbox {
+            x: x + inner.x,
+            y: y + inner.y,
+            width: inner.width,
+            height: inner.height,
+            nearest: inner.nearest,
+        }
+    } else {
+        fit_letterbox(s.video_w, s.video_h, s.layout_w, s.layout_h)
+    }
 }
 
 fn sync_host_size(hwnd: HWND) {
@@ -850,22 +875,49 @@ fn sync_host_size(hwnd: HWND) {
         }
         s.layout_w = w;
         s.layout_h = h;
-        let Some(gpu) = s.gpu.as_mut() else {
-            return;
-        };
-        if let Err(e) = gpu.clip_host(w.max(1), h.max(1), s.layout_r) {
-            tracing::warn!(error = %e, "投屏圆角 clip 失败");
-        }
-        if w < MIN_LAYOUT_PX || h < MIN_LAYOUT_PX {
-            return;
-        }
-        if gpu.matches_host(w, h) {
-            return;
-        }
-        if let Err(e) = gpu.resize(w, h) {
-            tracing::error!(error = %e, w, h, "投屏 swapchain resize 失败");
+        {
+            let Some(gpu) = s.gpu.as_mut() else {
+                return;
+            };
+            if w < MIN_LAYOUT_PX || h < MIN_LAYOUT_PX {
+                return;
+            }
+            if gpu.matches_host(w, h) {
+                return;
+            }
+            if let Err(e) = gpu.resize(w, h) {
+                tracing::error!(error = %e, w, h, "投屏 swapchain resize 失败");
+                return;
+            }
         }
         s.chrome_dirty = true;
+        if s.video_w == 0 || s.video_h == 0 {
+            let (cx, cy, cw, ch) = occupancy_box(s);
+            if let Some(gpu) = s.gpu.as_mut() {
+                if let Err(e) = gpu.set_occupancy_clip(cx, cy, cw, ch, s.layout_r, false) {
+                    tracing::warn!(error = %e, "投屏占用 clip 失败");
+                }
+            }
+            return;
+        }
+        s.dest = stage_dest(s);
+        let (cx, cy, cw, ch) = occupancy_box(s);
+        if let Some(gpu) = s.gpu.as_mut() {
+            if let Err(e) = gpu.set_occupancy_clip(cx, cy, cw, ch, s.layout_r, false) {
+                tracing::warn!(error = %e, "投屏占用 clip 失败");
+            }
+        }
+        if s.mode != MirrorStageMode::Video {
+            return;
+        }
+        let dest = s.dest;
+        let letterbox = chrome::stage_palette(s.dark).0;
+        if let Some(gpu) = s.gpu.as_mut() {
+            gpu.set_letterbox_argb(letterbox);
+            if let Err(e) = gpu.replay_last(dest) {
+                tracing::debug!(error = %e, "投屏 resize 后重画上一帧失败");
+            }
+        }
     });
 }
 
@@ -1018,12 +1070,36 @@ unsafe extern "system" fn wnd_proc(
             sync_host_size(hwnd);
             LRESULT(0)
         }
+        WM_NCHITTEST => occupancy_hit_test(hwnd, lparam),
         WM_DESTROY => LRESULT(0),
         WM_LBUTTONDOWN | WM_LBUTTONUP | WM_MOUSEMOVE | WM_RBUTTONDOWN | WM_RBUTTONUP => {
             handle_pointer(hwnd, msg, lparam);
             LRESULT(0)
         }
         _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
+    }
+}
+
+fn occupancy_hit_test(hwnd: HWND, lparam: LPARAM) -> LRESULT {
+    let mut pt = POINT {
+        x: (lparam.0 as u16) as i16 as i32,
+        y: ((lparam.0 >> 16) as u16) as i16 as i32,
+    };
+    unsafe {
+        let _ = ScreenToClient(hwnd, &mut pt);
+    }
+    let inside = with_state(hwnd, |s| {
+        let x = s.dest.x;
+        let y = s.dest.y;
+        let w = s.dest.width as i32;
+        let h = s.dest.height as i32;
+        pt.x >= x && pt.y >= y && pt.x < x + w && pt.y < y + h
+    })
+    .unwrap_or(true);
+    if inside {
+        unsafe { DefWindowProcW(hwnd, WM_NCHITTEST, WPARAM(0), lparam) }
+    } else {
+        LRESULT(HTTRANSPARENT as isize)
     }
 }
 

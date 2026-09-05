@@ -1,7 +1,7 @@
 //! 壳内投屏呈现：Media Foundation → D3D11 YUV → 舞台透明洞内 contain 的 HWND（ADR-v6-024/026/027）。
 //!
-//! UI 上报稳定可用区；HWND 按画面 contain，自身画占用卡片。无 HWND lerp，无 CSS 占用过渡。
-//! HWND 生命周期跟舞台可见性走，解码会话跟 `mirror.start`/`stop` 走。两者不得绑死。
+//! UI 上报稳定可用区；HWND 铺满 avail。可见占用卡片是 DComp clip。占用 fill↔contain 走 `IDCompositionAnimation`。
+//! 禁止 CSS 占用过渡。HWND 生命周期跟舞台可见性走，解码会话跟 `mirror.start`/`stop` 走。两者不得绑死。
 
 #[cfg(windows)]
 mod chrome;

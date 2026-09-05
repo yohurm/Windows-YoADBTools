@@ -1,6 +1,6 @@
-//! 占用缩放：UI 报稳定可用区；HWND 按画面 contain，左右边框贴合。
+//! 占用缩放：UI 报稳定可用区；HWND 铺满 avail；可见卡片按画面 contain。
 //!
-//! 无 HWND lerp，无 CSS 占用过渡。
+//! 占用盒 fill↔contain 走 DirectComposition clip 动画（300ms）。禁止 CSS 占用过渡。
 
 /// 在可用区内按画面宽高比 contain，返回贴合盒相对区原点的偏移与尺寸。
 /// 公式与 UI `fitContain` 相同（先 min 再 round），无画面尺寸时铺满。
@@ -26,21 +26,6 @@ pub fn contain_in_zone(
     let x = (zone_w as i32 - w as i32) / 2;
     let y = (zone_h as i32 - h as i32) / 2;
     (x, y, w, h)
-}
-
-/// 会话且已有编码尺寸则 contain（左右边框贴合画面）；否则铺满可用区。
-pub fn hwnd_in_avail(
-    zone_w: u32,
-    zone_h: u32,
-    video_w: u32,
-    video_h: u32,
-    session: bool,
-) -> (i32, i32, u32, u32) {
-    if session && video_w > 0 && video_h > 0 {
-        contain_in_zone(zone_w, zone_h, video_w, video_h)
-    } else {
-        (0, 0, zone_w, zone_h)
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -137,9 +122,42 @@ pub fn map_client_to_video(
     ))
 }
 
+/// 与 `--yohu-motion-spatial-panel` 同值：300ms。
+pub const SPATIAL_PANEL_MS: u64 = 300;
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// HarmonyOS 标准曲线 `cubic-bezier(0.4, 0, 0.2, 1)`，与 `--yohu-ease-standard` 同值。
+    fn ease_standard(t: f64) -> f64 {
+        let x = t.clamp(0.0, 1.0);
+        cubic_bezier(0.4, 0.0, 0.2, 1.0, x)
+    }
+
+    fn cubic_bezier(x1: f64, y1: f64, x2: f64, y2: f64, x: f64) -> f64 {
+        let mut t = x;
+        for _ in 0..8 {
+            let x_est = sample_curve(t, x1, x2);
+            let dx = sample_curve_d(t, x1, x2);
+            if dx.abs() < 1e-6 {
+                break;
+            }
+            t = (t - (x_est - x) / dx).clamp(0.0, 1.0);
+        }
+        sample_curve(t, y1, y2)
+    }
+
+    fn sample_curve(t: f64, a: f64, b: f64) -> f64 {
+        let u = 1.0 - t;
+        3.0 * u * u * t * a + 3.0 * u * t * t * b + t * t * t
+    }
+
+    fn sample_curve_d(t: f64, a: f64, b: f64) -> f64 {
+        let u = 1.0 - t;
+        3.0 * u * u * a + 6.0 * u * t * (b - a) + 3.0 * t * t * (1.0 - b)
+    }
+
 
     #[test]
     fn integer_scale_snaps() {
@@ -199,28 +217,18 @@ mod tests {
     }
 
     #[test]
-    fn hwnd_hugs_portrait_when_session_has_size() {
-        let (x, y, w, h) = hwnd_in_avail(912, 955, 1088, 2400, true);
-        assert_eq!((x, y, w, h), contain_in_zone(912, 955, 1088, 2400));
+    fn contain_hugs_portrait_in_avail() {
+        let (x, y, w, h) = contain_in_zone(912, 955, 1088, 2400);
         assert!(w < 912);
         assert_eq!(y, 0);
         assert!(x > 0);
+        assert_eq!(h, 955);
     }
 
     #[test]
-    fn hwnd_hugs_cet_avail_946x989() {
-        let (x, y, w, h) = hwnd_in_avail(946, 989, 1088, 2400, true);
-        assert_eq!((x, y, w, h), contain_in_zone(946, 989, 1088, 2400));
-        assert_eq!(w, 448);
-        assert!(w < 946);
-        assert_eq!(h, 989);
-        assert!(x > 0);
-        assert_eq!(y, 0);
-    }
-
-    #[test]
-    fn hwnd_fills_zone_when_idle_even_with_last_size() {
-        assert_eq!(hwnd_in_avail(912, 955, 1088, 2400, false), (0, 0, 912, 955));
+    fn contain_hugs_cet_avail_946x989() {
+        let (x, y, w, h) = contain_in_zone(946, 989, 1088, 2400);
+        assert_eq!((x, y, w, h), (249, 0, 448, 989));
     }
 
     #[test]
@@ -234,5 +242,14 @@ mod tests {
         };
         assert_eq!(map_client_to_video(10, 20, box_, 50, 100), Some((0, 0)));
         assert_eq!(map_client_to_video(0, 0, box_, 50, 100), None);
+    }
+
+    #[test]
+    fn ease_standard_is_bounded_and_eases() {
+        assert_eq!(ease_standard(0.0), 0.0);
+        assert!((ease_standard(1.0) - 1.0).abs() < 1e-6);
+        let mid = ease_standard(0.5);
+        assert!(mid > 0.2 && mid < 0.8);
+        assert!(ease_standard(0.2) < ease_standard(0.8));
     }
 }
