@@ -2,6 +2,9 @@
 
 use serde::{Deserialize, Serialize};
 
+/// 可用区任一边低于此物理像素则不 Present（UI `layoutIsPresentable` 对齐）。
+pub const MIRROR_MIN_LAYOUT_PX: u32 = 64;
+
 /// 启动结果（对标 [`crate::CaptureStart`]：adopt = 已有 Live 会话）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MirrorStart {
@@ -93,7 +96,7 @@ pub struct MirrorLayout {
     pub failed: bool,
     #[serde(default)]
     pub error: String,
-    /// `documentElement` `data-theme=dark`
+    /// 设备夜览（`DeviceStatusHub.night`）。不是工作台 `data-theme`。
     pub dark: bool,
 }
 
@@ -196,6 +199,7 @@ mod tests {
                 "dark": true
             })
         );
+        assert_eq!(MIRROR_MIN_LAYOUT_PX, 64);
         let back: MirrorLayout = serde_json::from_value(v).expect("layout");
         assert_eq!(back, layout);
     }
