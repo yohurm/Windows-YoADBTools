@@ -481,7 +481,7 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     }
   });
 
-  it("日志显示列走 YoFormRow：说明在左侧信息栈，复选在右侧控件槽", () => {
+  it("日志显示列走 YoFormRow：标题备注在左侧信息栈，复选在右侧控件槽", () => {
     const { container } = render(() => <SettingsView />);
     const title = [...container.querySelectorAll(".yohu-form-row__title")].find(
       (el) => el.textContent === "日志显示列",
@@ -490,11 +490,10 @@ describe("SettingsView（§4.4 设置分组卡片）", () => {
     const info = row?.querySelector(":scope > .yohu-form-row__info");
     const control = row?.querySelector(":scope > .yohu-form-row__control");
     expect(info).toBeTruthy();
-    expect(info?.querySelector(".yohu-form-row__description")).toBeTruthy();
+    expect(info?.querySelector(".yohu-form-row__description")).toBeNull();
     expect(info?.querySelector(".yohu-form-row__note")).toBeTruthy();
     expect(control).toBeTruthy();
     expect(control?.querySelector(".yohu-settings__checks")).toBeTruthy();
-    expect(row?.querySelector(":scope > .yohu-form-row__description")).toBeNull();
   });
 
   it("关闭 UID 列立即写入 log_display_columns", async () => {

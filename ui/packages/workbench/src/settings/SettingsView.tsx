@@ -282,7 +282,6 @@ export const SettingsView: Component = () => {
           <YoFormRow
             class="yohu-settings__path-row"
             title="默认导出路径"
-            description="手动导出的合并文件写入该目录；留空 = 应用导出目录"
             note={<EffectBadge text="立即生效" />}
           >
             <PathControl
@@ -332,7 +331,6 @@ export const SettingsView: Component = () => {
 
           <YoFormRow
             title="日志显示列"
-            description="消息列始终显示。关闭的列不出现在清单表头与行内。"
             note={<EffectBadge text="立即生效" />}
           >
             <div class="yohu-settings__checks">
