@@ -1,6 +1,6 @@
 # 模块：投屏
 
-- 能力：`yohu-mirror` 解复用 + 槽位；壳 `mirror_present` 解码呈现（ADR-v6-024/026/027）
+- 能力：`yohu-mirror` 解复用 + 槽位；壳 `mirror_present` 编译期系统硬解呈现（ADR-v6-024/026/027/028；Windows = MF）
 - 官方未改 `scrcpy-server` 4.1 sidecar；禁止拉起 `scrcpy.exe`（ADR-v6-015）
 - 槽位与采集同构：仅 Live adopt；`mirror/state` 必达；首帧 `mirror/painted`
 - 长驻 `app_process` 的杀树走 `yohu_runtime::kill_tree`
@@ -11,11 +11,11 @@
 设备 MediaCodec（协议：usb / wifi；USB 优先 HEVC）
   → ADB reverse 或 forward（可 warmup 预挂）
   → yohu-mirror 解复用 + FramePipe（sticky last config；8 帧，先丢 delta；呈现线程直取）
-  → 壳 MF 硬件 MFT（DXGI 设备管理器）→ D3D11 Video Processor
-  → 舞台透明洞内铺满 avail 的 WS_CHILD HWND（占用卡片 = DComp clip）
+  → 壳 AnnexBDecoder（编译期后端；Windows = MF 硬件 MFT + DXGI）
+  → 壳表面 Present（Windows = D3D11 VP + WS_CHILD HWND + DComp clip）
 ```
 
-core 零 Tauri：`FramePipe` 在 `yohu-mirror`；HWND / MF / D3D 只在 `yohu-adbtools`。
+core 零 Tauri：`FramePipe` 在 `yohu-mirror`；解码 / 窗体 / GPU 只在 `yohu-adbtools`（ADR-v6-028）。macOS VideoToolbox / Linux VA-API 预留，本期不交付像素。
 
 `mirror.start` 只传 `serial/control/connection/session_quality_touched`；编码参数由壳从 `yohu-domain` 解析。
 
@@ -35,6 +35,7 @@ core 零 Tauri：`FramePipe` 在 `yohu-mirror`；HWND / MF / D3D 只在 `yohu-ad
 - 整数倍（误差 &lt; 1%）吸附后最近邻；否则由 D3D11 Video Processor 缩放
 - 拖拽主窗：子窗自动跟；改尺寸在 owner `WM_WINDOWPOSCHANGING` 瞬时跟盒。侧栏每帧跟住。面板内全屏只藏操作栏/功能栏，页眉可点，Esc 退出。呈现线程跟子窗尺寸 `ResizeBuffers`；禁止 `SetWindowPos`；`SetWindowPos` 禁止 `SWP_NOCOPYBITS`
 - **舞台占用（ADR-v6-026）：** HWND 生命周期跟可用区可见性走，解码管道跟 start/stop 走。空态/加载/暂停由同一 HWND 用 Direct2D 绘制（文案、surface、hairline 在壳内）。WebView 舞台是透明洞，不是 YoPanel。停止投屏不解 HWND。离开投屏页 `visible=false` 才 `DestroyWindow`
+- **呈现类型（两段寿命）：** `Stage`（OS 无关）是占用/模式/chrome 的唯一开关，`bound` 只在 BindPipe/UnbindPipe 写入。Windows 上 `Host` 持 GPU+Stage+输入（跟 HWND）；`DecodeBind` 持 FramePipe+MF（跟 start/stop，不碰 HWND）。呈现线程只调度 `Cmd`，禁止再用 `session` bool 与管道双轨
 - 截图：`mirror.screenshot` 按视频分辨率从 last NV12 纹理导出（不是交换链 letterbox）
 - 实测 fps：1s 窗口已 Present 帧，进状态栏右槽，不盖画面
 

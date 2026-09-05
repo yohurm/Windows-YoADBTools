@@ -25,7 +25,7 @@
 | `system.info` / `openPath` / `reportError` / `log` | 关于 / 打开路径 / 上报 |
 | `update.check` / `info` / `download` / `install` / `cancel` / `open` | ADR-v6-022 |
 
-本机选路走 `@yohu/api` 的 `dialogOpen*` / `dialogSaveFile`（封装 `tauri-plugin-dialog`）。窗口三键仅 `@yohu/workbench` `window-chrome.ts`。
+本机选路走 `@yohu/api` 的 `dialogOpen*` / `dialogSaveFile`（封装 `tauri-plugin-dialog`）。窗口三键走 `@yohu/api` 的 `windowMinimize` 等（封装 `@tauri-apps/api/window`）；工作台不直连 Tauri。`mirror.layout.dark` 是设备 Hub 夜览，不是工作台 `data-theme`。
 
 ## 事件
 

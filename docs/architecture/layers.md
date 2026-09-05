@@ -10,7 +10,7 @@
 | G4 | 性能 | 默认 10k 环 + 3 会话 + 虚拟列表；批量 IPC |
 | G5 | 中文 | WebView 原生 IME |
 
-本期不做：macOS/Linux 交付、插件热加载、重实现 ADB 协议、每窗口一条 logcat、查询 DSL。投屏在面板内嵌（ADR-v6-015/024/027：主窗 WS_CHILD HWND 在舞台透明洞内 contain，不是独立 scrcpy 窗），不是非目标。
+本期不交付 macOS/Linux 产品（投屏后端接口预留，ADR-v6-028）；亦不做插件热加载、重实现 ADB 协议、每窗口一条 logcat、查询 DSL。投屏在面板内嵌（ADR-v6-015/024/027/028：Windows 主窗 WS_CHILD HWND 在舞台透明洞内 contain，不是独立 scrcpy 窗），不是非目标。
 
 ## 层模型
 

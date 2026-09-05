@@ -3,7 +3,7 @@
 > **状态：** 已落地（S1–S4 + 投屏主路径）；2026-08 起重规划：`yohu-runtime` ∥ `yohu-protocol`，壳 crate `yohu-adbtools`，前端壳 `@yohu/workbench`。  
 > **需求：** [`docs/requirements/需求分析.md`](../requirements/需求分析.md)
 
-**一句话：** Rust 领域核心 + Tauri 2 窗口/IPC + SolidJS WebView UI（YoUI）。本期交付 Windows x64；OS 差异收口在 `yohu-runtime`，不在本期交付 macOS/Linux。
+**一句话：** Rust 领域核心 + Tauri 2 窗口/IPC + SolidJS WebView UI（YoUI）。本期交付 Windows x64；投屏解码编译期选 OS 原生后端（ADR-v6-028），macOS/Linux 预留不交付。
 
 ## 文档地图
 
@@ -15,7 +15,7 @@
 | [youi.md](youi.md) | `@yohu/ui`（对外名 YoUI） |
 | [workbench.md](workbench.md) | `@yohu/workbench` + `apps/shell` |
 | [modules/](modules/) | terminal / files / logs / mirror / update / **device** |
-| [adr/](adr/) | ADR-v6-001～027 |
+| [adr/](adr/) | ADR-v6-001～028 |
 | [UI设计系统-v6.md](UI设计系统-v6.md) | token / 密度 / 主题 |
 | [动画系统-v6.md](动画系统-v6.md) | 动效（ADR-v6-017） |
 | [右键菜单-v6.md](右键菜单-v6.md) | 右键引擎（ADR-v6-019） |
